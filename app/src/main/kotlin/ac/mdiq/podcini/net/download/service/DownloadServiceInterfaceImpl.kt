@@ -11,10 +11,9 @@ import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.addDownloadStatus
 import ac.mdiq.podcini.storage.database.addToAssQueue
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.deleteMedia
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
@@ -84,7 +83,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             return
         }
         if (item.isDownloaded()) {
-            if (getPref(AppPrefs.prefEnqueueDownloaded, false)) {
+            if (appPrefs.enqueueDownloaded) {
                 if (item.feed?.queue != null) runBlocking { addToAssQueue(listOf(item)) }
             }
             return
@@ -101,7 +100,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
         // This needs to be done here, not in the worker. Reason: The worker might or might not be running.
         // Remove partially downloaded file
         val episode_ = deleteMedia(media)
-        if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(listOf(episode_))
+        if (appPrefs.deleteRemovesFromQueue) removeFromAllQueues(listOf(episode_))
         val tag = WORK_TAG_EPISODE_URL + media.downloadUrl
         val future: Future<List<WorkInfo>> = WorkManager.getInstance(getAppContext()).getWorkInfosByTag(tag)
 
@@ -360,7 +359,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 .setInitialDelay(0L, TimeUnit.MILLISECONDS)
                 .addTag(WORK_TAG)
                 .addTag(WORK_TAG_EPISODE_URL + item.downloadUrl)
-            if (getPref(AppPrefs.prefEnqueueDownloaded, false)) {
+            if (appPrefs.enqueueDownloaded) {
                 if (item.feed?.queue != null) runBlocking { addToAssQueue(listOf(item)) }
                 workRequest.addTag(WORK_DATA_WAS_QUEUED)
             }

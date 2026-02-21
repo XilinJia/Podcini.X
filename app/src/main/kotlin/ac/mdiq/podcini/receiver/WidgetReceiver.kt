@@ -14,8 +14,9 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActivityIntent
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
-import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.storage.database.episodeById
+import ac.mdiq.podcini.storage.database.fastForwardSecs
+import ac.mdiq.podcini.storage.database.rewindSecs
 import ac.mdiq.podcini.storage.database.smartRemoveFromAllQueues
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeState
@@ -260,7 +261,7 @@ class PrevAction : ActionCallback {
 class RewindAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         Logd(TAG, "RewindAction onAction")
-        withContext(Dispatchers.Main) { mPlayer?.seekDelta(-AppPreferences.rewindSecs * 1000) }
+        withContext(Dispatchers.Main) { mPlayer?.seekDelta(-rewindSecs * 1000) }
         PodciniWidget().update(context, glanceId)
     }
 }
@@ -268,7 +269,7 @@ class RewindAction : ActionCallback {
 class ForwardAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         Logd(TAG, "ForwardAction onAction")
-        withContext(Dispatchers.Main) { mPlayer?.seekDelta(AppPreferences.fastForwardSecs * 1000) }
+        withContext(Dispatchers.Main) { mPlayer?.seekDelta(fastForwardSecs * 1000) }
         PodciniWidget().update(context, glanceId)
     }
 }

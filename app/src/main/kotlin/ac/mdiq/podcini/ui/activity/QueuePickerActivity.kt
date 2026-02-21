@@ -1,10 +1,10 @@
 package ac.mdiq.podcini.ui.activity
 
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.preferences.AppPreferences.ThemePreference
 import ac.mdiq.podcini.receiver.PodciniWidget
 import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.ui.compose.PodciniTheme
+import ac.mdiq.podcini.ui.compose.AppThemes
 import ac.mdiq.podcini.ui.compose.filterChipBorder
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -27,7 +27,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +40,7 @@ class QueuePickerActivity : ComponentActivity() {
         val spinnerTexts = queuesLive.map { "${if (it.id == actQueue.id) "> " else ""}${it.name} : ${it.size()}" }
 
         setContent {
-            PodciniTheme(ThemePreference.BLACK) {
+            PodciniTheme(AppThemes.BLACK) {
                 Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Column(modifier = Modifier.padding(24.dp)) {
                         Text(text = "Select queue", style = MaterialTheme.typography.headlineSmall)

@@ -11,7 +11,7 @@ import ac.mdiq.podcini.net.feed.PodcastSearchResult
 import ac.mdiq.podcini.net.feed.PodcastSearcherRegistry
 import ac.mdiq.podcini.ui.utils.HtmlToPlainText
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.realm
@@ -387,7 +387,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                     if (feedSource == "VistaGuide") {
                         feed1.prefStreamOverDownload = true
                         feed1.autoDownload = false
-                    } else if (isAutodownloadEnabled) feed1.autoDownload = autoDownloadChecked
+                    } else if (appPrefs.enableAutoDl) feed1.autoDownload = autoDownloadChecked
                     if (username != null) {
                         feed1.username = username
                         feed1.password = password
@@ -573,7 +573,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                         vm.limitEpisodesCount = it
                     }
                 }
-                if (gearbox.isFeedAutoDownloadable(vm.feedUrl) && isAutodownloadEnabled) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (gearbox.isFeedAutoDownloadable(vm.feedUrl) && appPrefs.enableAutoDl) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = vm.autoDownloadChecked, onCheckedChange = { vm.autoDownloadChecked = it })
                     Text(text = stringResource(R.string.auto_download_label), style = MaterialTheme.typography.bodyMedium.merge(), color = textColor, modifier = Modifier.padding(start = 16.dp))
                 }

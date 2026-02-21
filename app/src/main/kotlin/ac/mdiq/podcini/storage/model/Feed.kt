@@ -3,8 +3,7 @@ package ac.mdiq.podcini.storage.model
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.VideoMode
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
@@ -499,7 +498,7 @@ class Feed : RealmObject {
         return false
     }
 
-    fun useFeedImage(): Boolean = !getPref(AppPrefs.prefEpisodeCover, false) || !useEpisodeImage
+    fun useFeedImage(): Boolean = !appPrefs.useEpisodeCover || !useEpisodeImage
 
     fun addPayment(funding: FeedFunding) {
         paymentLinkList.add(funding)

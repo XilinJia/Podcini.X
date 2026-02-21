@@ -1,26 +1,25 @@
-package ac.mdiq.podcini.preferences
+package ac.mdiq.podcini.config.settings
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.upsertBlk
-import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.utils.Logd
-import android.app.Activity
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import androidx.core.database.getStringOrNull
 import io.github.xilinjia.krdb.ext.realmSetOf
-import io.github.xilinjia.krdb.ext.toRealmList
 import io.github.xilinjia.krdb.ext.toRealmSet
 import java.io.File
 import java.io.FileInputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
-fun importPA(uri: Uri, activity: Activity, importDb: Boolean, importDirectory: Boolean, onDismiss: ()->Unit) {
+fun importPA(uri: Uri, importDb: Boolean, importDirectory: Boolean, onDismiss: ()->Unit) {
     val TAG = "importPA"
 
     val idImageMap = mutableMapOf<Int, String>()
@@ -348,11 +347,11 @@ fun importPA(uri: Uri, activity: Activity, importDb: Boolean, importDirectory: B
     var unzipDir: File? = null
 
     fun unzipArchive(): File? {
-        val internalDir = activity.filesDir
+        val internalDir = getAppContext().filesDir
         val zipFileName = "tempArchive.zip"
         val zipFile = File(internalDir, zipFileName)
 
-        activity.contentResolver.openInputStream(uri)?.use { inputStream -> zipFile.outputStream().use { outputStream -> inputStream.copyTo(outputStream) } } ?: throw IllegalArgumentException("Unable to read from URI: $uri")
+        getAppContext().contentResolver.openInputStream(uri)?.use { inputStream -> zipFile.outputStream().use { outputStream -> inputStream.copyTo(outputStream) } } ?: throw IllegalArgumentException("Unable to read from URI: $uri")
 
         unzipDir = File(internalDir, "UnzippedFiles")
         if (unzipDir.exists()) deleteDirectory(unzipDir)

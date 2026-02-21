@@ -1,8 +1,7 @@
 package ac.mdiq.podcini.storage.utils
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
@@ -44,7 +43,7 @@ private const val MD5_HEX_LENGTH = 32
 private val validChars = ("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-").toCharArray()
 
 val customMediaUriString: String
-    get() = if (getPref(AppPrefs.prefUseCustomMediaFolder, false)) getPref(AppPrefs.prefCustomMediaUri, "") else ""
+    get() = if (appPrefs.useCustomMediaFolder) appPrefs.customMediaUri else ""
 
 /**
  * Get the number of free bytes that are available on the external storage.

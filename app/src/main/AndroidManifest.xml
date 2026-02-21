@@ -39,7 +39,7 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:backupAgent=".preferences.OpmlBackupAgent"
+        android:backupAgent=".config.settings.OpmlBackupAgent"
         android:restoreAnyVersion="true"
         android:theme="@style/Theme.Podcini.Splash"
         android:supportsRtl="true"
@@ -147,42 +147,6 @@
             <meta-data
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
-        </activity>
-
-        <activity
-            android:name=".ui.activity.PreferenceActivity"
-            android:configChanges="keyboardHidden|orientation|screenSize"
-            android:theme="@style/Theme.Podcini"
-            android:exported="false"
-            android:label="@string/settings_label">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="ac.mdiq.podcini.ui.activity.MainActivity"/>
-            <intent-filter>
-                <action android:name="android.intent.action.APPLICATION_PREFERENCES" />
-            </intent-filter>
-        </activity>
-
-        <activity
-            android:name=".ui.activity.BugReportActivity"
-            android:label="@string/bug_report_title">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="ac.mdiq.podcini.ui.activity.PreferenceActivity"/>
-        </activity>
-
-        <activity
-            android:name=".ui.activity.VideoplayerActivity"
-            android:configChanges="keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize"
-            android:supportsPictureInPicture="true"
-            android:exported="false">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="ac.mdiq.podcini.ui.activity.MainActivity"/>
-            <intent-filter>
-                <action android:name="ac.mdiq.podcini.intents.VIDEO_PLAYER" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
         </activity>
 
         <activity

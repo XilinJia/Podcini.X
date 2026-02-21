@@ -5,6 +5,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.shouldRepeat
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.storage.database.MonitorEntity
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.episodeById
 import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
@@ -22,6 +23,7 @@ import ac.mdiq.podcini.storage.model.Episode.Companion.PLAYABLE_TYPE_FEEDMEDIA
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.specs.MediaType
+import ac.mdiq.podcini.ui.screens.curVideoMode
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.timeIt
@@ -56,6 +58,8 @@ object InTheatre {
     var vController: MediaController? = null
 
     var actQueue by mutableStateOf(PlayQueue())
+
+    var playVideo by mutableStateOf(false)
 
     var curEpisode by mutableStateOf<Episode?>(null)
 
@@ -135,6 +139,7 @@ object InTheatre {
         when {
             episode_ != null -> {
                 curEpisode = episode_
+                playVideo = (episode_.forceVideo || (episode_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && episode_.getMediaType() == MediaType.VIDEO))
                 tempSkipSilence = null
                 shouldRepeat = false
                 curTempSpeed = SPEED_USE_GLOBAL

@@ -5,8 +5,6 @@ import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.model.ARCHIVED_VOLUME_ID
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
@@ -462,8 +460,8 @@ suspend fun deleteFeed(feedId: Long, preserve: Boolean = false) {
 }
 
 fun allowForAutoDelete(feed: Feed): Boolean {
-    if (!getPref(AppPrefs.prefAutoDelete, false)) return false
-    return !feed.isLocalFeed || getPref(AppPrefs.prefAutoDeleteLocal, false)
+    if (!appPrefs.autoDelete) return false
+    return !feed.isLocalFeed || appPrefs.autoDeleteLocal
 }
 
 suspend fun shelveToFeed(episodes: List<Episode>, toFeed: Feed, removeChecked: Boolean = false) {

@@ -1,9 +1,6 @@
 package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.utils.Logd
@@ -324,24 +321,7 @@ fun TitleSummaryActionColumn(titleRes: Int, summaryRes: Int, callback: ()-> Unit
 }
 
 @Composable
-fun TitleSummarySwitchPrefRow(titleRes: Int, summaryRes: Int, pref: AppPrefs, cb: ((Boolean)->Unit)? = null) {
-    val textColor = MaterialTheme.colorScheme.onSurface
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(stringResource(titleRes), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
-            Text(stringResource(summaryRes), color = textColor, style = MaterialTheme.typography.bodySmall)
-        }
-        var isChecked by remember { mutableStateOf(getPref(pref, false)) }
-        Switch(checked = isChecked, onCheckedChange = {
-            isChecked = it
-            if (cb != null) cb.invoke(it)
-            else putPref(pref, it)
-        })
-    }
-}
-
-@Composable
-fun TitleSummarySwitchRow(titleRes: Int, summaryRes: Int, initVal: Boolean, cb: ((Boolean)->Unit)) {
+fun TitleSummarySwitchRow(titleRes: Int, summaryRes: Int, initVal: Boolean, cb: (Boolean)->Unit) {
     val textColor = MaterialTheme.colorScheme.onSurface
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
         Column(modifier = Modifier.weight(1f)) {

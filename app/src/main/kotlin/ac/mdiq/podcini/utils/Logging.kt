@@ -3,8 +3,7 @@
 package ac.mdiq.podcini.utils
 
 import ac.mdiq.podcini.BuildConfig
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.storage.database.appPrefs
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -32,30 +31,30 @@ private suspend fun trimToasts() {
 }
 
 fun Logd(t: String, m: String) {
-    if (BuildConfig.DEBUG || getPref(AppPrefs.prefPrintDebugLogs, false)) Log.d(t, m)
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.d(t, m)
 }
 
 fun Loge(t: String, m: String) {
-    if (BuildConfig.DEBUG || getPref(AppPrefs.prefPrintDebugLogs, false)) Log.e(t, m)
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m)
     LogScope.launch {
         trimToasts()
-        if (getPref(AppPrefs.prefShowErrorToasts, true)) toastMassege = "$t: Error: $m"
+        if (appPrefs.showErrorToasts) toastMassege = "$t: Error: $m"
         toastMessages.add("${localDateTimeString()} $t: Error: $m")
     }
 }
 
 fun Logs(t: String, e: Throwable, m: String = "") {
-    if (BuildConfig.DEBUG || getPref(AppPrefs.prefPrintDebugLogs, false)) Log.e(t, m + "\n" + Log.getStackTraceString(e))
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m + "\n" + Log.getStackTraceString(e))
     val me = e.message
     LogScope.launch {
         trimToasts()
-        if (getPref(AppPrefs.prefShowErrorToasts, true)) toastMassege = "$t: $m Error: $me"
+        if (appPrefs.showErrorToasts) toastMassege = "$t: $m Error: $me"
         toastMessages.add("${localDateTimeString()} $t: $m Error: $me")
     }
 }
 
 fun Logt(t: String, m: String) {
-    if (BuildConfig.DEBUG || getPref(AppPrefs.prefPrintDebugLogs, false)) Log.d(t, m)
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.d(t, m)
     LogScope.launch {
         trimToasts()
         toastMassege = "$t: $m"
@@ -64,7 +63,7 @@ fun Logt(t: String, m: String) {
 }
 
 fun showStackTrace() {
-    if (BuildConfig.DEBUG || getPref(AppPrefs.prefPrintDebugLogs, false)) {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) {
         val stackTraceElements = Thread.currentThread().stackTrace
         stackTraceElements.forEach { element -> Log.d("showStackTrace", element.toString()) }
     }

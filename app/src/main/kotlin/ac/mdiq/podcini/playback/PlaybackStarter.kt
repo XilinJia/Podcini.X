@@ -17,8 +17,8 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.episodeChangedWhenScreenOff
-import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.checkAndMarkDuplicates
+import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.utils.Logd

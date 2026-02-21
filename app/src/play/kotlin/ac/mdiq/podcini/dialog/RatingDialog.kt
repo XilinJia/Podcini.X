@@ -18,7 +18,6 @@ object RatingDialog {
     private const val AFTER_DAYS = 14
 
     private var mContext: WeakReference<Context>? = null
-    private lateinit var mPreferences: SharedPreferences
 
     private const val PREFS_NAME = "RatingPrefs"
     private const val KEY_RATED = "KEY_WAS_RATED"
@@ -27,9 +26,8 @@ object RatingDialog {
 
     fun init(context: Context) {
         mContext = WeakReference(context)
-        mPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-        val firstDate: Long = mPreferences.getLong(KEY_FIRST_START_DATE, 0)
+        val firstDate: Long = syncPrefs.KEY_FIRST_START_DATE
         if (firstDate == 0L) resetStartDate()
     }
 
@@ -47,11 +45,11 @@ object RatingDialog {
                 val reviewInfo: ReviewInfo = task.result
                 val flow: Task<Void?> = manager.launchReviewFlow(context as Activity, reviewInfo)
                 flow.addOnCompleteListener { task1: Task<Void?>? ->
-                    val previousAttempts: Int = mPreferences.getInt(KEY_NUMBER_OF_REVIEWS, 0)
+                    val previousAttempts: Int = syncPrefs.KEY_NUMBER_OF_REVIEWS
                     if (previousAttempts >= 3) saveRated()
                     else {
                         resetStartDate()
-                        mPreferences.edit().putInt(KEY_NUMBER_OF_REVIEWS, previousAttempts + 1).apply()
+                        upsertBlk(syncPrefs) { it.KEY_NUMBER_OF_REVIEWS = previousAttempts + 1 }
                     }
                     Logd("ReviewDialog", "Successfully finished in-app review")
                 }.addOnFailureListener { error: Exception? -> Logd("ReviewDialog", "failed in reviewing process") }
@@ -60,22 +58,22 @@ object RatingDialog {
     }
 
     private fun rated(): Boolean {
-        return mPreferences.getBoolean(KEY_RATED, false)
+        return syncPrefs.KEY_RATED
     }
 
     fun saveRated() {
-        mPreferences.edit().putBoolean(KEY_RATED, true).apply()
+        upsertBlk(syncPrefs) { it.KEY_RATED = true }
     }
 
     private fun resetStartDate() {
-        mPreferences.edit().putLong(KEY_FIRST_START_DATE, System.currentTimeMillis()).apply()
+        upsertBlk(syncPrefs) { it.KEY_FIRST_START_DATE = System.currentTimeMillis() }
     }
 
     private fun shouldShow(): Boolean {
         if (rated() || BuildConfig.DEBUG) return false
 
         val now = System.currentTimeMillis()
-        val firstDate: Long = mPreferences.getLong(KEY_FIRST_START_DATE, now)
+        val firstDate: Long = syncPrefs.KEY_FIRST_START_DATE.takeIf { it != 0 } ?: now
         val diff = now - firstDate
         val diffDays = TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS)
         return diffDays >= AFTER_DAYS

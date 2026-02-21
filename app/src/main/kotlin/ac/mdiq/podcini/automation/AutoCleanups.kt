@@ -1,10 +1,8 @@
 package ac.mdiq.podcini.automation
 
-import ac.mdiq.podcini.preferences.AppPreferences
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
-import ac.mdiq.podcini.preferences.screens.EpisodeCleanupOptions
+import ac.mdiq.podcini.storage.database.EPISODE_CACHE_SIZE_UNLIMITED
+import ac.mdiq.podcini.ui.screens.prefscreens.EpisodeCleanupOptions
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.deleteMedias
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesCount
@@ -25,8 +23,8 @@ import java.util.concurrent.ExecutionException
 private const val TAG: String = "AutoCleanups"
 
 fun cleanupAlgorithm(): EpisodeCleanupAlgorithm {
-    if (!isAutodownloadEnabled) return APNullCleanupAlgorithm()
-    val cleanupValue = getPref(AppPrefs.prefEpisodeCleanup, "0").toIntOrNull() ?: EpisodeCleanupOptions.Never.num
+    if (!appPrefs.enableAutoDl) return APNullCleanupAlgorithm()
+    val cleanupValue = appPrefs.episodeCleanup.toIntOrNull() ?: EpisodeCleanupOptions.Never.num
     return when (cleanupValue) {
         EpisodeCleanupOptions.ExceptFavorites.num -> ExceptFavoriteCleanupAlgorithm()
         EpisodeCleanupOptions.NotInQueue.num -> APQueueCleanupAlgorithm()
@@ -62,8 +60,8 @@ class ExceptFavoriteCleanupAlgorithm : EpisodeCleanupAlgorithm() {
         return cleanup(candidates, numToRemove)
     }
     public override fun getDefaultCleanupParameter(): Int {
-        val cacheSize = getPref(AppPrefs.prefEpisodeCacheSize, "0").toInt()
-        if (cacheSize > AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) {
+        val cacheSize = appPrefs.episodeCacheSize
+        if (cacheSize > EPISODE_CACHE_SIZE_UNLIMITED) {
             val downloadedEpisodes = getEpisodesCount(EpisodeFilter(EpisodeFilter.States.downloaded.name))
             if (downloadedEpisodes > cacheSize) return downloadedEpisodes - cacheSize
         }
@@ -178,7 +176,7 @@ abstract class EpisodeCleanupAlgorithm {
         val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
         try {
             deleteMedias(delete)
-            if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(delete)
+            if (appPrefs.deleteRemovesFromQueue) removeFromAllQueues(delete)
         }  catch (e: ExecutionException) { Logs(TAG, e) }
         val counter = delete.size
         Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
@@ -211,9 +209,9 @@ abstract class EpisodeCleanupAlgorithm {
      * @return the number of episodes to delete in order to make room
      */
     fun getNumEpisodesToCleanup(amountOfRoomNeeded: Int): Int {
-        if (amountOfRoomNeeded >= 0 && getPref(AppPrefs.prefEpisodeCacheSize, "20").toInt() > AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) {
+        if (amountOfRoomNeeded >= 0 && appPrefs.episodeCacheSize > EPISODE_CACHE_SIZE_UNLIMITED) {
             val downloadedEpisodes = getEpisodesCount(EpisodeFilter(EpisodeFilter.States.downloaded.name))
-            if (downloadedEpisodes + amountOfRoomNeeded >= getPref(AppPrefs.prefEpisodeCacheSize, "20").toInt()) return (downloadedEpisodes + amountOfRoomNeeded - getPref(AppPrefs.prefEpisodeCacheSize, "20").toInt())
+            if (downloadedEpisodes + amountOfRoomNeeded >= appPrefs.episodeCacheSize) return (downloadedEpisodes + amountOfRoomNeeded - appPrefs.episodeCacheSize)
         }
         return 0
     }

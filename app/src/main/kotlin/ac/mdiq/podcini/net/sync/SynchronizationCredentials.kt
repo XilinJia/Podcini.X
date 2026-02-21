@@ -1,60 +1,42 @@
 package ac.mdiq.podcini.net.sync
 
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink.clearQueue
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.config.ClientConfig
-import android.content.Context
-import android.content.SharedPreferences
-import androidx.core.content.edit
+import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.database.syncPrefs
+import ac.mdiq.podcini.storage.database.upsertBlk
 
 /**
  * Manages preferences for accessing gpodder.net service and other sync providers
  */
 object SynchronizationCredentials {
-    private const val PREF_NAME = "gpodder.net"
-    private const val PREF_USERNAME = "ac.mdiq.podcini.preferences.gpoddernet.username"
-    private const val PREF_PASSWORD = "ac.mdiq.podcini.preferences.gpoddernet.password"
-    private const val PREF_DEVICEID = "ac.mdiq.podcini.preferences.gpoddernet.deviceID"
-    private const val PREF_HOSTNAME = "prefGpodnetHostname"
-    private const val PREF_HOSTPORT = "prefHostport"
-
-    private val preferences: SharedPreferences
-        get() = ClientConfig.applicationCallbacks!!.getApplicationInstance()!!.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-
-    
     var username: String?
-        get() = preferences.getString(PREF_USERNAME, null)
+        get() = syncPrefs.PREF_USERNAME
         set(username) {
-            preferences.edit { putString(PREF_USERNAME, username) }
+            upsertBlk(syncPrefs) { it.PREF_USERNAME = username }
         }
 
-    
     var password: String?
-        get() = preferences.getString(PREF_PASSWORD, null)
+        get() = syncPrefs.PREF_PASSWORD
         set(password) {
-            preferences.edit { putString(PREF_PASSWORD, password) }
+            upsertBlk(syncPrefs) { it.PREF_PASSWORD = password }
         }
 
-    
     var deviceID: String?
-        get() = preferences.getString(PREF_DEVICEID, null)
+        get() = syncPrefs.PREF_DEVICEID
         set(deviceID) {
-            preferences.edit { putString(PREF_DEVICEID, deviceID) }
+            upsertBlk(syncPrefs) { it.PREF_DEVICEID = deviceID }
         }
 
-    
     var hosturl: String?
-        get() = preferences.getString(PREF_HOSTNAME, null)
+        get() = syncPrefs.PREF_HOSTNAME
         set(value) {
-            preferences.edit { putString(PREF_HOSTNAME, value) }
+            upsertBlk(syncPrefs) { it.PREF_HOSTNAME = value }
         }
 
-    
     var hostport: Int
-        get() = preferences.getInt(PREF_HOSTPORT, 0)
+        get() = syncPrefs.PREF_HOSTPORT
         set(value) {
-            preferences.edit { putInt(PREF_HOSTPORT, value) }
+            upsertBlk(syncPrefs) { it.PREF_HOSTPORT = value }
         }
 
     @Synchronized
@@ -63,6 +45,6 @@ object SynchronizationCredentials {
         password = null
         deviceID = null
         clearQueue()
-        putPref(AppPrefs.pref_gpodnet_notifications, true)
+        upsertBlk(appPrefs) { it.gpodnet_notifications = true }
     }
 }

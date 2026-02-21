@@ -9,16 +9,15 @@ import ac.mdiq.podcini.net.feed.PodcastIndexPodcastSearcher
 import ac.mdiq.podcini.net.feed.PodcastSearchResult
 import ac.mdiq.podcini.net.feed.PodcastSearcher
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.OpmlBackupAgent.Companion.performRestore
-import ac.mdiq.podcini.preferences.OpmlTransporter
-import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlElement
+import ac.mdiq.podcini.config.settings.OpmlBackupAgent.Companion.performRestore
+import ac.mdiq.podcini.config.settings.OpmlTransporter
+import ac.mdiq.podcini.config.settings.OpmlTransporter.OpmlElement
 import ac.mdiq.podcini.storage.database.addNewFeed
+import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.feedByIdentityOrID
 import ac.mdiq.podcini.storage.database.feedCount
-import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -30,11 +29,11 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.utils.AddLocalFolder
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
+import ac.mdiq.podcini.ui.compose.LocalNavController
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
-import ac.mdiq.podcini.ui.compose.SearchBarRow
-import ac.mdiq.podcini.ui.compose.LocalNavController
 import ac.mdiq.podcini.ui.compose.Screens
+import ac.mdiq.podcini.ui.compose.SearchBarRow
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
@@ -64,7 +63,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -128,8 +126,8 @@ class FindFeedsVM: ViewModel() {
     var searchJob: Job? = null
 
     init {
-        if (getPref(AppPrefs.prefOPMLRestore, false) && feedCount == 0) {
-            numberOPMLFeedsToRestore.intValue = getPref(AppPrefs.prefOPMLFeedsToRestore, 0)
+        if (appPrefs.OPMLRestored && feedCount == 0) {
+            numberOPMLFeedsToRestore.intValue = appPrefs.OPMLFeedsToRestore
             showOPMLRestoreDialog.value = true
         }
         search(searchText)

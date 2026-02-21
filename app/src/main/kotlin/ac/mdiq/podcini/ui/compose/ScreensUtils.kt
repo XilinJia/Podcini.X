@@ -1,8 +1,9 @@
 package ac.mdiq.podcini.ui.compose
 
-import ac.mdiq.podcini.preferences.AppPreferences
-import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.database.allFeeds
+import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.ui.screens.EpisodeInfoScreen
 import ac.mdiq.podcini.ui.screens.FacetsScreen
 import ac.mdiq.podcini.ui.screens.FeedDetailsScreen
@@ -17,6 +18,7 @@ import ac.mdiq.podcini.ui.screens.QuickAccess
 import ac.mdiq.podcini.ui.screens.SearchScreen
 import ac.mdiq.podcini.ui.screens.StatisticsScreen
 import ac.mdiq.podcini.ui.screens.TopChartScreen
+import ac.mdiq.podcini.ui.screens.prefscreens.PrefsScreen
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.timeIt
@@ -47,13 +49,13 @@ val defaultScreen: String
     get() {
         if (allFeeds.isEmpty()) return Screens.FindFeeds.name
 
-        var value = AppPreferences.getPref(AppPreferences.AppPrefs.prefDefaultPage, "")
+        var value = appPrefs.defaultPage
         Logd(TAG, "get defaultScreen 0: [$value]")
         val isValid = try {
             Screens.valueOf(value)
             true
         } catch (_: Throwable) { false }
-        if (value == AppPreferences.DefaultPages.Remember.name) {
+        if (value == DefaultPages.Remember.name) {
             value = appAttribs.prefLastScreen
             Logd(TAG, "get defaultScreen 1: [$value]")
             if (value.isBlank()) value = Screens.Library.name
@@ -147,12 +149,23 @@ fun Navigate(navController: NavHostController, startScreen: String = "") {
         composable(Screens.FindFeeds.name) { FindFeedsScreen() }
         composable(Screens.Logs.name) { LogsScreen() }
         composable(Screens.Statistics.name) { StatisticsScreen() }
+        composable(Screens.Settings.name) { PrefsScreen() }
     }
     timeIt("$TAG end of Navigate")
 }
 
+enum class DefaultPages(val res: Int) {
+    Library(R.string.library),
+    Queues(R.string.queue_label),
+    Facets(R.string.facets),
+    OnlineSearch(R.string.add_feed_label),
+    Statistics(R.string.statistics_label),
+    Remember(R.string.remember_last_page);
+}
+
 enum class Screens {
     Library,
+    VideoPlayer,
     FeedDetails,
     FeedsSettings,
     Facets,
@@ -163,7 +176,8 @@ enum class Screens {
     OnlineFeed,
     TopChart,
     Logs,
-    Statistics
+    Statistics,
+    Settings
 }
 
 fun NavHostController.safeNavigate(route: String, builder: NavOptionsBuilder.() -> Unit = {}) {

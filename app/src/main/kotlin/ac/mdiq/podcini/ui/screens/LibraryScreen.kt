@@ -14,10 +14,10 @@ import ac.mdiq.podcini.net.sync.transceive.Receiver
 import ac.mdiq.podcini.net.sync.transceive.broadcastPresence
 import ac.mdiq.podcini.net.sync.transceive.sendCatalog
 import ac.mdiq.podcini.net.utils.NetworkUtils.getLocalIpAddress
-import ac.mdiq.podcini.preferences.DocumentFileExportWorker
-import ac.mdiq.podcini.preferences.ExportTypes
-import ac.mdiq.podcini.preferences.ExportWorker
-import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlWriter
+import ac.mdiq.podcini.config.settings.DocumentFileExportWorker
+import ac.mdiq.podcini.config.settings.ExportTypes
+import ac.mdiq.podcini.config.settings.ExportWorker
+import ac.mdiq.podcini.config.settings.OpmlTransporter.OpmlWriter
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.feedOperationText
@@ -512,8 +512,8 @@ class LibraryVM : ViewModel() {
     )
 
     val feedsFlow: StateFlow<List<Feed>> = snapshotFlow { FeedsFlowkeys(curVolume?.id, showAllFeeds, subPrefs.feedsFiltered, subPrefs.feedsSorted, subPrefs.showArchived) }
-        .distinctUntilChanged().flatMapLatest { feedsRealmFlows()
-        }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
+        .distinctUntilChanged().flatMapLatest { feedsRealmFlows() }
+        .distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
 
     init {
         Logd(TAG, "vm init")
@@ -1147,7 +1147,7 @@ fun LibraryScreen() {
 //                    filterAndSort = false
 //                }
 
-                LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(start = 5.dp, end = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (!vm.showAllFeeds && volumes.isNotEmpty()) items(volumes, key = { v -> v.id}) { volume ->
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.combinedClickable(
                             onClick = { vm.curVolume = volume },

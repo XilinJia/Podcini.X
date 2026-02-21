@@ -2,7 +2,7 @@ package ac.mdiq.podcini.config
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.preferences.AppPreferences
+import ac.mdiq.podcini.storage.database.appPrefs
 import android.app.NotificationManager
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationChannelGroupCompat
@@ -66,7 +66,7 @@ fun createChannels() {
             .setGroup(GROUP_ID.group_errors.name)
 
         // Migration from app managed setting: disable notification
-        if (!AppPreferences.getPref(AppPreferences.AppPrefs.prefShowDownloadReport, true)) notificationChannel.setImportance(NotificationManagerCompat.IMPORTANCE_NONE)
+        if (!appPrefs.showDownloadReport) notificationChannel.setImportance(NotificationManagerCompat.IMPORTANCE_NONE)
         return notificationChannel.build()
     }
     fun createChannelSyncError(): NotificationChannelCompat {
@@ -77,7 +77,7 @@ fun createChannels() {
             .setGroup(GROUP_ID.group_errors.name)
 
         // Migration from app managed setting: disable notification
-        if (!AppPreferences.getPref(AppPreferences.AppPrefs.pref_gpodnet_notifications, true)) notificationChannel.setImportance(NotificationManagerCompat.IMPORTANCE_NONE)
+        if (!appPrefs.gpodnet_notifications) notificationChannel.setImportance(NotificationManagerCompat.IMPORTANCE_NONE)
         return notificationChannel.build()
     }
 

@@ -2,8 +2,7 @@ package ac.mdiq.podcini.net.download.service
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.ClientConfig
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.model.DownloadResult
 import android.content.Context
 import android.net.wifi.WifiManager
@@ -39,7 +38,7 @@ abstract class Downloader(val downloadRequest: DownloadRequest) {
 
     suspend fun run(): Downloader {
         var wifiLock: WifiManager.WifiLock? = null
-        if (getPref(AppPrefs.prefDisableWifiLock, false)) {
+        if (appPrefs.disableWifiLock) {
             val wifiManager = ClientConfig.applicationCallbacks?.getApplicationInstance()?.applicationContext?.getSystemService(Context.WIFI_SERVICE) as? WifiManager
             if (wifiManager != null) {
                 wifiLock = wifiManager.createWifiLock(TAG)

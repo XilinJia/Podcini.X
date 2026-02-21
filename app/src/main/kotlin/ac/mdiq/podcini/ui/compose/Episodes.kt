@@ -18,12 +18,11 @@ import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.addToQueue
 import ac.mdiq.podcini.storage.database.allowForAutoDelete
 import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.deleteMedia
 import ac.mdiq.podcini.storage.database.eraseEpisodes
 import ac.mdiq.podcini.storage.database.queuesLive
@@ -66,7 +65,6 @@ import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.shareFeedItemFile
 import ac.mdiq.podcini.utils.shareFeedItemLinkWithDownloadLink
 import ac.mdiq.podcini.utils.shareLink
-import android.content.Context
 import android.net.Uri
 import android.view.Gravity
 import androidx.collection.LruCache
@@ -148,7 +146,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
-import androidx.core.content.edit
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.CoroutineScope
@@ -167,18 +164,11 @@ private const val TAG = "ComposeEpisodes"
 
 @Composable
 fun ShareDialog(item: Episode, onDismissRequest: () -> Unit) {
-    val PREF_SHARE_EPISODE_START_AT = "prefShareEpisodeStartAt"
-    val PREF_SHARE_EPISODE_TYPE = "prefShareEpisodeType"
-
-    val prefs = remember { getAppContext().getSharedPreferences("ShareDialog", Context.MODE_PRIVATE) }
     val hasMedia = remember { true }
     val downloaded = remember { hasMedia && item.downloaded }
     val hasDownloadUrl = remember { hasMedia && item.downloadUrl != null }
 
-    var position by remember { mutableIntStateOf(run {
-        val type =prefs.getInt(PREF_SHARE_EPISODE_TYPE, 1)
-        if ((type == 2 && !hasDownloadUrl) || (type == 3 && !downloaded)) 1 else type
-    }) }
+    var position by remember { mutableIntStateOf(1) }
 
     var isChecked by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
@@ -215,10 +205,6 @@ fun ShareDialog(item: Episode, onDismissRequest: () -> Unit) {
                         else Logt(TAG, "Episode download url is not valid, ignored.")
                     }
                     3 -> shareFeedItemFile(ctx, item)
-                }
-                prefs.edit {
-                    putBoolean(PREF_SHARE_EPISODE_START_AT, isChecked)
-                    putInt(PREF_SHARE_EPISODE_TYPE, position)
                 }
                 onDismissRequest()
             }) { Text(text = "OK") }
@@ -621,8 +607,8 @@ fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futur
                                             val shouldAutoDelete = if (item_.feed == null) false else allowForAutoDelete(item_.feed!!) //                                            item = item_
                                             if (hasAlmostEnded && shouldAutoDelete) {
                                                 item_ = deleteMedia(item_)
-                                                if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(listOf(item_))
-                                            } else if (getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueues(listOf(item_))
+                                                if (appPrefs.deleteRemovesFromQueue) removeFromAllQueues(listOf(item_))
+                                            } else if (appPrefs.removeFromQueueMarkPlayed) removeFromAllQueues(listOf(item_))
                                             if (item_.feed?.isLocalFeed != true && (isProviderConnected || wifiSyncEnabledKey)) { // not all items have media, Gpodder only cares about those that do
                                                 if (isProviderConnected) {
                                                     val actionPlay: EpisodeAction = EpisodeAction.Builder(item_, EpisodeAction.PLAY).currentTimestamp().started(item_.duration / 1000).position(item_.duration / 1000).total(item_.duration / 1000).build()

@@ -1,24 +1,21 @@
 package ac.mdiq.podcini.net.sync.queue
 
-import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import android.content.Context
-import android.content.SharedPreferences
 import ac.mdiq.podcini.net.sync.SynchronizationSettings
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
+import ac.mdiq.podcini.storage.database.syncPrefs
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.utils.Logs
 import org.json.JSONArray
 import org.json.JSONException
-import androidx.core.content.edit
 
 class SynchronizationQueueStorage() {
     private val TAG = "SynchronizationQueueStorage"
-    private val sharedPreferences: SharedPreferences = getAppContext().getSharedPreferences(NAME, Context.MODE_PRIVATE)
 
     val queuedEpisodeActions: MutableList<EpisodeAction>
         get() {
             val actions = mutableListOf<EpisodeAction>()
             try {
-                val json = sharedPreferences.getString(QUEUED_EPISODE_ACTIONS, "[]")
+                val json = syncPrefs.QUEUED_EPISODE_ACTIONS
                 val queue = JSONArray(json)
                 for (i in 0 until queue.length()) {
                     val act = EpisodeAction.readFromJsonObject(queue.getJSONObject(i))?: continue
@@ -32,7 +29,7 @@ class SynchronizationQueueStorage() {
         get() {
             val removedFeedUrls = mutableListOf<String>()
             try {
-                val json = sharedPreferences.getString(QUEUED_FEEDS_REMOVED, "[]")
+                val json = syncPrefs.QUEUED_FEEDS_REMOVED
                 val queue = JSONArray(json)
                 for (i in 0 until queue.length()) removedFeedUrls.add(queue.getString(i))
             } catch (e: JSONException) { Logs(TAG, e) }
@@ -43,7 +40,7 @@ class SynchronizationQueueStorage() {
         get() {
             val addedFeedUrls = mutableListOf<String>()
             try {
-                val json = sharedPreferences.getString(QUEUED_FEEDS_ADDED, "[]")
+                val json = syncPrefs.QUEUED_FEEDS_ADDED
                 val queue = JSONArray(json)
                 for (i in 0 until queue.length()) addedFeedUrls.add(queue.getString(i))
             } catch (e: JSONException) { Logs(TAG, e) }
@@ -51,51 +48,47 @@ class SynchronizationQueueStorage() {
         }
 
     fun clearEpisodeActionQueue() {
-        sharedPreferences.edit { putString(QUEUED_EPISODE_ACTIONS, "[]") }
+        upsertBlk(syncPrefs) { it.QUEUED_EPISODE_ACTIONS = "[]"}
     }
 
     fun clearFeedQueues() {
-        sharedPreferences.edit {
-            putString(QUEUED_FEEDS_ADDED, "[]")
-            putString(QUEUED_FEEDS_REMOVED, "[]")
+        upsertBlk(syncPrefs) {
+            it.QUEUED_FEEDS_ADDED = "[]"
+            it.QUEUED_FEEDS_REMOVED = "[]"
         }
     }
 
     fun clearQueue() {
         SynchronizationSettings.resetTimestamps()
-        sharedPreferences.edit {
-            putString(QUEUED_EPISODE_ACTIONS, "[]")
-            putString(QUEUED_FEEDS_ADDED, "[]")
-            putString(QUEUED_FEEDS_REMOVED, "[]")
+        upsertBlk(syncPrefs) {
+            it.QUEUED_EPISODE_ACTIONS = "[]"
+            it.QUEUED_FEEDS_ADDED = "[]"
+            it.QUEUED_FEEDS_REMOVED = "[]"
         }
     }
 
     fun enqueueFeedAdded(downloadUrl: String) {
-        val sharedPreferences = sharedPreferences
         try {
-            val addedQueue = JSONArray(sharedPreferences.getString(QUEUED_FEEDS_ADDED, "[]"))
+            val addedQueue = JSONArray(syncPrefs.QUEUED_FEEDS_ADDED)
             addedQueue.put(downloadUrl)
-            val removedQueue = JSONArray(sharedPreferences.getString(QUEUED_FEEDS_REMOVED, "[]"))
+            val removedQueue = JSONArray(syncPrefs.QUEUED_FEEDS_REMOVED)
             removedQueue.remove(indexOf(downloadUrl, removedQueue))
-            sharedPreferences.edit {
-                putString(QUEUED_FEEDS_ADDED, addedQueue.toString()).putString(
-                    QUEUED_FEEDS_REMOVED,
-                    removedQueue.toString()
-                )
+            upsertBlk(syncPrefs) {
+                it.QUEUED_FEEDS_ADDED = addedQueue.toString()
+                it.QUEUED_FEEDS_REMOVED = removedQueue.toString()
             }
         } catch (jsonException: JSONException) { Logs("SynchronizationQueueStorage", jsonException) }
     }
 
     fun enqueueFeedRemoved(downloadUrl: String) {
-        val sharedPreferences = sharedPreferences
         try {
-            val removedQueue = JSONArray(sharedPreferences.getString(QUEUED_FEEDS_REMOVED, "[]"))
+            val removedQueue = JSONArray(syncPrefs.QUEUED_FEEDS_REMOVED)
             removedQueue.put(downloadUrl)
-            val addedQueue = JSONArray(sharedPreferences.getString(QUEUED_FEEDS_ADDED, "[]"))
+            val addedQueue = JSONArray(syncPrefs.QUEUED_FEEDS_ADDED)
             addedQueue.remove(indexOf(downloadUrl, addedQueue))
-            sharedPreferences.edit {
-                putString(QUEUED_FEEDS_ADDED, addedQueue.toString())
-                putString(QUEUED_FEEDS_REMOVED, removedQueue.toString())
+            upsertBlk(syncPrefs) {
+                it.QUEUED_FEEDS_ADDED = addedQueue.toString()
+                it.QUEUED_FEEDS_REMOVED = removedQueue.toString()
             }
         } catch (jsonException: JSONException) { Logs("SynchronizationQueueStorage", jsonException) }
     }
@@ -106,19 +99,11 @@ class SynchronizationQueueStorage() {
     }
 
     fun enqueueEpisodeAction(action: EpisodeAction) {
-        val sharedPreferences = sharedPreferences
-        val json = sharedPreferences.getString(QUEUED_EPISODE_ACTIONS, "[]")
+        val json = syncPrefs.QUEUED_EPISODE_ACTIONS
         try {
             val queue = JSONArray(json)
             queue.put(action.writeToJsonObjectForServer())
-            sharedPreferences.edit { putString(QUEUED_EPISODE_ACTIONS, queue.toString()) }
+            upsertBlk(syncPrefs) { it.QUEUED_EPISODE_ACTIONS = queue.toString() }
         } catch (jsonException: JSONException) { Logs("SynchronizationQueueStorage", jsonException) }
-    }
-
-    companion object {
-        private const val NAME = "synchronization"
-        private const val QUEUED_EPISODE_ACTIONS = "sync_queued_episode_actions"
-        private const val QUEUED_FEEDS_REMOVED = "sync_removed"
-        private const val QUEUED_FEEDS_ADDED = "sync_added"
     }
 }

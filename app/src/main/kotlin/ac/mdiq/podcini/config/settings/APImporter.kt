@@ -1,5 +1,6 @@
-package ac.mdiq.podcini.preferences
+package ac.mdiq.podcini.config.settings
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
@@ -7,7 +8,6 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_SEPARATOR
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.utils.Logd
-import android.app.Activity
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import androidx.core.database.getIntOrNull
@@ -19,7 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-fun importAP(uri: Uri, activity: Activity, onDismiss: ()->Unit) {
+fun importAP(uri: Uri, onDismiss: ()->Unit) {
     val TAG = "importAP"
 
     fun buildEpisodes(db: SQLiteDatabase, feed: Feed) {
@@ -132,8 +132,8 @@ fun importAP(uri: Uri, activity: Activity, onDismiss: ()->Unit) {
 
     Logd(TAG, "chooseAPImportPathLauncher: uri: $uri")
     CoroutineScope(Dispatchers.IO).launch {
-        val dbFile = File(activity.filesDir, "temp.db")
-        activity.contentResolver.openInputStream(uri)?.use { inputStream -> dbFile.outputStream().use { outputStream -> inputStream.copyTo(outputStream) } }
+        val dbFile = File(getAppContext().filesDir, "temp.db")
+        getAppContext().contentResolver.openInputStream(uri)?.use { inputStream -> dbFile.outputStream().use { outputStream -> inputStream.copyTo(outputStream) } }
         val database = SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READONLY)
 
         buildFeeds(database)

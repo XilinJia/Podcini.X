@@ -2,7 +2,7 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.preferences.MediaFilesTransporter
+import ac.mdiq.podcini.config.settings.MediaFilesTransporter
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedsMap

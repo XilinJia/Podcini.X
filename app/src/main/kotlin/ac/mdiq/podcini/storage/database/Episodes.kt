@@ -12,8 +12,6 @@ import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.currentPlaybackSpeed
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.ACTION_SHUTDOWN_PLAYBACK_SERVICE
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.SubscriptionLog
@@ -123,7 +121,7 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
     val repeatItems: MutableList<Episode> = mutableListOf()
     fun deleteItems(items_: List<Episode>) {
         deleteMedias(items_)
-        if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(items_)
+        if (appPrefs.deleteRemovesFromQueue) removeFromAllQueues(items_)
     }
     for (item in items) {
         var toConfirm = false

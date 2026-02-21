@@ -19,13 +19,12 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.containsUrl
 import ac.mdiq.podcini.net.utils.NetworkUtils.isAllowMobileFor
 import ac.mdiq.podcini.net.utils.NetworkUtils.setAllowMobileFor
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.preferences.screens.MobileUpdateOptions
+import ac.mdiq.podcini.ui.screens.prefscreens.MobileUpdateOptions
 import ac.mdiq.podcini.storage.database.deleteFeed
 import ac.mdiq.podcini.storage.database.episodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.getEpisodes
-import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.removeFromQueue
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.updateFeedFull

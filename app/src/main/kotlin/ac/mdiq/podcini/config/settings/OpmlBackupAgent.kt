@@ -1,13 +1,11 @@
-package ac.mdiq.podcini.preferences
+package ac.mdiq.podcini.config.settings
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlReader
-import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlWriter
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.updateFeedFull
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.Companion.PREFIX_LOCAL_FOLDER
 import ac.mdiq.podcini.utils.Logd
@@ -19,8 +17,6 @@ import android.app.backup.BackupDataInputStream
 import android.app.backup.BackupDataOutput
 import android.app.backup.BackupHelper
 import android.os.ParcelFileDescriptor
-import androidx.core.content.edit
-import androidx.preference.PreferenceManager
 import org.apache.commons.io.IOUtils
 import org.xmlpull.v1.XmlPullParserException
 import java.io.BufferedReader
@@ -45,7 +41,7 @@ import java.security.NoSuchAlgorithmException
 class OpmlBackupAgent : BackupAgentHelper() {
 
     override fun onCreate() {
-        val isAutoBackupOPML = getPref(AppPrefs.prefOPMLBackup, true)
+        val isAutoBackupOPML = appPrefs.OPMLBackup
         if (isAutoBackupOPML) {
             Logd(TAG, "Backup of OPML enabled in preferences")
             addHelper(OPML_BACKUP_KEY, OpmlBackupHelper())
@@ -68,7 +64,7 @@ class OpmlBackupAgent : BackupAgentHelper() {
 
             try {
                 // Write OPML
-                OpmlWriter().writeDocument(getFeedList("NOT (downloadUrl BEGINSWITH '$PREFIX_LOCAL_FOLDER')"), writer)
+                OpmlTransporter.OpmlWriter().writeDocument(getFeedList("NOT (downloadUrl BEGINSWITH '$PREFIX_LOCAL_FOLDER')"), writer)
                 // Compare checksum of new and old file to see if we need to perform a backup at all
                 if (digester != null) {
                     val newChecksum = digester.digest()
@@ -134,10 +130,9 @@ class OpmlBackupAgent : BackupAgentHelper() {
             } finally {
                 if (linesRead > 0) {
                     Logd(TAG, "restoreEntity finally $feedCount")
-                    val prefs = PreferenceManager.getDefaultSharedPreferences(getAppContext())
-                    prefs.edit {
-                        putBoolean(AppPrefs.prefOPMLRestore.name, true)
-                        putInt(AppPrefs.prefOPMLFeedsToRestore.name, feedCount)
+                    upsertBlk(appPrefs) {
+                        it.OPMLRestored = true
+                        it.OPMLFeedsToRestore = feedCount
                     }
                 }
                 IOUtils.closeQuietly(reader)
@@ -177,7 +172,7 @@ class OpmlBackupAgent : BackupAgentHelper() {
             val tempFile = File(getAppContext().filesDir, "opml_restored.txt")
             if (tempFile.exists()) {
                 val reader = FileReader(tempFile)
-                val opmlElements = OpmlReader().readDocument(reader)
+                val opmlElements = OpmlTransporter.OpmlReader().readDocument(reader)
                 for (opmlElem in opmlElements) {
                     val feed = Feed(opmlElem.xmlUrl, null, opmlElem.text)
                     feed.episodes.clear()

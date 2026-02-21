@@ -11,6 +11,7 @@ import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
+import ac.mdiq.podcini.playback.base.InTheatre.playVideo
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
@@ -21,10 +22,9 @@ import ac.mdiq.podcini.playback.base.TTSEngine.ttsReady
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActivityIntent
-import ac.mdiq.podcini.preferences.AppPreferences
-import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
-import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
+import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -35,12 +35,14 @@ import ac.mdiq.podcini.storage.model.tmpQueue
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.utils.mergeAudios
-import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
+import ac.mdiq.podcini.ui.activity.MainActivity
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.bsState
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonMessageAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.commonMessage
+import ac.mdiq.podcini.ui.screens.curVideoMode
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -114,7 +116,6 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
 
     val ttsTmpFiles = mutableListOf<String>()
     var ttsJob: Job? = null
-
     
     fun onClick(actContext: Context? = null) {
         val context = getAppContext()
@@ -150,7 +151,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
             ButtonTypes.CANCEL -> {
                 if (typeToCancel == ButtonTypes.DOWNLOAD) {
                     DownloadServiceInterface.impl?.cancel(item)
-                    if (AppPreferences.isAutodownloadEnabled) upsertBlk(item) { it.isAutoDownloadEnabled = false }
+                    if (appPrefs.enableAutoDl) upsertBlk(item) { it.isAutoDownloadEnabled = false }
                     type = ButtonTypes.DOWNLOAD
                 } else if (typeToCancel == ButtonTypes.TTS) {
                     runOnIOScope {
@@ -639,11 +640,11 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
     }
     
     companion object {
-        
         fun playVideoIfNeeded(context: Context, item: Episode) {
-            if (item.forceVideo ||
-                (item.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && videoPlayMode != VideoMode.AUDIO_ONLY.code && videoMode != VideoMode.AUDIO_ONLY && item.getMediaType() == MediaType.VIDEO))
-                context.startActivity(getPlayerActivityIntent(context, MediaType.VIDEO))
+            if (item.forceVideo || (item.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && item.getMediaType() == MediaType.VIDEO)) { //                context.startActivity(getPlayerActivityIntent(context, MediaType.VIDEO))
+                playVideo = true
+                bsState = MainActivity.BSState.Expanded
+            } else playVideo = false
         }
     }
 }

@@ -4,12 +4,9 @@ import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.playback.base.InTheatre.isCurMedia
-import ac.mdiq.podcini.preferences.AppPreferences
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
-import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
+import ac.mdiq.podcini.storage.database.EPISODE_CACHE_SIZE_UNLIMITED
 import ac.mdiq.podcini.storage.database.addToAssQueue
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.deleteMedias
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesCount
@@ -41,7 +38,7 @@ import kotlinx.coroutines.launch
 private const val TAG = "AutoDownloads"
 
 fun autodownload(feeds: List<Feed>? = null): Job {
-    return CoroutineScope(Dispatchers.IO).launch { if (isAutodownloadEnabled) AutoDownloadAlgorithm().run(feeds) }
+    return CoroutineScope(Dispatchers.IO).launch { if (appPrefs.enableAutoDl) AutoDownloadAlgorithm().run(feeds) }
 }
 
 fun autoenqueue(feeds: List<Feed>? = null): Job {
@@ -50,7 +47,7 @@ fun autoenqueue(feeds: List<Feed>? = null): Job {
 
 fun autodownloadForQueue(queue: PlayQueue): Job {
     val feeds = realm.query(Feed::class).query("queueId == ${queue.id}").find()
-    return CoroutineScope(Dispatchers.IO).launch { if (isAutodownloadEnabled) AutoDownloadAlgorithm().run(feeds, false, onlyExisting = true) }
+    return CoroutineScope(Dispatchers.IO).launch { if (appPrefs.enableAutoDl) AutoDownloadAlgorithm().run(feeds, false, onlyExisting = true) }
 }
 
 fun autoenqueueForQueue(queue: PlayQueue): Job {
@@ -72,7 +69,7 @@ class AutoDownloadAlgorithm {
      * This method is executed on an internal single thread executor.
      */
     fun run(feeds: List<Feed>?, checkQueues: Boolean = true, onlyExisting: Boolean = false) {
-        val powerShouldAutoDl = (deviceCharging() || getPref(AppPrefs.prefEnableAutoDownloadOnBattery, false))
+        val powerShouldAutoDl = (deviceCharging() || appPrefs.enableAutoDownloadOnBattery)
         Logd(TAG, "run prepare ${getApp().networkMonitor.networkAllowAutoDownload} $powerShouldAutoDl")
         // we should only auto download if both network AND power are happy
         if (getApp().networkMonitor.networkAllowAutoDownload && powerShouldAutoDl) {
@@ -86,7 +83,7 @@ class AutoDownloadAlgorithm {
                         val eids = q.entries.map { it.episodeId }
                         val queueItems = realm.query(Episode::class).query("id IN $0 AND fileUrl == nil", eids).find()
                         Logd(TAG, "run add from queue: ${q.name} ${queueItems.size}")
-                        if (queueItems.isNotEmpty()) queueItems.forEach { if (!prefStreamOverDownload || it.feed?.prefStreamOverDownload != true) candidates.add(it) }
+                        if (queueItems.isNotEmpty()) queueItems.forEach { if (!appPrefs.streamOverDownload || it.feed?.prefStreamOverDownload != true) candidates.add(it) }
                     }
                 }
             }
@@ -97,8 +94,8 @@ class AutoDownloadAlgorithm {
                 if (toReplace.isNotEmpty()) deleteMedias(toReplace.toList())
                 val downloadedCount = getEpisodesCount(EpisodeFilter(EpisodeFilter.States.downloaded.name))
                 val deletedCount = toReplace.size + cleanupAlgorithm().makeRoomForEpisodes(autoDownloadableCount - toReplace.size)
-                val appEpisodeCache = getPref(AppPrefs.prefEpisodeCacheSize, "0").toInt()
-                val cacheIsUnlimited = appEpisodeCache <= AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED
+                val appEpisodeCache = appPrefs.episodeCacheSize
+                val cacheIsUnlimited = appEpisodeCache <= EPISODE_CACHE_SIZE_UNLIMITED
                 Logd(TAG, "run cacheIsUnlimited: $cacheIsUnlimited appEpisodeCache: $appEpisodeCache downloadedCount: $downloadedCount autoDownloadableCount: $autoDownloadableCount deletedCount: $deletedCount")
                 val allowedCount =
                     if (cacheIsUnlimited || appEpisodeCache >= downloadedCount + autoDownloadableCount) autoDownloadableCount
@@ -169,7 +166,7 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
                     realm.query(Episode::class).query("feedId == ${f.id} AND id IN $0",eids).count().find().toInt()
                 }
             }
-            var allowedDLCount = if (f.autoDLMaxEpisodes == AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes - downloadedCount
+            var allowedDLCount = if (f.autoDLMaxEpisodes == EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes - downloadedCount
             Logd(TAG, "assembleFeedsCandidates ${f.autoDLMaxEpisodes} downloadedCount: $downloadedCount allowedDLCount: $allowedDLCount")
             Logd(TAG, "assembleFeedsCandidates autoDLPolicy: ${f.autoDLPolicy.name}")
             val episodes = mutableListOf<Episode>()
@@ -200,7 +197,7 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
                     Feed.AutoDownloadPolicy.ONLY_NEW -> {
                         if (!onlyExisting) {
                             if (f.autoDLPolicy.replace) {
-                                allowedDLCount = if (f.autoDLMaxEpisodes == AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes
+                                allowedDLCount = if (f.autoDLMaxEpisodes == EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes
                                 queryString += " AND playState == ${EpisodeState.NEW.code} SORT(pubDate DESC) LIMIT(${allowedDLCount})"
                                 val es = realm.query(Episode::class).query(queryString).find()
                                 Logd(TAG, "assembleFeedsCandidates Replace queryString: [${es.size}] $queryString")

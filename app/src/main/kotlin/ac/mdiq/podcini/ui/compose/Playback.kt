@@ -1,6 +1,9 @@
 package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.config.settings.SleepTimer.autoEnableFrom
+import ac.mdiq.podcini.config.settings.SleepTimer.autoEnableTo
+import ac.mdiq.podcini.config.settings.SleepTimer.lastTimerValue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.tempSkipSilence
@@ -10,25 +13,30 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isSpeedForward
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.prefPlaybackSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.shouldRepeat
+import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
+import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.fallbackSpeed
-import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
-import ac.mdiq.podcini.preferences.AppPreferences.getPrefOrNull
-import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
-import ac.mdiq.podcini.preferences.AppPreferences.skipforwardSpeed
-import ac.mdiq.podcini.preferences.AppPreferences.speedforwardSpeed
+import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.database.fallbackSpeed
+import ac.mdiq.podcini.storage.database.fastForwardSecs
+import ac.mdiq.podcini.storage.database.isSkipSilence
+import ac.mdiq.podcini.storage.database.rewindSecs
+import ac.mdiq.podcini.storage.database.skipforwardSpeed
+import ac.mdiq.podcini.storage.database.sleepPrefs
+import ac.mdiq.podcini.storage.database.speedforwardSpeed
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
+import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.Logt
 import android.view.Gravity
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -44,16 +52,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -63,27 +72,43 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONException
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
+import java.util.concurrent.TimeUnit
+import kotlin.math.max
 import kotlin.math.round
 
 private fun speed2Slider(speed: Float, maxSpeed: Float): Float {
@@ -192,7 +217,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
         val speedFormat = DecimalFormat("0.00", format)
         val jsonArray = JSONArray()
         for (speed in speeds) jsonArray.put(speedFormat.format(speed.toDouble()))
-        putPref(AppPrefs.prefPlaybackSpeedArray, jsonArray.toString())
+        upsertBlk(appPrefs) { it.playbackSpeedArray = jsonArray.toString()}
     }
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = onDismiss) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
@@ -200,7 +225,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
         Card(modifier = Modifier.fillMaxWidth().wrapContentHeight().padding(top = 10.dp, bottom = 10.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 var speed by remember { mutableFloatStateOf(curPBSpeed) }
-                val speeds = remember { readPlaybackSpeedArray(getPrefOrNull<String>(AppPrefs.prefPlaybackSpeedArray, null)).toMutableStateList() }
+                val speeds = remember { readPlaybackSpeedArray(appPrefs.playbackSpeedArray).toMutableStateList() }
                 var showEdit by remember { mutableStateOf(false) }
                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.playback_speed), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
@@ -268,7 +293,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                                 isFallbackSpeed = false
                                 if (settingCode.size == 3) {
                                     Logd(TAG, "setSpeed codeArray: ${settingCode[0]} ${settingCode[1]} ${settingCode[2]}")
-                                    if (settingCode[2]) putPref(AppPrefs.prefPlaybackSpeed, chipSpeed.toString())
+                                    if (settingCode[2]) upsertBlk(appPrefs) { it.playbackSpeed = chipSpeed.toString() }
                                     if (settingCode[1] && curEpisode?.feed != null) upsertBlk(curEpisode!!.feed!!) { it.playSpeed = chipSpeed }
                                     if (settingCode[0]) {
                                         curTempSpeed = chipSpeed
@@ -280,7 +305,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                                 }
                             }
                             else {
-                                putPref(AppPrefs.prefPlaybackSpeed, chipSpeed.toString())
+                                upsertBlk(appPrefs) { it.playbackSpeed = chipSpeed.toString() }
                                 EventFlow.postEvent(FlowEvent.SpeedChangedEvent(chipSpeed))
                             }
                             onDismiss()
@@ -375,3 +400,129 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
     }
 }
 
+@Composable
+fun SleepTimerDialog(onDismiss: () -> Unit) {
+    val TAG = "SleepTimerDialog"
+
+    val lcScope = rememberCoroutineScope()
+    val timeLeft by remember { mutableLongStateOf(sleepManager?.sleepTimerTimeLeft?:0) }
+    var showTimeDisplay by remember { mutableStateOf(false) }
+    var showTimeSetup by remember { mutableStateOf(true) }
+    var timerText by remember { mutableStateOf(durationStringFull(timeLeft.toInt())) }
+    val context by rememberUpdatedState(LocalContext.current)
+
+    var eventSink: Job? by remember { mutableStateOf(null) }
+    fun cancelFlowEvents() {
+        eventSink?.cancel()
+        eventSink = null
+    }
+    fun procFlowEvents() {
+        if (eventSink != null) return
+        eventSink = lcScope.launch {
+            EventFlow.events.collectLatest { event ->
+                when (event) {
+                    is FlowEvent.SleepTimerUpdatedEvent -> {
+                        showTimeDisplay = !event.isOver && !event.isCancelled
+                        showTimeSetup = event.isOver || event.isCancelled
+                        timerText = durationStringFull(event.getTimeLeft().toInt())
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) { procFlowEvents() }
+    DisposableEffect(Unit) { onDispose { cancelFlowEvents() } }
+
+    var toEnd by remember { mutableStateOf(false) }
+    var etxtTime by remember { mutableStateOf(lastTimerValue.toString()) }
+    fun extendSleepTimer(extendTime: Long) {
+        val timeLeft = sleepManager?.sleepTimerTimeLeft ?: Episode.INVALID_TIME.toLong()
+        if (timeLeft != Episode.INVALID_TIME.toLong()) sleepManager?.setSleepTimer(timeLeft + extendTime)
+    }
+
+    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.sleep_timer_label)) },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                if (showTimeSetup) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp)) {
+                        Checkbox(checked = toEnd, onCheckedChange = { toEnd = it })
+                        Text(stringResource(R.string.end_episode), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 10.dp))
+                    }
+                    if (!toEnd) TextField(value = etxtTime, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.time_minutes)) }, singleLine = true,
+                        onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) etxtTime = it })
+                    Button(modifier = Modifier.fillMaxWidth(), onClick = {
+                        if (!PlaybackService.isRunning) {
+                            Logt(TAG, context.getString(R.string.no_media_playing_label))
+                            return@Button
+                        }
+                        try {
+                            val time = if (!toEnd) etxtTime.toLong() else TimeUnit.MILLISECONDS.toMinutes((max(((curEpisode?.duration ?: 0) - (curEpisode?.position ?: 0)), 0) / curPBSpeed).toLong()) // ms to minutes
+                            Logd("SleepTimerDialog", "Sleep timer set: $time")
+                            if (time == 0L) throw NumberFormatException("Timer must not be zero")
+                            upsertBlk(sleepPrefs) { it.LastValue = time }
+                            sleepManager?.setSleepTimer(TimeUnit.MINUTES.toMillis(lastTimerValue))
+                            showTimeSetup = false
+                            showTimeDisplay = true
+                            //                        closeKeyboard(content)
+                        } catch (e: NumberFormatException) { Logs(TAG, e, context.getString(R.string.time_dialog_invalid_input)) }
+                    }) { Text(stringResource(R.string.set_sleeptimer_label)) }
+                }
+                if (showTimeDisplay || timeLeft > 0) {
+                    Text(timerText, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    Button(modifier = Modifier.fillMaxWidth(), onClick = { sleepManager?.disableSleepTimer() }) { Text(stringResource(R.string.disable_sleeptimer_label)) }
+                    Row {
+                        Button(onClick = { extendSleepTimer((10 * 1000 * 60).toLong()) }) { Text(stringResource(R.string.extend_sleep_timer_label, 10)) }
+                        Spacer(Modifier.weight(1f))
+                        Button(onClick = { extendSleepTimer((30 * 1000 * 60).toLong()) }) { Text(stringResource(R.string.extend_sleep_timer_label, 30)) }
+                    }
+                }
+                var cbShakeToReset by remember { mutableStateOf(sleepPrefs.ShakeToReset) }
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp)) {
+                    Checkbox(checked = cbShakeToReset, onCheckedChange = { it0 ->
+                        cbShakeToReset = it0
+                        upsertBlk(sleepPrefs) { it.ShakeToReset = it0 }
+                    })
+                    Text(stringResource(R.string.shake_to_reset_label), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 10.dp))
+                }
+                var cbVibrate by remember { mutableStateOf(sleepPrefs.Vibrate) }
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp)) {
+                    Checkbox(checked = cbVibrate, onCheckedChange = { it0 ->
+                        cbVibrate = it0
+                        upsertBlk(sleepPrefs) { it.Vibrate = it0 }
+                    })
+                    Text(stringResource(R.string.timer_vibration_label), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 10.dp))
+                }
+                var chAutoEnable by remember { mutableStateOf(sleepPrefs.AutoEnable) }
+                var enableChangeTime by remember { mutableStateOf(chAutoEnable) }
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp)) {
+                    Checkbox(checked = chAutoEnable, onCheckedChange = { it0 ->
+                        chAutoEnable = it0
+                        upsertBlk(sleepPrefs) { it.AutoEnable = it0 }
+                        enableChangeTime = it0
+                    })
+                    Text(stringResource(R.string.auto_enable_label), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 10.dp))
+                }
+                if (enableChangeTime) {
+                    var from by remember { mutableStateOf(autoEnableFrom.toString()) }
+                    var to by remember { mutableStateOf(autoEnableTo.toString()) }
+                    Text(stringResource(R.string.auto_enable_sum), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 10.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp).fillMaxWidth()) {
+                        TextField(value = from, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("From") }, singleLine = true, modifier = Modifier.weight(1f).padding(end = 8.dp),
+                            onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) from = it })
+                        TextField(value = to, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("To") }, singleLine = true, modifier = Modifier.weight(1f).padding(end = 8.dp),
+                            onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) to = it })
+                        IconButton(onClick = {
+                            upsertBlk(sleepPrefs) {
+                                it.AutoEnableFrom = from.toInt()
+                                it.AutoEnableTo = to.toInt()
+                            }
+                        }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "setting") }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.close_label)) } }
+    )
+}

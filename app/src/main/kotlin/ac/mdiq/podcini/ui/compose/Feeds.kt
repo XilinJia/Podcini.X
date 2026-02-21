@@ -5,7 +5,7 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.PodcastSearchResult
 import ac.mdiq.podcini.net.sync.transceive.listenForUDPBroadcasts
 import ac.mdiq.podcini.playback.base.VideoMode
-import ac.mdiq.podcini.preferences.OpmlTransporter
+import ac.mdiq.podcini.config.settings.OpmlTransporter
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.createSynthetic
 import ac.mdiq.podcini.storage.database.deleteFeed

@@ -1,8 +1,7 @@
-package ac.mdiq.podcini.preferences
+package ac.mdiq.podcini.config.settings
 
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
+import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.dateStampFilename
@@ -22,10 +21,10 @@ fun autoBackup(activity: Activity) {
 
     val prefsDirName = "Podcini-Prefs"
 
-    val isAutoBackup = getPref(AppPrefs.prefAutoBackup, false)
+    val isAutoBackup = appPrefs.autoBackup
     if (!isAutoBackup) return
-    val uriString = getPref(AppPrefs.prefAutoBackupFolder, "")
-    if (uriString.isBlank()) return
+    val uriString = appPrefs.autoBackupFolder
+    if (uriString.isNullOrBlank()) return
 
     Logd("autoBackup", "in autoBackup directory: $uriString")
 
@@ -76,11 +75,11 @@ fun autoBackup(activity: Activity) {
 //    }
 
     CoroutineScope(Dispatchers.IO).launch {
-        val interval = getPref(AppPrefs.prefAutoBackupIntervall, 24)
-        val lastBackupTime = getPref(AppPrefs.prefAutoBackupTimeStamp, 0L)
+        val interval = appPrefs.autoBackupIntervall
+        val lastBackupTime = appPrefs.autoBackupTimeStamp
         val curTime = System.currentTimeMillis()
         if ((curTime - lastBackupTime) / 1000 / 3600 > interval) {
-            val uri = uriString.toUri()
+            val uri = uriString!!.toUri()
             val permissions = activity.contentResolver.persistedUriPermissions.find { it.uri == uri }
             if (permissions != null && permissions.isReadPermission && permissions.isWritePermission) {
                 val chosenDir = DocumentFile.fromTreeUri(activity, uri)
@@ -94,7 +93,7 @@ fun autoBackup(activity: Activity) {
                             }
                         }
                         Logd(TAG, "backupDirs: ${backupDirs.size}")
-                        val limit = getPref(AppPrefs.prefAutoBackupLimit, 2)
+                        val limit = appPrefs.autoBackupLimit
                         if (backupDirs.size >= limit) {
                             backupDirs.sortBy { it.name }
                             for (i in 0..(backupDirs.size - limit)) deleteDirectoryAndContents(backupDirs[i])
@@ -106,8 +105,7 @@ fun autoBackup(activity: Activity) {
                         PreferencesTransporter(prefsDirName).exportToDocument(subUri)
                         val realmFile = exportSubDir.createFile("application/octet-stream", "backup.realm")
                         if (realmFile != null) DatabaseTransporter().exportToDocument(realmFile.uri)
-
-                        putPref(AppPrefs.prefAutoBackupTimeStamp, curTime)
+                        upsertBlk(appPrefs) { it.autoBackupTimeStamp = curTime }
                     } catch (e: Exception) { Loge("autoBackup", "Error backing up ${e.message}") }
                 }
             } else Loge("autoBackup", "Uri permissions are no longer valid")

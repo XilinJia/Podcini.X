@@ -11,12 +11,10 @@ import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.TTSEngine.closeTTS
 import ac.mdiq.podcini.playback.cast.BaseActivity
-import ac.mdiq.podcini.preferences.AppPreferences
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.preferences.autoBackup
+import ac.mdiq.podcini.config.settings.autoBackup
+import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.cancelAppPrefs
 import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
 import ac.mdiq.podcini.storage.database.initAppPrefs
@@ -49,7 +47,9 @@ import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.ui.compose.defaultScreen
 import ac.mdiq.podcini.ui.compose.handleBackSubScreens
 import ac.mdiq.podcini.ui.activity.starter.MainActivityStarter
-import ac.mdiq.podcini.ui.screens.AudioPlayerUIScreen
+import ac.mdiq.podcini.ui.compose.DefaultPages
+import ac.mdiq.podcini.ui.compose.appTheme
+import ac.mdiq.podcini.ui.screens.curVideoMode
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -59,8 +59,12 @@ import ac.mdiq.podcini.utils.timeIt
 import ac.mdiq.podcini.utils.toastMassege
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
@@ -79,8 +83,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ime
@@ -95,7 +97,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -119,7 +120,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -145,7 +145,7 @@ import java.nio.charset.StandardCharsets
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : BaseActivity() {
-    private var lastTheme = AppPreferences.theme
+    private var lastTheme = appTheme
 //    private var navigationBarInsets = Insets.NONE
     private var intentState by mutableStateOf<Intent?>(null)
 
@@ -194,7 +194,7 @@ class MainActivity : BaseActivity() {
     public override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
 
-        lastTheme = AppPreferences.theme
+        lastTheme = appTheme
 
         window.requestFeature(Window.FEATURE_ACTION_MODE_OVERLAY)
         enableEdgeToEdge(window)
@@ -216,6 +216,8 @@ class MainActivity : BaseActivity() {
         if (savedInstanceState != null) hasInitialized.value = savedInstanceState.getBoolean(INIT_KEY, false)
         if (!hasInitialized.value) hasInitialized.value = true
 
+        title = "Podcini.MainActivity"
+
         // TODO: how to monitor WorkManager
 //        WorkManager.getInstance(applicationContext).getWorkInfosForUniqueWorkLiveData(feedUpdateOnceWorkId)
 //            .observe(this) { workInfos ->
@@ -232,19 +234,17 @@ class MainActivity : BaseActivity() {
         else checkAndRequestUnrestrictedBackgroundActivity()
         timeIt("$TAG after checking permission")
 
-        val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName
-//        val lastScheduledVersion = getPref(AppPreferences.AppPrefs.lastVersion, "0")
-//        if (currentVersion != lastScheduledVersion) {
+        val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName ?: "0"
+        val lastScheduledVersion = appPrefs.lastVersion
+        if (currentVersion != lastScheduledVersion) {
 //            WorkManager.getInstance(applicationContext).cancelUniqueWork(feedUpdateWorkId)
 //            scheduleUpdateTaskOnce(applicationContext, true)
-//            putPref(AppPreferences.AppPrefs.lastVersion, currentVersion)
-//        }
-//        else scheduleUpdateTaskOnce(applicationContext, false)
+            upsertBlk(appPrefs) { it.lastVersion = currentVersion }
+        }
 
         runOnIOScope {  SynchronizationQueueSink.syncNowIfNotSyncedRecently() }
 
-        WorkManager.getInstance(this)
-            .getWorkInfosByTagLiveData(FeedUpdateManager.WORK_TAG_FEED_UPDATE)
+        WorkManager.getInstance(this).getWorkInfosByTagLiveData(FeedUpdateManager.WORK_TAG_FEED_UPDATE)
             .observe(this) { workInfos: List<WorkInfo> ->
                 if (!hasFeedUpdateObserverStarted) {
                     hasFeedUpdateObserverStarted = true
@@ -361,12 +361,14 @@ class MainActivity : BaseActivity() {
             }
         }
 
+        val screenWidth = configuration.screenWidthDp.dp
         Logd(TAG, "before CompositionLocalProvider")
         CompositionLocalProvider(LocalDrawerController provides drawerCtrl, LocalDrawerState provides drawerState, LocalNavController provides navigator) {
 //            Logd(TAG, "dynamicBottomPadding: $dynamicBottomPadding sheetValue: ${sheetValueState.value}")
             ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
-                BottomSheetScaffold(sheetContent = { AudioPlayerScreen() }, scaffoldState = sheetState, sheetPeekHeight = bottomInsetPadding + 100.dp, sheetDragHandle = {}, sheetSwipeEnabled = false, sheetShape = RectangleShape, topBar = {}) { paddingValues ->
-                    Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(top = paddingValues.calculateTopPadding(), start = paddingValues.calculateStartPadding(LocalLayoutDirection.current), end = paddingValues.calculateEndPadding(LocalLayoutDirection.current), bottom = dynamicBottomPadding)) {
+                BottomSheetScaffold(sheetContent = { AudioPlayerScreen() }, scaffoldState = sheetState, sheetMaxWidth = screenWidth, sheetPeekHeight = bottomInsetPadding + 100.dp, sheetDragHandle = {}, sheetSwipeEnabled = false, sheetShape = RectangleShape, topBar = {}) { paddingValues ->
+                    Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(top = paddingValues.calculateTopPadding(), bottom = dynamicBottomPadding)) {
+//                    Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(top = paddingValues.calculateTopPadding(), start = paddingValues.calculateStartPadding(LocalLayoutDirection.current), end = paddingValues.calculateEndPadding(LocalLayoutDirection.current), bottom = dynamicBottomPadding)) {
                         if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                         if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
                         if (commonMessage != null) LargePoster(commonMessage!!)
@@ -421,7 +423,7 @@ class MainActivity : BaseActivity() {
                 return count > 0
             }
             Logd(TAG, "BackHandler isBSExpanded: $bsState")
-            val openDrawer = getPref(AppPrefs.prefBackButtonOpensDrawer, false)
+            val openDrawer = appPrefs.backButtonOpensDrawer
             val defPage = defaultScreen
             val currentDestination = navigator.currentDestination
             var curruntRoute = currentDestination?.route ?: ""
@@ -463,7 +465,7 @@ class MainActivity : BaseActivity() {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (dontAskAgain) putPref(AppPrefs.dont_ask_again_unrestricted_background, true)
+                    if (dontAskAgain) upsertBlk(appPrefs) { it.dont_ask_again_unrestricted_background = true }
                     val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply { data = "package:$packageName".toUri() }
 //                    val intent = Intent()
 //                    intent.action = Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
@@ -478,7 +480,7 @@ class MainActivity : BaseActivity() {
     private fun checkAndRequestUnrestrictedBackgroundActivity() {
         val powerManager = getSystemService(POWER_SERVICE) as PowerManager
         val isIgnoringBatteryOptimizations = powerManager.isIgnoringBatteryOptimizations(packageName)
-        val dontAskAgain = getPref(AppPrefs.dont_ask_again_unrestricted_background, false)
+        val dontAskAgain = appPrefs.dont_ask_again_unrestricted_background
         if (!isIgnoringBatteryOptimizations && !dontAskAgain) showUnrestrictedBackgroundPermissionDialog = true
     }
 
@@ -534,6 +536,14 @@ class MainActivity : BaseActivity() {
         }
     }
 
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        curVideoMode = if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) VideoMode.FULL_SCREEN_VIEW else VideoMode.WINDOW_VIEW
+//        setForVideoMode()
+        landscape = newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE
+        Logd(TAG, "onConfigurationChanged landscape: $landscape")
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putInt(Extras.generated_view_id.name, View.generateViewId())
@@ -573,7 +583,7 @@ class MainActivity : BaseActivity() {
         super.onResume()
         autoBackup(this)
         RatingDialog.check()
-        if (lastTheme != AppPreferences.theme) {
+        if (lastTheme != appTheme) {
             finish()
             startActivity(Intent(this, MainActivity::class.java))
         }
@@ -725,8 +735,10 @@ class MainActivity : BaseActivity() {
         val downloadStates = mutableStateMapOf<String, DownloadStatus>()
         var bsState by mutableStateOf(BSState.Partial)
 
+        var landscape by mutableStateOf(false)
+
         val isRemember: Boolean
-            get() = getPref(AppPrefs.prefDefaultPage, "") == AppPreferences.DefaultPages.Remember.name
+            get() = appPrefs.defaultPage == DefaultPages.Remember.name
 
         fun getIntentToOpenFeed(feedId: Long): Intent {
             val intent = Intent(getAppContext(), MainActivity::class.java)
@@ -748,6 +760,15 @@ class MainActivity : BaseActivity() {
             intent.putExtra(Extras.search_string.name, query)
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             return intent
+        }
+
+        fun Context.findActivity(): Activity? {
+            var context = this
+            while (context is ContextWrapper) {
+                if (context is Activity) return context
+                context = context.baseContext
+            }
+            return null
         }
     }
 }

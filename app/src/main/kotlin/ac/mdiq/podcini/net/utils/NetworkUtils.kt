@@ -2,10 +2,9 @@ package ac.mdiq.podcini.net.utils
 
 import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.preferences.screens.MobileUpdateOptions
+import ac.mdiq.podcini.ui.screens.prefscreens.MobileUpdateOptions
+import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import android.annotation.SuppressLint
@@ -14,6 +13,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import androidx.core.net.toUri
+import io.github.xilinjia.krdb.ext.toRealmSet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -69,18 +69,18 @@ object NetworkUtils {
     fun isAllowMobileFor(type: String): Boolean {
         val defaultValue = HashSet<String>()
         defaultValue.add("images")
-        val allowed = getPref(AppPrefs.prefMobileUpdateTypes, defaultValue)
+        val allowed = appPrefs.mobileUpdateTypes
         return allowed.contains(type)
     }
 
     fun setAllowMobileFor(type: String, allow: Boolean) {
         val defaultValue = HashSet<String>()
         defaultValue.add("images")
-        val getValueStringSet = getPref(AppPrefs.prefMobileUpdateTypes, defaultValue)
+        val getValueStringSet = appPrefs.mobileUpdateTypes
         val allowed: MutableSet<String> = HashSet(getValueStringSet)
         if (allow) allowed.add(type)
         else allowed.remove(type)
-        putPref(AppPrefs.prefMobileUpdateTypes, allowed)
+        upsertBlk(appPrefs) { it.mobileUpdateTypes = allowed.toRealmSet() }
     }
 
     fun wasDownloadBlocked(throwable: Throwable?): Boolean {

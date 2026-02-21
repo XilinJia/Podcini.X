@@ -9,14 +9,12 @@ import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.playback.base.InTheatre.setAsCurEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.tempSkipSilence
-import ac.mdiq.podcini.playback.service.PlaybackService
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
-import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.receiver.PodciniWidget
+import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.database.fastForwardSecs
 import ac.mdiq.podcini.storage.database.getNextInQueue
+import ac.mdiq.podcini.storage.database.isSkipSilence
+import ac.mdiq.podcini.storage.database.rewindSecs
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -29,7 +27,6 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
-import ac.mdiq.podcini.utils.showStackTrace
 import ac.mdiq.podcini.utils.timeIt
 import android.app.UiModeManager
 import android.content.Context
@@ -56,7 +53,6 @@ import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.Player.State
 import androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences
 import androidx.media3.common.Tracks
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.HttpDataSource.HttpDataSourceException
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -752,7 +748,7 @@ class LocalMediaPlayer : MediaPlayerBase() {
         }
     }
 
-    override fun shouldLockWifi(): Boolean = isStreaming && getPref(AppPrefs.prefDisableWifiLock, false)
+    override fun shouldLockWifi(): Boolean = isStreaming && appPrefs.disableWifiLock
 
     companion object {
         private val TAG: String = LocalMediaPlayer::class.simpleName ?: "Anonymous"

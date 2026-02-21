@@ -1,10 +1,8 @@
 package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.preferences.AppPreferences
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.ThemePreference
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.database.upsertBlk
 import android.app.Activity
 import android.content.res.Configuration
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -59,13 +57,32 @@ private val DarkColors = darkColorScheme().copy(
     onSurface = Color(0xFFE0D7C1),
 )
 
+enum class AppThemes {
+    LIGHT, DARK, BLACK, SYSTEM
+}
+
+var appTheme: AppThemes
+    get() = when (appPrefs.theme) {
+        "0" -> AppThemes.LIGHT
+        "1" -> AppThemes.DARK
+        else -> AppThemes.SYSTEM
+    }
+    set(theme) {
+        val t = when (theme) {
+            AppThemes.LIGHT -> "0"
+            AppThemes.DARK -> "1"
+            else -> "system"
+        }
+        upsertBlk(appPrefs) { it.theme = t }
+    }
+
 @Composable
-fun PodciniTheme(forceTheme: ThemePreference? = null, content: @Composable () -> Unit) {
-    val themePreference: ThemePreference = if (forceTheme != null) forceTheme!! else AppPreferences.theme
-    val isDark = when (themePreference) {
-        ThemePreference.LIGHT -> false
-        ThemePreference.DARK, ThemePreference.BLACK -> true
-        ThemePreference.SYSTEM -> isSystemInDarkTheme()
+fun PodciniTheme(forceTheme: AppThemes? = null, content: @Composable () -> Unit) {
+    val appThemes: AppThemes = if (forceTheme != null) forceTheme else appTheme
+    val isDark = when (appThemes) {
+        AppThemes.LIGHT -> false
+        AppThemes.DARK, AppThemes.BLACK -> true
+        AppThemes.SYSTEM -> isSystemInDarkTheme()
     }
 
     val view = LocalView.current
@@ -78,9 +95,9 @@ fun PodciniTheme(forceTheme: ThemePreference? = null, content: @Composable () ->
         }
     }
 
-    val isBlackModeEnabled: Boolean = getPref(AppPrefs.prefThemeBlack, false)
+    val isBlackModeEnabled: Boolean = appPrefs.themeBlack
     val colorScheme = when {
-        isDark && (themePreference == ThemePreference.BLACK || isBlackModeEnabled) -> DarkColors.copy(surface = Color(0xFF000000))
+        isDark && (appThemes == AppThemes.BLACK || isBlackModeEnabled) -> DarkColors.copy(surface = Color(0xFF000000))
         isDark -> DarkColors
         else -> LightColors
     }
@@ -88,11 +105,11 @@ fun PodciniTheme(forceTheme: ThemePreference? = null, content: @Composable () ->
 }
 
 fun isLightTheme(): Boolean {
-    val themePreference: ThemePreference = AppPreferences.theme
-    return when (themePreference) {
-        ThemePreference.LIGHT -> true
-        ThemePreference.DARK, ThemePreference.BLACK -> false
-        ThemePreference.SYSTEM -> {
+    val curTheme: AppThemes = appTheme
+    return when (curTheme) {
+        AppThemes.LIGHT -> true
+        AppThemes.DARK, AppThemes.BLACK -> false
+        AppThemes.SYSTEM -> {
             val uiMode = getAppContext().resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
             uiMode != Configuration.UI_MODE_NIGHT_YES
         }

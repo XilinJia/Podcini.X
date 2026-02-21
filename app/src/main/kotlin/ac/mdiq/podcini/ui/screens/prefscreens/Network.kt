@@ -1,4 +1,4 @@
-package ac.mdiq.podcini.preferences.screens
+package ac.mdiq.podcini.ui.screens.prefscreens
 
 import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
@@ -20,23 +20,20 @@ import ac.mdiq.podcini.net.sync.SynchronizationSettings.setWifiSyncEnabled
 import ac.mdiq.podcini.net.sync.nextcloud.NextcloudLoginFlow
 import ac.mdiq.podcini.net.sync.nextcloud.NextcloudLoginFlow.AuthenticationCallback
 import ac.mdiq.podcini.net.sync.wifi.WifiSyncService.Companion.startInstantSync
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.proxyConfig
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.preferences.MediaFilesTransporter
+import ac.mdiq.podcini.config.settings.MediaFilesTransporter
 import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.database.proxyConfig
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.specs.ProxyConfig
 import ac.mdiq.podcini.storage.utils.deleteDirectoryRecursively
-import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.Spinner
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
-import ac.mdiq.podcini.ui.compose.TitleSummarySwitchPrefRow
+import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -51,6 +48,7 @@ import android.net.wifi.WifiManager
 import android.util.Patterns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -101,6 +99,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import io.github.xilinjia.krdb.ext.toRealmSet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -132,7 +131,8 @@ enum class MobileUpdateOptions(val res: Int) {
 }
 
 @Composable
-fun SynchronizationScreen(activity: PreferenceActivity) {
+fun SynchronizationScreen() {
+    val context by rememberUpdatedState(LocalContext.current)
 
     val selectedSyncProviderKey: String = SynchronizationSettings.selectedSyncProviderKey?:""
     var selectedProvider by remember { mutableStateOf(SynchronizationProviderViewData.fromIdentifier(selectedSyncProviderKey)) }
@@ -142,7 +142,7 @@ fun SynchronizationScreen(activity: PreferenceActivity) {
     fun NextcloudAuthenticationDialog(onDismissRequest: ()->Unit) {
         var nextcloudLoginFlow = remember<NextcloudLoginFlow?> { null }
         var showUrlEdit by remember { mutableStateOf(true) }
-        var serverUrlText by remember { mutableStateOf(getPref(AppPrefs.pref_nextcloud_server_address, "")) }
+        var serverUrlText by remember { mutableStateOf(appPrefs.nextcloud_server_address) }
         var errorText by remember { mutableStateOf("") }
         var showChooseHost by remember { mutableStateOf(serverUrlText.isNotBlank()) }
 
@@ -189,8 +189,8 @@ fun SynchronizationScreen(activity: PreferenceActivity) {
             },
             confirmButton = {
                 if (showChooseHost) TextButton(onClick = {
-                    putPref(AppPrefs.pref_nextcloud_server_address, serverUrlText)
-                    nextcloudLoginFlow = NextcloudLoginFlow(getHttpClient(), serverUrlText, activity, nextCloudAuthCallback)
+                    upsertBlk(appPrefs) { it.nextcloud_server_address = serverUrlText}
+                    nextcloudLoginFlow = NextcloudLoginFlow(getHttpClient(), serverUrlText, getAppContext(), nextCloudAuthCallback)
                     errorText = ""
                     showChooseHost = false
                     nextcloudLoginFlow.start()
@@ -376,7 +376,7 @@ fun SynchronizationScreen(activity: PreferenceActivity) {
         TitleSummaryActionColumn(R.string.synchronization_full_sync_title, R.string.synchronization_force_sync_summary) { SyncService.fullSync() }
         TitleSummaryActionColumn(R.string.synchronization_logout, 0) {
             SynchronizationCredentials.clear()
-            Logt("SynchronizationPreferencesScreen", activity.getString(R.string.pref_synchronization_logout_toast))
+            Logt("SynchronizationPreferencesScreen", context.getString(R.string.pref_synchronization_logout_toast))
             setSelectedSyncProvider(null)
             loggedIn = isProviderConnected
         }
@@ -384,7 +384,8 @@ fun SynchronizationScreen(activity: PreferenceActivity) {
 }
 
 @Composable
-fun NetworkScreen(activity: PreferenceActivity) {
+fun NetworkScreen() {
+    val context by rememberUpdatedState(LocalContext.current)
     @Composable
     fun ProxyDialog(onDismissRequest: ()->Unit) {
         val textColor = MaterialTheme.colorScheme.onSurface
@@ -430,21 +431,18 @@ fun NetworkScreen(activity: PreferenceActivity) {
         }
         fun checkHost(): Boolean {
             if (host.isEmpty()) {
-//                hostError = activity.getString(R.string.proxy_host_empty_error)
-                Loge(TAG, activity.getString(R.string.proxy_host_empty_error))
+                Loge(TAG, context.getString(R.string.proxy_host_empty_error))
                 return false
             }
             if ("localhost" != host && !Patterns.DOMAIN_NAME.matcher(host).matches()) {
-//                hostError = activity.getString(R.string.proxy_host_invalid_error)
-                Loge(TAG, activity.getString(R.string.proxy_host_invalid_error))
+                Loge(TAG, context.getString(R.string.proxy_host_invalid_error))
                 return false
             }
             return true
         }
         fun checkPort(): Boolean {
             if (portValue !in 0..65535) {
-//                portError = activity.getString(R.string.proxy_port_invalid_error)
-                Loge(TAG, "activity.getString(R.string.proxy_port_invalid_error)")
+                Loge(TAG, "context.getString(R.string.proxy_port_invalid_error)")
                 return false
             }
             return true
@@ -460,7 +458,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
                 setTestRequired(true)
                 return
             }
-            val checking = activity.getString(R.string.proxy_checking)
+            val checking = context.getString(R.string.proxy_checking)
             messageColor = textColor
             message = "{faw_circle_o_notch spin} $checking"
             val coroutineScope = CoroutineScope(Dispatchers.Main)
@@ -477,14 +475,14 @@ fun NetworkScreen(activity: PreferenceActivity) {
                     try { client.newCall(request).execute().use { response -> if (!response.isSuccessful) throw IOException(response.message) }
                     } catch (e: IOException) { throw e }
                     withContext(Dispatchers.Main) {
-                        message = String.format("%s %s", "{faw_check}", activity.getString(R.string.proxy_test_successful))
+                        message = String.format("%s %s", "{faw_check}", context.getString(R.string.proxy_test_successful))
                         messageColor = Color.Green
                         setTestRequired(false)
                     }
                 } catch (e: Throwable) {
                     Logs("DownloadsPreferencesScreen", e)
                     messageColor = Color.Red
-                    message = String.format("%s %s: %s", "{faw_close}", activity.getString(R.string.proxy_test_failed), e.message)
+                    message = String.format("%s %s: %s", "{faw_close}", context.getString(R.string.proxy_test_failed), e.message)
                     setTestRequired(true)
                 }
             }
@@ -555,7 +553,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
     var showProxyDialog by remember { mutableStateOf(false) }
     if (showProxyDialog) ProxyDialog {showProxyDialog = false }
 
-    var useCustomMediaDir by remember { mutableStateOf(getPref(AppPrefs.prefUseCustomMediaFolder, false)) }
+    var useCustomMediaDir by remember { mutableStateOf(appPrefs.useCustomMediaFolder) }
 
     val showImporSuccessDialog = remember { mutableStateOf(false) }
     ComfirmDialog(titleRes = R.string.successful_import_label, message = stringResource(R.string.import_ok), showDialog = showImporSuccessDialog, cancellable = false) { forceRestart() }
@@ -572,22 +570,24 @@ fun NetworkScreen(activity: PreferenceActivity) {
         }
     }
 
-    var customMediaFolderUriString by remember { mutableStateOf(getPref(AppPrefs.prefCustomMediaUri, "")) }
+    var customMediaFolderUriString by remember { mutableStateOf(appPrefs.customMediaUri) }
     val selectCustomMediaDirLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == RESULT_OK) {
             val uri: Uri? = it.data?.data
             if (uri != null) {
                 showProgress = true
                 CoroutineScope(Dispatchers.IO).launch {
-                    val chosenDir = if (customMediaFolderUriString.isNotBlank()) DocumentFile.fromTreeUri(activity, customMediaFolderUriString.toUri()) else null
-                    activity.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                    val chosenDir = if (customMediaFolderUriString.isNotBlank()) DocumentFile.fromTreeUri(getAppContext(), customMediaFolderUriString.toUri()) else null
+                    getAppContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                     val baseDir = DocumentFile.fromTreeUri(getAppContext(), uri) ?: return@launch
                     val mediaDir = baseDir.createDirectory("Podcini.media") ?: return@launch
                     MediaFilesTransporter("Podcini.media").exportToUri(mediaDir.uri, move = true, useSubDir = false)
                     customMediaFolderUriString = mediaDir.uri.toString()
                     useCustomMediaDir = true
-                    putPref(AppPrefs.prefUseCustomMediaFolder, true)
-                    putPref(AppPrefs.prefCustomMediaUri, customMediaFolderUriString)
+                    upsertBlk(appPrefs) {
+                        it.useCustomMediaFolder = true
+                        it.customMediaUri = customMediaFolderUriString
+                    }
                     if (chosenDir != null) deleteDirectoryRecursively(chosenDir)
                     showProgress = false
                     showImporSuccessDialog.value = true
@@ -596,12 +596,12 @@ fun NetworkScreen(activity: PreferenceActivity) {
         }
     }
 
-    var refreshInterval by remember { mutableStateOf(getPref(AppPrefs.prefAutoUpdateIntervalMinutes, "360")) }
+    var refreshInterval by remember { mutableStateOf(appPrefs.autoUpdateInterval.toString()) }
     LaunchedEffect(Unit) {
         getInitialDelay()
     }
 
-    Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState())) {
+    Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.identifier), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
@@ -628,7 +628,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
                 NumberEditor(refreshInterval.toInt(), stringResource(R.string.time_minutes), nz = false, modifier = Modifier.weight(0.6f)) {
                     refreshInterval = it.toString()
                     Logd("DownloadsSetting", "refreshInterval: $refreshInterval")
-                    putPref(AppPrefs.prefAutoUpdateIntervalMinutes, refreshInterval)
+                    upsertBlk(appPrefs) { p-> p.autoUpdateInterval = it }
                     checkAndscheduleUpdateTaskOnce(replace = true, force = true)
                 }
             }
@@ -636,19 +636,19 @@ fun NetworkScreen(activity: PreferenceActivity) {
             if (refreshInterval != "0") Text(stringResource(R.string.feed_next_refresh_time) + " " + nextRefreshTime, color = textColor, style = MaterialTheme.typography.bodySmall)
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
-        var isEnabled by remember { mutableStateOf(getPref(AppPrefs.prefEnableAutoDl, false)) }
-        TitleSummarySwitchPrefRow(R.string.pref_automatic_download_title, R.string.pref_automatic_download_sum, AppPrefs.prefEnableAutoDl) {
+        var isEnabled by remember { mutableStateOf(appPrefs.enableAutoDl) }
+        TitleSummarySwitchRow(R.string.pref_automatic_download_title, R.string.pref_automatic_download_sum, appPrefs.enableAutoDl) {
             isEnabled = it
-            putPref(AppPrefs.prefEnableAutoDl, it)
+            upsertBlk(appPrefs) { p -> p.enableAutoDl = it }
         }
         if (isEnabled) {
             Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.pref_episode_cache_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    var interval by remember { mutableStateOf(getPref(AppPrefs.prefEpisodeCacheSize, "25")) }
-                    NumberEditor(interval.toInt(), label = "integer", nz = false, modifier = Modifier.weight(0.5f)) {
-                        interval = it.toString()
-                        putPref(AppPrefs.prefEpisodeCacheSize, interval)
+                    var interval by remember { mutableStateOf(appPrefs.episodeCacheSize) }
+                    NumberEditor(interval, label = "integer", nz = false, modifier = Modifier.weight(0.5f)) {
+                        interval = it
+                        upsertBlk(appPrefs) { p-> p.episodeCacheSize = interval}
                     }
                 }
                 Text(stringResource(R.string.pref_episode_cache_summary), color = textColor, style = MaterialTheme.typography.bodySmall)
@@ -656,8 +656,8 @@ fun NetworkScreen(activity: PreferenceActivity) {
             var showCleanupOptions by remember { mutableStateOf(false) }
             TitleSummaryActionColumn(R.string.pref_episode_cleanup_title, R.string.pref_episode_cleanup_summary) { showCleanupOptions = true }
             if (showCleanupOptions) {
-                var tempCleanupOption by remember { mutableStateOf(getPref(AppPrefs.prefEpisodeCleanup, "-1")) }
-                var interval by remember { mutableStateOf(getPref(AppPrefs.prefEpisodeCleanup, "-1")) }
+                var tempCleanupOption by remember { mutableStateOf(appPrefs.episodeCleanup) }
+                var interval by remember { mutableStateOf(appPrefs.episodeCleanup) }
                 if ((interval.toIntOrNull() ?: -1) > 0) tempCleanupOption = EpisodeCleanupOptions.LimitBy.num.toString()
                 AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { showCleanupOptions = false },
                     title = { Text(stringResource(R.string.pref_episode_cleanup_title), style = CustomTextStyles.titleCustom) },
@@ -679,18 +679,22 @@ fun NetworkScreen(activity: PreferenceActivity) {
                         TextButton(onClick = {
                             var num = if (tempCleanupOption == EpisodeCleanupOptions.LimitBy.num.toString()) interval else tempCleanupOption
                             if (num.toIntOrNull() == null) num = EpisodeCleanupOptions.Never.num.toString()
-                            putPref(AppPrefs.prefEpisodeCleanup, num)
+                            upsertBlk(appPrefs) { it.episodeCleanup = num}
                             showCleanupOptions = false
                         }) { Text(text = "OK") }
                     },
                     dismissButton = { TextButton(onClick = { showCleanupOptions = false }) { Text(stringResource(R.string.cancel_label)) } }
                 )
             }
-            TitleSummarySwitchPrefRow(R.string.pref_automatic_download_on_battery_title, R.string.pref_automatic_download_on_battery_sum, AppPrefs.prefEnableAutoDownloadOnBattery)
+            TitleSummarySwitchRow(R.string.pref_automatic_download_on_battery_title, R.string.pref_automatic_download_on_battery_sum, appPrefs.enableAutoDownloadOnBattery) {
+                upsertBlk(appPrefs) { p-> p.enableAutoDownloadOnBattery = it}
+            }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
 
-        TitleSummarySwitchPrefRow(R.string.pref_disable_wifilock_title, R.string.pref_disable_wifilock_sum, AppPrefs.prefDisableWifiLock)
+        TitleSummarySwitchRow(R.string.pref_disable_wifilock_title, R.string.pref_disable_wifilock_sum, appPrefs.disableWifiLock) {
+            upsertBlk(appPrefs) { p-> p.disableWifiLock = it}
+        }
 
         var showSetCustomFolderDialog by remember { mutableStateOf(false) }
         if (showSetCustomFolderDialog) {
@@ -719,11 +723,13 @@ fun NetworkScreen(activity: PreferenceActivity) {
                     TextButton(onClick = {
                         showProgress = true
                         CoroutineScope(Dispatchers.IO).launch {
-                            val chosenDir = DocumentFile.fromTreeUri(activity, customMediaFolderUriString.toUri()) ?: throw IOException("Destination directory is not valid")
+                            val chosenDir = DocumentFile.fromTreeUri(getAppContext(), customMediaFolderUriString.toUri()) ?: throw IOException("Destination directory is not valid")
                             customMediaFolderUriString = ""
                             useCustomMediaDir = false
-                            putPref(AppPrefs.prefUseCustomMediaFolder, false)
-                            putPref(AppPrefs.prefCustomMediaUri, "")
+                            upsertBlk(appPrefs) {
+                                it.useCustomMediaFolder = false
+                                it.customMediaUri = ""
+                            }
                             MediaFilesTransporter("").importFromUri(chosenDir.uri, move = true, verify = false)
                             deleteDirectoryRecursively(chosenDir)
 //                            createNoMediaFile()
@@ -746,8 +752,8 @@ fun NetworkScreen(activity: PreferenceActivity) {
         var showMeteredNetworkOptions by remember { mutableStateOf(false) }
         TitleSummaryActionColumn(R.string.pref_metered_network_title, R.string.pref_mobileUpdate_sum) { showMeteredNetworkOptions = true }
         if (showMeteredNetworkOptions) {
-            val initMobileOptions by remember { mutableStateOf(getPref(AppPrefs.prefMobileUpdateTypes, setOf("images"))) }
-            var tempSelectedOptions by remember { mutableStateOf(getPref(AppPrefs.prefMobileUpdateTypes, setOf("images"))) }
+            val initMobileOptions = remember { appPrefs.mobileUpdateTypes }
+            var tempSelectedOptions by remember { mutableStateOf(appPrefs.mobileUpdateTypes.toSet()) }
             fun updateSepections(option: MobileUpdateOptions) {
                 tempSelectedOptions = if (tempSelectedOptions.contains(option.name)) tempSelectedOptions - option.name else tempSelectedOptions + option.name
                 when (option) {
@@ -774,7 +780,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
                 },
                 confirmButton = {
                     TextButton(onClick = {
-                        putPref(AppPrefs.prefMobileUpdateTypes, tempSelectedOptions)
+                        upsertBlk(appPrefs) { it.mobileUpdateTypes = tempSelectedOptions.toRealmSet() }
                         val optionsDiff = (tempSelectedOptions - initMobileOptions) + (initMobileOptions - tempSelectedOptions)
                         if (optionsDiff.contains(MobileUpdateOptions.feed_refresh.name) || optionsDiff.contains(MobileUpdateOptions.auto_download.name))
                             checkAndscheduleUpdateTaskOnce(replace = true, force = true)
@@ -786,7 +792,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
         }
         TitleSummaryActionColumn(R.string.pref_proxy_title, R.string.pref_proxy_sum) { showProxyDialog = true }
         HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
-        SynchronizationScreen(activity)
+        SynchronizationScreen()
     }
 }
 

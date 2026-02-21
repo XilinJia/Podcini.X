@@ -1,4 +1,4 @@
-package ac.mdiq.podcini.preferences
+package ac.mdiq.podcini.config.settings
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.net.sync.SyncService.Companion.isValidGuid
@@ -17,7 +17,6 @@ import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
-import android.content.Context
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.json.JSONArray

@@ -1,3 +1,17 @@
+# 10.10.0
+
+* revamp of Settings
+	* migrated away from SharedPreferences
+	* all app settings properties are migrated, synchronization settings are reset
+	* old Preferences can temporarily be exported/imported
+	* Settings are done in MainActivity, removed PreferenceActivity
+* revamp of the players
+	* both audio and video are now handled in AVPlayer screen (the original AudioPlayer)
+	* VideoPlayerActivity is removed
+* some screens' background color is corrected
+* skipped some older DB migration steps, some of which might cause crash
+* some code refactoring and reorganization
+
 # 10.9.5.1
 
 * commented out a few outdated DB migration

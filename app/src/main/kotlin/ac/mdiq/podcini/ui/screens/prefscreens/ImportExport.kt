@@ -1,29 +1,27 @@
-package ac.mdiq.podcini.preferences.screens
+package ac.mdiq.podcini.ui.screens.prefscreens
 
 import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.preferences.DatabaseTransporter
-import ac.mdiq.podcini.preferences.DocumentFileExportWorker
-import ac.mdiq.podcini.preferences.EpisodeProgressReader
-import ac.mdiq.podcini.preferences.EpisodesProgressWriter
-import ac.mdiq.podcini.preferences.ExportTypes
-import ac.mdiq.podcini.preferences.ExportWorker
-import ac.mdiq.podcini.preferences.ExportWriter
-import ac.mdiq.podcini.preferences.FavoritesWriter
-import ac.mdiq.podcini.preferences.HtmlWriter
-import ac.mdiq.podcini.preferences.MediaFilesTransporter
-import ac.mdiq.podcini.preferences.OpmlTransporter
-import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlElement
-import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlWriter
-import ac.mdiq.podcini.preferences.PreferencesTransporter
-import ac.mdiq.podcini.preferences.autoBackupDirName
-import ac.mdiq.podcini.preferences.importAP
-import ac.mdiq.podcini.preferences.importPA
-import ac.mdiq.podcini.ui.activity.PreferenceActivity
+import ac.mdiq.podcini.config.settings.DatabaseTransporter
+import ac.mdiq.podcini.config.settings.DocumentFileExportWorker
+import ac.mdiq.podcini.config.settings.EpisodeProgressReader
+import ac.mdiq.podcini.config.settings.EpisodesProgressWriter
+import ac.mdiq.podcini.config.settings.ExportTypes
+import ac.mdiq.podcini.config.settings.ExportWorker
+import ac.mdiq.podcini.config.settings.ExportWriter
+import ac.mdiq.podcini.config.settings.FavoritesWriter
+import ac.mdiq.podcini.config.settings.HtmlWriter
+import ac.mdiq.podcini.config.settings.MediaFilesTransporter
+import ac.mdiq.podcini.config.settings.OpmlTransporter
+import ac.mdiq.podcini.config.settings.OpmlTransporter.OpmlElement
+import ac.mdiq.podcini.config.settings.OpmlTransporter.OpmlWriter
+import ac.mdiq.podcini.config.settings.PreferencesTransporter
+import ac.mdiq.podcini.config.settings.autoBackupDirName
+import ac.mdiq.podcini.config.settings.importAP
+import ac.mdiq.podcini.config.settings.importPA
+import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
@@ -31,7 +29,7 @@ import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
-import ac.mdiq.podcini.ui.compose.TitleSummarySwitchPrefRow
+import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
@@ -44,6 +42,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -72,9 +71,11 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -92,7 +93,8 @@ import java.io.InputStream
 import java.io.InputStreamReader
 
 @Composable
-fun ImportExportScreen(activity: PreferenceActivity) {
+fun ImportExportScreen() {
+    val context by rememberUpdatedState(LocalContext.current)
     val TAG = "ImportExportScreen"
     val backupDirName = "Podcini-Backups"
     val prefsDirName = "Podcini-Prefs"
@@ -113,11 +115,11 @@ fun ImportExportScreen(activity: PreferenceActivity) {
     }
     fun showExportSuccess(uri: Uri?, mimeType: String?) {
         commonConfirm = CommonConfirmAttrib(
-            title = activity.getString(R.string.export_success_title),
+            title = context.getString(R.string.export_success_title),
             message = "",
             confirmRes = R.string.share_label,
             cancelRes = R.string.no,
-            onConfirm = { IntentBuilder(activity).setType(mimeType).addStream(uri!!).setChooserTitle(R.string.share_label).startChooser() })
+            onConfirm = { IntentBuilder(context).setType(mimeType).addStream(uri!!).setChooserTitle(R.string.share_label).startChooser() })
     }
     val showImporSuccessDialog = remember { mutableStateOf(false) }
     ComfirmDialog(titleRes = R.string.successful_import_label, message = stringResource(R.string.import_ok), showDialog = showImporSuccessDialog, cancellable = false) { forceRestart() }
@@ -187,7 +189,7 @@ fun ImportExportScreen(activity: PreferenceActivity) {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         withContext(Dispatchers.IO) {
-                            val inputStream: InputStream? = activity.contentResolver.openInputStream(uri)
+                            val inputStream: InputStream? = getAppContext().contentResolver.openInputStream(uri)
                             val reader = BufferedReader(InputStreamReader(inputStream))
                             EpisodeProgressReader().readDocument(reader)
                             reader.close()
@@ -204,7 +206,7 @@ fun ImportExportScreen(activity: PreferenceActivity) {
                     }
                 }
             } else {
-                val message = activity.getString(R.string.import_file_type_toast) + ".json"
+                val message = context.getString(R.string.import_file_type_toast) + ".json"
                 showProgress = false
                 importErrorMessage = message
                 showImporErrortDialog.value = true
@@ -250,7 +252,7 @@ fun ImportExportScreen(activity: PreferenceActivity) {
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
                             withContext(Dispatchers.IO) {
-                                val rootFile = DocumentFile.fromTreeUri(activity, uri)
+                                val rootFile = DocumentFile.fromTreeUri(getAppContext(), uri)
                                 if (rootFile != null && rootFile.isDirectory) {
                                     Logd(TAG, "comboDic[\"Preferences\"] ${comboDic["Preferences"]}")
                                     Logd(TAG, "comboDic[\"Media files\"] ${comboDic["Media files"]}")
@@ -302,7 +304,7 @@ fun ImportExportScreen(activity: PreferenceActivity) {
                     showProgress = true
                     CoroutineScope(Dispatchers.IO).launch {
                         withContext(Dispatchers.IO) {
-                            val chosenDir = DocumentFile.fromTreeUri(activity, uri) ?: throw IOException("Destination directory is not valid")
+                            val chosenDir = DocumentFile.fromTreeUri(getAppContext(), uri) ?: throw IOException("Destination directory is not valid")
                             val exportSubDir = chosenDir.createDirectory(dateStampFilename("$backupDirName-%s")) ?: throw IOException("Error creating subdirectory $backupDirName")
                             val subUri: Uri = exportSubDir.uri
                             if (comboDic["Preferences"] == true) PreferencesTransporter(prefsDirName).exportToDocument(subUri)
@@ -321,14 +323,14 @@ fun ImportExportScreen(activity: PreferenceActivity) {
         )
     }
 
-    var backupFolder by remember { mutableStateOf(getPref(AppPrefs.prefAutoBackupFolder, activity.getString(R.string.pref_auto_backup_folder_sum))) }
+    var backupFolder by remember { mutableStateOf(appPrefs.autoBackupFolder ?: context.getString(R.string.pref_auto_backup_folder_sum)) }
     val selectAutoBackupDirLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == RESULT_OK) {
             val uri: Uri? = it.data?.data
             if (uri != null) {
-                activity.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                getAppContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                 backupFolder = uri.toString()
-                putPref(AppPrefs.prefAutoBackupFolder, uri.toString())
+                upsertBlk(appPrefs) { p-> p.autoBackupFolder = uri.toString() }
             }
         }
     }
@@ -337,7 +339,7 @@ fun ImportExportScreen(activity: PreferenceActivity) {
         if (result.resultCode != RESULT_OK || result.data?.data == null) return@rememberLauncherForActivityResult
         val uri = result.data!!.data!!
         if (isComboDir(uri)) {
-            val rootFile = DocumentFile.fromTreeUri(activity, uri)
+            val rootFile = DocumentFile.fromTreeUri(getAppContext(), uri)
             if (rootFile != null && rootFile.isDirectory) {
                 comboDic.clear()
                 for (child in rootFile.listFiles()) {
@@ -351,7 +353,7 @@ fun ImportExportScreen(activity: PreferenceActivity) {
             comboRootUri = uri
             showComboImportDialog = true
         } else {
-            val message = activity.getString(R.string.import_directory_toast) + backupDirName + " or " + autoBackupDirName
+            val message = context.getString(R.string.import_directory_toast) + backupDirName + " or " + autoBackupDirName
             showProgress = false
             importErrorMessage = message
             showImporErrortDialog.value = true
@@ -374,7 +376,7 @@ fun ImportExportScreen(activity: PreferenceActivity) {
     val chooseAPImportPathLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
             showProgress = true
-            importAP(uri, activity = activity) {
+            importAP(uri) {
                 showImporSuccessDialog.value = true
                 showProgress = false
             }
@@ -386,7 +388,7 @@ fun ImportExportScreen(activity: PreferenceActivity) {
         uri?.let {
             showProgress = true
             CoroutineScope(Dispatchers.IO).launch {
-                if (importPADB) importPA(uri, activity = activity, true, importPADirectory) {}
+                if (importPADB) importPA(uri, true, importPADirectory) {}
                 showImporSuccessDialog.value = true
                 showProgress = false
             }
@@ -409,7 +411,7 @@ fun ImportExportScreen(activity: PreferenceActivity) {
             result.launch(intentPickAction)
             return
         } catch (e: ActivityNotFoundException) { Logs(TAG, e, "No activity found. Should never happen...") }
-        // If we are using a SDK lower than API 21 or the implicit intent failed fallback to the legacy export process
+        // If we are using an SDK lower than API 21 or the implicit intent failed fallback to the legacy export process
         exportWithWriter(writer, null, exportType)
     }
 
@@ -422,30 +424,30 @@ fun ImportExportScreen(activity: PreferenceActivity) {
             }
         }
     }
-    Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState())) {
-        TitleSummarySwitchPrefRow(R.string.pref_backup_on_google_title, R.string.pref_backup_on_google_sum, AppPrefs.prefOPMLBackup) {
-            putPref(AppPrefs.prefOPMLBackup, it)
-            val intent = activity.packageManager?.getLaunchIntentForPackage(activity.packageName)
+    Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
+        TitleSummarySwitchRow(R.string.pref_backup_on_google_title, R.string.pref_backup_on_google_sum, appPrefs.OPMLBackup) {
+            upsertBlk(appPrefs) { p -> p.OPMLBackup = it}
+            val intent = context.packageManager?.getLaunchIntentForPackage(context.packageName)
             intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            activity.startActivity(intent)
+            context.startActivity(intent)
         }
-        var isAutoBackup by remember { mutableStateOf(getPref(AppPrefs.prefAutoBackup, false)) }
-        TitleSummarySwitchPrefRow(R.string.pref_auto_backup_title, R.string.pref_auto_backup_sum, AppPrefs.prefAutoBackup) {
+        var isAutoBackup by remember { mutableStateOf(appPrefs.autoBackup) }
+        TitleSummarySwitchRow(R.string.pref_auto_backup_title, R.string.pref_auto_backup_sum, appPrefs.autoBackup) {
             isAutoBackup = it
-            putPref(AppPrefs.prefAutoBackup, it)
+            upsertBlk(appPrefs) { p -> p.autoBackup = it}
         }
         if (isAutoBackup) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
                 Text(stringResource(R.string.pref_auto_backup_interval), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                var interval by remember { mutableStateOf(getPref(AppPrefs.prefAutoBackupIntervall, 24).toString()) }
+                var interval by remember { mutableStateOf(appPrefs.autoBackupIntervall.toString()) }
                 NumberEditor(interval.toInt(), label = "hours", nz = false, modifier = Modifier.weight(0.5f)) {
                     interval = it.toString()
-                    putPref(AppPrefs.prefAutoBackupIntervall, interval.toIntOrNull()?:0)
+                    upsertBlk(appPrefs) { p-> p.autoBackupIntervall = interval.toIntOrNull()?:0 }
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
                 Text(stringResource(R.string.pref_auto_backup_limit), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                var count by remember { mutableStateOf(getPref(AppPrefs.prefAutoBackupLimit, 2).toString()) }
+                var count by remember { mutableStateOf(appPrefs.autoBackupLimit.toString()) }
                 var showIcon by remember { mutableStateOf(false) }
                 TextField(value = count, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true, modifier = Modifier.weight(0.4f),  label = { Text("1 - 9") },
@@ -460,7 +462,7 @@ fun ImportExportScreen(activity: PreferenceActivity) {
                         if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
                             modifier = Modifier.size(30.dp).padding(start = 5.dp).clickable(onClick = {
                                 if (count.isEmpty()) count = "0"
-                                putPref(AppPrefs.prefAutoBackupLimit, count.toIntOrNull()?:0)
+                                upsertBlk(appPrefs) { p-> p.autoBackupLimit = count.toIntOrNull()?:0 }
                                 showIcon = false
                             }))
                     })
@@ -532,7 +534,7 @@ fun ImportExportScreen(activity: PreferenceActivity) {
         ComfirmDialog(titleRes = R.string.progress_import_label, message = stringResource(R.string.progress_import_warning), showDialog = showProgressImportDialog) {
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            intent.setType("*/*")
+            intent.type = "*/*"
             intent.addCategory(Intent.CATEGORY_OPENABLE)
             restoreProgressLauncher.launch(intent)
         }

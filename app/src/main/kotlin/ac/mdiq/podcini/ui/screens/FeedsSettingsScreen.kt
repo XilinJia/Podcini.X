@@ -3,8 +3,8 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.base.VideoMode
-import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
-import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
+import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -39,6 +39,7 @@ import ac.mdiq.podcini.ui.compose.VideoModeDialog
 import ac.mdiq.podcini.ui.compose.filterChipBorder
 import ac.mdiq.podcini.utils.Logd
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -234,7 +235,7 @@ fun FeedsSettingsScreen() {
 
     val textColor = MaterialTheme.colorScheme.onSurface
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).padding(start = 20.dp, end = 16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.padding(innerPadding).padding(start = 20.dp, end = 16.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (feedsToSet.size == 1) {
                 Column {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -949,7 +950,7 @@ fun FeedsSettingsScreen() {
                 Spacer(modifier = Modifier.weight(1f))
                 Text(text = stringResource(R.string.download), style = CustomTextStyles.titleCustom, color = textColor)
                 if ((feedToSet.inNormalVolume && feedToSet.type != Feed.FeedType.YOUTUBE.name) || feedsToSet.size > 1) {
-                    if (isAutodownloadEnabled && !preferStreaming) {
+                    if (appPrefs.enableAutoDl && !preferStreaming) {
                         //                    auto download
                         Spacer(modifier = Modifier.width(10.dp))
                         Switch(checked = autoDownloadChecked, modifier = Modifier.height(24.dp),
@@ -970,7 +971,7 @@ fun FeedsSettingsScreen() {
                 Text(text = stringResource(R.string.auto_enqueue_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 if (curPrefQueue == "None") Text(text = stringResource(R.string.auto_enqueue_sum1), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 Text(text = stringResource(R.string.auto_download_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
-                if (!isAutodownloadEnabled) Text(text = stringResource(R.string.auto_download_disabled_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                if (!appPrefs.enableAutoDl) Text(text = stringResource(R.string.auto_download_disabled_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
             if (autoDownloadChecked || autoEnqueueChecked) {
                 var newCache by remember { mutableIntStateOf((feedToSet.autoDLMaxEpisodes)) }

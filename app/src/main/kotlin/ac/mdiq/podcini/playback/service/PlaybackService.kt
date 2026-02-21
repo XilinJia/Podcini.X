@@ -8,6 +8,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.monitorState
+import ac.mdiq.podcini.playback.base.InTheatre.playVideo
 import ac.mdiq.podcini.playback.base.InTheatre.restoreMediaFromPreferences
 import ac.mdiq.podcini.playback.base.InTheatre.setAsCurEpisode
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer
@@ -29,16 +30,14 @@ import ac.mdiq.podcini.playback.base.SleepManager
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.cast.CastMediaPlayer
 import ac.mdiq.podcini.playback.cast.CastStateListener
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.receiver.MediaButtonReceiver
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.episodeByGuidOrUrl
+import ac.mdiq.podcini.storage.database.fastForwardSecs
+import ac.mdiq.podcini.storage.database.rewindSecs
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.ui.activity.starter.MainActivityStarter
-import ac.mdiq.podcini.ui.activity.starter.VideoPlayerActivityStarter
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -180,7 +179,7 @@ class PlaybackService : MediaLibraryService() {
             Logd(TAG, "Pausing playback because audio is becoming noisy")
 //            pauseIfPauseOnDisconnect()
             transientPause = isPlaying
-            if (getPref(AppPrefs.prefPauseOnHeadsetDisconnect, true) && !isCasting) mPlayer?.pause(false)
+            if (appPrefs.pauseOnHeadsetDisconnect && !isCasting) mPlayer?.pause(false)
         }
     }
 
@@ -267,7 +266,7 @@ class PlaybackService : MediaLibraryService() {
             when (customCommand.customAction) {
                 NotificationCustomButton.REWIND.customAction -> mPlayer?.seekDelta(-rewindSecs * 1000)
                 NotificationCustomButton.FORWARD.customAction -> mPlayer?.seekDelta(fastForwardSecs * 1000)
-                NotificationCustomButton.SKIP.customAction -> if (getPref(AppPrefs.prefShowSkip, true)) mPlayer?.skip()
+                NotificationCustomButton.SKIP.customAction -> if (appPrefs.showSkip) mPlayer?.skip()
             }
             return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
         }
@@ -576,7 +575,7 @@ class PlaybackService : MediaLibraryService() {
             KeyEvent.KEYCODE_MEDIA_NEXT -> {
                 when {
                     // Handle remapped button as notification button which is not remapped again.
-                    !notificationButton -> return handleKeycode(getPref(AppPrefs.prefHardwareForwardButton, "0").toInt(), true)
+                    !notificationButton -> return handleKeycode(appPrefs.hardwareForwardButton.toInt(), true)
                     isPlaying || isPaused -> {
                         mPlayer?.skip()
                         return true
@@ -592,7 +591,7 @@ class PlaybackService : MediaLibraryService() {
             KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
                 when {
                     // Handle remapped button as notification button which is not remapped again.
-                    !notificationButton -> return handleKeycode(getPref(AppPrefs.prefHardwarePreviousButton, "0").toInt(), true)
+                    !notificationButton -> return handleKeycode(appPrefs.hardwarePreviousButton.toInt(), true)
                     isPlaying || isPaused -> {
                         mPlayer?.seekTo(0)
                         return true
@@ -718,8 +717,8 @@ class PlaybackService : MediaLibraryService() {
             transientPause = false
             if (Build.VERSION.SDK_INT >= 31) return
             when {
-                !bluetooth && getPref(AppPrefs.prefUnpauseOnHeadsetReconnect, true) -> mPlayer?.play()
-                bluetooth && getPref(AppPrefs.prefUnpauseOnBluetoothReconnect, false) -> {
+                !bluetooth && appPrefs.unpauseOnHeadsetReconnect -> mPlayer?.play()
+                bluetooth && appPrefs.unpauseOnBluetoothReconnect -> {
                     // let the user know we've started playback again...
                     val v = applicationContext.getSystemService(VIBRATOR_SERVICE) as? Vibrator
                     v?.vibrate(500)
@@ -768,7 +767,7 @@ class PlaybackService : MediaLibraryService() {
                 add(NotificationCustomButton.REWIND.commandButton)
                 if (defaultPlayPauseButton != null) add(defaultPlayPauseButton)
                 add(NotificationCustomButton.FORWARD.commandButton)
-                if (getPref(AppPrefs.prefShowSkip, true)) add(NotificationCustomButton.SKIP.commandButton)
+                if (appPrefs.showSkip) add(NotificationCustomButton.SKIP.commandButton)
             }.build()
             return super.addNotificationActions(mediaSession, notificationMediaButtons, builder, actionFactory)
         }
@@ -817,8 +816,10 @@ class PlaybackService : MediaLibraryService() {
         fun getPlayerActivityIntent(context: Context, mediaType_: MediaType? = null): Intent {
             val mediaType = mediaType_ ?: currentMediaType
             val showVideoPlayer = if (isRunning) mediaType == MediaType.VIDEO && !isCasting else curState.curIsVideo
-            return if (showVideoPlayer) VideoPlayerActivityStarter(context).intent
-            else MainActivityStarter(context).withOpenPlayer().getIntent()
+            playVideo = showVideoPlayer
+            //            return if (showVideoPlayer) VideoPlayerActivityStarter(context).intent
+//            else
+            return MainActivityStarter(context).withOpenPlayer().getIntent()
         }
     }
 }

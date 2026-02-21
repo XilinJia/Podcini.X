@@ -1,4 +1,4 @@
-package ac.mdiq.podcini.preferences
+package ac.mdiq.podcini.config.settings
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 

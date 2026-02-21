@@ -1,9 +1,7 @@
 package ac.mdiq.podcini.net.sync
 
-import ac.mdiq.podcini.config.ClientConfig
-import android.content.Context
-import android.content.SharedPreferences
-import androidx.core.content.edit
+import ac.mdiq.podcini.storage.database.syncPrefs
+import ac.mdiq.podcini.storage.database.upsertBlk
 
 object SynchronizationSettings {
     const val LAST_SYNC_ATTEMPT_TIMESTAMP: String = "last_sync_attempt_timestamp"
@@ -18,55 +16,53 @@ object SynchronizationSettings {
         get() = selectedSyncProviderKey != null
 
     fun resetTimestamps() {
-        sharedPreferences.edit {
-            putLong(LAST_SUBSCRIPTION_SYNC_TIMESTAMP, 0)
-            putLong(LAST_EPISODE_ACTIONS_SYNC_TIMESTAMP, 0)
-            putLong(LAST_SYNC_ATTEMPT_TIMESTAMP, 0)
+        upsertBlk(syncPrefs) {
+            it.LAST_SUBSCRIPTION_SYNC_TIMESTAMP = 0L
+            it.LAST_EPISODE_ACTIONS_SYNC_TIMESTAMP = 0L
+            it.LAST_SYNC_ATTEMPT_TIMESTAMP = 0L
         }
     }
 
     val isLastSyncSuccessful: Boolean
-        get() = sharedPreferences.getBoolean(LAST_SYNC_ATTEMPT_SUCCESS, false)
+        get() = syncPrefs.LAST_SYNC_ATTEMPT_SUCCESS
 
     val lastSyncAttempt: Long
-        get() = sharedPreferences.getLong(LAST_SYNC_ATTEMPT_TIMESTAMP, 0)
+        get() = syncPrefs.LAST_SYNC_ATTEMPT_TIMESTAMP
 
     fun setSelectedSyncProvider(provider: SynchronizationProviderViewData?) {
-        sharedPreferences.edit { putString(SELECTED_SYNC_PROVIDER, provider?.identifier) }
+        upsertBlk(syncPrefs) { it.SELECTED_SYNC_PROVIDER = provider?.identifier }
     }
 
     val selectedSyncProviderKey: String?
-        get() = sharedPreferences.getString(SELECTED_SYNC_PROVIDER, null)
+        get() = syncPrefs.SELECTED_SYNC_PROVIDER
 
     fun setWifiSyncEnabled(stat: Boolean) {
-        sharedPreferences.edit { putBoolean(WIFI_SYNC_ENABLED, stat) }
+        upsertBlk(syncPrefs) { it.WIFI_SYNC_ENABLED = stat }
     }
 
     val wifiSyncEnabledKey: Boolean
-        get() = sharedPreferences.getBoolean(WIFI_SYNC_ENABLED, false)
+        get() = syncPrefs.WIFI_SYNC_ENABLED
 
     fun updateLastSynchronizationAttempt() {
-        sharedPreferences.edit { putLong(LAST_SYNC_ATTEMPT_TIMESTAMP, System.currentTimeMillis()) }
+        upsertBlk(syncPrefs) { it.LAST_SYNC_ATTEMPT_TIMESTAMP = System.currentTimeMillis() }
     }
 
     fun setLastSynchronizationAttemptSuccess(isSuccess: Boolean) {
-        sharedPreferences.edit { putBoolean(LAST_SYNC_ATTEMPT_SUCCESS, isSuccess) }
+        upsertBlk(syncPrefs) { it.LAST_SYNC_ATTEMPT_SUCCESS = isSuccess }
     }
 
     val lastSubscriptionSynchronizationTimestamp: Long
-        get() = sharedPreferences.getLong(LAST_SUBSCRIPTION_SYNC_TIMESTAMP, 0)
+        get() = syncPrefs.LAST_SUBSCRIPTION_SYNC_TIMESTAMP
 
     fun setLastSubscriptionSynchronizationAttemptTimestamp(newTimeStamp: Long) {
-        sharedPreferences.edit { putLong(LAST_SUBSCRIPTION_SYNC_TIMESTAMP, newTimeStamp) }
+        upsertBlk(syncPrefs) { it.LAST_SUBSCRIPTION_SYNC_TIMESTAMP = newTimeStamp }
     }
 
     val lastEpisodeActionSynchronizationTimestamp: Long
-        get() = sharedPreferences.getLong(LAST_EPISODE_ACTIONS_SYNC_TIMESTAMP, 0)
+        get() = syncPrefs.LAST_EPISODE_ACTIONS_SYNC_TIMESTAMP
 
     fun setLastEpisodeActionSynchronizationAttemptTimestamp(timestamp: Long) {
-        sharedPreferences.edit { putLong(LAST_EPISODE_ACTIONS_SYNC_TIMESTAMP, timestamp) }
+        upsertBlk(syncPrefs) { it.LAST_EPISODE_ACTIONS_SYNC_TIMESTAMP = timestamp }
     }
 
-    private val sharedPreferences: SharedPreferences
-        get() = ClientConfig.applicationCallbacks!!.getApplicationInstance()!!.getSharedPreferences(NAME, Context.MODE_PRIVATE)
 }

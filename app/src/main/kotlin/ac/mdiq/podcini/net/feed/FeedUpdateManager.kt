@@ -13,9 +13,8 @@ import ac.mdiq.podcini.net.feed.FeedUpdateManager.rescheduleUpdateTaskOnce
 import ac.mdiq.podcini.net.feed.FeedUpdaterBase.Companion.createNotification
 import ac.mdiq.podcini.net.utils.NetworkUtils.isFeedRefreshAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
@@ -136,7 +135,7 @@ object FeedUpdateManager {
     const val KEY_IS_PERIODIC = "is_periodic"
 
     private val intervalInMillis: Long
-        get() = getPref(AppPrefs.prefAutoUpdateIntervalMinutes, "360").toLong() * TimeUnit.MINUTES.toMillis(1)
+        get() = appPrefs.autoUpdateInterval.toLong() * TimeUnit.MINUTES.toMillis(1)
 
     var nextRefreshTime by mutableStateOf("")
 

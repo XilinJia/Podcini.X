@@ -14,20 +14,18 @@ import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.playback.base.PositionSaver.Companion.positionSaver
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.service.QuickSettingsTileService
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.preferences.AppPreferences.streamingCacheSizeMB
-import ac.mdiq.podcini.preferences.SleepTimerPreferences.autoEnableFrom
-import ac.mdiq.podcini.preferences.SleepTimerPreferences.autoEnableTo
-import ac.mdiq.podcini.preferences.SleepTimerPreferences.isInTimeRange
-import ac.mdiq.podcini.preferences.SleepTimerPreferences.lastTimerValue
+import ac.mdiq.podcini.config.settings.SleepTimer.autoEnableFrom
+import ac.mdiq.podcini.config.settings.SleepTimer.autoEnableTo
+import ac.mdiq.podcini.config.settings.SleepTimer.isInTimeRange
+import ac.mdiq.podcini.config.settings.SleepTimer.lastTimerValue
 import ac.mdiq.podcini.storage.database.allowForAutoDelete
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.deleteMedia
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.sleepPrefs
+import ac.mdiq.podcini.storage.database.streamingCacheSizeMB
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
@@ -243,7 +241,7 @@ abstract class MediaPlayerBase {
     abstract fun prepareMedia(playable: Episode, streaming: Boolean, startWhenPrepared: Boolean, prepareImmediately: Boolean, forceReset: Boolean = false, doPostPlayback: Boolean = false)
 
     private fun positionUpdateInterval(duration: Int): Long {
-        return if (getPref(AppPrefs.prefUseAdaptiveProgressUpdate, true)) max(MIN_POSITION_SAVER_INTERVAL, duration/50).toLong()
+        return if (appPrefs.useAdaptiveProgressUpdate) max(MIN_POSITION_SAVER_INTERVAL, duration/50).toLong()
         else MIN_POSITION_SAVER_INTERVAL.toLong()
     }
 
@@ -401,7 +399,7 @@ abstract class MediaPlayerBase {
             }
         }
         runOnIOScope {
-            if (ended || smartMarkAsPlayed || autoSkipped || (skipped && !getPref(AppPrefs.prefSkipKeepsEpisode, true))) {
+            if (ended || smartMarkAsPlayed || autoSkipped || (skipped && !appPrefs.skipKeepsEpisode)) {
                 Logd(TAG, "onPostPlayback ended: $ended smartMarkAsPlayed: $smartMarkAsPlayed autoSkipped: $autoSkipped skipped: $skipped")
                 // only mark the item as played if we're not keeping it anyway
                 item = upsert(item) {
@@ -416,11 +414,11 @@ abstract class MediaPlayerBase {
 
                 val action = item.feed?.autoDeleteAction
                 val shouldAutoDelete = (action == AutoDeleteAction.ALWAYS || (action == AutoDeleteAction.GLOBAL && item.feed != null && allowForAutoDelete(item.feed!!)))
-                val isItemdeletable = (!getPref(AppPrefs.prefFavoriteKeepsEpisode, true) || (item.rating < Rating.GOOD.code && item.playState != EpisodeState.AGAIN.code && item.playState != EpisodeState.FOREVER.code))
+                val isItemdeletable = (!appPrefs.favoriteKeepsEpisode || (item.rating < Rating.GOOD.code && item.playState != EpisodeState.AGAIN.code && item.playState != EpisodeState.FOREVER.code))
                 if (shouldAutoDelete && isItemdeletable) {
                     if (!item.fileUrl.isNullOrBlank()) item = deleteMedia(item)
-                    if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(listOf(item))
-                } else if (getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueues(listOf(item))
+                    if (appPrefs.deleteRemovesFromQueue) removeFromAllQueues(listOf(item))
+                } else if (appPrefs.removeFromQueueMarkPlayed) removeFromAllQueues(listOf(item))
             }
         }
     }
@@ -549,8 +547,8 @@ abstract class MediaPlayerBase {
                 persistCurrentPosition(true, null, Episode.INVALID_TIME)
                 // set sleep timer if auto-enabled
                 var autoEnableByTime = true
-                val fromSetting = autoEnableFrom()
-                val toSetting = autoEnableTo()
+                val fromSetting = autoEnableFrom
+                val toSetting = autoEnableTo
                 if (fromSetting != toSetting) {
                     val now: Calendar = GregorianCalendar()
                     now.timeInMillis = System.currentTimeMillis()
@@ -558,7 +556,7 @@ abstract class MediaPlayerBase {
                     autoEnableByTime = isInTimeRange(fromSetting, toSetting, currentHour)
                 }
                 if (oldStatus != null && sleepPrefs.AutoEnable && autoEnableByTime && sleepManager?.isSleepTimerActive != true) {
-                    sleepManager?.setSleepTimer(TimeUnit.MINUTES.toMillis(lastTimerValue()))
+                    sleepManager?.setSleepTimer(TimeUnit.MINUTES.toMillis(lastTimerValue))
                     // TODO: what to do?
 //                    EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.sleep_timer_enabled_label), { taskManager?.disableSleepTimer() }, context.getString(R.string.undo)))
                 }
@@ -730,10 +728,10 @@ abstract class MediaPlayerBase {
 
         val prefPlaybackSpeed: Float
             get() {
-                try { return getPref(AppPrefs.prefPlaybackSpeed, "1.00").toFloat()
+                try { return appPrefs.playbackSpeed.toFloat()
                 } catch (e: NumberFormatException) {
                     Logs(TAG, e)
-                    putPref(AppPrefs.prefPlaybackSpeed, "1.0")
+                    upsertBlk(appPrefs) { it.playbackSpeed = "1.0"}
                     return 1.0f
                 }
             }

@@ -1,7 +1,6 @@
 package ac.mdiq.podcini.ui.activity
 
-import ac.mdiq.podcini.preferences.AppPreferences
-import ac.mdiq.podcini.preferences.AppPreferences.ThemePreference
+import ac.mdiq.podcini.config.settings.AppPreferences
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.AppNavigator
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
@@ -10,6 +9,7 @@ import ac.mdiq.podcini.ui.compose.LargePoster
 import ac.mdiq.podcini.ui.compose.LocalNavController
 import ac.mdiq.podcini.ui.compose.Navigate
 import ac.mdiq.podcini.ui.compose.Screens
+import ac.mdiq.podcini.ui.compose.appTheme
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.commonMessage
 import ac.mdiq.podcini.utils.Logd
@@ -28,7 +28,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,14 +36,14 @@ private const val TAG = "EpisodeInfoActivity"
 
 class EpisodeInfoActivity : ComponentActivity() {
     private val currentEpisodeId = MutableStateFlow<Long?>(null)
-    private var lastTheme = AppPreferences.theme
+    private var lastTheme = appTheme
 
     override fun onCreate(savedInstanceState: Bundle?) {
 //        installSplashScreen()
         super.onCreate(savedInstanceState)
         Logd(TAG, "in onCreate")
 
-        lastTheme = AppPreferences.theme
+        lastTheme = appTheme
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {

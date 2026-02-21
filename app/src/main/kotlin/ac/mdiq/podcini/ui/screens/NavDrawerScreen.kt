@@ -12,12 +12,10 @@ import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.EpisodeFilter.Companion.unfiltered
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.bsState
-import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.LocalNavController
 import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.utils.Logd
-import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -153,7 +151,8 @@ fun NavDrawerScreen() {
             }
             HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 10.dp).fillMaxWidth().clickable {
-                context.startActivity(Intent(context, PreferenceActivity::class.java))
+//                context.startActivity(Intent(context, PreferenceActivity::class.java))
+                navigator.navigate(Screens.Settings.name) { popUpTo(0) { inclusive = true } }
                 drawerCtrl?.close()
             }) {
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), tint = textColor, contentDescription = "settings", modifier = Modifier.padding(start = 10.dp))
@@ -188,7 +187,7 @@ private val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
     Screens.Facets.name to NavItem(R.drawable.baseline_view_in_ar_24, R.string.facets),
     Screens.Logs.name to NavItem(R.drawable.ic_history, R.string.logs_label),
     Screens.Statistics.name to NavItem(R.drawable.ic_chart_box, R.string.statistics_label),
-    Screens.FindFeeds.name to NavItem(R.drawable.ic_add, R.string.add_feed_label)
+    Screens.FindFeeds.name to NavItem(R.drawable.ic_add, R.string.add_feed_label),
 )
 
 interface DrawerController {

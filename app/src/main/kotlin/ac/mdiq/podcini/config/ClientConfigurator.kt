@@ -9,11 +9,11 @@ import ac.mdiq.podcini.net.download.service.PodciniHttpClient.setProxyConfig
 import ac.mdiq.podcini.net.ssl.SslProviderInstaller
 import ac.mdiq.podcini.net.sync.SyncService
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
-import ac.mdiq.podcini.preferences.AppPreferences
-import ac.mdiq.podcini.preferences.AppPreferences.proxyConfig
+import ac.mdiq.podcini.config.settings.AppPreferences
 import ac.mdiq.podcini.storage.database.cancelQueuesJob
 import ac.mdiq.podcini.storage.database.getRealmInstance
 import ac.mdiq.podcini.storage.database.initQueues
+import ac.mdiq.podcini.storage.database.proxyConfig
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.timeIt
 import java.io.File
@@ -25,11 +25,12 @@ object ClientConfigurator {
     @Synchronized
     fun initialize() {
         if (initialized) return
+        getRealmInstance()
+
         Logd("ClientConfigurator", "initialize")
         timeIt("ClientConfigurator Init started ")
 
         AppPreferences.init()
-        getRealmInstance()
 
         initQueues()
         SslProviderInstaller.install()
