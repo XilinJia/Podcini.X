@@ -1,6 +1,8 @@
 package ac.mdiq.podcini.ui.dialog
 
 import ac.mdiq.podcini.BuildConfig
+import ac.mdiq.podcini.storage.database.syncPrefs
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import android.app.Activity
@@ -73,7 +75,7 @@ object RatingDialog {
         if (rated() || BuildConfig.DEBUG) return false
 
         val now = System.currentTimeMillis()
-        val firstDate: Long = syncPrefs.KEY_FIRST_START_DATE.takeIf { it != 0 } ?: now
+        val firstDate: Long = syncPrefs.KEY_FIRST_START_DATE.takeIf { it != 0L } ?: now
         val diff = now - firstDate
         val diffDays = TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS)
         return diffDays >= AFTER_DAYS

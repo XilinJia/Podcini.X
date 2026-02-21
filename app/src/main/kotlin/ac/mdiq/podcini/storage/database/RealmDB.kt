@@ -491,9 +491,9 @@ lateinit var realm: Realm
 
 fun getRealmInstance() {
     if (::realm.isInitialized) return
-    timeIt("$TAG start of getRealmInstance")
+//    timeIt("$TAG start of getRealmInstance")
     realm = Realm.open(config)
-    timeIt("$TAG end of getRealmInstance")
+//    timeIt("$TAG end of getRealmInstance")
 }
 
 fun <T : TypedRealmObject> unmanaged(entity: T) : T {
