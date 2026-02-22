@@ -96,8 +96,8 @@
     <string name="feed_auto_download_always">Πάντα</string>
     <string name="feed_auto_download_never">Ποτέ</string>
     <string name="feed_video_mode_label">Λειτουργία βίντεο</string>
-    <string name="feed_video_mode_window">Λειτουργία παραθύρου</string>
-    <string name="feed_video_mode_fullscreen">Πλήρης οθόνη</string>
+
+
     <string name="feed_video_mode_audioonly">Μόνο ήχος</string>
 
     <string name="feed_auto_dleq_new">Μόνο νέα στοιχεία</string>

@@ -142,8 +142,8 @@
     <string name="feed_auto_download_never">Asla</string>
 
     <string name="feed_video_mode_label">Video modu</string>
-    <string name="feed_video_mode_window">Pencere modu</string>
-    <string name="feed_video_mode_fullscreen">Tam ekran</string>
+
+
     <string name="feed_video_mode_audioonly">Yalnızca ses</string>
 
     <string name="feed_automation_policy">Otomasyon politikası</string>

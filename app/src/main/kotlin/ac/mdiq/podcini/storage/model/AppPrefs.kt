@@ -13,9 +13,6 @@ import java.net.Proxy
 class AppPrefs: RealmObject {
     @PrimaryKey
     var id: Long = 0L
-
-    var migrationDone: Boolean = false
-
     var lastVersion: String = "0"
 
     var OPMLRestored: Boolean = false
@@ -107,4 +104,7 @@ class AppPrefs: RealmObject {
 
     var restrictedModeEnabled: Boolean = false
 
+
+    var migrationDone: Boolean = false
+    var sharedPrefsDeleted: Boolean = false
 }

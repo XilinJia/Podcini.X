@@ -96,8 +96,8 @@
     <string name="feed_auto_download_always">Întotdeauna</string>
     <string name="feed_auto_download_never">Niciodată</string>
     <string name="feed_video_mode_label">Mod video</string>
-    <string name="feed_video_mode_window">Mod fereastră</string>
-    <string name="feed_video_mode_fullscreen">Ecran complet</string>
+
+
     <string name="feed_video_mode_audioonly">Doar audio</string>
 
     <string name="feed_auto_dleq_new">Numai elemente noi</string>

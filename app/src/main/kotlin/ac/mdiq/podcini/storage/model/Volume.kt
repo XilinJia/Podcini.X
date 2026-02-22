@@ -62,11 +62,11 @@ fun cancelMonitorVolumes() {
     volumeMonitorJob = null
 }
 
-fun monitorVolumes(scope: CoroutineScope) {
+fun monitorVolumes() {
     if (volumeMonitorJob != null) return
 
     val feedQuery = realm.query(Volume::class)
-    volumeMonitorJob = scope.launch(Dispatchers.IO) {
+    volumeMonitorJob = CoroutineScope(Dispatchers.IO).launch {
         feedQuery.asFlow().collect { changes: ResultsChange<Volume> ->
             volumes = changes.list
             Logd(TAG, "monitorVolumes volumes size: ${volumes.size}")

@@ -96,8 +96,8 @@
     <string name="feed_auto_download_always">总是显示</string>
     <string name="feed_auto_download_never">从不使用</string>
     <string name="feed_video_mode_label">视频模式</string>
-    <string name="feed_video_mode_window">窗口模式</string>
-    <string name="feed_video_mode_fullscreen">全屏</string>
+
+
     <string name="feed_video_mode_audioonly">仅音频</string>
 
     <string name="feed_auto_dleq_new">仅新项目</string>

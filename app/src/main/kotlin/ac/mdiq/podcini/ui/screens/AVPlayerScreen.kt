@@ -183,7 +183,7 @@ import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sin
 
-var curVideoMode by mutableStateOf(VideoMode.NONE)
+var curVideoMode by mutableStateOf(VideoMode.DEFAULT)
 
 class AudioPlayerVM: ViewModel() {
 
@@ -398,7 +398,7 @@ fun ControlUI(vm: AudioPlayerVM, navController: AppNavigator) {
             },
         )
     }) {
-        AsyncImage(model = ImageRequest.Builder(context).data(curEpisode?.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(), contentDescription = "imgvCover", modifier = Modifier.width(50.dp).height(50.dp).border(border = BorderStroke(1.dp, buttonColor)).padding(start = 5.dp).combinedClickable(
+        AsyncImage(model = ImageRequest.Builder(context).data(curEpisode?.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.drawable.ic_launcher_foreground).error(R.drawable.ic_launcher_foreground).build(), contentDescription = "imgvCover", modifier = Modifier.width(50.dp).height(50.dp).border(border = BorderStroke(1.dp, buttonColor)).padding(start = 5.dp).combinedClickable(
             onClick = {
                 Logd(TAG, "playerUi icon was clicked")
                 if (bsState == MainActivity.BSState.Partial) {
@@ -871,7 +871,7 @@ fun AudioPlayerScreen() {
                     else EmbeddedChapterImage.getModelFor(curEpisode!!, displayedChapterIndex)?.toString()
                 }
                 if (imgLarge != null) {
-                    val img = remember(imgLarge) { ImageRequest.Builder(context).data(imgLarge).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+                    val img = remember(imgLarge) { ImageRequest.Builder(context).data(imgLarge).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.drawable.ic_launcher_foreground).error(R.drawable.ic_launcher_foreground).build() }
                     AsyncImage(img, contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(10.dp).clickable(onClick = {}))
                 }
             }

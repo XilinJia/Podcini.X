@@ -96,8 +96,8 @@
     <string name="feed_auto_download_always">Selalu</string>
     <string name="feed_auto_download_never">Tidak pernah</string>
     <string name="feed_video_mode_label">Video mode</string>
-    <string name="feed_video_mode_window">Window mode</string>
-    <string name="feed_video_mode_fullscreen">Full screen</string>
+
+
     <string name="feed_video_mode_audioonly">Audio only</string>
 
     <string name="feed_auto_dleq_new">Only new items</string>

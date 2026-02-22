@@ -13,6 +13,7 @@ import android.content.SharedPreferences
 import android.view.KeyEvent
 import androidx.preference.PreferenceManager
 import io.github.xilinjia.krdb.ext.toRealmSet
+import java.io.File
 import java.net.Proxy
 
 /**
@@ -155,93 +156,98 @@ object AppPreferences {
     }
 
     fun migrateSharedPrefs() {
-        if (appPrefs.migrationDone) return
+        if (!appPrefs.migrationDone) {
+            upsertBlk(appPrefs) {
+                it.lastVersion = getPref(AppSPrefs.lastVersion, "0")
 
-        upsertBlk(appPrefs) {
-            it.lastVersion = getPref(AppSPrefs.lastVersion, "0")
+                it.OPMLBackup = getPref(AppSPrefs.prefOPMLBackup, true)
+                it.OPMLRestored = getPref(AppSPrefs.prefOPMLRestore, false)
+                it.OPMLFeedsToRestore = getPref(AppSPrefs.prefOPMLFeedsToRestore, 0)
 
-            it.OPMLBackup = getPref(AppSPrefs.prefOPMLBackup, true)
-            it.OPMLRestored = getPref(AppSPrefs.prefOPMLRestore, false)
-            it.OPMLFeedsToRestore = getPref(AppSPrefs.prefOPMLFeedsToRestore, 0)
+                // User Interface
+                it.theme = getPref(AppSPrefs.prefTheme, "system")
+                it.themeBlack = getPref(AppSPrefs.prefThemeBlack, false)
+                it.tintedColors = getPref(AppSPrefs.prefTintedColors, false)
+                it.useEpisodeCover = getPref(AppSPrefs.prefEpisodeCover, false)
+                it.showSkip = getPref(AppSPrefs.prefShowSkip, true)
+                it.showDownloadReport = getPref(AppSPrefs.prefShowDownloadReport, true)
+                it.defaultPage = getPref(AppSPrefs.prefDefaultPage, DefaultPages.Library.name)
+                it.backButtonOpensDrawer = getPref(AppSPrefs.prefBackButtonOpensDrawer, false)
+                it.showErrorToasts = getPref(AppSPrefs.prefShowErrorToasts, true)
+                it.printDebugLogs = getPref(AppSPrefs.prefPrintDebugLogs, false)
 
-            // User Interface
-            it.theme = getPref(AppSPrefs.prefTheme, "system")
-            it.themeBlack = getPref(AppSPrefs.prefThemeBlack, false)
-            it.tintedColors = getPref(AppSPrefs.prefTintedColors, false)
-            it.useEpisodeCover = getPref(AppSPrefs.prefEpisodeCover, false)
-            it.showSkip = getPref(AppSPrefs.prefShowSkip, true)
-            it.showDownloadReport = getPref(AppSPrefs.prefShowDownloadReport, true)
-            it.defaultPage = getPref(AppSPrefs.prefDefaultPage, DefaultPages.Library.name)
-            it.backButtonOpensDrawer = getPref(AppSPrefs.prefBackButtonOpensDrawer, false)
-            it.showErrorToasts = getPref(AppSPrefs.prefShowErrorToasts, true)
-            it.printDebugLogs = getPref(AppSPrefs.prefPrintDebugLogs, false)
+                it.dont_ask_again_unrestricted_background = getPref(AppSPrefs.dont_ask_again_unrestricted_background, false)
 
-            it.dont_ask_again_unrestricted_background = getPref(AppSPrefs.dont_ask_again_unrestricted_background, false)
+                // Playback
+                it.pauseOnHeadsetDisconnect = getPref(AppSPrefs.prefPauseOnHeadsetDisconnect, true)
+                it.unpauseOnHeadsetReconnect = getPref(AppSPrefs.prefUnpauseOnHeadsetReconnect, true)
+                it.unpauseOnBluetoothReconnect = getPref(AppSPrefs.prefUnpauseOnBluetoothReconnect, false)
+                it.hardwareForwardButton = getPref(AppSPrefs.prefHardwareForwardButton, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD.toString())
+                it.hardwarePreviousButton = getPref(AppSPrefs.prefHardwarePreviousButton, KeyEvent.KEYCODE_MEDIA_REWIND.toString())
+                it.skipKeepsEpisode = getPref(AppSPrefs.prefSkipKeepsEpisode, true)
+                it.removeFromQueueMarkPlayed = getPref(AppSPrefs.prefRemoveFromQueueMarkedPlayed, true)
+                it.favoriteKeepsEpisode = getPref(AppSPrefs.prefFavoriteKeepsEpisode, true)
 
-            // Playback
-            it.pauseOnHeadsetDisconnect = getPref(AppSPrefs.prefPauseOnHeadsetDisconnect, true)
-            it.unpauseOnHeadsetReconnect = getPref(AppSPrefs.prefUnpauseOnHeadsetReconnect, true)
-            it.unpauseOnBluetoothReconnect = getPref(AppSPrefs.prefUnpauseOnBluetoothReconnect, false)
-            it.hardwareForwardButton = getPref(AppSPrefs.prefHardwareForwardButton, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD.toString())
-            it.hardwarePreviousButton = getPref(AppSPrefs.prefHardwarePreviousButton, KeyEvent.KEYCODE_MEDIA_REWIND.toString())
-            it.skipKeepsEpisode = getPref(AppSPrefs.prefSkipKeepsEpisode, true)
-            it.removeFromQueueMarkPlayed = getPref(AppSPrefs.prefRemoveFromQueueMarkedPlayed, true)
-            it.favoriteKeepsEpisode = getPref(AppSPrefs.prefFavoriteKeepsEpisode, true)
+                it.autoBackup = getPref(AppSPrefs.prefAutoBackup, false)
+                it.autoBackupIntervall = getPref(AppSPrefs.prefAutoBackupIntervall, 24)
+                it.autoBackupFolder = getPref(AppSPrefs.prefAutoBackupFolder, "")
+                it.autoBackupLimit = getPref(AppSPrefs.prefAutoBackupLimit, 2)
+                it.autoBackupTimeStamp = getPref(AppSPrefs.prefAutoBackupTimeStamp, 0L)
 
-            it.autoBackup = getPref(AppSPrefs.prefAutoBackup, false)
-            it.autoBackupIntervall = getPref(AppSPrefs.prefAutoBackupIntervall, 24)
-            it.autoBackupFolder = getPref(AppSPrefs.prefAutoBackupFolder, "")
-            it.autoBackupLimit = getPref(AppSPrefs.prefAutoBackupLimit, 2)
-            it.autoBackupTimeStamp = getPref(AppSPrefs.prefAutoBackupTimeStamp, 0L)
+                it.useCustomMediaFolder = getPref(AppSPrefs.prefUseCustomMediaFolder, false)
+                it.customMediaUri = getPref(AppSPrefs.prefCustomMediaUri, "")
 
-            it.useCustomMediaFolder = getPref(AppSPrefs.prefUseCustomMediaFolder, false)
-            it.customMediaUri = getPref(AppSPrefs.prefCustomMediaUri, "")
+                it.autoDelete = getPref(AppSPrefs.prefAutoDelete, false)
+                it.autoDeleteLocal = getPref(AppSPrefs.prefAutoDeleteLocal, false)
+                it.playbackSpeedArray = getPrefOrNull<String>(AppSPrefs.prefPlaybackSpeedArray, null)
+                it.fallbackSpeed = getPref(AppSPrefs.prefFallbackSpeed, "0.00")
+                it.streamOverDownload = getPref(AppSPrefs.prefStreamOverDownload, false)
+                it.lowQualityOnMobile = getPref(AppSPrefs.prefLowQualityOnMobile, false)
+                it.speedforwardSpeed = getPref(AppSPrefs.prefSpeedforwardSpeed, "0.00")
+                it.skipforwardSpeed = getPref(AppSPrefs.prefSkipforwardSpeed, "0.00")
+                it.useAdaptiveProgressUpdate = getPref(AppSPrefs.prefUseAdaptiveProgressUpdate, true)
 
-            it.autoDelete = getPref(AppSPrefs.prefAutoDelete, false)
-            it.autoDeleteLocal = getPref(AppSPrefs.prefAutoDeleteLocal, false)
-            it.playbackSpeedArray = getPrefOrNull<String>(AppSPrefs.prefPlaybackSpeedArray, null)
-            it.fallbackSpeed = getPref(AppSPrefs.prefFallbackSpeed, "0.00")
-            it.streamOverDownload = getPref(AppSPrefs.prefStreamOverDownload, false)
-            it.lowQualityOnMobile = getPref(AppSPrefs.prefLowQualityOnMobile, false)
-            it.speedforwardSpeed = getPref(AppSPrefs.prefSpeedforwardSpeed, "0.00")
-            it.skipforwardSpeed = getPref(AppSPrefs.prefSkipforwardSpeed, "0.00")
-            it.useAdaptiveProgressUpdate = getPref(AppSPrefs.prefUseAdaptiveProgressUpdate, true)
+                // Network
+                it.enqueueDownloaded = getPref(AppSPrefs.prefEnqueueDownloaded, true)
 
-            // Network
-            it.enqueueDownloaded = getPref(AppSPrefs.prefEnqueueDownloaded, true)
+                it.disableWifiLock = getPref(AppSPrefs.prefDisableWifiLock, false)
 
-            it.disableWifiLock = getPref(AppSPrefs.prefDisableWifiLock, false)
+                it.autoUpdateInterval = getPref(AppSPrefs.prefAutoUpdateIntervalMinutes, "360").toInt()
 
-            it.autoUpdateInterval = getPref(AppSPrefs.prefAutoUpdateIntervalMinutes, "360").toInt()
+                it.mobileUpdateTypes = getPref(AppSPrefs.prefMobileUpdateTypes, hashSetOf("images")).toRealmSet()
+                it.episodeCleanup = getPref(AppSPrefs.prefEpisodeCleanup, EpisodeCleanupOptions.Never.num.toString())
+                it.episodeCacheSize = getPref(AppSPrefs.prefEpisodeCacheSize, "25").toInt()
+                it.enableAutoDl = getPref(AppSPrefs.prefEnableAutoDl, false)
+                it.enableAutoDownloadOnBattery = getPref(AppSPrefs.prefEnableAutoDownloadOnBattery, false)
 
-            it.mobileUpdateTypes = getPref(AppSPrefs.prefMobileUpdateTypes, hashSetOf("images")).toRealmSet()
-            it.episodeCleanup = getPref(AppSPrefs.prefEpisodeCleanup, EpisodeCleanupOptions.Never.num.toString())
-            it.episodeCacheSize = getPref(AppSPrefs.prefEpisodeCacheSize, "25").toInt()
-            it.enableAutoDl = getPref(AppSPrefs.prefEnableAutoDl, false)
-            it.enableAutoDownloadOnBattery = getPref(AppSPrefs.prefEnableAutoDownloadOnBattery, false)
+                it.proxyType = getPref(AppSPrefs.prefProxyType, Proxy.Type.DIRECT.name)
+                it.proxyHost = getPrefOrNull<String>(AppSPrefs.prefProxyHost, null)
+                it.proxyPort = getPref(AppSPrefs.prefProxyPort, 0)
+                it.proxyUser = getPrefOrNull<String>(AppSPrefs.prefProxyUser, null)
+                it.proxyPassword = getPrefOrNull<String>(AppSPrefs.prefProxyPassword, null)
 
-            it.proxyType = getPref(AppSPrefs.prefProxyType, Proxy.Type.DIRECT.name)
-            it.proxyHost = getPrefOrNull<String>(AppSPrefs.prefProxyHost, null)
-            it.proxyPort = getPref(AppSPrefs.prefProxyPort, 0)
-            it.proxyUser = getPrefOrNull<String>(AppSPrefs.prefProxyUser, null)
-            it.proxyPassword = getPrefOrNull<String>(AppSPrefs.prefProxyPassword, null)
+                // Services
+                it.gpodnet_notifications = getPref(AppSPrefs.pref_gpodnet_notifications, true)
+                it.nextcloud_server_address = getPref(AppSPrefs.pref_nextcloud_server_address, "")
 
-            // Services
-            it.gpodnet_notifications = getPref(AppSPrefs.pref_gpodnet_notifications, true)
-            it.nextcloud_server_address = getPref(AppSPrefs.pref_nextcloud_server_address, "")
+                // Other
+                it.deleteRemovesFromQueue = getPref(AppSPrefs.prefDeleteRemovesFromQueue, true)
 
-            // Other
-            it.deleteRemovesFromQueue = getPref(AppSPrefs.prefDeleteRemovesFromQueue, true)
+                // Mediaplayer
+                it.playbackSpeed = getPref(AppSPrefs.prefPlaybackSpeed, "1.00")
+                it.skipSilence = getPref(AppSPrefs.prefSkipSilence, false)
+                it.fastForwardSecs = getPref(AppSPrefs.prefFastForwardSecs, 30)
+                it.rewindSecs = getPref(AppSPrefs.prefRewindSecs, 10)
+                it.streamingCacheSizeMB = getPref(AppSPrefs.prefStreamingCacheSizeMB, 100)
+                it.videoPlaybackMode = getPref(AppSPrefs.prefVideoPlaybackMode, "1").toInt()
 
-            // Mediaplayer
-            it.playbackSpeed = getPref(AppSPrefs.prefPlaybackSpeed, "1.00")
-            it.skipSilence = getPref(AppSPrefs.prefSkipSilence, false)
-            it.fastForwardSecs = getPref(AppSPrefs.prefFastForwardSecs, 30)
-            it.rewindSecs = getPref(AppSPrefs.prefRewindSecs, 10)
-            it.streamingCacheSizeMB = getPref(AppSPrefs.prefStreamingCacheSizeMB, 100)
-            it.videoPlaybackMode = getPref(AppSPrefs.prefVideoPlaybackMode, "1").toInt()
-
-            it.migrationDone = true
+                it.migrationDone = true
+            }
+        }
+        if (!appPrefs.sharedPrefsDeleted) {
+            val sharedPrefsDir = File(getAppContext().cacheDir.parent, "shared_prefs")
+            if (sharedPrefsDir.exists() && sharedPrefsDir.isDirectory) sharedPrefsDir.deleteRecursively()
+            upsertBlk(appPrefs) { it.sharedPrefsDeleted = true }
         }
     }
 }

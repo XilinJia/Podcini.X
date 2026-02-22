@@ -1,0 +1,8 @@
+* ensure to access to db after db init
+* moved some db monitorings from MainActivity to the App
+* replaces reference to mipmap properties
+* VideoMode only has: Default, Video, Audio only.
+	* in Feed Settings, Default means using Global
+	* window or full screen is handled by rotating the device
+* reduced some screens' outer horizontal padding
+* old shared_prefs directory is removed

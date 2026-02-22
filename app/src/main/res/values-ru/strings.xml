@@ -96,8 +96,8 @@
     <string name="feed_auto_download_always">всегда</string>
     <string name="feed_auto_download_never">никогда</string>
     <string name="feed_video_mode_label">Режим видео</string>
-    <string name="feed_video_mode_window">Режим окна</string>
-    <string name="feed_video_mode_fullscreen">Полный экран</string>
+
+
     <string name="feed_video_mode_audioonly">Только аудио</string>
 
     <string name="feed_auto_dleq_new">Только новые элементы</string>

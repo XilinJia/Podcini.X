@@ -98,8 +98,8 @@
     <string name="feed_auto_download_always">Zawsze</string>
     <string name="feed_auto_download_never">Nigdy</string>
     <string name="feed_video_mode_label">Tryb wideo</string>
-    <string name="feed_video_mode_window">Tryb okna</string>
-    <string name="feed_video_mode_fullscreen">Pełny ekran</string>
+
+
     <string name="feed_video_mode_audioonly">Tylko dźwięk</string>
 
     <string name="feed_auto_dleq_new">Tylko nowe elementy</string>

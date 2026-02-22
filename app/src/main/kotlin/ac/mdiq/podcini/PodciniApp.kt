@@ -23,7 +23,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class PodciniApp : Application() {
-//    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     val networkMonitor: NetworkUtils.NetworkMonitor by lazy { NetworkUtils.NetworkMonitor() }
     var nmJob: Job? = null
 
@@ -41,9 +40,9 @@ class PodciniApp : Application() {
             val builder: StrictMode.VmPolicy.Builder = StrictMode.VmPolicy.Builder().detectAll().penaltyLog().penaltyDropBox()
             StrictMode.setVmPolicy(builder.build())
         }
-        if (nmJob == null) nmJob = CoroutineScope(Dispatchers.IO).launch { networkMonitor.networkFlow.collect {} }
 
         ClientConfigurator.initialize()
+        if (nmJob == null) nmJob = CoroutineScope(Dispatchers.IO).launch { networkMonitor.networkFlow.collect {} }
 
         DynamicColors.applyToActivitiesIfAvailable(this)
     }
@@ -66,7 +65,6 @@ class PodciniApp : Application() {
     }
 
     companion object {
-//        private const val PREF_HAS_QUERIED_SP_APPS = "prefSPAUtil.hasQueriedSPApps"
         private lateinit var podciniApp: PodciniApp
 
         fun getApp(): PodciniApp = podciniApp

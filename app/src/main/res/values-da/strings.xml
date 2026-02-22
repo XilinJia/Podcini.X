@@ -96,8 +96,8 @@
     <string name="feed_auto_download_always">Altid</string>
     <string name="feed_auto_download_never">Aldrig</string>
     <string name="feed_video_mode_label">Video-tilstand</string>
-    <string name="feed_video_mode_window">Vindue tilstand</string>
-    <string name="feed_video_mode_fullscreen">Fuld skærm</string>
+
+
     <string name="feed_video_mode_audioonly">Kun lyd</string>
 
     <string name="feed_auto_dleq_new">Kun nye elementer</string>

@@ -116,10 +116,10 @@ fun cancelMonitorFeeds() {
     feedMonitorJob = null
 }
 
-fun monitorFeeds(scope: CoroutineScope) {
+fun monitorFeeds() {
     if (feedMonitorJob != null) return
 
-    feedMonitorJob = scope.launch(Dispatchers.IO) {
+    feedMonitorJob = CoroutineScope(Dispatchers.IO).launch {
         feedsFlow.collect { changes: ResultsChange<Feed> ->
             allFeeds = changes.list
             feedsMap = allFeeds.associateBy { it.id }

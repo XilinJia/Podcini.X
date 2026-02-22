@@ -231,8 +231,8 @@ fun ChaptersDialog(media: Episode, onDismissRequest: () -> Unit) {
                         //                            if (!ch.imageUrl.isNullOrEmpty()) {
                         //                                val imgUrl = ch.imageUrl
                         //                                AsyncImage(model = imgUrl, contentDescription = "imgvCover",
-                        //                                    placeholder = painterResource(R.mipmap.ic_launcher),
-                        //                                    error = painterResource(R.mipmap.ic_launcher),
+                        //                                    placeholder = painterResource(R.drawable.ic_launcher_foreground),
+                        //                                    error = painterResource(R.drawable.ic_launcher_foreground),
                         //                                    modifier = Modifier.width(56.dp).height(56.dp))
                         //                            }
                         Column(modifier = Modifier.weight(1f)) {

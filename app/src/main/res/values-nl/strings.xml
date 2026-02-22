@@ -96,8 +96,8 @@
     <string name="feed_auto_download_always">Altijd</string>
     <string name="feed_auto_download_never">Nooit</string>
     <string name="feed_video_mode_label">Video modus</string>
-    <string name="feed_video_mode_window">Venster modus</string>
-    <string name="feed_video_mode_fullscreen">Volledig scherm</string>
+
+
     <string name="feed_video_mode_audioonly">Alleen audio</string>
 
     <string name="feed_auto_dleq_new">Alleen nieuwe items</string>

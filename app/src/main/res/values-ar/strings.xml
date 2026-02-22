@@ -97,8 +97,8 @@
     <string name="feed_auto_download_always">دائما</string>
     <string name="feed_auto_download_never">ابدا</string>
     <string name="feed_video_mode_label">وضع الفيديو</string>
-    <string name="feed_video_mode_window">وضع النافذة</string>
-    <string name="feed_video_mode_fullscreen">ملء الشاشة</string>
+
+
     <string name="feed_video_mode_audioonly">الصوت فقط</string>
 
     <string name="feed_auto_dleq_new">العناصر الجديدة فقط</string>

@@ -153,9 +153,8 @@ fun FeedsSettingsScreen() {
         audioQuality = feedToSet.audioQualitySetting.tag
         videoQuality = feedToSet.videoQualitySetting.tag
         videoModeSummaryResId = when (feedToSet.videoModePolicy) {
-            VideoMode.NONE -> R.string.global_default
-            VideoMode.WINDOW_VIEW -> R.string.feed_video_mode_window
-            VideoMode.FULL_SCREEN_VIEW -> R.string.feed_video_mode_fullscreen
+            VideoMode.DEFAULT -> R.string.global_default
+            VideoMode.VIDEO -> R.string.feed_video_mode_video
             VideoMode.AUDIO_ONLY -> R.string.feed_video_mode_audioonly
         }
         when (feedToSet.autoDeleteAction) {
@@ -235,7 +234,7 @@ fun FeedsSettingsScreen() {
 
     val textColor = MaterialTheme.colorScheme.onSurface
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).padding(start = 20.dp, end = 16.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.padding(innerPadding).padding(start = 5.dp, end = 5.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (feedsToSet.size == 1) {
                 Column {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -377,9 +376,8 @@ fun FeedsSettingsScreen() {
                         var showDialog by remember { mutableStateOf(false) }
                         if (showDialog) VideoModeDialog(initMode = feedToSet.videoModePolicy, onDismissRequest = { showDialog = false }) { mode ->
                             videoModeSummaryResId = when (mode) {
-                                VideoMode.NONE -> R.string.global_default
-                                VideoMode.WINDOW_VIEW -> R.string.feed_video_mode_window
-                                VideoMode.FULL_SCREEN_VIEW -> R.string.feed_video_mode_fullscreen
+                                VideoMode.DEFAULT -> R.string.global_default
+                                VideoMode.VIDEO -> R.string.feed_video_mode_video
                                 VideoMode.AUDIO_ONLY -> R.string.feed_video_mode_audioonly
                             }
                             runOnIOScope { realm.write { for (f in feedsToSet) { if (f.hasVideoMedia) findLatest(f)?.videoModePolicy = mode } } }

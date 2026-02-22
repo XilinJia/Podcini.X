@@ -96,8 +96,8 @@
     <string name="feed_auto_download_always">Alltid</string>
     <string name="feed_auto_download_never">Aldrig</string>
     <string name="feed_video_mode_label">Videoläge</string>
-    <string name="feed_video_mode_window">Fönster läge</string>
-    <string name="feed_video_mode_fullscreen">Helskärm</string>
+
+
     <string name="feed_video_mode_audioonly">Endast ljud</string>
 
     <string name="feed_auto_dleq_new">Endast nya objekt</string>

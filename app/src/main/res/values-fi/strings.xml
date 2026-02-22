@@ -96,8 +96,8 @@
     <string name="feed_auto_download_always">Aina</string>
     <string name="feed_auto_download_never">Ei koskaan</string>
     <string name="feed_video_mode_label">Videon tila</string>
-    <string name="feed_video_mode_window">Ikkunan tila</string>
-    <string name="feed_video_mode_fullscreen">Koko näyttö</string>
+
+
     <string name="feed_video_mode_audioonly">Vain ääni</string>
 
     <string name="feed_auto_dleq_new">Vain uudet kohteet</string>

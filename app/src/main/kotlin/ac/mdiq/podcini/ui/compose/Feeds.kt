@@ -191,7 +191,7 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
         val textColor = MaterialTheme.colorScheme.onSurface
         Row {
             Box(modifier = Modifier.width(80.dp).height(80.dp)) {
-                val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+                val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.drawable.ic_launcher_foreground).error(R.drawable.ic_launcher_foreground).build() }
                 AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
                 if (feed.feedId > 0 || log != null) {
                     Logd("OnlineFeedItem", "${feed.feedId} $log")
@@ -247,7 +247,7 @@ fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, onDismissRequest: () -> Uni
                     val feed = feed_ ?: createSynthetic(0, name, hasVideo)
                     if (feed_ == null) {
                         feed.type = if (isYoutube) Feed.FeedType.YOUTUBE.name else Feed.FeedType.RSS.name
-                        if (hasVideo) feed.videoModePolicy = VideoMode.WINDOW_VIEW
+                        if (hasVideo) feed.videoModePolicy = VideoMode.VIDEO
                     }
                     upsertBlk(feed) { if (feed_ != null) it.customTitle = if (name == it.eigenTitle) null else name }
                     onDismissRequest()
@@ -309,7 +309,7 @@ fun OpmlImportSelectionDialog(readElements: SnapshotStateList<OpmlTransporter.Op
 
 @Composable
 fun VideoModeDialog(initMode: VideoMode?, onDismissRequest: () -> Unit, callback: (VideoMode) -> Unit) {
-    var selectedOption by remember { mutableStateOf(initMode?.tag ?: VideoMode.NONE.tag) }
+    var selectedOption by remember { mutableStateOf(initMode?.tag ?: VideoMode.DEFAULT.tag) }
     CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Column {
@@ -342,7 +342,7 @@ fun AssociatedFeedsGrid(feedsAssociated: List<Feed>) {
         items(feedsAssociated, key = {it.id}) { feed ->
             ConstraintLayout {
                 val (coverImage, episodeCount, rating, _) = createRefs()
-                val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+                val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.drawable.ic_launcher_foreground).error(R.drawable.ic_launcher_foreground).build() }
                 AsyncImage(model = img, contentDescription = "coverImage", modifier = Modifier.height(100.dp).aspectRatio(1f)
                     .constrainAs(coverImage) {
                         top.linkTo(parent.top)

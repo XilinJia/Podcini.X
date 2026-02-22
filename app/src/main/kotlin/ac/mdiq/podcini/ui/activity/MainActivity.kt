@@ -3,6 +3,7 @@ package ac.mdiq.podcini.ui.activity
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.config.settings.autoBackup
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.feed.FeedUpdateManager
@@ -11,25 +12,27 @@ import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.TTSEngine.closeTTS
 import ac.mdiq.podcini.playback.cast.BaseActivity
-import ac.mdiq.podcini.config.settings.autoBackup
-import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
-import ac.mdiq.podcini.storage.database.cancelAppPrefs
-import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
-import ac.mdiq.podcini.storage.database.initAppPrefs
-import ac.mdiq.podcini.storage.database.monitorFeeds
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
-import ac.mdiq.podcini.storage.model.cancelMonitorVolumes
-import ac.mdiq.podcini.storage.model.monitorVolumes
+import ac.mdiq.podcini.ui.activity.starter.MainActivityStarter
+import ac.mdiq.podcini.ui.compose.AppNavigator
+import ac.mdiq.podcini.ui.compose.COME_BACK
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomToast
+import ac.mdiq.podcini.ui.compose.DefaultPages
 import ac.mdiq.podcini.ui.compose.LargePoster
+import ac.mdiq.podcini.ui.compose.LocalNavController
+import ac.mdiq.podcini.ui.compose.Navigate
 import ac.mdiq.podcini.ui.compose.PodciniTheme
+import ac.mdiq.podcini.ui.compose.Screens
+import ac.mdiq.podcini.ui.compose.appTheme
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.commonMessage
+import ac.mdiq.podcini.ui.compose.defaultScreen
+import ac.mdiq.podcini.ui.compose.handleBackSubScreens
 import ac.mdiq.podcini.ui.dialog.RatingDialog
 import ac.mdiq.podcini.ui.screens.AudioPlayerScreen
 import ac.mdiq.podcini.ui.screens.DrawerController
@@ -39,17 +42,6 @@ import ac.mdiq.podcini.ui.screens.NavDrawerScreen
 import ac.mdiq.podcini.ui.screens.QuickAccess
 import ac.mdiq.podcini.ui.screens.setOnlineSearchTerms
 import ac.mdiq.podcini.ui.screens.setSearchTerms
-import ac.mdiq.podcini.ui.compose.AppNavigator
-import ac.mdiq.podcini.ui.compose.COME_BACK
-import ac.mdiq.podcini.ui.compose.LocalNavController
-import ac.mdiq.podcini.ui.compose.Navigate
-import ac.mdiq.podcini.ui.compose.Screens
-import ac.mdiq.podcini.ui.compose.defaultScreen
-import ac.mdiq.podcini.ui.compose.handleBackSubScreens
-import ac.mdiq.podcini.ui.activity.starter.MainActivityStarter
-import ac.mdiq.podcini.ui.compose.DefaultPages
-import ac.mdiq.podcini.ui.compose.appTheme
-import ac.mdiq.podcini.ui.screens.curVideoMode
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -94,7 +86,6 @@ import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.SheetValue
@@ -538,7 +529,7 @@ class MainActivity : BaseActivity() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        curVideoMode = if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) VideoMode.FULL_SCREEN_VIEW else VideoMode.WINDOW_VIEW
+//        curVideoMode = if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) VideoMode.FULL_SCREEN_VIEW else VideoMode.WINDOW_VIEW
 //        setForVideoMode()
         landscape = newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE
         Logd(TAG, "onConfigurationChanged landscape: $landscape")
@@ -556,7 +547,7 @@ class MainActivity : BaseActivity() {
         WorkManager.getInstance(applicationContext).pruneWork()
         closeTTS()
 //        cancelQueuesJob()
-        cancelAppPrefs()
+//        cancelAppPrefs()
         navStackJob?.cancel()
         navStackJob = null
         super.onDestroy()
@@ -564,19 +555,19 @@ class MainActivity : BaseActivity() {
 
     public override fun onStart() {
         super.onStart()
-        initAppPrefs()
+//        initAppPrefs()
         procFlowEvents()
         RatingDialog.init(this)
-        monitorFeeds(lifecycleScope)
-        monitorVolumes(lifecycleScope)
+//        monitorFeeds(lifecycleScope)
+//        monitorVolumes(lifecycleScope)
         timeIt("$TAG end of onStart")
     }
 
     override fun onStop() {
         super.onStop()
         cancelFlowEvents()
-        cancelMonitorFeeds()
-        cancelMonitorVolumes()
+//        cancelMonitorFeeds()
+//        cancelMonitorVolumes()
     }
 
     override fun onResume() {

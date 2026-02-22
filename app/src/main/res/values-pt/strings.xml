@@ -98,8 +98,8 @@
     <string name="feed_auto_download_always">Sempre</string>
     <string name="feed_auto_download_never">Nunca</string>
     <string name="feed_video_mode_label">Modo vídeo</string>
-    <string name="feed_video_mode_window">Modo de janela</string>
-    <string name="feed_video_mode_fullscreen">Tela cheia</string>
+
+
     <string name="feed_video_mode_audioonly">Somente áudio</string>
 
     <string name="feed_auto_dleq_new">Apenas novos itens</string>

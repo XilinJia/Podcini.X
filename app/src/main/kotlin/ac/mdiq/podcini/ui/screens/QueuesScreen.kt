@@ -746,7 +746,7 @@ fun QueuesScreen(id: Long = -1L) {
                                                 yOffset = 0f
                                             }))
                                     Box(modifier = Modifier.width(imageWidth).height(imageHeight)) {
-                                        AsyncImage(model = ImageRequest.Builder(context).data(episode.imageLocation(false)).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(), contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
+                                        AsyncImage(model = ImageRequest.Builder(context).data(episode.imageLocation(false)).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.drawable.ic_launcher_foreground).error(R.drawable.ic_launcher_foreground).build(), contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
                                     }
                                     Text(episode.title?: "No title")
                                 }

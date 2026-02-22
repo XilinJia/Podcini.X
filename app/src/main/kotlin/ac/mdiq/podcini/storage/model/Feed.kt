@@ -204,13 +204,13 @@ class Feed : RealmObject {
     var password: String? = null
 
     @Ignore
-    var videoModePolicy: VideoMode = VideoMode.NONE
+    var videoModePolicy: VideoMode = VideoMode.DEFAULT
         get() = VideoMode.fromCode(videoMode)
         set(value) {
             field = value
             videoMode = field.code
         }
-    var videoMode: Int = VideoMode.NONE.code
+    var videoMode: Int = VideoMode.DEFAULT.code
 
     var playSpeed: Float = SPEED_USE_GLOBAL
 
