@@ -139,8 +139,7 @@
     <string name="feed_auto_download_always">Всегда</string>
     <string name="feed_auto_download_never">Никогда</string>
     <string name="feed_video_mode_label">Video mode</string>
-    <string name="feed_video_mode_window">Window mode</string>
-    <string name="feed_video_mode_fullscreen">Full screen</string>
+    <string name="feed_video_mode_video">Video</string>
     <string name="feed_video_mode_audioonly">Audio only</string>
     <string name="feed_automation_policy">Automation policy</string>
     <string name="feed_auto_dleq_new">Only new items</string>
