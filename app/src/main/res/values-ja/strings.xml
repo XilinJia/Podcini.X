@@ -139,8 +139,7 @@
     <string name="feed_auto_download_always">常に表示</string>
     <string name="feed_auto_download_never">一切なし</string>
     <string name="feed_video_mode_label">ビデオモード</string>
-    <string name="feed_video_mode_window">ウィンドウモード</string>
-    <string name="feed_video_mode_fullscreen">全画面</string>
+    <string name="feed_video_mode_video">Video</string>
     <string name="feed_video_mode_audioonly">音声のみ</string>
     <string name="feed_automation_policy">自動化ポリシー</string>
     <string name="feed_auto_dleq_new">新しいアイテムのみ</string>
