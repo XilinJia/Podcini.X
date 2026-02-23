@@ -6,13 +6,13 @@ import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.setAsCurEpisode
 import ac.mdiq.podcini.playback.base.MediaPlayerBase
 import ac.mdiq.podcini.playback.base.PlayerStatus
-import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.storage.database.episodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.getNextInQueue
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.MediaType
+import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -23,9 +23,7 @@ import android.app.UiModeManager
 import android.content.ContentResolver
 import android.content.Context
 import android.content.res.Configuration
-import androidx.annotation.OptIn
 import androidx.core.net.toUri
-import androidx.media3.common.util.UnstableApi
 import com.google.android.gms.cast.CastDevice
 import com.google.android.gms.cast.MediaError
 import com.google.android.gms.cast.MediaInfo
