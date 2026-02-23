@@ -30,9 +30,6 @@ import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.actions.playActions
 import ac.mdiq.podcini.ui.actions.streamActions
-import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.bsState
-import ac.mdiq.podcini.ui.compose.COME_BACK
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommentEditingDialog
@@ -43,15 +40,11 @@ import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.LayoutMode
-import ac.mdiq.podcini.ui.compose.LocalNavController
 import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
-import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.ui.compose.SendToDevice
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
-import ac.mdiq.podcini.ui.compose.defaultScreen
 import ac.mdiq.podcini.ui.compose.episodeForInfo
-import ac.mdiq.podcini.ui.compose.handleBackSubScreens
 import ac.mdiq.podcini.ui.utils.HtmlToPlainText
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
@@ -443,7 +436,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), tint = histColor, contentDescription = "history") }
                     if (feed?.queue != null) IconButton(onClick = {
                         navController.navigate("${Screens.Queues.name}?id=${feed?.queue?.id ?: -1L}")
-                        bsState = MainActivity.BSState.Partial
+                        psState = PSState.PartiallyExpanded
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.playlist_play), contentDescription = "queue") }
                     IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                     if (feed != null) {
@@ -460,7 +453,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                             })
                             if (!feed?.link.isNullOrBlank()) DropdownMenuItem(text = { Text(stringResource(R.string.visit_website_label)) }, onClick = {
                                 val isCallable = if (!feed?.link.isNullOrEmpty()) isCallable(Intent(Intent.ACTION_VIEW, feed!!.link!!.toUri())) else false
-                                if (isCallable) openInBrowser(context, feed!!.link!!)
+                                if (isCallable) openInBrowser(feed!!.link!!)
                                 else Loge(TAG, "feed link is not valid: ${feed?.link}")
                                 expanded = false
                             })
@@ -567,7 +560,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 Text(stringResource(R.string.last_full_update) + ": ${formatDateTimeFlex(Date(feed?.lastFullUpdateTime?:0L))}", modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                 Text(stringResource(R.string.url_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                 Text(text = feed?.downloadUrl ?: "", color = textColor, modifier = Modifier.padding(bottom = 15.dp).combinedClickable(
-                    onClick = { if (!feed?.downloadUrl.isNullOrBlank()) openInBrowser(context, feed!!.downloadUrl!!) },
+                    onClick = { if (!feed?.downloadUrl.isNullOrBlank()) openInBrowser(feed!!.downloadUrl!!) },
                     onLongClick = {
                         if (!feed?.downloadUrl.isNullOrBlank()) {
                             val url: String = feed!!.downloadUrl!!

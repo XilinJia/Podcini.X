@@ -1,11 +1,10 @@
 package ac.mdiq.podcini.ui.activity
 
-import ac.mdiq.podcini.config.settings.AppPreferences
-import ac.mdiq.podcini.ui.compose.AppNavigator
+import ac.mdiq.podcini.ui.screens.AppNavigator
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.AppThemes
 import ac.mdiq.podcini.ui.compose.appTheme
-import ac.mdiq.podcini.ui.screens.AudioPlayerUIScreen
+import ac.mdiq.podcini.ui.screens.PlayerUIScreen
 import ac.mdiq.podcini.utils.Logd
 import android.os.Bundle
 import android.view.Gravity
@@ -47,7 +46,7 @@ class PlayerUIActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val navigator = remember { AppNavigator(navController) { route -> Logd(TAG, "Navigated to: $route") } }
                 Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBars)) {
-                    AudioPlayerUIScreen(Modifier, navigator)
+                    PlayerUIScreen(Modifier, navigator)
                 }
             }
         }

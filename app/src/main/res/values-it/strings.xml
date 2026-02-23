@@ -98,10 +98,10 @@
     <string name="feed_volume_boost_heavy">Incremento marcato</string>
     <string name="feed_auto_download_always">Sempre</string>
     <string name="feed_auto_download_never">Mai</string>
-    <string name="feed_video_mode_label">Modalità video</string>
+    <string name="video_mode_label">Modalità video</string>
 
 
-    <string name="feed_video_mode_audioonly">Solo audio</string>
+    <string name="video_mode_audio_only">Solo audio</string>
 
     <string name="feed_auto_dleq_new">Solo nuovi elementi</string>
     <string name="replace">Sostituisci</string>

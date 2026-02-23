@@ -95,10 +95,10 @@
     <string name="feed_volume_boost_heavy">Тяжелый бонус</string>
     <string name="feed_auto_download_always">всегда</string>
     <string name="feed_auto_download_never">никогда</string>
-    <string name="feed_video_mode_label">Режим видео</string>
+    <string name="video_mode_label">Режим видео</string>
 
 
-    <string name="feed_video_mode_audioonly">Только аудио</string>
+    <string name="video_mode_audio_only">Только аудио</string>
 
     <string name="feed_auto_dleq_new">Только новые элементы</string>
     <string name="replace">Заменить</string>

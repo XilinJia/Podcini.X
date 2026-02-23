@@ -61,7 +61,7 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
             @Deprecated("Deprecated in Java")
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
                 if ((ShownotesCleaner.isTimecodeLink(url) || ShownotesCleaner.isHTTPTimecodeLink(url)) && timecodeSelectedListener != null) timecodeSelectedListener!!(ShownotesCleaner.getTimecodeLinkTime(url))
-                else openInBrowser(context, url)
+                else openInBrowser(url)
                 return true
             }
 
@@ -100,7 +100,7 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
         if (selectedUrl == null) return false
         val itemId = item.itemId
         when (itemId) {
-            R.id.open_in_browser_item -> if (selectedUrl != null) openInBrowser(context, selectedUrl!!)
+            R.id.open_in_browser_item -> if (selectedUrl != null) openInBrowser(selectedUrl!!)
             R.id.share_url_item -> if (selectedUrl != null) shareLink(context, selectedUrl!!)
             R.id.copy_url_item -> {
                 val clipData: ClipData = ClipData.newPlainText(selectedUrl, selectedUrl)

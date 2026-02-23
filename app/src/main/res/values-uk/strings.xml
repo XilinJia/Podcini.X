@@ -95,10 +95,10 @@
     <string name="feed_volume_boost_heavy">Сильно збільшити</string>
     <string name="feed_auto_download_always">Завжди</string>
     <string name="feed_auto_download_never">Ніколи</string>
-    <string name="feed_video_mode_label">Режим відео</string>
+    <string name="video_mode_label">Режим відео</string>
 
 
-    <string name="feed_video_mode_audioonly">Тільки аудіо</string>
+    <string name="video_mode_audio_only">Тільки аудіо</string>
 
     <string name="feed_auto_dleq_new">Тільки нові елементи</string>
     <string name="replace">Заміняти</string>

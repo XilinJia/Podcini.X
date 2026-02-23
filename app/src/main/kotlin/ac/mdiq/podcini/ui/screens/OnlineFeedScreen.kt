@@ -30,12 +30,12 @@ import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NumberEditor
-import ac.mdiq.podcini.ui.compose.COME_BACK
+import ac.mdiq.podcini.ui.screens.COME_BACK
 import ac.mdiq.podcini.ui.compose.EpisodeScreen
-import ac.mdiq.podcini.ui.compose.LocalNavController
-import ac.mdiq.podcini.ui.compose.Screens
+import ac.mdiq.podcini.ui.screens.LocalNavController
+import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.compose.episodeForInfo
-import ac.mdiq.podcini.ui.compose.handleBackSubScreens
+import ac.mdiq.podcini.ui.screens.handleBackSubScreens
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd

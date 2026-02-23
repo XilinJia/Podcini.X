@@ -95,10 +95,10 @@
     <string name="feed_volume_boost_heavy">Velké zvýšení</string>
     <string name="feed_auto_download_always">Vždy</string>
     <string name="feed_auto_download_never">Nikdy</string>
-    <string name="feed_video_mode_label">Režim videa</string>
+    <string name="video_mode_label">Režim videa</string>
 
 
-    <string name="feed_video_mode_audioonly">Pouze zvuk</string>
+    <string name="video_mode_audio_only">Pouze zvuk</string>
 
     <string name="feed_auto_dleq_new">Pouze nové položky</string>
     <string name="replace">Nahradit</string>

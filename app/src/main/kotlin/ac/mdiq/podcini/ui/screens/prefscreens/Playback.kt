@@ -4,7 +4,7 @@ import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.prefPlaybackSpeed
-import ac.mdiq.podcini.playback.base.VideoMode
+import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.fallbackSpeed

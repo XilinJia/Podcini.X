@@ -2,7 +2,7 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.playback.base.VideoMode
+import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.queuesLive
@@ -24,12 +24,10 @@ import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.playActions
 import ac.mdiq.podcini.ui.actions.streamActions
-import ac.mdiq.podcini.ui.compose.COME_BACK
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
-import ac.mdiq.podcini.ui.compose.LocalNavController
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
 import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
@@ -154,8 +152,9 @@ fun FeedsSettingsScreen() {
         videoQuality = feedToSet.videoQualitySetting.tag
         videoModeSummaryResId = when (feedToSet.videoModePolicy) {
             VideoMode.DEFAULT -> R.string.global_default
-            VideoMode.VIDEO -> R.string.feed_video_mode_video
-            VideoMode.AUDIO_ONLY -> R.string.feed_video_mode_audioonly
+            VideoMode.WINDOW -> R.string.video_mode_window
+            VideoMode.FULL_SCREEN -> R.string.video_mode_fullscreen
+            VideoMode.AUDIO_ONLY -> R.string.video_mode_audio_only
         }
         when (feedToSet.autoDeleteAction) {
             AutoDeleteAction.GLOBAL -> {
@@ -377,14 +376,15 @@ fun FeedsSettingsScreen() {
                         if (showDialog) VideoModeDialog(initMode = feedToSet.videoModePolicy, onDismissRequest = { showDialog = false }) { mode ->
                             videoModeSummaryResId = when (mode) {
                                 VideoMode.DEFAULT -> R.string.global_default
-                                VideoMode.VIDEO -> R.string.feed_video_mode_video
-                                VideoMode.AUDIO_ONLY -> R.string.feed_video_mode_audioonly
+                                VideoMode.WINDOW -> R.string.video_mode_window
+                                VideoMode.FULL_SCREEN -> R.string.video_mode_fullscreen
+                                VideoMode.AUDIO_ONLY -> R.string.video_mode_audio_only
                             }
                             runOnIOScope { realm.write { for (f in feedsToSet) { if (f.hasVideoMedia) findLatest(f)?.videoModePolicy = mode } } }
                         }
                         Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), "", tint = textColor)
                         Spacer(modifier = Modifier.width(20.dp))
-                        Text(text = stringResource(R.string.feed_video_mode_label), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog = true }))
+                        Text(text = stringResource(R.string.video_mode_label), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog = true }))
                         Spacer(modifier = Modifier.width(30.dp))
                         Text(text = stringResource(videoModeSummaryResId), style = MaterialTheme.typography.bodyMedium, color = textColor)
                     }

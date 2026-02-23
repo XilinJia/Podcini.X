@@ -95,10 +95,10 @@
     <string name="feed_volume_boost_heavy">Raskas korostus</string>
     <string name="feed_auto_download_always">Aina</string>
     <string name="feed_auto_download_never">Ei koskaan</string>
-    <string name="feed_video_mode_label">Videon tila</string>
+    <string name="video_mode_label">Videon tila</string>
 
 
-    <string name="feed_video_mode_audioonly">Vain ääni</string>
+    <string name="video_mode_audio_only">Vain ääni</string>
 
     <string name="feed_auto_dleq_new">Vain uudet kohteet</string>
     <string name="replace">Korvaa</string>

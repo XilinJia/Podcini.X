@@ -13,8 +13,8 @@ import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
-import ac.mdiq.podcini.ui.compose.LocalNavController
-import ac.mdiq.podcini.ui.compose.Screens
+import ac.mdiq.podcini.ui.screens.LocalNavController
+import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs

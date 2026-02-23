@@ -104,7 +104,7 @@ class BugReportActivity : ComponentActivity() {
                     exportLog()
                     showConfirmExport.value = false
                 }
-                Button(modifier = Modifier.fillMaxWidth(), onClick = { openInBrowser(this@BugReportActivity, "${githubAddress}/issues") }) { Text(stringResource(R.string.open_bug_tracker)) }
+                Button(modifier = Modifier.fillMaxWidth(), onClick = { openInBrowser("${githubAddress}/issues") }) { Text(stringResource(R.string.open_bug_tracker)) }
                 Button(modifier = Modifier.fillMaxWidth(), onClick = {
                     val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
                     val clip = ClipData.newPlainText(getString(R.string.bug_report_title), crashDetailsTextView)

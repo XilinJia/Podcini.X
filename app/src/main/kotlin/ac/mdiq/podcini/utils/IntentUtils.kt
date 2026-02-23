@@ -30,8 +30,9 @@ fun sendLocalBroadcast(action: String?) {
     getAppContext().sendBroadcast(Intent(action).setPackage(getAppContext().packageName))
 }
 
-fun openInBrowser(context: Context, url: String) {
+fun openInBrowser(url: String) {
     Logd(TAG, "url: $url")
+    val context = getAppContext()
     try {
         val myIntent = Intent(Intent.ACTION_VIEW, url.toUri())
         myIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

@@ -95,10 +95,10 @@
     <string name="feed_volume_boost_heavy">Kraftig forstærkning</string>
     <string name="feed_auto_download_always">Altid</string>
     <string name="feed_auto_download_never">Aldrig</string>
-    <string name="feed_video_mode_label">Video-tilstand</string>
+    <string name="video_mode_label">Video-tilstand</string>
 
 
-    <string name="feed_video_mode_audioonly">Kun lyd</string>
+    <string name="video_mode_audio_only">Kun lyd</string>
 
     <string name="feed_auto_dleq_new">Kun nye elementer</string>
     <string name="replace">Erstat</string>

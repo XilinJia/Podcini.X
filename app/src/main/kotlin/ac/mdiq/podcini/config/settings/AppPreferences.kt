@@ -4,7 +4,7 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.utils.createNoMediaFile
-import ac.mdiq.podcini.ui.compose.DefaultPages
+import ac.mdiq.podcini.ui.screens.DefaultPages
 import ac.mdiq.podcini.ui.screens.prefscreens.EpisodeCleanupOptions
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.timeIt

@@ -1,3 +1,19 @@
+# 10.10.2
+
+* fixed nav back from Settings screen
+* restored Window and FullScreen modes for video
+* device rotation setting is tracked
+* tuned AVPlayer
+	* if device rotation is set on, video mode follows screen rotation, else the setting in the feed takes precedence
+	* in video Window mode, topbar is always shown
+	* Detailed view can be horizontally swiped: left opens Queues screen, right opens FeedDetails screen
+	* in topbar, Queues and FeedDetails buttons are taken off
+	* Detailed view can be down-swiped to collapse to the PlayerUI
+* corrected an episode flow collection in AVPlayer and Episode screens
+* likely fixed IndexOutOfBoundsException in ScrollRowGrid
+* removed some more context parameters
+* some code refactoring and reorganization
+
 # 10.0.1
 
 * ensure to access to db after db init

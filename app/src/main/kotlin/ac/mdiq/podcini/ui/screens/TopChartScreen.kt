@@ -9,7 +9,7 @@ import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.filterChipBorder
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
-import ac.mdiq.podcini.ui.compose.LocalNavController
+import ac.mdiq.podcini.ui.screens.LocalNavController
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd

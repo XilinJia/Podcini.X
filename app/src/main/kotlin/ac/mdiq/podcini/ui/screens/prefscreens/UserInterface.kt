@@ -5,7 +5,7 @@ import ac.mdiq.podcini.config.settings.AppPreferences
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
-import ac.mdiq.podcini.ui.compose.DefaultPages
+import ac.mdiq.podcini.ui.screens.DefaultPages
 import ac.mdiq.podcini.ui.compose.AppThemes
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow

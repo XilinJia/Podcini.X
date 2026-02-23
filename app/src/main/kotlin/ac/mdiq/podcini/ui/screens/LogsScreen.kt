@@ -18,8 +18,8 @@ import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
-import ac.mdiq.podcini.ui.compose.LocalNavController
-import ac.mdiq.podcini.ui.compose.Screens
+import ac.mdiq.podcini.ui.screens.LocalNavController
+import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -440,7 +440,7 @@ fun LogsScreen() {
                                     Episode.FEEDFILETYPE_FEEDMEDIA -> {
                                         showAction = false
                                         val item_ = realm.query(Episode::class).query("id == $0", status.feedfileId).first().find()
-                                        if (item_ != null) ActionButton(item_, ButtonTypes.DOWNLOAD).onClick(context)
+                                        if (item_ != null) ActionButton(item_, ButtonTypes.DOWNLOAD).onClick()
                                         Logt(TAG, context.getString(R.string.status_downloading_label))
                                     }
                                 }

@@ -17,29 +17,31 @@ import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.ui.activity.starter.MainActivityStarter
-import ac.mdiq.podcini.ui.compose.AppNavigator
-import ac.mdiq.podcini.ui.compose.COME_BACK
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomToast
-import ac.mdiq.podcini.ui.compose.DefaultPages
 import ac.mdiq.podcini.ui.compose.LargePoster
-import ac.mdiq.podcini.ui.compose.LocalNavController
-import ac.mdiq.podcini.ui.compose.Navigate
 import ac.mdiq.podcini.ui.compose.PodciniTheme
-import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.ui.compose.appTheme
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.commonMessage
-import ac.mdiq.podcini.ui.compose.defaultScreen
-import ac.mdiq.podcini.ui.compose.handleBackSubScreens
 import ac.mdiq.podcini.ui.dialog.RatingDialog
-import ac.mdiq.podcini.ui.screens.AudioPlayerScreen
+import ac.mdiq.podcini.ui.screens.AVPlayerScreen
+import ac.mdiq.podcini.ui.screens.AppNavigator
+import ac.mdiq.podcini.ui.screens.psState
+import ac.mdiq.podcini.ui.screens.COME_BACK
+import ac.mdiq.podcini.ui.screens.DefaultPages
 import ac.mdiq.podcini.ui.screens.DrawerController
 import ac.mdiq.podcini.ui.screens.LocalDrawerController
 import ac.mdiq.podcini.ui.screens.LocalDrawerState
+import ac.mdiq.podcini.ui.screens.LocalNavController
 import ac.mdiq.podcini.ui.screens.NavDrawerScreen
+import ac.mdiq.podcini.ui.screens.Navigate
+import ac.mdiq.podcini.ui.screens.PSState
 import ac.mdiq.podcini.ui.screens.QuickAccess
+import ac.mdiq.podcini.ui.screens.Screens
+import ac.mdiq.podcini.ui.screens.defaultScreen
+import ac.mdiq.podcini.ui.screens.handleBackSubScreens
 import ac.mdiq.podcini.ui.screens.setOnlineSearchTerms
 import ac.mdiq.podcini.ui.screens.setSearchTerms
 import ac.mdiq.podcini.utils.EventFlow
@@ -56,7 +58,6 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
@@ -128,7 +129,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
@@ -278,44 +278,47 @@ class MainActivity : BaseActivity() {
         val navController = rememberNavController()
         val navigator = remember { AppNavigator(navController) { route ->
             Logd(TAG, "Navigated to: $route")
-            if (bsState == BSState.Expanded) bsState = BSState.Partial
+            if (psState == PSState.Expanded) psState =  PSState.PartiallyExpanded
         } }
+
+        if (showUnrestrictedBackgroundPermissionDialog) UnrestrictedBackgroundPermissionDialog { showUnrestrictedBackgroundPermissionDialog = false }
 
         LaunchedEffect(Unit) { monitorNavStack(navController) }
 
         val sheetState = rememberBottomSheetScaffoldState(bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded, skipHiddenState = false))
 
-        if (showUnrestrictedBackgroundPermissionDialog) UnrestrictedBackgroundPermissionDialog { showUnrestrictedBackgroundPermissionDialog = false }
+        LaunchedEffect(sheetState.bottomSheetState) { snapshotFlow { sheetState.bottomSheetState.currentValue }.collect { state -> psState = PSState.fromSheet(state) } }
 
         var firstRun by remember { mutableStateOf(true) }
-        LaunchedEffect(key1 = bsState, key2 = curEpisode?.id, firstRun) {
+        LaunchedEffect(key1 = psState, key2 = curEpisode?.id, firstRun) {
             Logd(TAG, "LaunchedEffect(key1 = bsState, key2 = curEpisode?.id, firstRun)")
             if (firstRun) {
                 firstRun = false
                 return@LaunchedEffect
             }
             if ((curEpisode?.id ?: -1L) > 0) {
-                when (bsState) {
-                    BSState.Expanded -> sheetState.bottomSheetState.expand()
-                    BSState.Partial -> sheetState.bottomSheetState.partialExpand()
+                when (psState) {
+                    PSState.Expanded -> sheetState.bottomSheetState.expand()
+                    PSState.PartiallyExpanded -> sheetState.bottomSheetState.partialExpand()
                     else -> sheetState.bottomSheetState.hide()
                 }
             } else sheetState.bottomSheetState.hide()
+//            if ((curEpisode?.id ?: -1L) <= 0) sheetState.bottomSheetState.hide()
         }
 
-        val sheetValueState = remember { mutableStateOf(sheetState.bottomSheetState.currentValue) }
-        LaunchedEffect(Unit) {
-            Logd(TAG, "LaunchedEffect(sheetState.bottomSheetState)")
-            snapshotFlow { sheetState.bottomSheetState.currentValue }.distinctUntilChanged().collect { newValue ->
-                Logd(TAG, "sheetState.bottomSheetState.currentValue collect")
-                sheetValueState.value = newValue
-            }
-        }
+//        val sheetValueState = remember { mutableStateOf(sheetState.bottomSheetState.currentValue) }
+//        LaunchedEffect(Unit) {
+//            Logd(TAG, "LaunchedEffect(sheetState.bottomSheetState)")
+//            snapshotFlow { sheetState.bottomSheetState.currentValue }.distinctUntilChanged().collect { newValue ->
+//                Logd(TAG, "sheetState.bottomSheetState.currentValue collect")
+//                sheetValueState.value = newValue
+//            }
+//        }
         val bottomInsets = WindowInsets.ime.union(WindowInsets.navigationBars)
         val bottomInsetPadding = bottomInsets.asPaddingValues().calculateBottomPadding()
         val dynamicBottomPadding by remember {
             derivedStateOf {
-                when (sheetValueState.value) {
+                when (sheetState.bottomSheetState.currentValue) {
                     SheetValue.Expanded -> bottomInsetPadding + 300.dp
                     SheetValue.PartiallyExpanded -> bottomInsetPadding + 100.dp
                     else -> bottomInsetPadding
@@ -357,7 +360,7 @@ class MainActivity : BaseActivity() {
         CompositionLocalProvider(LocalDrawerController provides drawerCtrl, LocalDrawerState provides drawerState, LocalNavController provides navigator) {
 //            Logd(TAG, "dynamicBottomPadding: $dynamicBottomPadding sheetValue: ${sheetValueState.value}")
             ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
-                BottomSheetScaffold(sheetContent = { AudioPlayerScreen() }, scaffoldState = sheetState, sheetMaxWidth = screenWidth, sheetPeekHeight = bottomInsetPadding + 100.dp, sheetDragHandle = {}, sheetSwipeEnabled = false, sheetShape = RectangleShape, topBar = {}) { paddingValues ->
+                BottomSheetScaffold(sheetContent = { AVPlayerScreen() }, scaffoldState = sheetState, sheetMaxWidth = screenWidth, sheetPeekHeight = bottomInsetPadding + 100.dp, sheetDragHandle = {}, sheetShape = RectangleShape, topBar = {}) { paddingValues ->
                     Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(top = paddingValues.calculateTopPadding(), bottom = dynamicBottomPadding)) {
 //                    Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(top = paddingValues.calculateTopPadding(), start = paddingValues.calculateStartPadding(LocalLayoutDirection.current), end = paddingValues.calculateEndPadding(LocalLayoutDirection.current), bottom = dynamicBottomPadding)) {
                         if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
@@ -413,7 +416,7 @@ class MainActivity : BaseActivity() {
                 }
                 return count > 0
             }
-            Logd(TAG, "BackHandler isBSExpanded: $bsState")
+            Logd(TAG, "BackHandler isBSExpanded: $psState")
             val openDrawer = appPrefs.backButtonOpensDrawer
             val defPage = defaultScreen
             val currentDestination = navigator.currentDestination
@@ -421,7 +424,7 @@ class MainActivity : BaseActivity() {
             Logd(TAG, "BackHandler curruntRoute0: $curruntRoute defPage: $defPage")
             when {
                 drawerState.isOpen -> drawerCtrl.close()
-                bsState == BSState.Expanded -> bsState = BSState.Partial
+                psState == PSState.Expanded -> psState = PSState.PartiallyExpanded
                 navigator.previousBackStackEntry != null -> {
                     Logd(TAG, "nav to back")
                     navigator.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
@@ -527,14 +530,6 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-//        curVideoMode = if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) VideoMode.FULL_SCREEN_VIEW else VideoMode.WINDOW_VIEW
-//        setForVideoMode()
-        landscape = newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE
-        Logd(TAG, "onConfigurationChanged landscape: $landscape")
-    }
-
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putInt(Extras.generated_view_id.name, View.generateViewId())
@@ -546,8 +541,6 @@ class MainActivity : BaseActivity() {
         WorkManager.getInstance(this).pruneWork()
         WorkManager.getInstance(applicationContext).pruneWork()
         closeTTS()
-//        cancelQueuesJob()
-//        cancelAppPrefs()
         navStackJob?.cancel()
         navStackJob = null
         super.onDestroy()
@@ -555,19 +548,14 @@ class MainActivity : BaseActivity() {
 
     public override fun onStart() {
         super.onStart()
-//        initAppPrefs()
         procFlowEvents()
         RatingDialog.init(this)
-//        monitorFeeds(lifecycleScope)
-//        monitorVolumes(lifecycleScope)
         timeIt("$TAG end of onStart")
     }
 
     override fun onStop() {
         super.onStop()
         cancelFlowEvents()
-//        cancelMonitorFeeds()
-//        cancelMonitorVolumes()
     }
 
     override fun onResume() {
@@ -626,19 +614,19 @@ class MainActivity : BaseActivity() {
                 val feedId = intent.getLongExtra(Extras.feed_id.name, 0)
                 Logd(TAG, "handleNavIntent: feedId: $feedId")
                 if (feedId > 0) setIntentScreen("${Screens.FeedDetails.name}?feedId=${feedId}")
-                bsState = BSState.Partial
+                psState = PSState.PartiallyExpanded
             }
             intent.hasExtra(Extras.queue_id.name) -> {
                 val queueId = intent.getLongExtra(Extras.queue_id.name, 0)
                 Logd(TAG, "handleNavIntent: queueId: $queueId")
                 if (queueId >= 0) setIntentScreen("${Screens.Queues.name}?index=${queueId}")
-                bsState = BSState.Partial
+                psState = PSState.PartiallyExpanded
             }
             intent.hasExtra(Extras.facet_name.name) -> {
                 val facetName = intent.getStringExtra(Extras.facet_name.name)
                 Logd(TAG, "handleNavIntent: facetName: $facetName")
                 if (!facetName.isNullOrEmpty()) QuickAccess.entries.find { it.name == facetName }?.let { setIntentScreen("${Screens.Facets.name}?modeName=${it.name}") }
-                bsState = BSState.Partial
+                psState = PSState.PartiallyExpanded
             }
             intent.hasExtra(Extras.fragment_feed_url.name) -> {
                 val feedurl = intent.getStringExtra(Extras.fragment_feed_url.name)
@@ -649,7 +637,7 @@ class MainActivity : BaseActivity() {
                 setOnlineSearchTerms(query = intent.getStringExtra(Extras.search_string.name))
                 setIntentScreen(Screens.FindFeeds.name)
             }
-            intent.getBooleanExtra(MainActivityStarter.Extras.open_player.name, false) -> bsState = BSState.Expanded
+            intent.getBooleanExtra(MainActivityStarter.Extras.open_player.name, false) -> psState = PSState.Expanded
             intent.hasExtra("shortcut_route") -> {
                 val route = intent.getStringExtra("shortcut_route")
                 Logd(TAG, "intent.hasExtra(shortcut_route) route $route")
@@ -714,19 +702,12 @@ class MainActivity : BaseActivity() {
         isShared
     }
 
-    enum class BSState {
-        Hidden, Partial, Expanded
-    }
-
     companion object {
         private val TAG: String = MainActivity::class.simpleName ?: "Anonymous"  // have to keep, otherwise release build may fail?!
 
         private const val INIT_KEY = "app_init_state"
 
         val downloadStates = mutableStateMapOf<String, DownloadStatus>()
-        var bsState by mutableStateOf(BSState.Partial)
-
-        var landscape by mutableStateOf(false)
 
         val isRemember: Boolean
             get() = appPrefs.defaultPage == DefaultPages.Remember.name

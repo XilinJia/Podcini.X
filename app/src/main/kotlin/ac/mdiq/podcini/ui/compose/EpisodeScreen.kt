@@ -16,12 +16,15 @@ import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
+import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.Combo
-import ac.mdiq.podcini.ui.actions.ActionButton
-import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.bsState
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
+import ac.mdiq.podcini.ui.screens.psState
+import ac.mdiq.podcini.ui.screens.LocalNavController
+import ac.mdiq.podcini.ui.screens.PSState
+import ac.mdiq.podcini.ui.screens.Screens
+import ac.mdiq.podcini.ui.screens.handleBackSubScreens
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
@@ -118,7 +121,7 @@ private val notesCache = LruCache<Long, String>(10)
 
 var episodeForInfo by mutableStateOf<Episode?>(null)
 
-@ExperimentalMaterial3Api
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = MutableStateFlow(emptyList()), allowOpenFeed: Boolean = false) {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -126,7 +129,8 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
     val navController = LocalNavController.current
     val textColor = MaterialTheme.colorScheme.onSurface
 
-    val eOfFlow by listFlow.map { list -> list.firstOrNull { it.id == episode_.id } }.collectAsStateWithLifecycle(initialValue = null)
+    val episodeFlow = remember(episode_.id) { listFlow.map { list -> list.firstOrNull { it.id == episode_.id } } }
+    val eOfFlow by episodeFlow.collectAsStateWithLifecycle(initialValue = null)
     val episode = if (eOfFlow != null) eOfFlow!! else episode_
 
     val episodeFeed = episode.feed
@@ -415,14 +419,14 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                 if (allowOpenFeed) IconButton(onClick = {
                     if (episodeFeed != null) {
                         navController.navigate("${Screens.FeedDetails.name}?feedId=${episodeFeed.id}")
-                        bsState = MainActivity.BSState.Partial
+                        psState = PSState.PartiallyExpanded
                     }
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_feed), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Open podcast", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                 IconButton(onClick = { comboAction.performAction(episode) }) { Icon(imageVector = ImageVector.vectorResource(comboAction.iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Combo", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                 if (!episode.link.isNullOrEmpty()) IconButton(onClick = { showHomeScreen = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_article_shortcut_24), contentDescription = "home") }
                 IconButton(onClick = {
                     val url = episode.getLinkWithFallback()
-                    if (url != null) openInBrowser(context, url)
+                    if (url != null) openInBrowser(url)
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "web") }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
@@ -451,7 +455,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
             val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
             var showAltActionsDialog by remember { mutableStateOf(false) }
             var actionButton by remember { mutableStateOf<ActionButton?>(null) }
-            if (showAltActionsDialog) actionButton?.AltActionsDialog(context, onDismiss = { showAltActionsDialog = false })
+            if (showAltActionsDialog) actionButton?.AltActionsDialog(onDismiss = { showAltActionsDialog = false })
             LaunchedEffect(key1 = status, episode) {
                 actionButton = ActionButton(episode)
                 actionButton?.type = when {
@@ -504,7 +508,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                                     actionButton!!.processing = dlStats.progress
                                     if (dlStats.state == DownloadStatus.State.COMPLETED.ordinal) actionButton!!.type = ButtonTypes.PLAY
                                 }
-                                Icon(imageVector = ImageVector.vectorResource(actionButton!!.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp).combinedClickable(onClick = { actionButton?.onClick(context) }, onLongClick = { showAltActionsDialog = true }))
+                                Icon(imageVector = ImageVector.vectorResource(actionButton!!.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp).combinedClickable(onClick = { actionButton?.onClick() }, onLongClick = { showAltActionsDialog = true }))
                             }
                         }
                     }
@@ -517,7 +521,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                     EpisodeDetails(episode)
                     AsyncImage(ImageRequest.Builder(context).data(episode.imageUrl ?: episodeFeed?.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.drawable.ic_launcher_foreground).error(R.drawable.ic_launcher_foreground).build(), contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(10.dp).clickable(onClick = {}))
                     Text(episode.link ?: "", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 15.dp).clickable(onClick = {
-                        if (!episode.link.isNullOrBlank()) openInBrowser(context, episode.link!!)
+                        if (!episode.link.isNullOrBlank()) openInBrowser(episode.link!!)
                     }))
                     Row {
                         Text("Time spent: " + getDurationStringShort(episode.timeSpent, true))

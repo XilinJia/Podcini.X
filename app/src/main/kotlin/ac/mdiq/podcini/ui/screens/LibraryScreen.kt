@@ -44,11 +44,11 @@ import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
-import ac.mdiq.podcini.ui.compose.LocalNavController
+import ac.mdiq.podcini.ui.screens.LocalNavController
 import ac.mdiq.podcini.ui.compose.PutToQueueDialog
 import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
 import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
-import ac.mdiq.podcini.ui.compose.Screens
+import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.compose.ScrollRowGrid
 import ac.mdiq.podcini.ui.compose.SelectLowerAllUpper
 import ac.mdiq.podcini.ui.compose.SendToDevice
@@ -58,7 +58,7 @@ import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.complementaryColorOf
 import ac.mdiq.podcini.ui.compose.filterChipBorder
-import ac.mdiq.podcini.ui.compose.handleBackSubScreens
+import ac.mdiq.podcini.ui.screens.handleBackSubScreens
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
@@ -643,7 +643,7 @@ fun LibraryScreen() {
                         Text(feedCountState, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = textColor, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f))
                     }
                 } },
-                navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable(onClick = {drawerController?.open() })) } ,
+                navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable(onClick = { drawerController?.open() })) } ,
                 actions = {
                     if (!vm.isViewGarden) IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                     if (!vm.isViewGarden) IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (isFiltered) buttonAltColor else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }

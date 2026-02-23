@@ -4,7 +4,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.PodcastSearchResult
 import ac.mdiq.podcini.net.sync.transceive.listenForUDPBroadcasts
-import ac.mdiq.podcini.playback.base.VideoMode
+import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.config.settings.OpmlTransporter
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.createSynthetic
@@ -15,6 +15,8 @@ import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.ui.screens.LocalNavController
+import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -247,7 +249,7 @@ fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, onDismissRequest: () -> Uni
                     val feed = feed_ ?: createSynthetic(0, name, hasVideo)
                     if (feed_ == null) {
                         feed.type = if (isYoutube) Feed.FeedType.YOUTUBE.name else Feed.FeedType.RSS.name
-                        if (hasVideo) feed.videoModePolicy = VideoMode.VIDEO
+                        if (hasVideo) feed.videoModePolicy = VideoMode.WINDOW
                     }
                     upsertBlk(feed) { if (feed_ != null) it.customTitle = if (name == it.eigenTitle) null else name }
                     onDismissRequest()

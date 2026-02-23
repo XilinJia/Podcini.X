@@ -5,7 +5,7 @@ import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
-import ac.mdiq.podcini.ui.compose.Screens
+import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.utils.Logd
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement

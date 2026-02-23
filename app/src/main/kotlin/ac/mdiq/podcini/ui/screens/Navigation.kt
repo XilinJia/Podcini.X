@@ -1,23 +1,9 @@
-package ac.mdiq.podcini.ui.compose
+package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
-import ac.mdiq.podcini.ui.screens.EpisodeInfoScreen
-import ac.mdiq.podcini.ui.screens.FacetsScreen
-import ac.mdiq.podcini.ui.screens.FeedDetailsScreen
-import ac.mdiq.podcini.ui.screens.FeedScreenMode
-import ac.mdiq.podcini.ui.screens.FeedsSettingsScreen
-import ac.mdiq.podcini.ui.screens.FindFeedsScreen
-import ac.mdiq.podcini.ui.screens.LibraryScreen
-import ac.mdiq.podcini.ui.screens.LogsScreen
-import ac.mdiq.podcini.ui.screens.OnlineFeedScreen
-import ac.mdiq.podcini.ui.screens.QueuesScreen
-import ac.mdiq.podcini.ui.screens.QuickAccess
-import ac.mdiq.podcini.ui.screens.SearchScreen
-import ac.mdiq.podcini.ui.screens.StatisticsScreen
-import ac.mdiq.podcini.ui.screens.TopChartScreen
 import ac.mdiq.podcini.ui.screens.prefscreens.PrefsScreen
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge

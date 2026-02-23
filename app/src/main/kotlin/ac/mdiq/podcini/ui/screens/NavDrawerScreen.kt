@@ -10,11 +10,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.EpisodeFilter.Companion.unfiltered
-import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.bsState
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
-import ac.mdiq.podcini.ui.compose.LocalNavController
-import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.utils.Logd
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -151,8 +147,7 @@ fun NavDrawerScreen() {
             }
             HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 10.dp).fillMaxWidth().clickable {
-//                context.startActivity(Intent(context, PreferenceActivity::class.java))
-                navigator.navigate(Screens.Settings.name) { popUpTo(0) { inclusive = true } }
+                navigator.navigate(Screens.Settings.name) { popUpTo(Screens.Settings.name) { inclusive = true } }
                 drawerCtrl?.close()
             }) {
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), tint = textColor, contentDescription = "settings", modifier = Modifier.padding(start = 10.dp))
@@ -163,15 +158,15 @@ fun NavDrawerScreen() {
                 Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp).clickable {
                     navigator.navigate("${Screens.FeedDetails.name}?feedId=${f.id}")
                     drawerCtrl?.close()
-                    bsState = MainActivity.BSState.Partial
+                    psState = PSState.PartiallyExpanded
                 }) {
                     AsyncImage(model = f.imageUrl, contentDescription = "imgvCover", placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), modifier = Modifier.width(40.dp).height(40.dp))
                     Text(f.title ?: "No title", color = textColor, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 10.dp))
                 }
             }
-            if (bsState == MainActivity.BSState.Hidden) {
+            if (psState == PSState.Hidden) {
                 Spacer(Modifier.height(50.dp))
-                AsyncImage(model = R.drawable.teaser, contentDescription = "PlayerUI", contentScale = ContentScale.FillBounds, modifier = Modifier.fillMaxWidth().height(60.dp).clickable(onClick = { bsState = MainActivity.BSState.Partial }))
+                AsyncImage(model = R.drawable.teaser, contentDescription = "PlayerUI", contentScale = ContentScale.FillBounds, modifier = Modifier.fillMaxWidth().height(60.dp).clickable(onClick = { psState = PSState.PartiallyExpanded }))
             }
         }
     }

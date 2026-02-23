@@ -29,10 +29,10 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.utils.AddLocalFolder
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
-import ac.mdiq.podcini.ui.compose.LocalNavController
+import ac.mdiq.podcini.ui.screens.LocalNavController
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
-import ac.mdiq.podcini.ui.compose.Screens
+import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.compose.SearchBarRow
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs

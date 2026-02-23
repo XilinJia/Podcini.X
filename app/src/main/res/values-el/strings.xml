@@ -95,10 +95,10 @@
     <string name="feed_volume_boost_heavy">Έντονη ενίσχυση</string>
     <string name="feed_auto_download_always">Πάντα</string>
     <string name="feed_auto_download_never">Ποτέ</string>
-    <string name="feed_video_mode_label">Λειτουργία βίντεο</string>
+    <string name="video_mode_label">Λειτουργία βίντεο</string>
 
 
-    <string name="feed_video_mode_audioonly">Μόνο ήχος</string>
+    <string name="video_mode_audio_only">Μόνο ήχος</string>
 
     <string name="feed_auto_dleq_new">Μόνο νέα στοιχεία</string>
     <string name="replace">Αντικατάσταση</string>

@@ -97,10 +97,10 @@
     <string name="feed_volume_boost_heavy">Amplificação intensa</string>
     <string name="feed_auto_download_always">Sempre</string>
     <string name="feed_auto_download_never">Nunca</string>
-    <string name="feed_video_mode_label">Modo vídeo</string>
+    <string name="video_mode_label">Modo vídeo</string>
 
 
-    <string name="feed_video_mode_audioonly">Somente áudio</string>
+    <string name="video_mode_audio_only">Somente áudio</string>
 
     <string name="feed_auto_dleq_new">Apenas novos itens</string>
     <string name="replace">Substituir</string>

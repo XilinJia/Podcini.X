@@ -52,15 +52,15 @@ class PlaybackStarter(private val media: Episode) {
         return this
     }
 
-    fun start() {
+    fun start(force: Boolean = false) {
         Logd(TAG, "start PlaybackService.isRunning: ${PlaybackService.isRunning}")
         var media_ = media
         var sameMedia = true
-        if (curEpisode?.id != media.id) {
+        if (curEpisode?.id != media.id || force) {
             sameMedia = false
             media_ = checkAndMarkDuplicates(media)
             episodeChangedWhenScreenOff = true
-            setAsCurEpisode(media_)
+            setAsCurEpisode(media_, force)
         }
         shouldRepeat = repeat
         Logd(TAG, "start: status: $status sameMedia: $sameMedia")

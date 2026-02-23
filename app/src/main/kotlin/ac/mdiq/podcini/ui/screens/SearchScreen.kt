@@ -18,11 +18,11 @@ import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeScreen
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.InforBar
-import ac.mdiq.podcini.ui.compose.LocalNavController
-import ac.mdiq.podcini.ui.compose.Screens
+import ac.mdiq.podcini.ui.screens.LocalNavController
+import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.compose.SearchBarRow
 import ac.mdiq.podcini.ui.compose.episodeForInfo
-import ac.mdiq.podcini.ui.compose.handleBackSubScreens
+import ac.mdiq.podcini.ui.screens.handleBackSubScreens
 import ac.mdiq.podcini.ui.utils.SearchAlgo
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.formatLargeInteger

@@ -97,10 +97,10 @@
     <string name="feed_volume_boost_heavy">重いブースト</string>
     <string name="feed_auto_download_always">常に</string>
     <string name="feed_auto_download_never">しない</string>
-    <string name="feed_video_mode_label">ビデオモード</string>
+    <string name="video_mode_label">ビデオモード</string>
 
 
-    <string name="feed_video_mode_audioonly">音声のみ</string>
+    <string name="video_mode_audio_only">音声のみ</string>
 
     <string name="feed_auto_dleq_new">新しいアイテムのみ</string>
     <string name="replace">置換</string>

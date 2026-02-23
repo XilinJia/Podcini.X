@@ -1,0 +1,8 @@
+* fixed nav back from Settings screen
+* restored Window and FullScreen modes for video
+* tuned AVPlayer
+	* if device rotation is set on, video mode follows screen rotation, else the setting in the feed takes precedence
+	* in video Window mode, topbar is always shown
+	* Detailed view can be horizontally swiped: left opens Queues screen, right opens FeedDetails screen
+	* Detailed view can be down-swiped to collapse to the PlayerUI
+* likely fixed IndexOutOfBoundsException in ScrollRowGrid

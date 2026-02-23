@@ -5,14 +5,18 @@ import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.ensureAController
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
+import ac.mdiq.podcini.playback.base.InTheatre.curState
+import ac.mdiq.podcini.playback.base.InTheatre.playVideo
 import ac.mdiq.podcini.playback.base.InTheatre.setAsCurEpisode
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.currentMediaType
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPaused
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
-import ac.mdiq.podcini.playback.base.VideoMode
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActivityIntent
+import ac.mdiq.podcini.storage.specs.VideoMode
+import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isCasting
+import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isRunning
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.storage.database.episodeById
 import ac.mdiq.podcini.storage.database.fastForwardSecs
@@ -27,6 +31,7 @@ import ac.mdiq.podcini.ui.activity.EpisodeInfoActivity
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.PlayerUIActivity
 import ac.mdiq.podcini.ui.activity.QueuePickerActivity
+import ac.mdiq.podcini.ui.activity.starter.MainActivityStarter
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.formatDateTimeFlex
@@ -228,6 +233,12 @@ class ToggleAction : ActionCallback {
         Logd(TAG, "ToggleAction onAction isPlaying: $isPlaying")
         if (curEpisode == null && episodes.isNotEmpty()) setAsCurEpisode(episodes[0])
         if (curEpisode != null) {
+            fun getPlayerActivityIntent(context: Context, mediaType_: MediaType? = null): Intent {
+                val mediaType = mediaType_ ?: currentMediaType
+                val showVideoPlayer = if (isRunning) mediaType == MediaType.VIDEO && !isCasting else curState.curIsVideo
+                playVideo = showVideoPlayer
+                return MainActivityStarter(context).withOpenPlayer().getIntent()
+            }
             withContext(Dispatchers.Main) {
                 if (curEpisode!!.getMediaType() == MediaType.VIDEO && !isPlaying && (curEpisode?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
                     playPause()

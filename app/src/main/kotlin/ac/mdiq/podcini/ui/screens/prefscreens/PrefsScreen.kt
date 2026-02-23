@@ -10,6 +10,7 @@ import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.IconTitleSummaryActionRow
+import ac.mdiq.podcini.ui.screens.LocalDrawerController
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.openInBrowser
@@ -36,7 +37,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -87,10 +87,12 @@ fun PrefsScreen() {
     val navController = rememberNavController()
     var topAppBarTitle by remember { mutableStateOf("Home") }
     val viewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current) { "No ViewModelStoreOwner was provided via LocalViewModelStoreOwner" }
+    val drawerController = LocalDrawerController.current
 
-    Scaffold(topBar = { TopAppBar(title = { Text(topAppBarTitle) }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back",
-        modifier = Modifier.padding(7.dp).clickable(onClick = {
+    Scaffold(topBar = { TopAppBar(title = { Text(topAppBarTitle) },
+        navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "Back", modifier = Modifier.padding(7.dp).clickable(onClick = {
             if (navController.previousBackStackEntry != null) navController.popBackStack()
+            else drawerController?.open()
         }) ) }) }) { innerPadding ->
         CompositionLocalProvider(LocalViewModelStoreOwner provides viewModelStoreOwner) {
             NavHost(navController = navController, startDestination = PrefScreens.PortalScreen.name, Modifier.padding(innerPadding)) {
@@ -172,9 +174,9 @@ fun PrefPortalScreen(navController: NavController) {
         IconTitleActionRow(R.drawable.ic_notifications, R.string.notification_pref_fragment) { navController.navigate(PrefScreens.NotificationScreen.name) }
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
         Text(stringResource(R.string.project_pref), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
-        IconTitleActionRow(R.drawable.ic_questionmark, R.string.whats_new) { openInBrowser(context, "${githubAddress}/blob/main/changelog.md") }
-        IconTitleActionRow(R.drawable.ic_questionmark, R.string.documentation_support) { openInBrowser(context, githubAddress) }
-        IconTitleActionRow(R.drawable.ic_contribute, R.string.pref_contribute) { openInBrowser(context, githubAddress) }
+        IconTitleActionRow(R.drawable.ic_questionmark, R.string.whats_new) { openInBrowser("${githubAddress}/blob/main/changelog.md") }
+        IconTitleActionRow(R.drawable.ic_questionmark, R.string.documentation_support) { openInBrowser(githubAddress) }
+        IconTitleActionRow(R.drawable.ic_contribute, R.string.pref_contribute) { openInBrowser(githubAddress) }
         IconTitleActionRow(R.drawable.ic_bug, R.string.bug_report_title) { context.startActivity(Intent(context, BugReportActivity::class.java)) }
         IconTitleActionRow(R.drawable.ic_info, R.string.about_pref) { navController.navigate(PrefScreens.AboutScreen.name) }
     }
@@ -200,8 +202,8 @@ fun AboutScreen(navController: NavController) {
                 Text(String.format("%s", BuildConfig.VERSION_NAME), color = textColor)
             }
         }
-        IconTitleSummaryActionRow(R.drawable.ic_questionmark, R.string.online_help, R.string.online_help_sum) { openInBrowser(context, githubAddress) }
-        IconTitleSummaryActionRow(R.drawable.ic_info, R.string.privacy_policy, R.string.privacy_policy) { openInBrowser(context, "${githubAddress}/blob/main/PrivacyPolicy.md") }
+        IconTitleSummaryActionRow(R.drawable.ic_questionmark, R.string.online_help, R.string.online_help_sum) { openInBrowser(githubAddress) }
+        IconTitleSummaryActionRow(R.drawable.ic_info, R.string.privacy_policy, R.string.privacy_policy) { openInBrowser("${githubAddress}/blob/main/PrivacyPolicy.md") }
         IconTitleSummaryActionRow(R.drawable.ic_info, R.string.licenses, R.string.licenses_summary) { navController.navigate(PrefScreens.LicensesScreen.name) }
         IconTitleSummaryActionRow(R.drawable.baseline_mail_outline_24, R.string.email_developer, R.string.email_sum) {
             val emailIntent = Intent(Intent.ACTION_SEND).apply {
@@ -245,7 +247,7 @@ fun LicensesScreen() {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(licenses[curLicenseIndex].title, color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
             Row {
-                Button(onClick = { openInBrowser(context, licenses[curLicenseIndex].licenseUrl) }) { Text("View website") }
+                Button(onClick = { openInBrowser(licenses[curLicenseIndex].licenseUrl) }) { Text("View website") }
                 Spacer(Modifier.weight(1f))
                 Button(onClick = {
                     try {

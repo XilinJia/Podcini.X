@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.storage.model
 
 import ac.mdiq.podcini.config.settings.AppPreferences
-import ac.mdiq.podcini.ui.compose.DefaultPages
+import ac.mdiq.podcini.ui.screens.DefaultPages
 import ac.mdiq.podcini.ui.screens.prefscreens.EpisodeCleanupOptions
 import android.view.KeyEvent
 import io.github.xilinjia.krdb.ext.realmSetOf

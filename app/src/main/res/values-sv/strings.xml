@@ -95,10 +95,10 @@
     <string name="feed_volume_boost_heavy">Stor höjning</string>
     <string name="feed_auto_download_always">Alltid</string>
     <string name="feed_auto_download_never">Aldrig</string>
-    <string name="feed_video_mode_label">Videoläge</string>
+    <string name="video_mode_label">Videoläge</string>
 
 
-    <string name="feed_video_mode_audioonly">Endast ljud</string>
+    <string name="video_mode_audio_only">Endast ljud</string>
 
     <string name="feed_auto_dleq_new">Endast nya objekt</string>
     <string name="replace">Ersätt</string>

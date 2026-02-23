@@ -97,10 +97,10 @@
     <string name="feed_volume_boost_heavy">Ciężki wzmacniacz</string>
     <string name="feed_auto_download_always">Zawsze</string>
     <string name="feed_auto_download_never">Nigdy</string>
-    <string name="feed_video_mode_label">Tryb wideo</string>
+    <string name="video_mode_label">Tryb wideo</string>
 
 
-    <string name="feed_video_mode_audioonly">Tylko dźwięk</string>
+    <string name="video_mode_audio_only">Tylko dźwięk</string>
 
     <string name="feed_auto_dleq_new">Tylko nowe elementy</string>
     <string name="replace">Zamień</string>

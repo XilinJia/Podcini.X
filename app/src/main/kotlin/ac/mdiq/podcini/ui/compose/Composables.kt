@@ -179,9 +179,7 @@ fun CustomToast(message: String, durationMillis: Long = 3000L, onDismiss: () -> 
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     LaunchedEffect(message, isForeground) {
@@ -245,10 +243,10 @@ fun NonlazyGrid(columns: Int, itemCount: Int, modifier: Modifier = Modifier, con
     }
     Column(modifier = modifier) {
         for (rowId in 0 until rows) {
-            val firstIndex = remember { rowId * columns }
+            val firstIndex = rowId * columns
             Row {
                 for (columnId in 0 until columns) {
-                    val index = remember { firstIndex + columnId }
+                    val index = firstIndex + columnId
                     Box(modifier = Modifier.fillMaxWidth().weight(1f)) { if (index < itemCount) content(index) }
                 }
             }
@@ -265,10 +263,10 @@ fun ScrollRowGrid(columns: Int, itemCount: Int, modifier: Modifier = Modifier, c
     }
     Column(modifier = modifier) {
         for (rowId in 0 until rows) {
-            val firstIndex = remember { rowId * columns }
+            val firstIndex = rowId * columns
             Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
                 for (cid in 0 until columns) {
-                    val index = remember { firstIndex + cid }
+                    val index = firstIndex + cid
                     val mod = if (cid < columns-1) Modifier.padding(end = 10.dp) else Modifier
                     Box(modifier = mod) { if (index < itemCount) content(index) }
                 }

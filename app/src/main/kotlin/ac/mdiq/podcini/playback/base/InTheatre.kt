@@ -23,6 +23,7 @@ import ac.mdiq.podcini.storage.model.Episode.Companion.PLAYABLE_TYPE_FEEDMEDIA
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.specs.MediaType
+import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.ui.screens.curVideoMode
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
@@ -130,10 +131,10 @@ object InTheatre {
     var onCurInitUICB: (suspend (e: Episode)->Unit)? = null
     var onCurChangedUICB: (suspend (e: Episode, fields: Array<String>)->Unit)? = null
 
-    fun setAsCurEpisode(episode: Episode?) {
+    fun setAsCurEpisode(episode: Episode?, force: Boolean = false) {
         Logd(TAG, "setCurEpisode episode: ${episode?.title}")
 //        showStackTrace()
-        if (episode != null && episode.id == curEpisode?.id) return
+        if (episode != null && episode.id == curEpisode?.id && !force) return
         if (curEpisode != null) unsubscribeEpisode(curEpisode!!, TAG)
         val episode_ = if (episode != null) episodeById(episode.id) else null
         when {

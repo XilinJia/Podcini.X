@@ -24,13 +24,16 @@ import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationStringFull
+import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeAction
-import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.actions.NoAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
+import ac.mdiq.podcini.ui.screens.LocalNavController
+import ac.mdiq.podcini.ui.screens.Screens
+import ac.mdiq.podcini.ui.screens.handleBackSubScreens
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.formatDateTimeFlex
@@ -101,7 +104,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -133,7 +135,6 @@ fun InforBar(swipeActions: SwipeActions, content: @Composable (RowScope.()->Unit
             modifier = Modifier.width(24.dp).height(24.dp).clickable(onClick = {  showSwipeActionsDialog = true }))
         Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_left_alt_24), tint = textColor, contentDescription = "left_arrow", modifier = Modifier.width(24.dp).height(24.dp))
         Spacer(modifier = Modifier.weight(1f))
-//        Text(text.value, color = textColor, style = MaterialTheme.typography.bodyMedium)
         content()
         Spacer(modifier = Modifier.weight(1f))
         Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_right_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier.width(24.dp).height(24.dp))
@@ -319,14 +320,10 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
 
                 val velocityTracker = remember { VelocityTracker() }
                 val offsetX = remember(episode.id) { Animatable(0f) }
-                var isDragging by remember(episode.id) { mutableStateOf(false) }
 
-                Box(modifier = Modifier.fillMaxWidth().zIndex(if (isDragging) 10f else 0f).pointerInput(Unit) {
+                Box(modifier = Modifier.fillMaxWidth().pointerInput(Unit) {
                     detectHorizontalDragGestures(
-                        onDragStart = {
-//                            Logd(TAG, "detectHorizontalDragGestures onDragStart")
-                            velocityTracker.resetTracking()
-                        },
+                        onDragStart = { velocityTracker.resetTracking() },
                         onHorizontalDrag = { change, dragAmount ->
 //                            Logd(TAG, "detectHorizontalDragGestures onHorizontalDrag $dragAmount")
                             if (abs(dragAmount) > 4) {
@@ -522,7 +519,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                             onLongPress = { showAltActionsDialog = true },
                                             onTap = {
                                                 val actType = actionButton.type
-                                                actionButton.onClick(context)
+                                                actionButton.onClick()
                                                 actionButtonCB?.invoke(episode, actType)
                                             }) }) {
                                         val dlStats by remember { derivedStateOf { downloadStates[episode.downloadUrl] } }
@@ -538,7 +535,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                         Icon(imageVector = ImageVector.vectorResource(actionButton.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.size(33.dp))
                                         if (actionButton.processing > -1) CircularProgressIndicator(progress = { 0.01f * actionButton.processing }, strokeWidth = 4.dp, color = textColor, modifier = Modifier.size(37.dp).offset(y = 4.dp))
                                     }
-                                    if (showAltActionsDialog) actionButton.AltActionsDialog(context, onDismiss = { showAltActionsDialog = false })
+                                    if (showAltActionsDialog) actionButton.AltActionsDialog(onDismiss = { showAltActionsDialog = false })
                                 }
                             }
                         }

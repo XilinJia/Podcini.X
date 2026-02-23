@@ -2,13 +2,13 @@ package ac.mdiq.podcini.ui.activity
 
 import ac.mdiq.podcini.config.settings.AppPreferences
 import ac.mdiq.podcini.ui.compose.PodciniTheme
-import ac.mdiq.podcini.ui.compose.AppNavigator
+import ac.mdiq.podcini.ui.screens.AppNavigator
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.compose.LargePoster
-import ac.mdiq.podcini.ui.compose.LocalNavController
-import ac.mdiq.podcini.ui.compose.Navigate
-import ac.mdiq.podcini.ui.compose.Screens
+import ac.mdiq.podcini.ui.screens.LocalNavController
+import ac.mdiq.podcini.ui.screens.Navigate
+import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.compose.appTheme
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.commonMessage

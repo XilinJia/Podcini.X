@@ -2,7 +2,7 @@ package ac.mdiq.podcini.storage.model
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.playback.base.VideoMode
+import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.queuesLive

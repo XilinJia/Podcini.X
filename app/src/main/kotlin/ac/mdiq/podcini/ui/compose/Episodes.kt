@@ -514,7 +514,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true) {
                             if (!isPlaying) playPause()
                         } else {
                             PlaybackStarter(episode).shouldStreamThisTime(episode.fileUrl == null).start()
-                            playVideoIfNeeded(context, episode)
+                            playVideoIfNeeded(episode)
                         }
                         mPlayer?.seekTo(ch.start.toInt())
                         curChapterIndex = index

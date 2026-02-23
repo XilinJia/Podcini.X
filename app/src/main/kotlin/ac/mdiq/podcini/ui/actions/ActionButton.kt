@@ -19,9 +19,7 @@ import ac.mdiq.podcini.playback.base.TTSEngine
 import ac.mdiq.podcini.playback.base.TTSEngine.ensureTTS
 import ac.mdiq.podcini.playback.base.TTSEngine.tts
 import ac.mdiq.podcini.playback.base.TTSEngine.ttsReady
-import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.playback.service.PlaybackService
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActivityIntent
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.prefStreamOverDownload
@@ -34,14 +32,15 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.tmpQueue
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
+import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.storage.utils.mergeAudios
-import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.bsState
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonMessageAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.commonMessage
+import ac.mdiq.podcini.ui.screens.PSState
+import ac.mdiq.podcini.ui.screens.psState
 import ac.mdiq.podcini.ui.screens.curVideoMode
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
@@ -49,7 +48,6 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.openInBrowser
-import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.speech.tts.TextToSpeech
@@ -60,6 +58,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -117,7 +116,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
     val ttsTmpFiles = mutableListOf<String>()
     var ttsJob: Job? = null
     
-    fun onClick(actContext: Context? = null) {
+    fun onClick() {
         val context = getAppContext()
         fun fileNotExist(): Boolean {
             if (!item.fileExists()) {
@@ -147,7 +146,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
         }
         Logd(TAG, "onClick type: $type")
         when (type) {
-            ButtonTypes.WEBSITE -> if (!item.link.isNullOrEmpty() && actContext != null) openInBrowser(actContext, item.link!!)
+            ButtonTypes.WEBSITE -> if (!item.link.isNullOrEmpty()) openInBrowser(item.link!!)
             ButtonTypes.CANCEL -> {
                 if (typeToCancel == ButtonTypes.DOWNLOAD) {
                     DownloadServiceInterface.impl?.cancel(item)
@@ -170,20 +169,20 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
             ButtonTypes.PLAY -> {
                 if (fileNotExist()) return
                 PlaybackStarter(item).start()
-                if (actContext != null) playVideoIfNeeded(actContext, item)
+                playVideoIfNeeded(item)
 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.PLAY_ONE -> {
                 if (fileNotExist()) return
                 PlaybackStarter(item).start()
-                if (actContext != null) playVideoIfNeeded(actContext, item)
+                playVideoIfNeeded(item)
                 actQueue = tmpQueue()
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.PLAY_REPEAT -> {
                 if (fileNotExist()) return
                 PlaybackStarter(item).setToRepeat(true).start()
-                if (actContext != null) playVideoIfNeeded(actContext, item)
+                playVideoIfNeeded(item)
                 actQueue = tmpQueue()
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
@@ -191,7 +190,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
                 askToStream {
                     PlaybackStarter(item).shouldStreamThisTime(true).start()
-                    if (actContext != null) playVideoIfNeeded(actContext, item)
+                    playVideoIfNeeded(item)
                 }
 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
@@ -199,7 +198,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
                 askToStream {
                     PlaybackStarter(item).shouldStreamThisTime(true).setToRepeat(true).start()
-                    if (actContext != null) playVideoIfNeeded(actContext, item)
+                    playVideoIfNeeded(item)
                     actQueue = tmpQueue()
                 }
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
@@ -207,7 +206,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
             ButtonTypes.STREAM_ONE -> {
                 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
                 PlaybackStarter(item).shouldStreamThisTime(true).start()
-                if (actContext != null) playVideoIfNeeded(actContext, item)
+                playVideoIfNeeded(item)
                 actQueue = tmpQueue()
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
@@ -455,7 +454,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                     if (item.playState < EpisodeState.PROGRESS.code || item.playState == EpisodeState.SKIPPED.code || item.playState == EpisodeState.AGAIN.code)
                         item = upsertBlk(item) { it.setPlayState(EpisodeState.PROGRESS) }
                 }
-                if (item.getMediaType() == MediaType.VIDEO && actContext != null) actContext.startActivity(getPlayerActivityIntent(actContext, MediaType.VIDEO))
+                playVideoIfNeeded(item)
 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             else -> {}
@@ -513,14 +512,14 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
 
     
     @Composable
-    fun AltActionsDialog(context: Context, onDismiss: () -> Unit) {
+    fun AltActionsDialog(onDismiss: () -> Unit) {
         CommonPopupCard(onDismissRequest = onDismiss) {
             Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(15.dp)) {
                 Logd(TAG, "button label: $type")
                 if (type != ButtonTypes.TTS) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
                         type = ButtonTypes.TTS
-                        onClick(context)
+                        onClick()
                         onDismiss()
                     })) {
                         Icon(imageVector = ImageVector.vectorResource(ButtonTypes.TTS.drawable), modifier = Modifier.size(24.dp), contentDescription = "TTS")
@@ -530,7 +529,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 if (type != ButtonTypes.TTS_NOW) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
                         type = ButtonTypes.TTS_NOW
-                        onClick(context)
+                        onClick()
                         onDismiss()
                     })) {
                         Icon(imageVector = ImageVector.vectorResource(ButtonTypes.TTS_NOW.drawable), modifier = Modifier.size(24.dp), contentDescription = "TTS now")
@@ -540,7 +539,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 if (type != ButtonTypes.WEBSITE) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
                         val btn = ActionButton(item, ButtonTypes.WEBSITE)
-                        btn.onClick(context)
+                        btn.onClick()
                         onDismiss()
                     })) {
                         Icon(imageVector = ImageVector.vectorResource(ButtonTypes.WEBSITE.drawable), modifier = Modifier.size(24.dp), contentDescription = "Web")
@@ -550,7 +549,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
                         val btn = ActionButton(item, ButtonTypes.DOWNLOAD)
-                        btn.onClick(context)
+                        btn.onClick()
                         type = btn.type
                         onDismiss()
                     })) {
@@ -561,7 +560,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 if (type !in listOf(ButtonTypes.STREAM, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
                         val btn = ActionButton(item, ButtonTypes.DELETE)
-                        btn.onClick(context)
+                        btn.onClick()
                         type = btn.type
                         onDismiss()
                     })) {
@@ -572,7 +571,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 if (type !in listOf(ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
                         val btn = ActionButton(item, ButtonTypes.PLAY_REPEAT)
-                        btn.onClick(context)
+                        btn.onClick()
                         type = btn.type
                         onDismiss()
                     })) {
@@ -583,7 +582,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
                         val btn = ActionButton(item, ButtonTypes.PLAY)
-                        btn.onClick(context)
+                        btn.onClick()
                         type = btn.type
                         onDismiss()
                     })) {
@@ -594,7 +593,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 if (type !in listOf(ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
                         val btn = ActionButton(item, ButtonTypes.PLAY_ONE)
-                        btn.onClick(context)
+                        btn.onClick()
                         type = btn.type
                         onDismiss()
                     })) {
@@ -605,7 +604,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.DELETE)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
                         val btn = ActionButton(item, ButtonTypes.STREAM_REPEAT)
-                        btn.onClick(context)
+                        btn.onClick()
                         type = btn.type
                         onDismiss()
                     })) {
@@ -616,7 +615,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DELETE)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
                         val btn = ActionButton(item, ButtonTypes.STREAM)
-                        btn.onClick(context)
+                        btn.onClick()
                         type = btn.type
                         onDismiss()
                     })) {
@@ -627,7 +626,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.DELETE)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
                         val btn = ActionButton(item, ButtonTypes.STREAM_ONE)
-                        btn.onClick(context)
+                        btn.onClick()
                         type = btn.type
                         onDismiss()
                     })) {
@@ -640,10 +639,11 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
     }
     
     companion object {
-        fun playVideoIfNeeded(context: Context, item: Episode) {
-            if (item.forceVideo || (item.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && item.getMediaType() == MediaType.VIDEO)) { //                context.startActivity(getPlayerActivityIntent(context, MediaType.VIDEO))
+        @OptIn(ExperimentalMaterial3Api::class)
+        fun playVideoIfNeeded(item: Episode) {
+            if (item.forceVideo || (item.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && item.getMediaType() == MediaType.VIDEO)) {
                 playVideo = true
-                bsState = MainActivity.BSState.Expanded
+                psState = PSState.Expanded
             } else playVideo = false
         }
     }

@@ -141,10 +141,10 @@
     <string name="feed_auto_download_always">Her zaman</string>
     <string name="feed_auto_download_never">Asla</string>
 
-    <string name="feed_video_mode_label">Video modu</string>
+    <string name="video_mode_label">Video modu</string>
 
 
-    <string name="feed_video_mode_audioonly">Yalnızca ses</string>
+    <string name="video_mode_audio_only">Yalnızca ses</string>
 
     <string name="feed_automation_policy">Otomasyon politikası</string>
     <string name="feed_auto_dleq_new">Yalnızca yeni öğeler</string>

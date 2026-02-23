@@ -95,10 +95,10 @@
     <string name="feed_volume_boost_heavy">重力</string>
     <string name="feed_auto_download_always">总是显示</string>
     <string name="feed_auto_download_never">从不使用</string>
-    <string name="feed_video_mode_label">视频模式</string>
+    <string name="video_mode_label">视频模式</string>
 
 
-    <string name="feed_video_mode_audioonly">仅音频</string>
+    <string name="video_mode_audio_only">仅音频</string>
 
     <string name="feed_auto_dleq_new">仅新项目</string>
     <string name="replace">替换</string>
