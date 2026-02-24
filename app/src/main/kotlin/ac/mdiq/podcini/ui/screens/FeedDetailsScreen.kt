@@ -138,7 +138,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -338,7 +338,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
         swipeActions.ActionOptionsDialog()
 
-        if (showTagsSettingDialog) TagSettingDialog(TagType.Feed, feed!!.tags, onDismiss = { showTagsSettingDialog = false }) { tags ->
+        if (showTagsSettingDialog && feed != null) TagSettingDialog(TagType.Feed, feed!!.tags, onDismiss = { showTagsSettingDialog = false }) { tags ->
             runOnIOScope {
                 upsert(feed!!) {
                     it.tags.clear()
@@ -392,13 +392,13 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         onLongClick = { onImgLongClick() }))
                 if (feed != null) Text(feed?.title ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 4.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
-            val ratingIconRes by remember { derivedStateOf { Rating.fromCode(feed!!.rating).res } }
-            Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.padding(end = 10.dp, bottom = 5.dp).background(MaterialTheme.colorScheme.tertiaryContainer)
-                .clickable(onClick = { showChooseRatingDialog = true })
-                .constrainAs(rating) {
-                    end.linkTo(parent.end)
-                    bottom.linkTo(parent.bottom)
-                })
+            if (feed != null) {
+                val ratingIconRes by remember { derivedStateOf { Rating.fromCode(feed!!.rating).res } }
+                Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.padding(end = 10.dp, bottom = 5.dp).background(MaterialTheme.colorScheme.tertiaryContainer).clickable(onClick = { showChooseRatingDialog = true }).constrainAs(rating) {
+                        end.linkTo(parent.end)
+                        bottom.linkTo(parent.bottom)
+                    })
+            }
         }
     }
 
@@ -527,7 +527,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     Text(feed?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp))
                     Text(stringResource(R.string.by) + ": " + (feed?.author ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)) {
-                        Text(stringResource(R.string.score) + ": " + (feed!!.score).toString() + " (" + feed!!.scoreCount + ")", textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                        Text(stringResource(R.string.score) + ": " + (feed?.score).toString() + " (" + feed?.scoreCount + ")", textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                         Spacer(modifier = Modifier.weight(0.2f))
                         Text(stringResource(R.string.episodes_label) + ": " + (vm.feedEpisodesSize).toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                     }
@@ -657,7 +657,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 val actionButtonName by remember(feed?.prefActionType) { mutableStateOf(
                     when {
                         feed == null -> null
-                        feed!!.prefActionType != null -> feed!!.prefActionType!!
+                        feed?.prefActionType != null -> feed!!.prefActionType!!
                         feed?.downloadUrl == null -> null
                         gearbox.isGearFeed(URL(feed!!.downloadUrl!!)) -> ButtonTypes.STREAM.name
                         else -> null

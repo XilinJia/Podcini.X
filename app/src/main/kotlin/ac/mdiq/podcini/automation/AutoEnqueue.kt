@@ -46,12 +46,12 @@ fun autoenqueue(feeds: List<Feed>? = null): Job {
 }
 
 fun autodownloadForQueue(queue: PlayQueue): Job {
-    val feeds = realm.query(Feed::class).query("queueId == ${queue.id}").find()
+    val feeds = realm.query(Feed::class).query("queueId == ${queue.id}").find().filter { it.inNormalVolume }
     return CoroutineScope(Dispatchers.IO).launch { if (appPrefs.enableAutoDl) AutoDownloadAlgorithm().run(feeds, false, onlyExisting = true) }
 }
 
 fun autoenqueueForQueue(queue: PlayQueue): Job {
-    val feeds = realm.query(Feed::class).query("queueId == ${queue.id}").find()
+    val feeds = realm.query(Feed::class).query("queueId == ${queue.id}").find().filter { it.inNormalVolume }
     return CoroutineScope(Dispatchers.IO).launch { AutoEnqueueAlgorithm().run(feeds, true) }
 }
 

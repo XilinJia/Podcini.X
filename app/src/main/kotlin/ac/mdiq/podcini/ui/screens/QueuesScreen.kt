@@ -40,15 +40,12 @@ import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeScreen
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.InforBar
-import ac.mdiq.podcini.ui.screens.LocalNavController
 import ac.mdiq.podcini.ui.compose.NumberEditor
-import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.episodeForInfo
 import ac.mdiq.podcini.ui.compose.filterChipBorder
-import ac.mdiq.podcini.ui.screens.handleBackSubScreens
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -127,6 +124,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
@@ -146,9 +144,9 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.media3.session.MediaBrowser
 import androidx.media3.session.SessionToken
-import coil.compose.AsyncImage
-import coil.request.CachePolicy
-import coil.request.ImageRequest
+import coil3.compose.AsyncImage
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import io.github.xilinjia.krdb.ext.query
@@ -191,7 +189,7 @@ class QueuesVM(id_: Long): ViewModel() {
     var queuesMode by  mutableStateOf( if (appAttribs.queuesMode.isNotBlank()) QueuesScreenMode.valueOf(appAttribs.queuesMode) else QueuesScreenMode.Queue)
 
     val curQueueFlow: StateFlow<PlayQueue?> = snapshotFlow { appAttribs.curQueueId }.distinctUntilChanged().flatMapLatest { id ->
-        queuesFlow.map { it.list.firstOrNull { q -> q.id == id }}
+        realm.query(PlayQueue::class).query("id == $id").first().asFlow().map { it.obj }
     }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = null)
 
     var curIndex by  mutableIntStateOf(-1)
@@ -207,7 +205,7 @@ class QueuesVM(id_: Long): ViewModel() {
         }
     }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
 
-    val episodesSortedFlow: StateFlow<List<Episode>> = snapshotFlow { Triple(curQueue.id, curQueue.sortOrderCode, queuesMode) }.distinctUntilChanged().flatMapLatest {
+    val binEpisodesFlow: StateFlow<List<Episode>> = snapshotFlow { Triple(curQueue.id, queuesMode, curQueue.idsBinList.size) }.distinctUntilChanged().flatMapLatest {
         fun initBinFlow(): Flow<List<Episode>> {
             Logd(TAG, "initBinFlow idsBinList: ${curQueue.idsBinList.size} ${curQueue.idsBinList.toSet().size}")
             return realm.query(Episode::class, "id IN $0", curQueue.idsBinList).asFlow().map { it.list }
@@ -216,6 +214,13 @@ class QueuesVM(id_: Long): ViewModel() {
                     episodes.sortedBy { episode -> orderMap[episode.id] ?: Int.MAX_VALUE }.reversed()
                 }
         }
+        when (queuesMode) {
+            QueuesScreenMode.Bin -> initBinFlow()
+            else -> emptyFlow()
+        }
+    }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
+
+    val episodesSortedFlow: StateFlow<List<Episode>> = snapshotFlow { Triple(curQueue.id, curQueue.sortOrderCode, queuesMode) }.distinctUntilChanged().flatMapLatest {
         fun initQueueFlow():  Flow<List<Episode>> {
             Logd(TAG, "initQueueFlow ")
             val orderedEpisodeIdsFlow = realm.query<QueueEntry>("queueId == $0 SORT(position ASC)", curQueue.id).asFlow().map { results -> results.list.map { it.episodeId } }
@@ -229,7 +234,6 @@ class QueuesVM(id_: Long): ViewModel() {
         }
         when (queuesMode) {
             QueuesScreenMode.Queue -> initQueueFlow()
-            QueuesScreenMode.Bin -> initBinFlow()
             else -> emptyFlow()
         }
     }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
@@ -336,7 +340,7 @@ fun QueuesScreen(id: Long = -1L) {
         }
     }
     
-    val episodes by vm.episodesSortedFlow.collectAsStateWithLifecycle()
+    val episodes by (if (vm.queuesMode == QueuesScreenMode.Queue) vm.episodesSortedFlow else vm.binEpisodesFlow).collectAsStateWithLifecycle()
     val queueEntries by vm.queueEntriesFlow.collectAsStateWithLifecycle()
 
     val queuesResults by queuesFlow.collectAsStateWithLifecycle(initialValue = null)
@@ -746,7 +750,7 @@ fun QueuesScreen(id: Long = -1L) {
                                                 yOffset = 0f
                                             }))
                                     Box(modifier = Modifier.width(imageWidth).height(imageHeight)) {
-                                        AsyncImage(model = ImageRequest.Builder(context).data(episode.imageLocation(false)).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.drawable.ic_launcher_foreground).error(R.drawable.ic_launcher_foreground).build(), contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
+                                        AsyncImage(model = ImageRequest.Builder(context).data(episode.imageLocation(false)).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
                                     }
                                     Text(episode.title?: "No title")
                                 }

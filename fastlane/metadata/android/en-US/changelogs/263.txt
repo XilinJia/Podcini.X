@@ -1,0 +1,8 @@
+* ensure feeds in abnormal volumes (archived or frozen) are not updated
+* in Queues screen
+	* curQueue flow is amended for bin list live updates
+	* Queue and Bin have separate episodes flows
+* corrected bottom padding of PlayerDetailed
+* ensure some null checking
+* moved main compose screen out of MainActivity
+* coil is upgraded to version 3

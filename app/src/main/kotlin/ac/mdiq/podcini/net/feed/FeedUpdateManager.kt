@@ -210,7 +210,7 @@ object FeedUpdateManager {
         }
     }
 
-    fun checkAndscheduleUpdateTaskOnce(replace: Boolean, force: Boolean = false) {
+    fun checkAndScheduleUpdateTaskOnce(replace: Boolean, force: Boolean = false) {
         val context = getAppContext()
         when {
             !getApp().networkMonitor.isConnected -> {

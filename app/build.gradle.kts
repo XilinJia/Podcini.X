@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 262
-        versionName = "10.10.2"
+        versionCode = 263
+        versionName = "10.10.3"
 
         ndkVersion = "29.0.14206865"
 
@@ -198,8 +198,9 @@ dependencies {
 
     implementation("io.github.xilinjia.krdb:library-base:${project.property("krdb_version")}")
 
-    implementation("io.coil-kt:coil:2.7.0")
-    implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("io.coil-kt.coil3:coil-compose:3.3.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
+
     implementation("commons-io:commons-io:2.21.0")       // 20030203.000550 is not the lastest
     implementation("org.apache.commons:commons-lang3:3.20.0")
 

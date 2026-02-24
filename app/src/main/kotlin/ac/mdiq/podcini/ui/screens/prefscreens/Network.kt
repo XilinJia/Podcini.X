@@ -7,7 +7,7 @@ import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.newBuilder
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.reinit
-import ac.mdiq.podcini.net.feed.FeedUpdateManager.checkAndscheduleUpdateTaskOnce
+import ac.mdiq.podcini.net.feed.FeedUpdateManager.checkAndScheduleUpdateTaskOnce
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.getInitialDelay
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.nextRefreshTime
 import ac.mdiq.podcini.net.sync.SyncService
@@ -629,7 +629,7 @@ fun NetworkScreen() {
                     refreshInterval = it.toString()
                     Logd("DownloadsSetting", "refreshInterval: $refreshInterval")
                     upsertBlk(appPrefs) { p-> p.autoUpdateInterval = it }
-                    checkAndscheduleUpdateTaskOnce(replace = true, force = true)
+                    checkAndScheduleUpdateTaskOnce(replace = true, force = true)
                 }
             }
             Text(stringResource(R.string.feed_refresh_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
@@ -783,7 +783,7 @@ fun NetworkScreen() {
                         upsertBlk(appPrefs) { it.mobileUpdateTypes = tempSelectedOptions.toRealmSet() }
                         val optionsDiff = (tempSelectedOptions - initMobileOptions) + (initMobileOptions - tempSelectedOptions)
                         if (optionsDiff.contains(MobileUpdateOptions.feed_refresh.name) || optionsDiff.contains(MobileUpdateOptions.auto_download.name))
-                            checkAndscheduleUpdateTaskOnce(replace = true, force = true)
+                            checkAndScheduleUpdateTaskOnce(replace = true, force = true)
                         showMeteredNetworkOptions = false
                     }) { Text(text = "OK") }
                 },

@@ -43,9 +43,10 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
-import coil.ImageLoader
-import coil.request.ImageRequest
-import coil.request.SuccessResult
+import coil3.ImageLoader
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -138,7 +139,7 @@ class ShortcutsActivity : ComponentActivity() {
             }
             CoroutineScope(Dispatchers.IO).launch {
                 val request = ImageRequest.Builder(context).data(feed.imageUrl).allowHardware(false).build()
-                val result = (ImageLoader(context).execute(request) as? SuccessResult)?.drawable
+                val result = (ImageLoader(context).execute(request) as? SuccessResult)
                 val bitmap = (result as? BitmapDrawable)?.bitmap
 
                 val pinShortcutInfo = ShortcutInfoCompat.Builder(context, "id_${feed.id}")

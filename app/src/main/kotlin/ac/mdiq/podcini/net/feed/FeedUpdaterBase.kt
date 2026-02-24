@@ -115,7 +115,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
         val itr = feedsToUpdate.iterator()
         while (itr.hasNext()) {
             val feed = itr.next()
-            if (!feed.keepUpdated && !doItAnyway) {
+            if ((!feed.keepUpdated || !feed.inNormalVolume) && !doItAnyway) {
                 Logt(TAG, "feed set not to update, igored: ${feed.title}")
                 if (feed.autoEnqueue) feedsToOnlyEnqueue.add(feed)
                 else if (feed.autoDownload) feedsToOnlyDownload.add(feed)
