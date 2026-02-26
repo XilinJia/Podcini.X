@@ -1,6 +1,5 @@
 package ac.mdiq.podcini.ui.utils
 
-import org.apache.commons.lang3.StringUtils
 import org.jsoup.Jsoup
 import org.jsoup.internal.StringUtil
 import org.jsoup.nodes.Element
@@ -87,7 +86,7 @@ class HtmlToPlainText {
                 str.isNotEmpty() && isHtml(str) -> {
                     val formatter = HtmlToPlainText()
                     val feedDescription = Jsoup.parse(str)
-                    str = StringUtils.trim(formatter.getPlainText(feedDescription))
+                    str = formatter.getPlainText(feedDescription).trim()
                 }
                 str.isEmpty() -> str = ""
             }

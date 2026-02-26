@@ -6,9 +6,11 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.formatEpochMillisSimple
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.setValue
+import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -19,14 +21,10 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 import java.io.UnsupportedEncodingException
-import java.net.URLEncoder
 import java.security.MessageDigest
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
 import java.util.Locale
-import java.util.TimeZone
 import java.util.regex.Pattern
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 interface PodcastSearcher {
 
@@ -64,12 +62,12 @@ class PodcastIndexPodcastSearcher : PodcastSearcher {
             if (count != null && count < 0) count = null
             val updateInt: Int = json.optInt("lastUpdateTime", -1)
             var update: String? = null
-            if (updateInt > 0) update = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(updateInt.toLong() * 1000)
+            if (updateInt > 0) update = formatEpochMillisSimple(updateInt.toLong() * 1000, "yyyy-MM-dd")
             return PodcastSearchResult(title, imageUrl, feedUrl, author, count, update, -1, "PodcastIndex")
         }
 
         val encodedQuery = try {
-            withContext(Dispatchers.IO) { URLEncoder.encode(query, "UTF-8") }
+            withContext(Dispatchers.IO) { query.encodeURLParameter() }
         } catch (e: UnsupportedEncodingException) {
             Logs("PodcastIndexPodcastSearcher", e)
             query
@@ -99,11 +97,8 @@ class PodcastIndexPodcastSearcher : PodcastSearcher {
         get() = "Podcast Index"
 
     private fun buildAuthenticatedRequest(url: String): Request {
-        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-        calendar.clear()
-        val now = Date()
-        calendar.time = now
-        val secondsSinceEpoch = calendar.timeInMillis / 1000L
+        val now = nowInMillis()
+        val secondsSinceEpoch = now / 1000L
         val apiHeaderTime = secondsSinceEpoch.toString()
         val data4Hash = BuildConfig.PODCASTINDEX_API_KEY + BuildConfig.PODCASTINDEX_API_SECRET + apiHeaderTime
         val hashString = sha1(data4Hash) ?:""
@@ -156,7 +151,7 @@ class ItunesPodcastSearcher : PodcastSearcher {
         }
 
         val encodedQuery = try {
-            withContext(Dispatchers.IO) { URLEncoder.encode(query, "UTF-8") }
+            withContext(Dispatchers.IO) { query.encodeURLParameter() }
         } catch (e: UnsupportedEncodingException) {
             Logs(TAG, e)
             query

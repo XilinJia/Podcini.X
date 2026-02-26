@@ -126,7 +126,7 @@
         <meta-data android:name="com.samsung.android.multidisplay.keep_process_alive" android:value="true"/>
 
         <activity
-            android:name=".ui.activity.MainActivity"
+            android:name=".activity.MainActivity"
             android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout|density|uiMode|keyboard|navigation"
             android:windowSoftInputMode="stateAlwaysHidden"
             android:launchMode="singleTop"
@@ -150,14 +150,14 @@
         </activity>
 
         <activity
-            android:name=".ui.activity.ShareReceiverActivity"
+            android:name=".activity.ShareReceiverActivity"
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.Podcini"
             android:label="@string/add_feed_label"
             android:exported="true">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="ac.mdiq.podcini.ui.activity.MainActivity"/>
+                android:value="ac.mdiq.podcini.activity.MainActivity"/>
 
             <!-- Files with mimeType rss/xml/atom -->
             <intent-filter>
@@ -194,14 +194,23 @@
         </activity>
 
         <activity
-            android:name=".ui.activity.QueuePickerActivity"
+            android:name=".activity.BugReportActivity"
+            android:theme="@style/Theme.Podcini.Dialog"
+            android:label="@string/bug_report_title">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="ac.mdiq.podcini.activity.MainActivity"/>
+        </activity>
+
+        <activity
+            android:name=".activity.QueuePickerActivity"
             android:theme="@style/Theme.Podcini.Dialog"
             android:taskAffinity=""
             android:excludeFromRecents="true"
             android:exported="false" />
 
         <activity
-            android:name=".ui.activity.EpisodeInfoActivity"
+            android:name=".activity.EpisodeInfoActivity"
             android:theme="@style/Theme.Podcini.Dialog"
             android:launchMode="singleInstance"
             android:taskAffinity=".episode_info"
@@ -209,7 +218,7 @@
             android:exported="false" />
 
         <activity
-            android:name=".ui.activity.PlayerUIActivity"
+            android:name=".activity.PlayerUIActivity"
             android:theme="@style/Theme.Podcini.Dialog"
             android:launchMode="singleInstance"
             android:taskAffinity=".player_ui"
@@ -217,14 +226,14 @@
             android:exported="false" />
 
         <activity
-            android:name=".ui.activity.ShortcutsActivity"
+            android:name=".activity.ShortcutsActivity"
             android:exported="false"
             android:theme="@style/Theme.Podcini">
         </activity>
 
         <activity-alias
             android:name=".FeedAlias"
-            android:targetActivity=".ui.activity.ShortcutsActivity"
+            android:targetActivity=".activity.ShortcutsActivity"
             android:label="@string/podcast"
             android:exported="true">
             <intent-filter>
@@ -234,7 +243,7 @@
 
         <activity-alias
             android:name=".QueueAlias"
-            android:targetActivity=".ui.activity.ShortcutsActivity"
+            android:targetActivity=".activity.ShortcutsActivity"
             android:label="@string/queue"
             android:exported="true">
             <intent-filter>
@@ -242,12 +251,12 @@
             </intent-filter>
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".ui.activity.MainActivity" />
+                android:value=".activity.MainActivity" />
         </activity-alias>
 
         <activity-alias
             android:name=".FacetAlias"
-            android:targetActivity=".ui.activity.ShortcutsActivity"
+            android:targetActivity=".activity.ShortcutsActivity"
             android:label="@string/facet"
             android:exported="true">
             <intent-filter>
@@ -255,7 +264,7 @@
             </intent-filter>
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".ui.activity.MainActivity" />
+                android:value=".activity.MainActivity" />
         </activity-alias>
 
         <receiver
@@ -294,8 +303,8 @@
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths"/>
-        </provider>-->
-
+        </provider>
+-->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"

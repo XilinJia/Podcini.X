@@ -29,7 +29,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
-import ac.mdiq.podcini.utils.localDateTimeString
+import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.sendLocalBroadcast
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
@@ -40,9 +40,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.Date
+
 import java.util.Locale
 import kotlin.math.min
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 private const val TAG: String = "Episodes"
 
@@ -105,7 +106,7 @@ fun episodeByGuidOrUrl(guid: String?, episodeUrl: String, copy: Boolean = true):
 
 fun episodeById(id: Long): Episode? = realm.query(Episode::class).query("id == $0", id).first().find()
 
-fun getHistoryAsFlow(feedId: Long = 0L, start: Long = 0L, end: Long = Date().time, filter: EpisodeFilter? = null, sortOrder: EpisodeSortOrder = EpisodeSortOrder.PLAYED_DATE_DESC): Flow<ResultsChange<Episode>> {
+fun getHistoryAsFlow(feedId: Long = 0L, start: Long = 0L, end: Long = nowInMillis(), filter: EpisodeFilter? = null, sortOrder: EpisodeSortOrder = EpisodeSortOrder.PLAYED_DATE_DESC): Flow<ResultsChange<Episode>> {
     Logd(TAG, "getHistory() called")
     var qStr = "((playbackCompletionTime > 0) OR (lastPlayedTime > $start AND lastPlayedTime <= $end))"
     if (feedId > 0L) qStr += " AND feedId == $feedId "
@@ -172,17 +173,17 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
 }
 
 suspend fun eraseEpisodes(episodes: List<Episode>, msg: String, saveLog: Boolean = true) {
-    val time = System.currentTimeMillis()
+//    val time = nowInMillis()
     if (saveLog) realm.write {
         var i = 0
         for (e in episodes) {
             val sLog = SubscriptionLog(e.id, e.title ?: "", e.downloadUrl ?: "", e.link ?: "", SubscriptionLog.Type.Media.name)
-            sLog.id = time + i++
+            sLog.id = getId()
             sLog.let {
                 it.rating = e.rating
                 it.comment = if (e.comment.isBlank()) "" else (e.comment + "\n")
-                it.comment += localDateTimeString() + "\nReason to remove:\n" + msg
-                it.cancelDate = Date().time
+                it.comment += fullDateTimeString() + "\nReason to remove:\n" + msg
+                it.cancelDate = nowInMillis()
             }
             copyToRealm(sLog)
         }

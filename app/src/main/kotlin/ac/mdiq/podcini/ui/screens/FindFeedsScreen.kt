@@ -2,6 +2,9 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.config.settings.OpmlBackupAgent.Companion.performRestore
+import ac.mdiq.podcini.config.settings.OpmlTransporter
+import ac.mdiq.podcini.config.settings.OpmlTransporter.OpmlElement
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.CombinedSearcher
 import ac.mdiq.podcini.net.feed.ItunesPodcastSearcher
@@ -9,15 +12,13 @@ import ac.mdiq.podcini.net.feed.PodcastIndexPodcastSearcher
 import ac.mdiq.podcini.net.feed.PodcastSearchResult
 import ac.mdiq.podcini.net.feed.PodcastSearcher
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
-import ac.mdiq.podcini.config.settings.OpmlBackupAgent.Companion.performRestore
-import ac.mdiq.podcini.config.settings.OpmlTransporter
-import ac.mdiq.podcini.config.settings.OpmlTransporter.OpmlElement
 import ac.mdiq.podcini.storage.database.addNewFeed
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.feedByIdentityOrID
 import ac.mdiq.podcini.storage.database.feedCount
+import ac.mdiq.podcini.storage.database.getId
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -29,10 +30,8 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.utils.AddLocalFolder
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
-import ac.mdiq.podcini.ui.screens.LocalNavController
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
-import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.compose.SearchBarRow
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
@@ -94,12 +93,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
+
 
 private var searchText by mutableStateOf("")
 private var searchProvider by mutableStateOf<PodcastSearcher>(CombinedSearcher::class.java.getDeclaredConstructor().newInstance())
@@ -144,7 +143,6 @@ class FindFeedsVM: ViewModel() {
         retryQerry = ""
         showProgress = true
         searchJob = viewModelScope.launch(Dispatchers.IO) {
-//            val feeds = getFeedList()
             fun feedId(r: PodcastSearchResult): Long {
                 for (f in allFeeds) if (f.downloadUrl == r.feedUrl) return f.id
                 return 0L
@@ -204,7 +202,7 @@ class FindFeedsVM: ViewModel() {
                         val vExist = realm.query(Volume::class).query("uriString == $0", directory.uri.toString()).first().find()
                         if (vExist == null) {
                             v = Volume()
-                            v.id = System.currentTimeMillis()
+                            v.id = getId()
                             v.name = directory.name ?: "no name"
                             v.uriString = directory.uri.toString()
                             v.parentId = parentId
@@ -275,7 +273,7 @@ fun FindFeedsScreen() {
                         it.onlineSearchHistory.add(0, str)
                         if (it.onlineSearchHistory.size > SearchHistorySize+4) it.onlineSearchHistory.apply { subList(SearchHistorySize, size).clear() }
                     }
-                    if (str.matches("http[s]?://.*".toRegex())) navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(str, StandardCharsets.UTF_8.name())}")
+                    if (str.matches("http[s]?://.*".toRegex())) navController.navigate("${Screens.OnlineFeed.name}?url=${str.encodeURLParameter()}")
                     else vm.search(str)
                 }
             }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable(onClick = { drawerController?.open() })) } )
@@ -350,9 +348,9 @@ fun FindFeedsScreen() {
                     start.linkTo(parent.start)
                 }) {
                 items(vm.searchResults) { result ->
-                    val urlPrepared by remember { mutableStateOf(prepareUrl(result.feedUrl!!)) }
-                    val sLog = remember { mutableStateOf(feedLogsMap!![urlPrepared] ?: feedLogsMap!![result.title]) }
-                    OnlineFeedItem(result, sLog.value)
+                    val urlPrepared = remember(result.feedUrl) { prepareUrl(result.feedUrl!!) }
+                    val sLog = remember(urlPrepared, result.title, feedLogsMap) { feedLogsMap?.get(urlPrepared) ?: feedLogsMap?.get(result.title) }
+                    OnlineFeedItem(result, sLog)
                 }
             } else Text(stringResource(R.string.no_results_for_query, searchText), color = textColor, modifier = Modifier.constrainAs(empty) { centerTo(parent) })
             if (vm.errorText.isNotEmpty()) Text(vm.errorText, color = textColor, modifier = Modifier.constrainAs(txtvError) { centerTo(parent) })

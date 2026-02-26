@@ -26,11 +26,14 @@ import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.Reader
-import java.util.Date
 import java.util.Stack
-import java.util.concurrent.TimeUnit
 import javax.xml.parsers.ParserConfigurationException
 import javax.xml.parsers.SAXParserFactory
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 class FeedHandler {
     @Throws(SAXException::class, IOException::class, ParserConfigurationException::class, UnsupportedFeedtypeException::class)
@@ -486,8 +489,8 @@ class FeedHandler {
                     SUBTITLE if FEED == second && textElement != null -> state.feed.description = textElement.processedContent
                     CONTENT if ENTRY == second && textElement != null && state.currentItem != null -> state.currentItem!!.setDescriptionIfLonger(textElement.processedContent)
                     SUMMARY if ENTRY == second && textElement != null && state.currentItem != null -> state.currentItem!!.setDescriptionIfLonger(textElement.processedContent)
-                    UPDATED if ENTRY == second && state.currentItem != null && state.currentItem!!.pubDate == 0L -> state.currentItem!!.pubDate = parseOrNullIfFuture(content)?.time ?: 0
-                    PUBLISHED if ENTRY == second && state.currentItem != null -> state.currentItem!!.pubDate = parseOrNullIfFuture(content)?.time ?: 0
+                    UPDATED if ENTRY == second && state.currentItem != null && state.currentItem!!.pubDate == 0L -> state.currentItem!!.pubDate = parseOrNullIfFuture(content)?.toEpochMilliseconds() ?: 0
+                    PUBLISHED if ENTRY == second && state.currentItem != null -> state.currentItem!!.pubDate = parseOrNullIfFuture(content)?.toEpochMilliseconds() ?: 0
                     IMAGE_LOGO if state.feed.imageUrl == null -> state.feed.imageUrl = content
                     IMAGE_ICON -> state.feed.imageUrl = content
                     AUTHOR_NAME if AUTHOR == second && state.currentItem == null -> {
@@ -640,19 +643,20 @@ class FeedHandler {
         }
 
         private fun toMillis(hours: Long, minutes: Long, seconds: Long): Long {
-            return (TimeUnit.HOURS.toMillis(hours) + TimeUnit.MINUTES.toMillis(minutes) + TimeUnit.SECONDS.toMillis(seconds))
+            hours.hours.inWholeMilliseconds
+            return (hours.hours.inWholeMilliseconds + minutes.minutes.inWholeMilliseconds + seconds.seconds.inWholeMilliseconds)
         }
 
         private fun toMillis(hours: String, minutes: String, seconds: String): Long {
-            return (TimeUnit.HOURS.toMillis(hours.toLong()) + TimeUnit.MINUTES.toMillis(minutes.toLong()) + toMillis(seconds))
+            return (hours.toLong().hours.inWholeMilliseconds + minutes.toLong().minutes.inWholeMilliseconds + seconds.toLong().seconds.inWholeMilliseconds)
         }
 
         private fun toMillis(seconds: String): Long {
             if (seconds.contains(".")) {
                 val value = seconds.toFloat()
                 val millis = value % 1
-                return TimeUnit.SECONDS.toMillis(value.toLong()) + (millis * 1000).toLong()
-            } else return TimeUnit.SECONDS.toMillis(seconds.toLong())
+                return value.toLong().seconds.inWholeMilliseconds + (millis * 1000).toLong()
+            } else return seconds.toLong().seconds.inWholeMilliseconds
         }
 
         companion object {
@@ -716,14 +720,8 @@ class FeedHandler {
                             }
                             var durationMs = 0
                             val durationStr: String? = attributes.getValue(DURATION)
-                            if (!durationStr.isNullOrEmpty()) {
-                                try {
-                                    val duration = durationStr.toLong()
-                                    durationMs = TimeUnit.MILLISECONDS.convert(duration, TimeUnit.SECONDS).toInt()
-                                } catch (e: NumberFormatException) {
-                                    Logs(TAG, e, "Duration string $durationStr could not be parsed")
-                                }
-                            }
+                            if (!durationStr.isNullOrEmpty())
+                                try { durationMs = durationStr.toLong().seconds.inWholeMilliseconds.toInt() } catch (e: NumberFormatException) { Logs(TAG, e, "Duration string $durationStr could not be parsed") }
                             Logd(TAG, "handleElementStart creating media: ${state.currentItem?.title} $url $size $mimeType")
                             state.currentItem?.fillMedia(url, size, mimeType)
                             if (durationMs > 0) state.currentItem?.duration = ( durationMs)
@@ -890,7 +888,7 @@ class FeedHandler {
                                 ITEM if state.currentItem != null -> state.currentItem!!.link = content
                             }
                         }
-                        PUBDATE == top && ITEM == second && state.currentItem != null -> state.currentItem!!.pubDate = parseOrNullIfFuture(content)?.time ?: 0
+                        PUBDATE == top && ITEM == second && state.currentItem != null -> state.currentItem!!.pubDate = parseOrNullIfFuture(content)?.toEpochMilliseconds() ?: 0
                         // prefer itunes:image
                         URL == top && IMAGE == second && CHANNEL == third -> if (state.feed.imageUrl == null) state.feed.imageUrl = content
                         DESCR == localName -> {
@@ -978,7 +976,7 @@ class FeedHandler {
                 val second = state.secondTag.name
                 if (DATE == top && ITEM == second) {
                     val content = state.contentBuf.toString()
-                    currentItem!!.pubDate = parseOrNullIfFuture(content)?.time ?: 0
+                    currentItem!!.pubDate = parseOrNullIfFuture(content)?.toEpochMilliseconds() ?: 0
                 }
             }
         }
@@ -1000,10 +998,10 @@ class FeedHandler {
         /**
          * Parses the date but if the date is in the future, returns null.
          */
-        fun parseOrNullIfFuture(input: String?): Date? {
+        fun parseOrNullIfFuture(input: String?): Instant? {
             val date = parseDate(input) ?: return null
-            val now = Date()
-            if (date.after(now)) return null
+            val now = Clock.System.now()
+            if (date > now) return null
             return date
         }
 

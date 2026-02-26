@@ -77,11 +77,15 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Calendar
-import java.util.Date
+
 import java.util.GregorianCalendar
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
+import ac.mdiq.podcini.storage.utils.nowInMillis
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 
 abstract class MediaPlayerBase {
@@ -394,7 +398,7 @@ abstract class MediaPlayerBase {
         fun shouldSetPlayed(e: Episode): Boolean {
             return when (e.playState) {
                 EpisodeState.FOREVER.code, EpisodeState.PLAYED.code -> false
-                EpisodeState.AGAIN.code -> System.currentTimeMillis() - e.playStateSetTime >= e.duration
+                EpisodeState.AGAIN.code -> nowInMillis() - e.playStateSetTime >= e.duration
                 else -> true
             }
         }
@@ -403,13 +407,13 @@ abstract class MediaPlayerBase {
                 Logd(TAG, "onPostPlayback ended: $ended smartMarkAsPlayed: $smartMarkAsPlayed autoSkipped: $autoSkipped skipped: $skipped")
                 // only mark the item as played if we're not keeping it anyway
                 item = upsert(item) {
-                    if (it.playState == EpisodeState.FOREVER.code) it.repeatTime = it.repeatInterval + System.currentTimeMillis()
+                    if (it.playState == EpisodeState.FOREVER.code) it.repeatTime = it.repeatInterval + nowInMillis()
                     if (shouldSetPlayed(it)) it.setPlayState(EpisodeState.PLAYED)
                     upsertDB(it, item.position)
                     it.startTime = 0
                     it.startPosition = if (completed) -1 else it.position
                     if (ended || (skipped && smartMarkAsPlayed)) it.position = 0
-                    if (ended || skipped || playingNext) it.playbackCompletionDate = Date()
+                    if (ended || skipped || playingNext) it.playbackCompletionTime = nowInMillis()
                 }
 
                 val action = item.feed?.autoDeleteAction
@@ -469,10 +473,10 @@ abstract class MediaPlayerBase {
 
         if (it.startPosition >= 0 && it.position > it.startPosition) it.playedDuration = (it.playedDurationWhenStarted + it.position - it.startPosition)
         if (it.startTime > 0) {
-            var delta = (System.currentTimeMillis() - it.startTime)
+            var delta = (nowInMillis() - it.startTime)
             if (delta > 3 * max(it.playedDuration, 60000)) {
                 Logt(TAG, "upsertDB likely invalid delta: $delta ${it.title}")
-                it.startTime = System.currentTimeMillis()
+                it.startTime = nowInMillis()
                 delta = 0L
             }
             else it.timeSpent = it.timeSpentOnStart + delta
@@ -551,12 +555,12 @@ abstract class MediaPlayerBase {
                 val toSetting = autoEnableTo
                 if (fromSetting != toSetting) {
                     val now: Calendar = GregorianCalendar()
-                    now.timeInMillis = System.currentTimeMillis()
+                    now.timeInMillis = nowInMillis()
                     val currentHour = now[Calendar.HOUR_OF_DAY]
                     autoEnableByTime = isInTimeRange(fromSetting, toSetting, currentHour)
                 }
                 if (oldStatus != null && sleepPrefs.AutoEnable && autoEnableByTime && sleepManager?.isSleepTimerActive != true) {
-                    sleepManager?.setSleepTimer(TimeUnit.MINUTES.toMillis(lastTimerValue))
+                    sleepManager?.setSleepTimer(lastTimerValue.minutes.inWholeMilliseconds)
                     // TODO: what to do?
 //                    EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.sleep_timer_enabled_label), { taskManager?.disableSleepTimer() }, context.getString(R.string.undo)))
                 }
@@ -657,7 +661,7 @@ abstract class MediaPlayerBase {
             tempDir = tmpDir
             if (!isRecording) {
                 isRecording = true
-                clipTempFile = File(tempDir, "clip_temp_${System.currentTimeMillis()}.tmp")
+                clipTempFile = File(tempDir, "clip_temp_${nowInMillis()}.tmp")
                 clipTempFos = FileOutputStream(clipTempFile!!)
                 clipStartByte = (startPositionMs * bitrate / 8 / 1000)
                 clipBytesWritten = 0L
@@ -708,18 +712,18 @@ abstract class MediaPlayerBase {
 
         const val ACTION_PLAYER_STATUS_CHANGED: String = "action.ac.mdiq.podcini.service.playerStatusChanged"
 
-        val ELAPSED_TIME_FOR_SHORT_REWIND: Long = TimeUnit.MINUTES.toMillis(1)
+        val ELAPSED_TIME_FOR_SHORT_REWIND: Long = 1.minutes.inWholeMilliseconds
         
-        val ELAPSED_TIME_FOR_MEDIUM_REWIND: Long = TimeUnit.HOURS.toMillis(1)
+        val ELAPSED_TIME_FOR_MEDIUM_REWIND: Long = 1.hours.inWholeMilliseconds
         
-        val ELAPSED_TIME_FOR_LONG_REWIND: Long = TimeUnit.DAYS.toMillis(1)
+        val ELAPSED_TIME_FOR_LONG_REWIND: Long = 1.days.inWholeMilliseconds
 
         
-        val SHORT_REWIND: Long = TimeUnit.SECONDS.toMillis(3)
+        val SHORT_REWIND: Long = 3.seconds.inWholeMilliseconds
         
-        val MEDIUM_REWIND: Long = TimeUnit.SECONDS.toMillis(10)
+        val MEDIUM_REWIND: Long = 10.seconds.inWholeMilliseconds
         
-        val LONG_REWIND: Long = TimeUnit.SECONDS.toMillis(20)
+        val LONG_REWIND: Long = 20.seconds.inWholeMilliseconds
 
         var simpleCache: SimpleCache? = null
         var curDataSource: SegmentSavingDataSource? = null
@@ -799,7 +803,7 @@ abstract class MediaPlayerBase {
          */
         fun positionWithRewind(currentPosition: Int, lastPlayedTime: Long): Int {
             if (currentPosition > 0 && lastPlayedTime > 0) {
-                val elapsedTime = System.currentTimeMillis() - lastPlayedTime
+                val elapsedTime = nowInMillis() - lastPlayedTime
                 var rewindTime: Long = 0
                 when {
                     elapsedTime > ELAPSED_TIME_FOR_LONG_REWIND -> rewindTime = LONG_REWIND

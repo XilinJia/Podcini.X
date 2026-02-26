@@ -30,6 +30,7 @@ import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.util.Locale
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 class HttpDownloader(request: DownloadRequest) : Downloader(request) {
 
@@ -87,8 +88,8 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                 val lastModified = downloadRequest.lastModified
                 val lastModifiedDate = parseDate(lastModified)
                 if (lastModifiedDate != null) {
-                    val threeDaysAgo = System.currentTimeMillis() - 1000 * 60 * 60 * 24 * 3
-                    if (lastModifiedDate.time > threeDaysAgo) {
+                    val threeDaysAgo = nowInMillis() - 1000 * 60 * 60 * 24 * 3
+                    if (lastModifiedDate.toEpochMilliseconds() > threeDaysAgo) {
                         Logd(TAG, "addHeader(\"If-Modified-Since\", \"$lastModified\")")
                         httpReq.addHeader("If-Modified-Since", lastModified?:"")
                     }

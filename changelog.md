@@ -1,3 +1,13 @@
+# 10.11.0
+
+* cover image of feed in abnormal volumes is tinted
+* in FeedDetails, after removing feed, navigate to Library (instead of the default page)
+* corrected some state variable errors in some composables
+* fixed OnlineFeed not open when "remember" is set for default page
+* fixed BugReportActivity not starting (introduced likely in 10.10.0)
+* likely fixed ids possibly conflicting
+* replaced some java libraries with kotlin's
+
 # 10.10.3
 
 * ensure feeds in abnormal volumes (archived or frozen) are not updated

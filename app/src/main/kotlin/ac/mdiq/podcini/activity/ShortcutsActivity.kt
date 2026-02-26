@@ -1,4 +1,4 @@
-package ac.mdiq.podcini.ui.activity
+package ac.mdiq.podcini.activity
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.database.getFeedList

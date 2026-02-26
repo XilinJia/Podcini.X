@@ -28,9 +28,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import java.util.Date
+
 import kotlin.math.min
 import kotlin.random.Random
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 private const val TAG: String = "Queues"
 
@@ -135,8 +136,6 @@ suspend fun addToQueue(episodes: List<Episode>, queue: PlayQueue) {
         Loge(TAG, "Current queue is virtual, ignored")
         return
     }
-    val time = System.currentTimeMillis()
-    var i = 0L
     var qes = queue.entries
     realm.write {
         for (e in episodes) {
@@ -147,7 +146,7 @@ suspend fun addToQueue(episodes: List<Episode>, queue: PlayQueue) {
             }
             Logd(TAG, "addToQueue insertPosition: $insertPosition")
             val qe = QueueEntry().apply {
-                id = time + i++     // TODO: this can result in the same value if run from multiple coroutines somehow
+                id = getId()
                 queueId = queue.id
                 episodeId = e.id
                 position = insertPosition
@@ -177,13 +176,11 @@ suspend fun queueToVirtual(episode: Episode, episodes: List<Episode>, listIdenti
                 q.playInSequence = playInSequence
                 q.sortOrder = sortOrder
             }
-            val time = System.currentTimeMillis()
-            var i = 0L
             var ip = QUEUE_POSITION_DELTA
             realm.write {
                 for (eid in eIdsToQueue) {
                     val qe = QueueEntry().apply {
-                        id = time + i++
+                        id = getId()
                         queueId = virQueue.id
                         episodeId = eid
                         position = ip
@@ -205,8 +202,8 @@ suspend fun smartRemoveFromAllQueues(item_: Episode) {
     val almostEnded = item.hasAlmostEnded()
     if (almostEnded) {
         item = upsert(item) {
-            it.playbackCompletionDate = Date()
-            if (it.playState == EpisodeState.FOREVER.code) it.repeatTime = it.repeatInterval + System.currentTimeMillis()
+            it.playbackCompletionTime = nowInMillis()
+            if (it.playState == EpisodeState.FOREVER.code) it.repeatTime = it.repeatInterval + nowInMillis()
             if (it.playState < EpisodeState.PLAYED.code && !shouldPreserve(it.playState)) it.setPlayState(EpisodeState.PLAYED)
         }
     }

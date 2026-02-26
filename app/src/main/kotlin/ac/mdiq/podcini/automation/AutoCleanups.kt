@@ -1,7 +1,6 @@
 package ac.mdiq.podcini.automation
 
 import ac.mdiq.podcini.storage.database.EPISODE_CACHE_SIZE_UNLIMITED
-import ac.mdiq.podcini.ui.screens.prefscreens.EpisodeCleanupOptions
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.deleteMedias
 import ac.mdiq.podcini.storage.database.getEpisodes
@@ -13,12 +12,13 @@ import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.ui.screens.prefscreens.EpisodeCleanupOptions
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
-import java.util.concurrent.ExecutionException
+import ac.mdiq.podcini.storage.utils.nowInMillis
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Instant
 
 private const val TAG: String = "AutoCleanups"
 
@@ -126,11 +126,11 @@ class APCleanupAlgorithm( val numberOfHoursAfterPlayback: Int) : EpisodeCleanupA
             val candidates: MutableList<Episode> = mutableListOf()
             val downloadedItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.downloaded.name), EpisodeSortOrder.DATE_DESC)
             val idsInQueues = inQueueEpisodeIdSet()
-            val mostRecentDateForDeletion = calcMostRecentDateForDeletion(Date())
+            val mostRecentDateForDeletion = Clock.System.now().minusHours(numberOfHoursAfterPlayback).toEpochMilliseconds()
             for (item in downloadedItems) {
                 if (item.downloaded && !idsInQueues.contains(item.id) && item.playState >= EpisodeState.PLAYED.code && item.rating < Rating.GOOD.code) {
                     // make sure this candidate was played at least the proper amount of days prior to now
-                    if (item.playbackCompletionDate != null && item.playbackCompletionDate!!.before(mostRecentDateForDeletion)) candidates.add(item)
+                    if (item.playbackCompletionTime < mostRecentDateForDeletion) candidates.add(item)
                 }
             }
             return candidates
@@ -141,24 +141,16 @@ class APCleanupAlgorithm( val numberOfHoursAfterPlayback: Int) : EpisodeCleanupA
     public override fun performCleanup(numToRemove: Int): Int {
         val candidates = candidates.toMutableList()
         candidates.sortWith { lhs: Episode, rhs: Episode ->
-            var l = lhs.playbackCompletionDate
-            var r = rhs.playbackCompletionDate
-            if (l == null) l = Date()
-            if (r == null) r = Date()
+            val l = lhs.playbackCompletionTime
+            val r = rhs.playbackCompletionTime
             l.compareTo(r)
         }
         return cleanup(candidates, numToRemove)
     }
-    fun calcMostRecentDateForDeletion(currentDate: Date): Date = minusHours(currentDate, numberOfHoursAfterPlayback)
+
+    fun Instant.minusHours(count: Int): Instant = this.minus(count.hours)
+
     public override fun getDefaultCleanupParameter(): Int = getNumEpisodesToCleanup(0)
-    companion object {
-        private fun minusHours(baseDate: Date, numberOfHours: Int): Date {
-            val cal = Calendar.getInstance()
-            cal.time = baseDate
-            cal.add(Calendar.HOUR_OF_DAY, -1 * numberOfHours)
-            return cal.time
-        }
-    }
 }
 
 abstract class EpisodeCleanupAlgorithm {
@@ -177,9 +169,9 @@ abstract class EpisodeCleanupAlgorithm {
         try {
             deleteMedias(delete)
             if (appPrefs.deleteRemovesFromQueue) removeFromAllQueues(delete)
-        }  catch (e: ExecutionException) { Logs(TAG, e) }
+        }  catch (e: Throwable) { Logs(TAG, e) }
         val counter = delete.size
-        Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
+        Logt(TAG, "Auto-delete deleted $counter episodes ($numToRemove requested)")
         return counter
     }
 

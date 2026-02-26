@@ -45,7 +45,7 @@ import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.storage.utils.durationStringAdapt
 import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.ui.actions.Combo
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.findActivity
+import ac.mdiq.podcini.activity.MainActivity.Companion.findActivity
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.EpisodeDetails
@@ -62,6 +62,8 @@ import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.formatLargeInteger
+import ac.mdiq.podcini.utils.formatNumberKmp
+import ac.mdiq.podcini.utils.formatWithGrouping
 import ac.mdiq.podcini.utils.openInBrowser
 import ac.mdiq.podcini.utils.timeIt
 import android.content.pm.ActivityInfo
@@ -177,9 +179,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import java.net.URL
-import java.text.DecimalFormat
-import java.text.NumberFormat
-import java.util.Date
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.max
@@ -274,7 +273,7 @@ class AVPlayerVM: ViewModel() {
                     is FlowEvent.SleepTimerUpdatedEvent -> sleepTimerActive = isSleepTimerActive()
                     is FlowEvent.SpeedChangedEvent -> {
                         curPlaybackSpeed = event.newSpeed
-                        txtvPlaybackSpeed = DecimalFormat("0.00").format(event.newSpeed.toDouble())
+                        txtvPlaybackSpeed = formatNumberKmp(event.newSpeed.toDouble())
                     }
                     else -> {}
                 }
@@ -291,7 +290,7 @@ class AVPlayerVM: ViewModel() {
             Logd(TAG, "snapshotFlow { curEpisode?.id } collect")
             episodeFeed = curEpisode?.feed
             volumeAdaption = VolumeAdaptionSetting.OFF
-            txtvPlaybackSpeed = DecimalFormat("0.00").format(curPBSpeed.toDouble())
+            txtvPlaybackSpeed = formatNumberKmp(curPBSpeed.toDouble())
             curPlaybackSpeed = curPBSpeed
         } }
         viewModelScope.launch { snapshotFlow { playerStat }.distinctUntilChanged().collect { showPlayButton = playerStat != PLAYER_STATUS_PLAYING } }
@@ -480,7 +479,7 @@ fun ControlUI(vm: AVPlayerVM, navController: AppNavigator) {
         Spacer(Modifier.weight(0.1f))
         Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
             onClick = { mPlayer?.seekDelta(-rewindSecs * 1000) }, onLongClick = { mPlayer?.seekTo(0) })) {
-            val rewindSecs by remember { mutableStateOf(NumberFormat.getInstance().format(rewindSecs.toLong())) }
+            val rewindSecs = remember(rewindSecs) { formatWithGrouping(rewindSecs.toLong()) }
             Text(rewindSecs, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.TopCenter))
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_fast_rewind), tint = buttonColor, contentDescription = "rewind", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
         }
@@ -536,10 +535,10 @@ fun ControlUI(vm: AVPlayerVM, navController: AppNavigator) {
                     if (speedForward > 0.1f) speedForward(speedForward)
                 }
             })) {
-            val fastForwardSecs by remember { mutableStateOf(NumberFormat.getInstance().format(fastForwardSecs.toLong())) }
+            val fastForwardSecs = remember(fastForwardSecs) { formatWithGrouping(fastForwardSecs.toLong()) }
             Text(fastForwardSecs, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.TopCenter))
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_fast_forward), tint = buttonColor, contentDescription = "forward", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
-            if (speedforwardSpeed > 0.1f) Text(NumberFormat.getInstance().format(speedforwardSpeed), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
+            if (speedforwardSpeed > 0.1f) Text(formatNumberKmp(speedforwardSpeed), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
         }
         Spacer(Modifier.weight(0.1f))
         Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
@@ -553,7 +552,7 @@ fun ControlUI(vm: AVPlayerVM, navController: AppNavigator) {
                 if (isPlaying || isPaused) mPlayer?.skip()
             })) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_skip_48dp), tint = buttonColor, contentDescription = "skip", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
-            if (skipforwardSpeed > 0.1f) Text(NumberFormat.getInstance().format(skipforwardSpeed), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
+            if (skipforwardSpeed > 0.1f) Text(formatNumberKmp(skipforwardSpeed), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
         }
         Spacer(Modifier.weight(0.1f))
     }
@@ -575,20 +574,20 @@ fun ProgressBar(vm: AVPlayerVM) {
         Text(durationStringFull(curEpisode?.duration?:0), color = distColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
     }
     Row {
-        val pastText by remember(curEpisode?.position) { mutableStateOf( run {
+        val pastText = remember(curEpisode?.position) { run {
             if (curEpisode == null) return@run ""
             durationStringAdapt(curEpisode!!.position) + " *" + durationStringAdapt(curEpisode!!.timeSpent.toInt())
-        } ) }
+        }  }
         Text(pastText, color = textColor, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.weight(1f))
         if (bitrate > 0) Text(formatLargeInteger(bitrate) + "bits", color = textColor, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.weight(1f))
-        val lengthText by remember(curEpisode?.position) { mutableStateOf( run {
+        val lengthText = remember(curPBSpeed, curEpisode?.position) {  run {
             if (curEpisode == null) return@run ""
             val remainingTime = max((curEpisode!!.duration - curEpisode!!.position), 0)
             val onSpeed = if (curPBSpeed > 0 && abs(curPBSpeed-1f) > 0.001) (remainingTime / curPBSpeed).toInt() else 0
             (if (onSpeed > 0) "*" + durationStringAdapt(onSpeed) else "") + " -" + durationStringAdapt(remainingTime)
-        }) }
+        } }
         Text(lengthText, color = textColor, style = MaterialTheme.typography.bodySmall)
     }
 }
@@ -912,7 +911,7 @@ fun AVPlayerScreen() {
                 val ratingIconRes by remember(curEpisode?.rating) { mutableIntStateOf( Rating.fromCode(curEpisode?.rating ?: Rating.UNRATED.code).res) }
                 Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable(onClick = { showChooseRatingDialog = true }))
                 Spacer(modifier = Modifier.weight(0.4f))
-                val episodeDate by remember(curEpisode) { mutableStateOf(if (curEpisode == null) "" else formatDateTimeFlex(Date(curEpisode!!.pubDate)).trim()) }
+                val episodeDate = remember(curEpisode?.pubDate) { if (curEpisode == null) "" else formatDateTimeFlex(curEpisode!!.pubDate).trim() }
                 Text(episodeDate, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.weight(0.4f))
                 if (curEpisode != null) Icon(imageVector = ImageVector.vectorResource(comboAction.iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Combo", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).clickable(onClick = {  comboAction.performAction(curEpisode!!) }))

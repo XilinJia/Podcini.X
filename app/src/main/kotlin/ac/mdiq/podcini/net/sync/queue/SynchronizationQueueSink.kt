@@ -5,6 +5,7 @@ import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.lastSyncAttempt
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 object SynchronizationQueueSink {
     // To avoid a dependency loop of every class to SyncService, and from SyncService back to every class.
@@ -19,7 +20,7 @@ object SynchronizationQueueSink {
     }
 
     fun syncNowIfNotSyncedRecently() {
-        if (System.currentTimeMillis() - lastSyncAttempt > 1000 * 60 * 10) syncNow()
+        if (nowInMillis() - lastSyncAttempt > 1000 * 60 * 10) syncNow()
     }
 
     

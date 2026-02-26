@@ -39,7 +39,7 @@ fun Loge(t: String, m: String) {
     LogScope.launch {
         trimToasts()
         if (appPrefs.showErrorToasts) toastMassege = "$t: Error: $m"
-        toastMessages.add("${localDateTimeString()} $t: Error: $m")
+        toastMessages.add("${fullDateTimeString()} $t: Error: $m")
     }
 }
 
@@ -49,7 +49,7 @@ fun Logs(t: String, e: Throwable, m: String = "") {
     LogScope.launch {
         trimToasts()
         if (appPrefs.showErrorToasts) toastMassege = "$t: $m Error: $me"
-        toastMessages.add("${localDateTimeString()} $t: $m Error: $me")
+        toastMessages.add("${fullDateTimeString()} $t: $m Error: $me")
     }
 }
 
@@ -58,7 +58,7 @@ fun Logt(t: String, m: String) {
     LogScope.launch {
         trimToasts()
         toastMassege = "$t: $m"
-        toastMessages.add("${localDateTimeString()} $t: $m")
+        toastMessages.add("${fullDateTimeString()} $t: $m")
     }
 }
 

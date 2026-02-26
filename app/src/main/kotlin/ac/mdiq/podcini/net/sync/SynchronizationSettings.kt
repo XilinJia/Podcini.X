@@ -2,6 +2,7 @@ package ac.mdiq.podcini.net.sync
 
 import ac.mdiq.podcini.storage.database.syncPrefs
 import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 object SynchronizationSettings {
     const val LAST_SYNC_ATTEMPT_TIMESTAMP: String = "last_sync_attempt_timestamp"
@@ -44,7 +45,7 @@ object SynchronizationSettings {
         get() = syncPrefs.WIFI_SYNC_ENABLED
 
     fun updateLastSynchronizationAttempt() {
-        upsertBlk(syncPrefs) { it.LAST_SYNC_ATTEMPT_TIMESTAMP = System.currentTimeMillis() }
+        upsertBlk(syncPrefs) { it.LAST_SYNC_ATTEMPT_TIMESTAMP = nowInMillis() }
     }
 
     fun setLastSynchronizationAttemptSuccess(isSuccess: Boolean) {

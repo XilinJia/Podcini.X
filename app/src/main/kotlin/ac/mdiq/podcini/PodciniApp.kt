@@ -7,7 +7,7 @@ import ac.mdiq.podcini.net.utils.NetworkUtils
 import ac.mdiq.podcini.playback.base.InTheatre.aController
 import ac.mdiq.podcini.playback.base.InTheatre.aCtrlFuture
 import ac.mdiq.podcini.storage.database.realm
-import ac.mdiq.podcini.ui.activity.MainActivity
+import ac.mdiq.podcini.activity.MainActivity
 import ac.mdiq.podcini.utils.error.CrashReportWriter
 import ac.mdiq.podcini.utils.startTiming
 import android.app.Application

@@ -693,7 +693,7 @@ fun FeedsSettingsScreen() {
             }
             //                    preferred action
             val actions = remember { listOf("Auto") + (if (feedToSet.type != Feed.FeedType.YOUTUBE.name) playActions.map { it.name }  else listOf()) + streamActions.map { it.name } + listOf(ButtonTypes.TTS_NOW.name, ButtonTypes.TTS.name, ButtonTypes.WEBSITE.name) }
-            val curAction by remember { mutableStateOf(feedToSet.prefActionType ?: "Auto") }
+            val curAction = remember(feedToSet.prefActionType) { feedToSet.prefActionType ?: "Auto" }
             var showChooseAction by remember { mutableStateOf(false) }
             if (showChooseAction) Popup(onDismissRequest = { showChooseAction = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
                 Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {

@@ -40,7 +40,8 @@ import ac.mdiq.podcini.storage.utils.AddLocalFolder
 import ac.mdiq.podcini.storage.utils.durationInHours
 import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
-import ac.mdiq.podcini.ui.activity.MainActivity
+import ac.mdiq.podcini.activity.MainActivity
+import ac.mdiq.podcini.storage.database.getId
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -61,6 +62,7 @@ import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.formatDateTimeFlex
+import ac.mdiq.podcini.utils.formatWithGrouping
 import ac.mdiq.podcini.utils.timeIt
 import android.annotation.SuppressLint
 import android.app.Activity.RESULT_OK
@@ -152,7 +154,9 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -193,11 +197,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.apache.commons.lang3.StringUtils
-import java.text.NumberFormat
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.format
+import kotlinx.datetime.format.char
+import kotlinx.datetime.toLocalDateTime
+
+import ac.mdiq.podcini.storage.utils.nowInMillis
+import kotlin.time.Clock
 
 private const val TAG = "LibraryScreen"
 
@@ -210,7 +217,7 @@ class LibraryVM : ViewModel() {
         .distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = subPrefs)
 
     var showAllFeeds by mutableStateOf(feedIdsToUse.isNotEmpty())
-    val isViewGarden by mutableStateOf(feedIdsToUse.isNotEmpty())
+    val isViewGarden by mutableStateOf(feedIdsToUse.isNotEmpty())   // TODO, check
 
     val subVolumesFlow: StateFlow<List<Volume>> = snapshotFlow { Pair(curVolume?.id, subPrefs.showArchived) }.flatMapLatest {
         val qStrArchive = if (curVolume == null) ( if (subPrefs.showArchived) "" else "AND id >= -1" ) else ""
@@ -239,11 +246,11 @@ class LibraryVM : ViewModel() {
                         FeedPropertySortIndex.Rating -> Rating.fromCode(f.rating).name
                         FeedPropertySortIndex.Score -> "${f.score}(${f.scoreCount})"
                         FeedPropertySortIndex.ScoreCount -> "${f.score}(${f.scoreCount})"
-                        FeedPropertySortIndex.Updated -> formatDateTimeFlex(Date(f.lastUpdateTime))
-                        FeedPropertySortIndex.FullUpdate -> formatDateTimeFlex(Date(f.lastFullUpdateTime))
+                        FeedPropertySortIndex.Updated -> formatDateTimeFlex(f.lastUpdateTime)
+                        FeedPropertySortIndex.FullUpdate -> formatDateTimeFlex(f.lastFullUpdateTime)
                         FeedPropertySortIndex.TotleDuration -> getDurationStringShort(f.totleDuration, true)
-                        FeedPropertySortIndex.Commented -> formatDateTimeFlex(Date(f.commentTime))
-                        else -> formatDateTimeFlex(Date(f.lastUpdateTime))
+                        FeedPropertySortIndex.Commented -> formatDateTimeFlex(f.commentTime)
+                        else -> formatDateTimeFlex(f.lastUpdateTime)
                     }
                 }
             }
@@ -290,7 +297,7 @@ class LibraryVM : ViewModel() {
                             val f = findLatest(f_) ?: continue
                             val d = query(Episode::class).query(queryString, f.id).first().find()?.pubDate ?: 0L
                             f.sortValue = d
-                            f.sortInfo = formatDateTimeFlex(Date(d))
+                            f.sortInfo = formatDateTimeFlex(d)
                         }
                     }
                     persistDateSort()
@@ -302,7 +309,7 @@ class LibraryVM : ViewModel() {
                             val f = findLatest(f_) ?: continue
                             val d = query(Episode::class).query(queryString, f.id).first().find()?.downloadTime ?: 0L
                             f.sortValue = d
-                            f.sortInfo = "D: ${formatDateTimeFlex(Date(d))}"
+                            f.sortInfo = "D: ${formatDateTimeFlex(d)}"
                         }
                     }
                     Logd(TAG, "prepareSort queryString: $queryString")
@@ -315,7 +322,7 @@ class LibraryVM : ViewModel() {
                             val f = findLatest(f_) ?: continue
                             val d = query(Episode::class).query(queryString, f.id).first().find()?.lastPlayedTime ?: 0L
                             f.sortValue = d
-                            f.sortInfo = "P: ${formatDateTimeFlex(Date(d))}"
+                            f.sortInfo = "P: ${formatDateTimeFlex(d)}"
                         }
                     }
                     Logd(TAG, "prepareSort queryString: $queryString")
@@ -328,7 +335,7 @@ class LibraryVM : ViewModel() {
                             val f = findLatest(f_) ?: continue
                             val d = query(Episode::class).query(queryString, f.id).first().find()?.commentTime ?: 0L
                             f.sortValue = d
-                            f.sortInfo = "C: ${formatDateTimeFlex(Date(d))}"
+                            f.sortInfo = "C: ${formatDateTimeFlex(d)}"
                         }
                     }
                     Logd(TAG, "prepareSort queryString: $queryString")
@@ -630,7 +637,7 @@ fun LibraryScreen() {
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
-        val isFiltered by remember(vm.subPrefs.feedsFilter, vm.subPrefs.tagsSel.size, vm.subPrefs.langsSel.size, vm.subPrefs.queueSelIds.size) { mutableStateOf(vm.subPrefs.feedsFilter.isNotEmpty() || vm.subPrefs.tagsSel.size != appAttribs.feedTagSet.size || vm.subPrefs.langsSel.size != appAttribs.langSet.size || vm.subPrefs.queueSelIds.size != vm.queueIds.size) }
+        val isFiltered = remember(vm.subPrefs.feedsFilter, vm.subPrefs.tagsSel.size, vm.subPrefs.langsSel.size, vm.subPrefs.queueSelIds.size) { vm.subPrefs.feedsFilter.isNotEmpty() || vm.subPrefs.tagsSel.size != appAttribs.feedTagSet.size || vm.subPrefs.langsSel.size != appAttribs.langSet.size || vm.subPrefs.queueSelIds.size != vm.queueIds.size }
         Box {
             TopAppBar(title = {
                 Row {
@@ -780,7 +787,19 @@ fun LibraryScreen() {
             "OPMLExport" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 exitSelectMode()
                 val exportType = ExportTypes.OPML_SELECTED
-                val title = String.format(exportType.outputNameTemplate, SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()))
+                val ExportDateFormat = LocalDate.Format {
+                    year()
+                    char('-')
+                    monthNumber()
+                    char('-')
+                    day()
+                }
+                fun getExportFileName(outputNameTemplate: String): String {
+                    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                    val dateString = today.format(ExportDateFormat)
+                    return outputNameTemplate.replace("%s", dateString)
+                }
+                val title = getExportFileName(exportType.outputNameTemplate)
                 val intentPickAction = Intent(Intent.ACTION_CREATE_DOCUMENT)
                     .addCategory(Intent.CATEGORY_OPENABLE)
                     .setType(exportType.contentType)
@@ -1076,12 +1095,13 @@ fun LibraryScreen() {
                             ConstraintLayout(Modifier.fillMaxSize()) {
                                 val (coverImage, episodeCount, rating, error) = createRefs()
                                 AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "coverImage",
+                                    colorFilter = if (feed?.inNormalVolume != true) ColorFilter.tint(color = Color.Gray.copy(alpha = 0.5f), blendMode = BlendMode.SrcAtop) else null,
                                     modifier = Modifier.fillMaxWidth().aspectRatio(1f).constrainAs(coverImage) {
                                         top.linkTo(parent.top)
                                         bottom.linkTo(parent.bottom)
                                         start.linkTo(parent.start)
                                     })
-                                val measureString by remember(feed.episodesCount) { mutableStateOf(NumberFormat.getInstance().format(feed.episodesCount.toLong())) }
+                                val measureString = remember(feed.episodesCount) { formatWithGrouping(feed.episodesCount.toLong()) }
                                 if (measureString.isNotBlank()) Text(measureString, color = buttonAltColor, modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer.copy(0.8f)).constrainAs(episodeCount) {
                                     end.linkTo(parent.end)
                                     top.linkTo(coverImage.top)
@@ -1169,8 +1189,9 @@ fun LibraryScreen() {
                         val imageSize = 60
                         Row(Modifier.height(imageSize.dp).background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)) {
                             Box(modifier = Modifier.size(imageSize.dp)) {
-                                AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.fillMaxSize().clickable(
-                                    onClick = {
+                                AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover",
+                                    colorFilter = if (feed?.inNormalVolume != true) ColorFilter.tint(color = Color.Gray.copy(alpha = 0.5f), blendMode = BlendMode.SrcAtop) else null,
+                                    modifier = Modifier.fillMaxSize().clickable(onClick = {
                                         Logd(TAG, "icon clicked!")
                                         if (!feed.isBuilding) {
                                             if (selectMode) toggleSelected()
@@ -1201,7 +1222,7 @@ fun LibraryScreen() {
                             })) {
                                 Text(feed.title ?: "No title", color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.align(Alignment.TopStart))
                                 Row(modifier = Modifier.align(Alignment.BottomStart)) {
-                                    val measureString by remember(feed.episodesCount) { mutableStateOf(NumberFormat.getInstance().format(feed.episodesCount.toLong()) + " : " + durationInHours(feed.totleDuration/1000, false)) }
+                                    val measureString = remember(feed.episodesCount, feed.totleDuration) { formatWithGrouping(feed.episodesCount.toLong()) + " : " + durationInHours(feed.totleDuration/1000, false) }
                                     Text(measureString, color = textColor, style = MaterialTheme.typography.bodyMedium)
                                     Spacer(modifier = Modifier.weight(1f))
                                     Text(feed.sortInfo, color = textColor, style = MaterialTheme.typography.bodyMedium)
@@ -1629,7 +1650,7 @@ fun LibraryScreen() {
             fun onFilterChanged(newFilterValues: Set<String>) {
                 runOnIOScope {
                     upsert(vm.subPrefs) {
-                        it.feedsFilter = StringUtils.join(newFilterValues, ",")
+                        it.feedsFilter = newFilterValues.joinToString(",")
                         it.feedsFiltered++
                     }
                 }
@@ -1913,7 +1934,7 @@ fun LibraryScreen() {
                         Spacer(Modifier.weight(1f))
                         Button({
                             val v = Volume()
-                            v.id = System.currentTimeMillis()
+                            v.id = getId()
                             upsertBlk(v) {
                                 it.name = name
                                 it.parentId = parent?.id ?: -1L

@@ -29,7 +29,7 @@ import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeAction
 import ac.mdiq.podcini.ui.actions.NoAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
+import ac.mdiq.podcini.activity.MainActivity.Companion.downloadStates
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.screens.LocalNavController
 import ac.mdiq.podcini.ui.screens.Screens
@@ -116,9 +116,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.net.MalformedURLException
 import java.net.URL
-import java.util.Date
+
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 private const val TAG = "EpisodesVM"
 
@@ -172,7 +173,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
     val navController = LocalNavController.current
     val textColor = MaterialTheme.colorScheme.onSurface
     val buttonColor = MaterialTheme.colorScheme.tertiary
-    val localTime = remember { System.currentTimeMillis() }
+    val localTime = remember { nowInMillis() }
 
 //    val currentEntry = navController.navController.currentBackStackEntryAsState().value
 
@@ -402,7 +403,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                         val playState = remember(episode.playState) { EpisodeState.fromCode(episode.playState) }
                                         Icon(imageVector = ImageVector.vectorResource(playState.res), tint = playState.color ?: MaterialTheme.colorScheme.tertiary, contentDescription = "playState", modifier = Modifier.background(if (episode.playState >= EpisodeState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
                                         if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
-                                        val todos = remember(episode.todos.size) { episode.todos.filter { !it.completed }.joinToString(" | ") { it.title + if (it.dueTime > 0) ("D:" + formatDateTimeFlex(Date(it.dueTime))) else "" } }
+                                        val todos = remember(episode.todos.size) { episode.todos.filter { !it.completed }.joinToString(" | ") { it.title + if (it.dueTime > 0) ("D:" + formatDateTimeFlex(it.dueTime)) else "" } }
                                         Spacer(Modifier.width(10.dp))
                                         Text(todos, color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                     }
@@ -416,7 +417,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                         if (episode.comment.isNotBlank()) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_comment_24), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "comment", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
                                         if (episode.getMediaType() == MediaType.VIDEO) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_videocam), tint = textColor, contentDescription = "isVideo", modifier = Modifier.width(16.dp).height(16.dp))
                                         val dateSizeText = remember(episode.id) {
-                                            " · " + formatDateTimeFlex(Date(episode.pubDate)) + " · " + durationStringFull(episode.duration) +
+                                            " · " + formatDateTimeFlex(episode.pubDate) + " · " + durationStringFull(episode.duration) +
                                                     (if (episode.size > 0) " · " + Formatter.formatShortFileSize(context, episode.size) else "") +
                                                     (if (episode.viewCount > 0) " · " + formatLargeInteger(episode.viewCount) else "") +
                                                     (if (episode.likeCount > 0) " · " + formatLargeInteger(episode.likeCount) else "")
@@ -443,7 +444,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                             Text(dateSizeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         }
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            val dateSizeText = remember { formatDateTimeFlex(Date(episode.pubDate)) }
+                                            val dateSizeText = remember { formatDateTimeFlex(episode.pubDate) }
                                             Text(dateSizeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                             if (episode.viewCount > 0) {
                                                 val viewText = remember { " · " + formatLargeInteger(episode.viewCount) }
@@ -470,7 +471,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                 }
                                 when (episode.playState) {
                                     EpisodeState.AGAIN.code, EpisodeState.LATER.code -> {
-                                        val dueText = remember { if (episode.repeatTime > 0) "D:" + formatDateTimeFlex(episode.dueDate) else "" }
+                                        val dueText = remember { if (episode.repeatTime > 0) "D:" + formatDateTimeFlex(episode.repeatTime) else "" }
                                         if (dueText.isNotBlank()) {
                                             val bgColor = if (localTime > episode.repeatTime) Color.Cyan else MaterialTheme.colorScheme.surface
                                             Text(dueText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.background(bgColor))
@@ -478,9 +479,9 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                     }
                                     EpisodeState.SKIPPED.code -> {
                                         val dateSizeText = remember(episode.id) {
-                                            (if (episode.lastPlayedTime > 0) "P:" + formatDateTimeFlex(episode.lastPlayedDate) else "") +
-                                                    (if (episode.playbackCompletionTime > 0) " · C:" + formatDateTimeFlex(episode.playbackCompletionDate) else "") +
-                                                    (if (episode.playStateSetTime > 0) " · S:" + formatDateTimeFlex(episode.playStateSetDate) else "") +
+                                            (if (episode.lastPlayedTime > 0) "P:" + formatDateTimeFlex(episode.lastPlayedTime) else "") +
+                                                    (if (episode.playbackCompletionTime > 0) " · C:" + formatDateTimeFlex(episode.playbackCompletionTime) else "") +
+                                                    (if (episode.playStateSetTime > 0) " · S:" + formatDateTimeFlex(episode.playStateSetTime) else "") +
                                                     (if (episode.playedDuration > 0) " · " + durationStringFull(episode.playedDuration) else "") }
                                         Text(dateSizeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
@@ -523,7 +524,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                                 actionButton.onClick()
                                                 actionButtonCB?.invoke(episode, actType)
                                             }) }) {
-                                        val dlStats by remember { derivedStateOf { downloadStates[episode.downloadUrl] } }
+                                        val dlStats = downloadStates[episode.downloadUrl]
                                         if (dlStats != null) {
                                             Logd(TAG, "${episode.id} dlStats: ${dlStats?.progress} ${dlStats?.state}")
                                             actionButton.processing = dlStats!!.progress
@@ -547,8 +548,8 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                 val dur = episode.duration
                                 return if (dur > 0 && pos >= 0 && dur >= pos) 1f * pos / dur else 0f
                             }
-                            val prog by remember(episode.id, episode.position) { mutableFloatStateOf(calcProg()) }
-                            val posText by remember(episode.id, episode.position) { mutableStateOf(durationStringFull(episode.position)) }
+                            val prog = remember(episode.id, episode.position) { calcProg() }
+                            val posText = remember(episode.id, episode.position) { durationStringFull(episode.position) }
                             val durText = remember(episode.id) { durationStringFull(episode.duration) }
                             Row {
                                 Text(posText, color = textColor, style = MaterialTheme.typography.bodySmall)
@@ -702,7 +703,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                         val almostEnded = e.hasAlmostEnded()
                                         if (almostEnded) {
                                             if (e.playState < EpisodeState.PLAYED.code) e.setPlayState(EpisodeState.PLAYED)
-                                            e.playbackCompletionDate = Date()
+                                            e.playbackCompletionTime = nowInMillis()
                                         }
                                     }
                                 }

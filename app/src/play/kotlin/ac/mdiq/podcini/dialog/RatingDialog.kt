@@ -3,17 +3,17 @@ package ac.mdiq.podcini.ui.dialog
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.storage.database.syncPrefs
 import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import android.app.Activity
 import android.content.Context
-import android.content.SharedPreferences
 import com.google.android.play.core.review.ReviewInfo
 import com.google.android.play.core.review.ReviewManager
 import com.google.android.play.core.review.ReviewManagerFactory
 import com.google.android.play.core.tasks.Task
 import java.lang.ref.WeakReference
-import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.milliseconds
 
 object RatingDialog {
     private val TAG: String = RatingDialog::class.simpleName ?: "Anonymous"
@@ -68,16 +68,16 @@ object RatingDialog {
     }
 
     private fun resetStartDate() {
-        upsertBlk(syncPrefs) { it.KEY_FIRST_START_DATE = System.currentTimeMillis() }
+        upsertBlk(syncPrefs) { it.KEY_FIRST_START_DATE = nowInMillis() }
     }
 
     private fun shouldShow(): Boolean {
         if (rated() || BuildConfig.DEBUG) return false
 
-        val now = System.currentTimeMillis()
+        val now = nowInMillis()
         val firstDate: Long = syncPrefs.KEY_FIRST_START_DATE.takeIf { it != 0L } ?: now
         val diff = now - firstDate
-        val diffDays = TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS)
+        val diffDays = diff.milliseconds.inWholeDays
         return diffDays >= AFTER_DAYS
     }
 }

@@ -1,7 +1,5 @@
 package ac.mdiq.podcini.storage.specs
 
-import org.apache.commons.lang3.StringUtils
-
 class FeedFunding( var url: String?, var content: String?) {
     override fun equals(other: Any?): Boolean {
         if (other == null || other.javaClass != this.javaClass) return false
@@ -35,11 +33,11 @@ class FeedFunding( var url: String?, var content: String?) {
 
             for (str in list) {
                 val linkContent = str.split(FUNDING_TITLE_SEPARATOR.toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-                if (StringUtils.isBlank(linkContent[0])) continue
+                if (linkContent[0].isBlank()) continue
 
                 val url = linkContent[0]
                 var title = ""
-                if (linkContent.size > 1 && !StringUtils.isBlank(linkContent[1])) title = linkContent[1]
+                if (linkContent.size > 1 && linkContent[1].isNotBlank()) title = linkContent[1]
                 funding.add(FeedFunding(url, title))
             }
             return funding
@@ -53,7 +51,7 @@ class FeedFunding( var url: String?, var content: String?) {
                 result.append(fund.url).append(FUNDING_TITLE_SEPARATOR).append(fund.content)
                 result.append(FUNDING_ENTRIES_SEPARATOR)
             }
-            return StringUtils.removeEnd(result.toString(), FUNDING_ENTRIES_SEPARATOR)
+            return result.toString().removeSuffix(FUNDING_ENTRIES_SEPARATOR)
         }
     }
 }

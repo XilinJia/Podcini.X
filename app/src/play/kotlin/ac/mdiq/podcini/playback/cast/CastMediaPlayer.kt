@@ -42,6 +42,7 @@ import com.google.android.gms.common.images.WebImage
 import java.io.IOException
 import java.util.Calendar
 import java.util.Date
+
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import kotlin.math.min
@@ -50,7 +51,6 @@ import kotlin.math.min
  * Implementation of MediaPlayerBase suitable for remote playback on Cast Devices.
  */
 @SuppressLint("VisibleForTests")
-
 class CastMediaPlayer : MediaPlayerBase() {
     @Volatile
     private var mediaInfo: MediaInfo? = null

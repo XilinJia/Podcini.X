@@ -27,11 +27,11 @@ import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationStringFull
-import ac.mdiq.podcini.ui.activity.EpisodeInfoActivity
-import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.ui.activity.PlayerUIActivity
-import ac.mdiq.podcini.ui.activity.QueuePickerActivity
-import ac.mdiq.podcini.ui.activity.starter.MainActivityStarter
+import ac.mdiq.podcini.activity.EpisodeInfoActivity
+import ac.mdiq.podcini.activity.MainActivity
+import ac.mdiq.podcini.activity.PlayerUIActivity
+import ac.mdiq.podcini.activity.QueuePickerActivity
+import ac.mdiq.podcini.activity.starter.MainActivityStarter
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.formatDateTimeFlex
@@ -83,7 +83,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.Date
+
 
 private const val TAG = "WidgetReceiver"
 class WidgetReceiver : GlanceAppWidgetReceiver() {
@@ -140,7 +140,7 @@ class PodciniWidget : GlanceAppWidget() {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Image(provider = ImageProvider(EpisodeState.fromCode(episode.playState).res), contentDescription = "playState", colorFilter = ColorFilter.tint(buttonColorProvider), modifier = GlanceModifier.size(16.dp))
                                     if (episode.rating != Rating.UNRATED.code) Image(provider = ImageProvider(Rating.fromCode(episode.rating).res), contentDescription = "rating", colorFilter = ColorFilter.tint(buttonColorProvider), modifier = GlanceModifier.size(16.dp))
-                                    val dateSizeText = " · " + formatDateTimeFlex(Date(episode.pubDate)) + " · " + durationStringFull(episode.duration) + (if (episode.size > 0) " · " + Formatter.formatShortFileSize(context, episode.size) else "") + (if (episode.viewCount > 0) " · " + formatLargeInteger(episode.viewCount) else "")
+                                    val dateSizeText = " · " + formatDateTimeFlex(episode.pubDate) + " · " + durationStringFull(episode.duration) + (if (episode.size > 0) " · " + Formatter.formatShortFileSize(context, episode.size) else "") + (if (episode.viewCount > 0) " · " + formatLargeInteger(episode.viewCount) else "")
                                     Text(dateSizeText, style = TextStyle(color = textColorProvider, fontSize = 10.sp), maxLines = 1)
                                 }
                             }

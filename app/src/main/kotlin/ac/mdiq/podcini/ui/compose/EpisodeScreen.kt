@@ -19,7 +19,7 @@ import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.Combo
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
+import ac.mdiq.podcini.activity.MainActivity.Companion.downloadStates
 import ac.mdiq.podcini.ui.screens.psState
 import ac.mdiq.podcini.ui.screens.LocalNavController
 import ac.mdiq.podcini.ui.screens.PSState
@@ -111,7 +111,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import net.dankito.readability4j.extended.Readability4JExtended
 import java.io.File
-import java.util.Date
+
 import java.util.Locale
 
 private const val TAG: String = "EpisodeScreen"
@@ -477,8 +477,8 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                             val playState = remember(episode.playState) { EpisodeState.fromCode(episode.playState) }
                             Icon(imageVector = ImageVector.vectorResource(playState.res), tint = playState.color ?: MaterialTheme.colorScheme.tertiary, contentDescription = "playState", modifier = Modifier.background(if (episode.playState >= EpisodeState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
                             if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
-                            val pubTimeText by remember(episode.id) { mutableStateOf(formatDateTimeFlex(Date(episode.pubDate))) }
-                            val txtvDuration by remember(episode.id) { mutableStateOf(if (episode.duration > 0) durationStringFull(episode.duration) else "") }
+                            val pubTimeText = remember(episode.id) { formatDateTimeFlex(episode.pubDate) }
+                            val txtvDuration = remember(episode.id) { if (episode.duration > 0) durationStringFull(episode.duration) else "" }
                             var txtvSize by remember(episode.id) { mutableStateOf("") }
                             LaunchedEffect(episode.id) {
                                 txtvSize = when {
@@ -515,7 +515,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                     }
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    val txtvPodcast by remember(episode) { mutableStateOf( if (episodeFeed != null) (if (episodeFeed.isSynthetic() && episode.origFeedTitle != null) episode.origFeedTitle!! else episodeFeed.title ?: "") else "") }
+                    val txtvPodcast = remember(episodeFeed?.id, episode.origFeedTitle) {  if (episodeFeed != null) (if (episodeFeed.isSynthetic() && episode.origFeedTitle != null) episode.origFeedTitle!! else episodeFeed.title ?: "") else "" }
                     SelectionContainer { Text(txtvPodcast, color = textColor, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis) }
                 }
                 Column(modifier = Modifier.fillMaxWidth().padding(bottom = 50.dp)) {

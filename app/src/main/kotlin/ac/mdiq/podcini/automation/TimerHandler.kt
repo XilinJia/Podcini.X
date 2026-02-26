@@ -3,6 +3,7 @@ package ac.mdiq.podcini.automation
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.receiver.AlarmReceiver
 import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.getId
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Timer
@@ -43,7 +44,7 @@ fun playEpisodeAtTime(triggerTime: Long, episodeId: Long, repeat: Boolean = fals
     }
 
     val timer = Timer()
-    timer.id = System.currentTimeMillis()
+    timer.id = getId()
     timer.episodeId = episodeId
     timer.triggerTime = triggerTime
     timer.alarmId = idFromTriggerTime(triggerTime)

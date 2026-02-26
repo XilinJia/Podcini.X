@@ -112,7 +112,9 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -152,9 +154,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.apache.commons.lang3.StringUtils
 import java.net.URL
-import java.util.Date
+import ac.mdiq.podcini.storage.utils.nowInMillis
+
 
 enum class FeedScreenMode {
     List,
@@ -312,7 +314,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
         if (showChooseRatingDialog) ChooseRatingDialog(listOf(feed!!)) { showChooseRatingDialog = false }
 
-        if (showRemoveFeedDialog) RemoveFeedDialog(listOf(feed!!), onDismissRequest = { showRemoveFeedDialog = false }) { navController.navigate(defaultScreen) }
+        if (showRemoveFeedDialog) RemoveFeedDialog(listOf(feed!!), onDismissRequest = { showRemoveFeedDialog = false }) { navController.navigate(Screens.Library.name) }
 
         if (feed != null && showFilterDialog) {
             vm.showHeader = false
@@ -387,13 +389,14 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 width = Dimension.fillToConstraints
             }) {
                 AsyncImage(model = feed?.imageUrl ?: "", alignment = Alignment.TopStart, contentDescription = "imgvCover", error = painterResource(R.drawable.ic_launcher_foreground),
+                    colorFilter = if (feed?.inNormalVolume != true) ColorFilter.tint(color = Color.Gray.copy(alpha = 0.5f), blendMode = BlendMode.SrcAtop) else null,
                     modifier = Modifier.width(60.dp).height(60.dp).combinedClickable(
                         onClick = { if (feed != null) vm.screenModeFlow.value = (if (screenMode == FeedScreenMode.Info) FeedScreenMode.List else FeedScreenMode.Info) },
                         onLongClick = { onImgLongClick() }))
                 if (feed != null) Text(feed?.title ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 4.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
             if (feed != null) {
-                val ratingIconRes by remember { derivedStateOf { Rating.fromCode(feed!!.rating).res } }
+                val ratingIconRes = remember(feed?.rating) {  Rating.fromCode(feed?.rating?:0).res }
                 Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.padding(end = 10.dp, bottom = 5.dp).background(MaterialTheme.colorScheme.tertiaryContainer).clickable(onClick = { showChooseRatingDialog = true }).constrainAs(rating) {
                         end.linkTo(parent.end)
                         bottom.linkTo(parent.bottom)
@@ -417,15 +420,15 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             } ))  },
                 actions = {
                     if (screenMode == FeedScreenMode.List) {
-                        val isFiltered by remember(feed?.filterString) { mutableStateOf(!feed?.filterString.isNullOrBlank() && !feed?.episodeFilter?.propertySet.isNullOrEmpty()) }
+                        val isFiltered = remember(feed?.filterString, feed?.episodeFilter?.propertySet) { !feed?.filterString.isNullOrBlank() && !feed?.episodeFilter?.propertySet.isNullOrEmpty() }
                         IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort") }
-                        val filterButtonColor by remember { derivedStateOf { if (vm.enableFilter) if (isFiltered) buttonAltColor else textColor else Color.Red } }
+                        val filterButtonColor = remember(vm.enableFilter) {  if (vm.enableFilter) if (isFiltered) buttonAltColor else textColor else Color.Red }
                         if (feed != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter_white), tint = filterButtonColor, contentDescription = "butFilter", modifier = Modifier.padding(horizontal = 5.dp).combinedClickable(
                             onClick = { if (vm.enableFilter) showFilterDialog = true },
                             onLongClick = { if (isFiltered) vm.enableFilter = !vm.enableFilter })
                         )
                     }
-                    val histColor by remember(screenMode) { derivedStateOf { if (screenMode != FeedScreenMode.History) textColor else buttonAltColor } }
+                    val histColor = remember(screenMode) {  if (screenMode != FeedScreenMode.History) textColor else buttonAltColor }
                     if (screenMode in listOf(FeedScreenMode.List, FeedScreenMode.History) && feed != null) IconButton(onClick = {
                         vm.cameBack = false
                         vm.screenModeFlow.value = when(screenMode) {
@@ -506,7 +509,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     @Composable
     fun DetailUI() {
         var showEditComment by remember { mutableStateOf(false) }
-        val localTime = remember { System.currentTimeMillis() }
+        val localTime = remember { nowInMillis() }
         var editCommentText by remember { mutableStateOf(TextFieldValue(feed?.comment ?: "")) }
         if (feed != null && showEditComment) CommentEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = {showEditComment = false},
             onSave = {
@@ -557,7 +560,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         setOnlineSearchTerms(query = "${feed?.author} podcasts")
                         navController.navigate(Screens.FindFeeds.name)
                     }))
-                Text(stringResource(R.string.last_full_update) + ": ${formatDateTimeFlex(Date(feed?.lastFullUpdateTime?:0L))}", modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+                Text(stringResource(R.string.last_full_update) + ": ${formatDateTimeFlex(feed?.lastFullUpdateTime?:0L)}", modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                 Text(stringResource(R.string.url_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                 Text(text = feed?.downloadUrl ?: "", color = textColor, modifier = Modifier.padding(bottom = 15.dp).combinedClickable(
                     onClick = { if (!feed?.downloadUrl.isNullOrBlank()) openInBrowser(feed!!.downloadUrl!!) },
@@ -593,7 +596,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                             sb.append(if (funding.content == null || funding.content!!.isEmpty())  supportPodcast else funding.content).append(" ").append(funding.url)
                             sb.append("\n")
                         }
-                        return StringBuilder(StringUtils.trim(sb.toString())).toString()
+                        return StringBuilder(sb.toString().trim()).toString()
                     }
                     val fundText = remember { fundingText() }
                     Text(fundText, color = textColor)
@@ -654,14 +657,14 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     }
                 ) }
                 Logd(TAG, "feed?.prefActionType: ${feed?.prefActionType}")
-                val actionButtonName by remember(feed?.prefActionType) { mutableStateOf(
+                val actionButtonName = remember(feed?.prefActionType, feed?.downloadUrl) {
                     when {
                         feed == null -> null
                         feed?.prefActionType != null -> feed!!.prefActionType!!
                         feed?.downloadUrl == null -> null
                         gearbox.isGearFeed(URL(feed!!.downloadUrl!!)) -> ButtonTypes.STREAM.name
                         else -> null
-                    } ) }
+                    } }
                 Logd(TAG, "actionButtonName: $actionButtonName")
                 EpisodeLazyColumn(episodes, feed = feed, layoutMode = if (feed?.useWideLayout == true) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal,
                     swipeActions = swipeActions,
@@ -684,11 +687,11 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         }
                     },
                     selectModeCB = { vm.showHeader = !it },
-                    actionButtonType = if (actionButtonName != null) ButtonTypes.valueOf(actionButtonName!!) else null,
+                    actionButtonType = if (actionButtonName != null) ButtonTypes.valueOf(actionButtonName) else null,
                     actionButtonCB = { e, type ->
                         Logd(TAG, "actionButtonCB type: $type ${e.feed?.id} ${feed?.id}")
                         if (e.feed?.id == feed?.id) {
-                            if (type in streamActions + playActions + listOf(ButtonTypes.PLAY_LOCAL)) runOnIOScope { upsert(feed!!) { it.lastPlayed = Date().time } }
+                            if (type in streamActions + playActions + listOf(ButtonTypes.PLAY_LOCAL)) runOnIOScope { upsert(feed!!) { it.lastPlayed = nowInMillis() } }
                             if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM))
                                 runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, feed!!.episodeSortOrder, true) }
                         }

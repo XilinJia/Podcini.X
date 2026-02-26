@@ -59,7 +59,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.util.Date
+import ac.mdiq.podcini.storage.utils.nowInMillis
+
 
 abstract class EpisodeAction {
     abstract val id: String
@@ -350,13 +351,13 @@ class SearchSelected : EpisodeAction() {
     override fun ActionOptions() {
         if (showSearchDialog && onEpisode?.title != null) {
             var textFieldValue by remember { mutableStateOf(TextFieldValue(onEpisode!!.title!!)) }
-            val selectedText by remember(textFieldValue.selection) { mutableStateOf(
+            val selectedText = remember(textFieldValue.selection.collapsed, textFieldValue.selection.start, textFieldValue.selection.end) {
                 if (textFieldValue.selection.collapsed) ""
                 else {
                     val start = textFieldValue.selection.start.coerceIn(0, textFieldValue.text.length)
                     val end = textFieldValue.selection.end.coerceIn(start, textFieldValue.text.length)
                     textFieldValue.text.substring(startIndex = start, endIndex = end)
-                }) }
+                } }
             AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { showSearchDialog = false },
                 title = { Text(stringResource(R.string.select_text_to_search), style = CustomTextStyles.titleCustom) },
                 text = { TextField(value = textFieldValue, onValueChange = { textFieldValue = it }, readOnly = true, textStyle = TextStyle(fontSize = 18.sp), modifier = Modifier.fillMaxWidth().padding(16.dp).border(1.dp, MaterialTheme.colorScheme.primary)) },
@@ -432,7 +433,7 @@ class Delete() : EpisodeAction() {
             if (almostEnded) {
                 item_ = upsert(item_) {
                     if (it.playState < EpisodeState.PLAYED.code) it.setPlayState(EpisodeState.PLAYED)
-                    it.playbackCompletionDate = Date()
+                    it.playbackCompletionTime = nowInMillis()
                 }
             }
             deleteEpisodesWarnLocalRepeat(listOf(item_))
@@ -459,27 +460,25 @@ class RemoveFromHistory() : EpisodeAction() {
     override fun performAction(e: Episode) {
         super.performAction(e)
 
-        fun setHistoryDates(lastPlayed: Long = 0, completed: Date = Date(0)) {
+        fun setHistoryDates(lastPlayed: Long = 0, completed: Long = 0L) {
             runOnIOScope {
                 val episode_ = realm.query(Episode::class).query("id == $0", e.id).first().find()
                 if (episode_ != null) {
                     upsert(episode_) {
                         it.lastPlayedTime = lastPlayed
-                        it.playbackCompletionDate = completed
+                        it.playbackCompletionTime = completed
                     }
                 }
             }
         }
 
-        val playbackCompletionDate = e.playbackCompletionDate
-        val lastPlayedDate = e.lastPlayedTime
         setHistoryDates()
         commonConfirm = CommonConfirmAttrib(
             title = getAppContext().getString(R.string.removed_history_label),
             message = "",
             confirmRes = R.string.undo,
             cancelRes = R.string.no,
-            onConfirm = {  if (playbackCompletionDate != null) setHistoryDates(lastPlayedDate, playbackCompletionDate) })
+            onConfirm = {  if (e.playbackCompletionTime > 0L) setHistoryDates(e.lastPlayedTime, e.playbackCompletionTime) })
     }
 }
 

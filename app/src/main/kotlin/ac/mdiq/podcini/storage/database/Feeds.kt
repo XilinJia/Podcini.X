@@ -13,7 +13,6 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_ROOT
-import ac.mdiq.podcini.storage.model.Feed.Companion.newId
 import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.parser.Id3MetadataReader
 import ac.mdiq.podcini.storage.parser.VorbisCommentMetadataReader
@@ -33,6 +32,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.parsePatternTimestampToMillis
 import android.app.backup.BackupManager
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -53,14 +53,11 @@ import kotlinx.coroutines.runBlocking
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.IOException
-import java.text.DateFormat
-import java.text.ParseException
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.UUID
 import kotlin.math.abs
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import kotlin.use
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 private const val TAG: String = "Feeds"
 
@@ -208,8 +205,8 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
     }
     Logd(TAG, "updateFeedFull savedFeed.isLocalFeed: ${savedFeed.isLocalFeed} savedFeed.prefStreamOverDownload: ${savedFeed.prefStreamOverDownload}")
     val priorMostRecent = savedFeed.mostRecentItem
-    val priorMostRecentDate = priorMostRecent?.let { Date(it.pubDate) }
-    var idLong = newId()
+    val priorMostRecentDate = priorMostRecent?.let { it.pubDate }
+    var idLong = getId()
     Logd(TAG, "updateFeedFull building savedFeedAssistant")
     val savedFeedAssistant = FeedAssistant(savedFeed)
     val oldestDate = savedFeed.oldestItem?.pubDate ?: 0L
@@ -250,8 +247,8 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
 
             savedFeedAssistant.addidvToMap(episode)
 
-            val pubDate = Date(episode.pubDate)
-            if (priorMostRecentDate == null || priorMostRecentDate.before(pubDate) || priorMostRecentDate == pubDate) {
+            val pubDate = (episode.pubDate)
+            if (priorMostRecentDate == null || priorMostRecentDate < (pubDate) || priorMostRecentDate == pubDate) {
                 Logd(TAG, "updateFeedFull Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
                 episode = upsertBlk(episode) { it.setPlayState(EpisodeState.NEW) }
                 if (savedFeed.autoAddNewToQueue && savedFeed.queue != null) runOnIOScope { addToAssQueue(listOf(episode)) }
@@ -280,8 +277,8 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
 
     // update attributes
     savedFeed.lastUpdate = newFeed.lastUpdate
-    savedFeed.lastUpdateTime = System.currentTimeMillis()
-    savedFeed.lastFullUpdateTime = System.currentTimeMillis()
+    savedFeed.lastUpdateTime = nowInMillis()
+    savedFeed.lastFullUpdateTime = nowInMillis()
     savedFeed.type = newFeed.type
     savedFeed.lastUpdateFailed = false
     savedFeed.totleDuration = 0
@@ -316,15 +313,15 @@ suspend fun updateFeedSimple(newFeed: Feed) {
         savedFeed.nextPageLink = newFeed.nextPageLink
     }
     val priorMostRecents = savedFeed.mostRecentItems
-    val priorMostRecentDate = Date(savedFeed.lastUpdateTime)
-    var idLong = newId()
+    val priorMostRecentDate = savedFeed.lastUpdateTime
+    var idLong = getId()
     Logd(TAG, "updateFeedSimple building savedFeedAssistant")
 
     // Look for new or updated Items
     for (idx in newFeed.episodes.indices) {
         var episode = newFeed.episodes[idx]
         if (episode.duration < 1000) continue
-        val pubDate = Date(episode.pubDate)
+        val pubDate = episode.pubDate
         if (pubDate <= priorMostRecentDate || episode.downloadUrl in priorMostRecents.map { it.downloadUrl} || episode.title in priorMostRecents.map { it.title }) continue
 
         Logd(TAG, "Found new episode: ${episode.title}")
@@ -342,7 +339,7 @@ suspend fun updateFeedSimple(newFeed: Feed) {
 
     // update attributes
     savedFeed.lastUpdate = newFeed.lastUpdate
-    savedFeed.lastUpdateTime = System.currentTimeMillis()
+    savedFeed.lastUpdateTime = nowInMillis()
     savedFeed.type = newFeed.type
     savedFeed.lastUpdateFailed = false
     savedFeed.totleDuration = 0
@@ -357,7 +354,7 @@ suspend fun updateFeedSimple(newFeed: Feed) {
 }
 
 suspend fun computeScores(f: Feed) {
-    val cTime = System.currentTimeMillis()
+    val cTime = nowInMillis()
     if (cTime - f.scoreUpdated < DAY_MIL) return
     val upCount = realm.query(Episode::class).query("feedId == $0 AND (ratingTime > $1 OR playStateSetTime > $1)", f.id, f.scoreUpdated).count().find()
     if (upCount == 0L || (upCount < 4L && cTime - f.scoreUpdated < FOUR_DAY_MIL)) return
@@ -414,15 +411,15 @@ fun persistFeedLastUpdateFailed(feed: Feed, lastUpdateFailed: Boolean) : Job {
 
 fun addNewFeed(feed: Feed) {
     Logd(TAG, "addNewFeeds called")
-    feed.lastUpdateTime = System.currentTimeMillis()
-    feed.lastFullUpdateTime = System.currentTimeMillis()
+    feed.lastUpdateTime = nowInMillis()
+    feed.lastFullUpdateTime = nowInMillis()
     realm.writeBlocking {
-        var idLong = newId()
+        var idLong = getId()
         feed.id = idLong
         feed.totleDuration = 0
         Logd(TAG, "feed.episodes count: ${feed.episodes.size}")
         for (episode in feed.episodes) {
-            episode.id = idLong++
+            episode.id = getId()
             Logd(TAG, "addNewFeeds ${episode.id} ${episode.downloadUrl}")
             episode.feedId = feed.id
             feed.totleDuration += episode.duration
@@ -471,7 +468,7 @@ suspend fun shelveToFeed(episodes: List<Episode>, toFeed: Feed, removeChecked: B
         var e_ = e
         if (!removeChecked || (e.feedId != null && e.feedId!! >= MAX_SYNTHETIC_ID)) {
             e_ = realm.copyFromRealm(e)
-            e_.id = newId()
+            e_.id = getId()
             if (e.feedId != null && e.feedId!! >= MAX_SYNTHETIC_ID) {
                 e_.origFeedTitle = e.feed?.title
                 e_.origFeeddownloadUrl = e.feed?.downloadUrl
@@ -534,7 +531,7 @@ fun addRemoteToMiscSyndicate(episode: Episode) {
     //            episode.origFeedlink = episode.feed?.link
     //        }
 //    episode.feed = feed
-    episode.id = newId()
+    episode.id = getId()
     episode.feedId = feed.id
     upsertBlk(episode) {}
 //    feed.episodes.add(episode)
@@ -711,6 +708,7 @@ class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L, private 
     fun clear() = map.clear()
 }
 
+@OptIn(ExperimentalUuidApi::class)
 fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) {
     /**
      * Android's DocumentFile is slow because every single method call queries the ContentResolver.
@@ -730,11 +728,11 @@ fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) {
         return Feed.PREFIX_GENERATIVE_COVER + folderUri
     }
     fun createEpisode(feed: Feed, file: FastDocumentFile): Episode {
-        val item = Episode(0L, file.name, UUID.randomUUID().toString(), file.name, Date(file.lastModified), EpisodeState.UNPLAYED.code, feed)
+        val item = Episode(0L, file.name, Uuid.random().toString(), file.name, file.lastModified, EpisodeState.UNPLAYED.code, feed)
         item.isAutoDownloadEnabled = false
         val size = file.length
         Logd(TAG, "createEpisode file.uri: ${file.uri}")
-        item.fillMedia(0, 0, size, file.type, file.uri.toString(), file.uri.toString(), false, null, 0, 0)
+        item.fillMedia(0, 0, size, file.type, file.uri.toString(), file.uri.toString(), false, 0L, 0, 0)
         val episodes = feed.episodes
         for (existingItem in episodes) {
             if (existingItem.downloadUrl == file.uri.toString() && existingItem.size == file.length) {
@@ -751,12 +749,11 @@ fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) {
                 val dateStr = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)
                 if (!dateStr.isNullOrEmpty() && dateStr != NULL_DATE_PLACEHOLDER) {
                     try {
-                        val simpleDateFormat = SimpleDateFormat("yyyyMMdd'T'HHmmss", Locale.getDefault())
-                        item.pubDate = simpleDateFormat.parse(dateStr)?.time ?: 0L
-                    } catch (e: ParseException) {
+                        item.pubDate = parsePatternTimestampToMillis("yyyyMMdd'T'HHmmss", dateStr)?: 0L
+                    } catch (e: Throwable) {
                         Logs(TAG, e, "loadMetadata failed")
                         val date = parseDate(dateStr)
-                        if (date != null) item.pubDate = date.time
+                        if (date != null) item.pubDate = date.toEpochMilliseconds()
                     }
                 }
                 val title = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
@@ -856,7 +853,7 @@ fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) {
         val downloadResults = getFeedDownloadLog(feed.id).toMutableList()
         // report success if never reported before
         if (downloadResults.isEmpty()) return true
-        downloadResults.sortWith { ds1: DownloadResult, ds2: DownloadResult -> ds1.getCompletionDate().compareTo(ds2.getCompletionDate()) }
+        downloadResults.sortWith { ds1: DownloadResult, ds2: DownloadResult -> (ds1.completionTime - ds2.completionTime).toInt() }
         val lastDownloadResult = downloadResults[downloadResults.size - 1]
         // report success if the last update was not successful
         // (avoid logging success again if the last update was ok)
@@ -879,13 +876,13 @@ internal fun canonicalizeTitle(title: String?): String {
     if (title == null) return ""
     return title.trim { it <= ' ' }.replace('“', '"').replace('”', '"').replace('„', '"').replace('—', '-')
 }
-internal fun datesLookSimilar(item1: Episode, item2: Episode): Boolean {
-    //            if (item1.getPubDate() == null || item2.getPubDate() == null) return false
-    val dateFormat = DateFormat.getDateInstance(DateFormat.SHORT, Locale.US) // MM/DD/YY
-    val dateOriginal = dateFormat.format(item2.pubDate)
-    val dateNew = dateFormat.format(item1.pubDate)
-    return dateOriginal == dateNew // Same date; time is ignored.
-}
+//internal fun datesLookSimilar(item1: Episode, item2: Episode): Boolean {
+//    //            if (item1.getPubDate() == null || item2.getPubDate() == null) return false
+//    val dateFormat = DateFormat.getDateInstance(DateFormat.SHORT, Locale.US) // MM/DD/YY
+//    val dateOriginal = dateFormat.format(item2.pubDate)
+//    val dateNew = dateFormat.format(item1.pubDate)
+//    return dateOriginal == dateNew // Same date; time is ignored.
+//}
 internal fun durationsLookSimilar(media1: Episode, media2: Episode): Boolean {
     return abs((media1.duration - media2.duration).toDouble()) < 10 * 60L * 1000L
 }

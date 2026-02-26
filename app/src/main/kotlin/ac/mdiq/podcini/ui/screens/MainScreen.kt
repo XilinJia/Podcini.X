@@ -5,8 +5,8 @@ import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isRemember
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.compose.LargePoster
@@ -37,6 +37,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -54,44 +55,27 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val TAG = "MainScreen"
 
 private var initScreen by mutableStateOf<String?>(null)
 private var intendedScreen by mutableStateOf("")
 
-private var navStackJob: Job? = null
-fun monitorNavStack(navController: NavHostController) {
-    fun NavBackStackEntry.resolvedRoute(): String {
-        val template = destination.route ?: return ""
-        var resolved = template
-        arguments?.keySet()?.forEach { key -> resolved = resolved.replace("{$key}", arguments?.get(key)?.toString() ?: "") }
-        return resolved
-    }
-    if (navStackJob == null) navStackJob = CoroutineScope(Dispatchers.Default).launch {
-        navController.currentBackStackEntryFlow.collect { entry ->
-            val resolved = entry.resolvedRoute()
-            runOnIOScope { upsertBlk(appAttribs) { it.prefLastScreen = resolved } }
-            Logd(TAG, "currentBackStackEntryFlow Now at: $resolved")
-        }
-    }
-}
-
-fun cancelNavMonitor() {
-    navStackJob?.cancel()
-    navStackJob = null
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainActivityUI() {
+    val lifecycleOwner = LocalLifecycleOwner.current
     val context by rememberUpdatedState(LocalContext.current)
     val lcScope = rememberCoroutineScope()
     val navController = rememberNavController()
@@ -100,9 +84,39 @@ fun MainActivityUI() {
         if (psState == PSState.Expanded) psState =  PSState.PartiallyExpanded
     } }
 
-//    if (showUnrestrictedBackgroundPermissionDialog) UnrestrictedBackgroundPermissionDialog { showUnrestrictedBackgroundPermissionDialog = false }
+     var navStackJob: Job? by remember { mutableStateOf(null) }
 
-    LaunchedEffect(Unit) { monitorNavStack(navController) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            Logd(TAG, "DisposableEffect LifecycleEventObserver: $event")
+            when (event) {
+                Lifecycle.Event.ON_CREATE -> {}
+                Lifecycle.Event.ON_START -> {}
+                Lifecycle.Event.ON_RESUME -> {}
+                Lifecycle.Event.ON_STOP -> {}
+                Lifecycle.Event.ON_DESTROY -> {}
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            navStackJob?.cancel()
+            navStackJob = null
+        }
+    }
+
+    LaunchedEffect(navController) {
+        fun NavBackStackEntry.resolvedRoute(): String {
+            val template = destination.route ?: return ""
+            var resolved = template
+            arguments?.keySet()?.forEach { key -> resolved = resolved.replace("{$key}", arguments?.get(key)?.toString() ?: "") }
+            return resolved
+        }
+        navController.currentBackStackEntryFlow.map { it.resolvedRoute() }.distinctUntilChanged().collect { resolved ->
+            withContext(Dispatchers.IO) { upsert(appAttribs) { it.prefLastScreen = resolved } }
+            Logd(TAG, "currentBackStackEntryFlow Now at: $resolved")
+        }
+    }
 
     val sheetState = rememberBottomSheetScaffoldState(bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded, skipHiddenState = false))
 
@@ -174,7 +188,11 @@ fun MainActivityUI() {
         }
     }
 
-//    val screenWidth = configuration.screenWidthDp.dp
+    if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
+    if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
+    if (commonMessage != null) LargePoster(commonMessage!!)
+
+    //    val screenWidth = configuration.screenWidthDp.dp
     val windowInfo = LocalWindowInfo.current
     val screenWidth = windowInfo.containerSize.width.dp
     Logd(TAG, "before CompositionLocalProvider")
@@ -183,10 +201,6 @@ fun MainActivityUI() {
         ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
             BottomSheetScaffold(sheetContent = { AVPlayerScreen() }, scaffoldState = sheetState, sheetMaxWidth = screenWidth, sheetPeekHeight = bottomInsetPadding + 100.dp, sheetDragHandle = {}, sheetShape = RectangleShape, topBar = {}) { paddingValues ->
                 Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(top = paddingValues.calculateTopPadding(), bottom = dynamicBottomPadding)) {
-                    //                    Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(top = paddingValues.calculateTopPadding(), start = paddingValues.calculateStartPadding(LocalLayoutDirection.current), end = paddingValues.calculateEndPadding(LocalLayoutDirection.current), bottom = dynamicBottomPadding)) {
-                    if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
-                    if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
-                    if (commonMessage != null) LargePoster(commonMessage!!)
                     Navigate(navController, initScreen ?: "")
                 }
             }
@@ -253,7 +267,7 @@ fun MainActivityUI() {
                 curruntRoute = currentDestination?.route ?: ""
                 Logd(TAG, "BackHandler curruntRoute: [$curruntRoute]")
             }
-            !isRemember && defPage.isNotBlank() && curruntRoute.isNotBlank() && !haveCommonPrefix(curruntRoute, defPage) -> {
+            appPrefs.defaultPage != DefaultPages.Remember.name && defPage.isNotBlank() && curruntRoute.isNotBlank() && !haveCommonPrefix(curruntRoute, defPage) -> {
                 Logd(TAG, "nav to defPage: $defPage")
                 navigator.navigate(defPage) { popUpTo(0) { inclusive = true } }
                 curruntRoute = currentDestination?.route ?: ""

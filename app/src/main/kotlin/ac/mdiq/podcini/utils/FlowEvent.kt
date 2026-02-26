@@ -9,13 +9,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
-import java.util.Date
+
 import kotlin.math.abs
 import kotlin.math.max
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 sealed class FlowEvent {
     val TAG = this::class.simpleName ?: "FlowEvent"
-    val id: Long = Date().time
+    val id: Long = nowInMillis()
 
     data class PlaybackServiceEvent(val action: Action) : FlowEvent() {
         enum class Action { SERVICE_STARTED, SERVICE_SHUT_DOWN, }

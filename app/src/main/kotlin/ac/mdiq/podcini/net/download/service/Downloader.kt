@@ -6,7 +6,8 @@ import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.model.DownloadResult
 import android.content.Context
 import android.net.wifi.WifiManager
-import java.util.Date
+import ac.mdiq.podcini.storage.utils.nowInMillis
+
 
 abstract class Downloader(val downloadRequest: DownloadRequest) {
     @Volatile
@@ -25,7 +26,7 @@ abstract class Downloader(val downloadRequest: DownloadRequest) {
     init {
         this.downloadRequest.statusMsg = (R.string.download_pending)
         this.cancelled = false
-        this.result = DownloadResult(this.downloadRequest.title?:"", this.downloadRequest.feedfileId, this.downloadRequest.feedfileType, false, null, Date(), "")
+        this.result = DownloadResult(this.downloadRequest.title?:"", this.downloadRequest.feedfileId, this.downloadRequest.feedfileType, false, null, nowInMillis(), "")
     }
 
     protected abstract fun download()

@@ -50,6 +50,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
+import ac.mdiq.podcini.storage.utils.nowInMillis
+import kotlin.time.Duration.Companion.minutes
 
 class FeedUpdateWorkerBase(context: Context, private val params: WorkerParameters) : CoroutineWorker(context, params) {
     private val TAG = "FeedUpdateWorkerBase"
@@ -64,7 +66,7 @@ class FeedUpdateWorkerBase(context: Context, private val params: WorkerParameter
         if (attemptCount > 0) Logt(TAG, "Running backoff refresh due to prior errors")
 
         val isPeriodic = inputData.getBoolean(KEY_IS_PERIODIC, false)
-        if (isPeriodic) upsertBlk(appAttribs) { it.prefLastFullUpdateTime = System.currentTimeMillis() }
+        if (isPeriodic) upsertBlk(appAttribs) { it.prefLastFullUpdateTime = nowInMillis() }
         when {
             !getApp().networkMonitor.isConnected -> {
                 EventFlow.postEvent(FlowEvent.MessageEvent(applicationContext.getString(R.string.download_error_no_connection)))
@@ -135,7 +137,7 @@ object FeedUpdateManager {
     const val KEY_IS_PERIODIC = "is_periodic"
 
     private val intervalInMillis: Long
-        get() = appPrefs.autoUpdateInterval.toLong() * TimeUnit.MINUTES.toMillis(1)
+        get() = appPrefs.autoUpdateInterval.toLong() * 1.minutes.inWholeMilliseconds
 
     var nextRefreshTime by mutableStateOf("")
 
@@ -180,7 +182,7 @@ object FeedUpdateManager {
         else {
             var policy = ExistingWorkPolicy.KEEP
             if (replace) {
-                upsertBlk(appAttribs) { it.prefLastFullUpdateTime = System.currentTimeMillis() }
+                upsertBlk(appAttribs) { it.prefLastFullUpdateTime = nowInMillis() }
                 policy = ExistingWorkPolicy.REPLACE
             }
             if (!mobileAllowFeedRefresh && !force) {

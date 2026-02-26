@@ -1,31 +1,58 @@
 package ac.mdiq.podcini.storage.utils
 
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Logs
-import org.apache.commons.lang3.StringUtils
-import java.text.ParseException
-import java.text.ParsePosition
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
+import kotlinx.datetime.format.DateTimeComponents
+import kotlinx.datetime.format.byUnicodePattern
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 private const val TAG: String = "DateUtils"
 
-private val TIME_ZONE_GMT: TimeZone = TimeZone.getTimeZone("GMT")
-private val RFC822_DATE_FORMAT: ThreadLocal<SimpleDateFormat> = object : ThreadLocal<SimpleDateFormat>() {
-    override fun initialValue(): SimpleDateFormat {
-        val dateFormat = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.US)
-        dateFormat.timeZone = TIME_ZONE_GMT
-        return dateFormat
-    }
+fun nowInMillis(): Long = Clock.System.now().toEpochMilliseconds()
+
+private val monthMap = mapOf(
+    "Jan" to "01",
+    "Feb" to "02",
+    "Mar" to "03",
+    "Apr" to "04",
+    "May" to "05",
+    "Jun" to "06",
+    "Jul" to "07",
+    "Aug" to "08",
+    "Sep" to "09",
+    "Oct" to "10",
+    "Nov" to "11",
+    "Dec" to "12"
+)
+
+fun parseRssPubDate(dateString: String): Instant? {
+    return try {
+        val trimmed = dateString.substringAfter(", ", dateString).trim()
+        val parts = trimmed.split(Regex("\\s+"))
+        if (parts.size < 5) return null
+
+        val day = parts[0].padStart(2, '0')
+        val month = monthMap[parts[1]] ?: return null
+        val year = parts[2]
+        val time = parts[3]
+        val rawOffset = parts[4]
+
+        val offset = when {
+            rawOffset == "GMT" -> "+00:00"
+            rawOffset.matches(Regex("[+-]\\d{4}")) -> rawOffset.substring(0, 3) + ":" + rawOffset.substring(3)
+            rawOffset.matches(Regex("[+-]\\d{2}:\\d{2}")) -> rawOffset
+            else -> return null
+        }
+        val iso = "${year}-${month}-${day}T${time}${offset}"
+        Instant.parse(iso)
+    } catch (e: Exception) { null }
 }
 
-fun parseDate(input: String?): Date? {
-    requireNotNull(input) { "Date must not be null" }
-    try { return RFC822_DATE_FORMAT.get()?.parse(input) } catch (ignored: ParseException) {
-        Logd(TAG, ignored.message ?: "parse date error")
-    }
+fun parseDate(input: String?): Instant? {
+    if (input == null) return null
+
+    val instant = parseRssPubDate(input)
+    if (instant != null) return instant
 
     var date = input.trim { it <= ' ' }.replace('/', '-').replace("( ){2,}+".toRegex(), " ")
     // remove colon from timezone to avoid differences between Android and Java SimpleDateFormat
@@ -46,13 +73,14 @@ fun parseDate(input: String?): Date? {
             current - start >= 4 -> if (current < date.length - 1) date.take(start + 4) + date.substring(current) else date.take(start + 4)
             // less than 4 decimal places: pad to have a consistent format for the parser
             current - start < 4 -> {
-                if (current < date.length - 1) (date.take(current) + StringUtils.repeat("0", 4 - (current - start)) + date.substring(current))
-                else date.take(current) + StringUtils.repeat("0", 4 - (current - start))
+                if (current < date.length - 1) (date.take(current) + "0".repeat(4 - (current - start)) + date.substring(current))
+                else date.take(current) + "0".repeat(4 - (current - start))
             }
             else -> ""
         }
     }
-    val patterns = arrayOf("dd MMM yy HH:mm:ss Z",
+    val patterns = arrayOf(
+        "dd MMM yy HH:mm:ss Z",
         "dd MMM yy HH:mm Z",
         "EEE, dd MMM yyyy HH:mm:ss Z",
         "EEE, dd MMM yyyy HH:mm:ss",
@@ -83,19 +111,13 @@ fun parseDate(input: String?): Date? {
         "EEE d MMM yyyy HH:mm:ss 'GMT'Z (z)"
     )
 
-    val parser = SimpleDateFormat("", Locale.US)
-    parser.isLenient = false
-    parser.timeZone = TIME_ZONE_GMT
-
-    val pos = ParsePosition(0)
     for (pattern in patterns) {
-        parser.applyPattern(pattern)
-        pos.index = 0
         try {
-            val result = parser.parse(date, pos)
-            if (result != null && pos.index == date.length) return result
-        } catch (e: Exception) {
-            Logs(TAG, e)
+            val formatter = DateTimeComponents.Format { byUnicodePattern(pattern) }
+            val result = formatter.parseOrNull(date) ?: continue
+            return try { result.toInstantUsingOffset() } catch (e: Exception) { null }
+        } catch (_: IllegalArgumentException) {
+            continue
         }
     }
 

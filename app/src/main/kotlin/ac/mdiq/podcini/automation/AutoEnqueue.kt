@@ -34,6 +34,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 private const val TAG = "AutoDownloads"
 
@@ -171,7 +172,7 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
             Logd(TAG, "assembleFeedsCandidates autoDLPolicy: ${f.autoDLPolicy.name}")
             val episodes = mutableListOf<Episode>()
             run {
-                val cTime = System.currentTimeMillis()
+                val cTime = nowInMillis()
                 val queryStringAgain = "feedId == ${f.id} AND (playState == ${EpisodeState.AGAIN.code} OR playState == ${EpisodeState.FOREVER.code} OR playState == ${EpisodeState.LATER.code}) AND repeatTime <= $cTime SORT(repeatTime ASC)"
                 val es = realm.query(Episode::class).query(queryStringAgain).find().filter { it.id !in eIdsAllQueues }
                 Logd(TAG, "assembleFeedsCandidates queryStringAgain: [${es.size}] $queryStringAgain")

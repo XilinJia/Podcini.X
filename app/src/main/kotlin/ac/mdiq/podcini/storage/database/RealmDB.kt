@@ -22,8 +22,8 @@ import ac.mdiq.podcini.storage.model.Timer
 import ac.mdiq.podcini.storage.model.Todo
 import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.showStackTrace
 import android.util.Log
@@ -50,6 +50,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.Locale
+import kotlin.concurrent.atomics.AtomicLong
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.coroutines.ContinuationInterceptor
 
 private const val TAG: String = "RealmDB"
@@ -87,7 +89,7 @@ val config: RealmConfiguration by lazy {
                     newObject?.run {
                         val playState = oldObject.getValue<Long>(fieldName = "playState")
                         if (playState == EpisodeState.AGAIN.code.toLong()) {
-                            val t = System.currentTimeMillis() + (8.64e7 * (10..100).random()).toLong()
+                            val t = nowInMillis() + (8.64e7 * (10..100).random()).toLong()
                             set("repeatTime", t)
                         }
                     }
@@ -163,7 +165,7 @@ val config: RealmConfiguration by lazy {
                 val episodes = newRealm.query("Episode").query("playState == ${EpisodeState.FOREVER.code}").find()
                 for (e in episodes) {
                     e.set("repeatInterval", (8.64e7 * 10).toLong())
-                    val t = System.currentTimeMillis() + (8.64e7 * (10..100).random()).toLong()
+                    val t = nowInMillis() + (8.64e7 * (10..100).random()).toLong()
                     e.set("repeatTime", t)
                 }
             }
@@ -274,6 +276,17 @@ fun runOnIOScope(block: suspend () -> Unit) : Job {
     return ioScope.launch {
         if (Dispatchers.IO == coroutineContext[ContinuationInterceptor]) block()
         else withContext(Dispatchers.IO) { block() }
+    }
+}
+
+@OptIn(ExperimentalAtomicApi::class)
+private val lastId = AtomicLong(0)
+@OptIn(ExperimentalAtomicApi::class)
+fun getId(now: Long = nowInMillis()): Long {
+    while (true) {
+        val last = lastId.load()
+        val next = if (now > last) now else last + 1
+        if (lastId.compareAndSet(last, next)) return next
     }
 }
 

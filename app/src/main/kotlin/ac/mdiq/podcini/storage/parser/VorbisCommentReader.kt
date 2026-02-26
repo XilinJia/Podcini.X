@@ -11,7 +11,9 @@ import java.io.InputStream
 import java.io.UnsupportedEncodingException
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
-import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 abstract class VorbisCommentReader internal constructor(private val input: InputStream) {
     @Throws(VorbisCommentReaderException::class)
@@ -196,10 +198,10 @@ class VorbisCommentChapterReader(input: InputStream) : VorbisCommentReader(input
             val parts = value!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
             if (parts.size >= 3) {
                 try {
-                    val hours = TimeUnit.MILLISECONDS.convert(parts[0].toLong(), TimeUnit.HOURS)
-                    val minutes = TimeUnit.MILLISECONDS.convert(parts[1].toLong(), TimeUnit.MINUTES)
+                    val hours = parts[0].toLong().hours.inWholeMilliseconds
+                    val minutes = parts[1].toLong().minutes.inWholeMilliseconds
                     if (parts[2].contains("-->")) parts[2] = parts[2].substring(0, parts[2].indexOf("-->"))
-                    val seconds = TimeUnit.MILLISECONDS.convert((parts[2].toFloat().toLong()), TimeUnit.SECONDS)
+                    val seconds = parts[2].toFloat().toLong().seconds.inWholeMilliseconds
                     return hours + minutes + seconds
                 } catch (e: NumberFormatException) { throw VorbisCommentReaderException(e) }
             } else throw VorbisCommentReaderException("Invalid time string")

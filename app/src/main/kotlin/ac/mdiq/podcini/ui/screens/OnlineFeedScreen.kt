@@ -1,19 +1,20 @@
 package ac.mdiq.podcini.ui.screens
 
+
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
+import ac.mdiq.podcini.net.feed.CombinedSearcher
 import ac.mdiq.podcini.net.feed.FeedBuilderBase
 import ac.mdiq.podcini.net.feed.FeedUrlNotFoundException
-import ac.mdiq.podcini.net.feed.CombinedSearcher
 import ac.mdiq.podcini.net.feed.PodcastSearchResult
 import ac.mdiq.podcini.net.feed.PodcastSearcherRegistry
-import ac.mdiq.podcini.ui.utils.HtmlToPlainText
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedList
+import ac.mdiq.podcini.storage.database.getId
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
@@ -28,14 +29,11 @@ import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
+import ac.mdiq.podcini.ui.compose.EpisodeScreen
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NumberEditor
-import ac.mdiq.podcini.ui.screens.COME_BACK
-import ac.mdiq.podcini.ui.compose.EpisodeScreen
-import ac.mdiq.podcini.ui.screens.LocalNavController
-import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.compose.episodeForInfo
-import ac.mdiq.podcini.ui.screens.handleBackSubScreens
+import ac.mdiq.podcini.ui.utils.HtmlToPlainText
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -75,7 +73,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -86,7 +83,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -117,9 +113,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
-import java.util.Date
+import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -358,9 +352,9 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
             Logd(TAG, "showEpisodes ${episodes.size}")
             if (episodes.isEmpty()) return
             episodes.sortByDescending { it.pubDate }
-            var id_ = Feed.newId()
+            var id_ = getId()
             for (i in 0..<episodes.size) {
-                episodes[i].id = id_++
+                episodes[i].id = getId()
                 episodes[i].origFeedlink = feed!!.link
                 episodes[i].origFeeddownloadUrl = feed!!.downloadUrl
                 episodes[i].origFeedTitle = feed!!.title
@@ -496,7 +490,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 if (navController.previousBackStackEntry != null) {
                     navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
                     navController.popBackStack()
-                } else drawerController?.close()
+                } else drawerController?.open()
             })) } )
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
@@ -591,9 +585,8 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 Text(HtmlToPlainText.getPlainText(vm.feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
                 val sLog = remember { feedLogsMap!![vm.feed?.downloadUrl ?: ""] ?: feedLogsMap!![vm.feed?.title ?: ""] }
                 if (sLog != null) {
-                    val commentTextState by remember { mutableStateOf(TextFieldValue(sLog.comment)) }
-                    val context = LocalContext.current
-                    val cancelDate = remember { formatAbbrev(Date(sLog.cancelDate)) }
+                    val commentTextState = remember(sLog.comment) { TextFieldValue(sLog.comment) }
+                    val cancelDate = remember { formatAbbrev(sLog.cancelDate) }
                     val ratingRes = remember { fromCode(sLog.rating).res }
                     if (commentTextState.text.isNotEmpty()) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp)) {
@@ -617,16 +610,14 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 LazyRow(state = rememberLazyListState(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     items(vm.relatedFeeds) { feed ->
                         AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable(onClick = {
-                            navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(feed.feedUrl, StandardCharsets.UTF_8.name())}&source=${feed.source}")
+                            navController.navigate("${Screens.OnlineFeed.name}?url=${feed.feedUrl?.encodeURLParameter()}&source=${feed.source}")
                         }))
                     }
                 }
-                val info by remember(vm.feed) {
-                    derivedStateOf {
-                        if (vm.feed == null) return@derivedStateOf ""
-                        val languageString = vm.feed!!.langSet.joinToString(" ")
-                        "$languageString ${vm.feed!!.type.orEmpty()} ${vm.feed!!.lastUpdate.orEmpty()}"
-                    }
+                val info = remember(vm.feed) {
+                    if (vm.feed == null) return@remember ""
+                    val languageString = vm.feed!!.langSet.joinToString(" ")
+                    "$languageString ${vm.feed!!.type.orEmpty()} ${vm.feed!!.lastUpdate.orEmpty()}"
                 }
                 Text(info, color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
                 Text(vm.feed?.link ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))

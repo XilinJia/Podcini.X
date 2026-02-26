@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.IOException
 import androidx.core.net.toUri
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 const val autoBackupDirName = "Podcini-AutoBackups"
 
@@ -77,7 +78,7 @@ fun autoBackup(activity: Activity) {
     CoroutineScope(Dispatchers.IO).launch {
         val interval = appPrefs.autoBackupIntervall
         val lastBackupTime = appPrefs.autoBackupTimeStamp
-        val curTime = System.currentTimeMillis()
+        val curTime = nowInMillis()
         if ((curTime - lastBackupTime) / 1000 / 3600 > interval) {
             val uri = uriString!!.toUri()
             val permissions = activity.contentResolver.persistedUriPermissions.find { it.uri == uri }

@@ -22,7 +22,8 @@ import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.formatLargeInteger
-import ac.mdiq.podcini.utils.localDateTimeString
+import ac.mdiq.podcini.utils.formatWithGrouping
+import ac.mdiq.podcini.utils.fullDateTimeString
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -69,7 +70,9 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -90,10 +93,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
-import java.text.NumberFormat
-import java.util.Date
+import io.ktor.http.*
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 @Composable
 fun ChooseRatingDialog(selected: List<Feed>, onDismissRequest: () -> Unit) {
@@ -141,8 +142,8 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                                 upsert(sLog) {
                                     it.rating = f.rating
                                     it.comment = if (f.comment.isBlank()) "" else (f.comment + "\n")
-                                    it.comment += localDateTimeString() + "\nReason to remove:\n" + textState.text
-                                    it.cancelDate = Date().time
+                                    it.comment += fullDateTimeString() + "\nReason to remove:\n" + textState.text
+                                    it.cancelDate = nowInMillis()
                                 }
                             } else {
                                 val episodes = f.episodes
@@ -151,8 +152,8 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                                     upsert(sLog) {
                                         it.rating = e.rating
                                         it.comment = if (e.comment.isBlank()) "" else (e.comment + "\n")
-                                        it.comment += localDateTimeString() + "\nReason to remove:\n" + textState.text
-                                        it.cancelDate = Date().time
+                                        it.comment += fullDateTimeString() + "\nReason to remove:\n" + textState.text
+                                        it.cancelDate = nowInMillis()
                                     }
                                 }
                             }
@@ -170,6 +171,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
 
 @Composable
 fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
+    val TAG = "OnlineFeedItem"
     val context = LocalContext.current
     val navController = LocalNavController.current
     val showSubscribeDialog = remember { mutableStateOf(false) }
@@ -187,8 +189,9 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
     Column(Modifier.padding(start = 5.dp, end = 5.dp, top = 4.dp, bottom = 4.dp).combinedClickable(
         onClick = {
             if (feed.feedUrl != null) {
+                Logd(TAG, "feed.feedId: ${feed.feedId}")
                 if (feed.feedId > 0) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.feedId}")
-                else navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(feed.feedUrl, StandardCharsets.UTF_8.name())}&source=${feed.source}")
+                else navController.navigate("${Screens.OnlineFeed.name}?url=${feed.feedUrl.encodeURLParameter()}&source=${feed.source}")
             } },
         onLongClick = { showSubscribeDialog.value = true })) {
         val textColor = MaterialTheme.colorScheme.onSurface
@@ -203,12 +206,12 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
             }
             Column(Modifier.padding(start = 10.dp)) {
                 Text(feed.title, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 4.dp))
-                val authorText by remember(feed) { mutableStateOf(
+                val authorText = remember(feed.author, feed.feedUrl) {
                     when {
                         !feed.author.isNullOrBlank() -> feed.author.trim { it <= ' ' }
                         feed.feedUrl != null && !feed.feedUrl.contains("itunes.apple.com") -> feed.feedUrl
                         else -> ""
-                    }) }
+                    } }
                 if (authorText.isNotEmpty()) Text(authorText, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 if (feed.subscriberCount > 0) Text(formatLargeInteger(feed.subscriberCount) + " subscribers", color = textColor, style = MaterialTheme.typography.bodyMedium)
                 Row {
@@ -344,19 +347,20 @@ fun AssociatedFeedsGrid(feedsAssociated: List<Feed>) {
         items(feedsAssociated, key = {it.id}) { feed ->
             ConstraintLayout {
                 val (coverImage, episodeCount, rating, _) = createRefs()
-                val img = remember(feed) {  }
-                AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "coverImage", modifier = Modifier.height(100.dp).aspectRatio(1f)
-                    .constrainAs(coverImage) {
-                        top.linkTo(parent.top)
-                        bottom.linkTo(parent.bottom)
-                        start.linkTo(parent.start)
-                    }.combinedClickable(onClick = {
-                        Logd(TAG, "clicked: ${feed.title}")
-                        navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
-                    }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
+                AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "coverImage",
+                    colorFilter = if (!feed.inNormalVolume) ColorFilter.tint(color = Color.Gray.copy(alpha = 0.5f), blendMode = BlendMode.SrcAtop) else null,
+                    modifier = Modifier.height(100.dp).aspectRatio(1f)
+                        .constrainAs(coverImage) {
+                            top.linkTo(parent.top)
+                            bottom.linkTo(parent.bottom)
+                            start.linkTo(parent.start)
+                        }.combinedClickable(onClick = {
+                            Logd(TAG, "clicked: ${feed.title}")
+                            navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
+                        }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
                 )
                 val numEpisodes by remember(feed.episodesCount) { mutableIntStateOf(feed.episodesCount) }
-                Text(NumberFormat.getInstance().format(numEpisodes.toLong()), color = Color.Green,
+                Text(formatWithGrouping(numEpisodes.toLong()), color = Color.Green,
                     modifier = Modifier.background(Color.Gray).constrainAs(episodeCount) {
                         end.linkTo(parent.end)
                         top.linkTo(coverImage.top)

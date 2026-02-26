@@ -7,7 +7,7 @@ import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 
 class SubscriptionLog: RealmObject {
     @PrimaryKey
-    var id: Long = 0L   // this is the Date().time
+    var id: Long = 0L   // this is the nowInMillis()
 
     // this can be that of a feed or a synthetic episode
 //    var itemId: Long = 0L

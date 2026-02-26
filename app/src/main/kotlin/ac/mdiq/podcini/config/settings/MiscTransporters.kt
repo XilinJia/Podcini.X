@@ -18,12 +18,11 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import org.apache.commons.io.IOUtils
-import org.apache.commons.lang3.StringUtils
 import org.json.JSONArray
 import java.io.IOException
 import java.io.Reader
 import java.io.Writer
-import java.util.Date
+
 import java.util.TreeMap
 import kotlin.collections.get
 
@@ -50,7 +49,7 @@ class EpisodeProgressReader {
             it.startPosition = action.started * 1000
             it.position = action.position * 1000
             it.playedDuration = action.playedDuration * 1000
-            it.lastPlayedTime = (action.timestamp!!.time)
+            it.lastPlayedTime = (action.timestamp!!)
             it.setRating(if (action.isFavorite) Rating.SUPER else Rating.UNRATED)
             it.setPlayState(EpisodeState.fromCode(action.playState))
             if (it.hasAlmostEnded()) {
@@ -81,7 +80,7 @@ class EpisodesProgressWriter : ExportWriter {
         Logd(TAG, "Save state for all " + comItems.size + " played episodes")
         for (item in comItems) {
             val played = EpisodeAction.Builder(item, EpisodeAction.PLAY)
-                .timestamp(Date(item.lastPlayedTime))
+                .timestamp(item.lastPlayedTime)
                 .started(item.startPosition / 1000)
                 .position(item.position / 1000)
                 .playedDuration(item.playedDuration / 1000)
@@ -93,7 +92,7 @@ class EpisodesProgressWriter : ExportWriter {
         }
         if (queuedEpisodeActions.isNotEmpty()) {
             try {
-                Logd(TAG, "Saving ${queuedEpisodeActions.size} actions: ${StringUtils.join(queuedEpisodeActions, ", ")}")
+                Logd(TAG, "Saving ${queuedEpisodeActions.size} actions: ${queuedEpisodeActions.joinToString(", ")}")
                 val list = JSONArray()
                 for (episodeAction in queuedEpisodeActions) {
                     val obj = episodeAction.writeToJsonObject()

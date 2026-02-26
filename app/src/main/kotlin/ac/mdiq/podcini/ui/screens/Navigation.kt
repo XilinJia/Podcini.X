@@ -37,10 +37,7 @@ val defaultScreen: String
 
         var value = appPrefs.defaultPage
         Logd(TAG, "get defaultScreen 0: [$value]")
-        val isValid = try {
-            Screens.valueOf(value)
-            true
-        } catch (_: Throwable) { false }
+        fun isValid(): Boolean = runCatching { Screens.valueOf(value) }.isSuccess
         if (value == DefaultPages.Remember.name) {
             value = appAttribs.prefLastScreen
             Logd(TAG, "get defaultScreen 1: [$value]")
@@ -49,7 +46,7 @@ val defaultScreen: String
                 val feedId = appAttribs.prefLastScreenArg.toLongOrNull()
                 if (feedId != null) value = "${Screens.FeedDetails.name}?feedId=${feedId}"
             }
-        } else if (value.isBlank() || !isValid) value = Screens.Library.name
+        } else if (value.isBlank() || !isValid()) value = Screens.Library.name
         Logd(TAG, "get defaultScreen: [$value]")
         return value
     }
@@ -58,8 +55,9 @@ val defaultScreen: String
 @Composable
 fun Navigate(navController: NavHostController, startScreen: String = "") {
     fun isValid(fullRoute: String): Boolean {
+        Logd(TAG, "isValid fullRoute: $fullRoute")
         val pathEndIndex = fullRoute.indexOf('/')
-        if (pathEndIndex > 0) return false
+//        if (pathEndIndex > 0) return false    // TODO: why do this?
 
         val queryStartIndex = fullRoute.indexOf('?')
         val endIndex = when {
@@ -69,6 +67,7 @@ fun Navigate(navController: NavHostController, startScreen: String = "") {
             else -> -1
         }
         val r = if (endIndex != -1) fullRoute.take(endIndex) else { fullRoute }
+        Logd(TAG, "isValid r: $r")
         return (Screens.entries.any { it.name == r })
     }
     Logd(TAG, "Navigate startScreen: $startScreen")
@@ -76,6 +75,7 @@ fun Navigate(navController: NavHostController, startScreen: String = "") {
     var startScreen = startScreen
     if (startScreen.isBlank()) {
         val dfs = defaultScreen
+        Logd(TAG, "Navigate dfs: $dfs")
         startScreen = if (isValid(dfs)) dfs else Screens.Library.name
     }
     Logd(TAG, "Navigate startScreen 1: $startScreen")

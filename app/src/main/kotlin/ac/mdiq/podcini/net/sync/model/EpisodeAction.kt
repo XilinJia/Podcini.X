@@ -2,20 +2,19 @@ package ac.mdiq.podcini.net.sync.model
 
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.formatEpochMillisSimple
+import kotlinx.datetime.format.DateTimeComponents
+import kotlinx.datetime.format.byUnicodePattern
 import org.json.JSONException
 import org.json.JSONObject
-import java.text.ParseException
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 class EpisodeAction private constructor(builder: Builder) {
     val podcast: String = builder.podcast
     val episode: String = builder.episode
     val guid: String?
     val action: Action?
-    val timestamp: Date?
+    val timestamp: Long?
 
     /**
      * Returns the position (in seconds) at which the client started playback.
@@ -89,9 +88,7 @@ class EpisodeAction private constructor(builder: Builder) {
             obj.putOpt("episode", this.episode)
             obj.putOpt("guid", this.guid)
             obj.put("action", this.actionString)
-            val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
-            formatter.timeZone = TimeZone.getTimeZone("UTC")
-            if (this.timestamp != null) obj.put("timestamp", formatter.format(this.timestamp))
+            if (this.timestamp != null) obj.put("timestamp", formatEpochMillisSimple(this.timestamp, "yyyy-MM-dd'T'HH:mm:ss"))
             if (this.action == Action.PLAY) {
                 obj.put("started", this.started)
                 obj.put("position", this.position)
@@ -119,9 +116,7 @@ class EpisodeAction private constructor(builder: Builder) {
             obj.putOpt("episode", this.episode)
             obj.putOpt("guid", this.guid)
             obj.put("action", this.actionString)
-            val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
-            formatter.timeZone = TimeZone.getTimeZone("UTC")
-            if (this.timestamp != null) obj.put("timestamp", formatter.format(this.timestamp))
+            if (this.timestamp != null) obj.put("timestamp", formatEpochMillisSimple(this.timestamp, "yyyy-MM-dd'T'HH:mm:ss"))
             if (this.action == Action.PLAY) {
                 obj.put("started", this.started)
                 obj.put("position", this.position)
@@ -145,7 +140,7 @@ class EpisodeAction private constructor(builder: Builder) {
     // mandatory
     class Builder(val podcast: String, val episode: String, val action: Action) {
         // optional
-        var timestamp: Date? = null
+        var timestamp: Long? = null
         var started: Int = -1
         var position: Int = -1
         var playedDuration: Int = -1
@@ -158,7 +153,7 @@ class EpisodeAction private constructor(builder: Builder) {
             this.guid(item.identifier)
         }
 
-        fun timestamp(timestamp: Date?): Builder {
+        fun timestamp(timestamp: Long?): Builder {
             this.timestamp = timestamp
             return this
         }
@@ -169,7 +164,7 @@ class EpisodeAction private constructor(builder: Builder) {
         }
 
         fun currentTimestamp(): Builder {
-            return timestamp(Date())
+            return timestamp(nowInMillis())
         }
 
         fun started(seconds: Int): Builder {
@@ -237,10 +232,9 @@ class EpisodeAction private constructor(builder: Builder) {
             val utcTimestamp = `object`.optString("timestamp")
             if (utcTimestamp.isNotEmpty()) {
                 try {
-                    val parser = SimpleDateFormat(PATTERN_ISO_DATEFORMAT, Locale.US)
-                    parser.timeZone = TimeZone.getTimeZone("UTC")
-                    builder.timestamp(parser.parse(utcTimestamp))
-                } catch (e: ParseException) { Logs(TAG, e, "readFromJsonObject failed") }
+                    val formatter = DateTimeComponents.Format { byUnicodePattern(PATTERN_ISO_DATEFORMAT) }
+                    builder.timestamp(formatter.parse(utcTimestamp).toInstantUsingOffset().toEpochMilliseconds())
+                } catch (e: Throwable) { Logs(TAG, e, "readFromJsonObject failed") }
             }
             val guid = `object`.optString("guid")
             if (guid.isNotEmpty()) builder.guid(guid)

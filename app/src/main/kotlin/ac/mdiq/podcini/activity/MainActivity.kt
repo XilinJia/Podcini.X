@@ -1,8 +1,9 @@
-package ac.mdiq.podcini.ui.activity
+package ac.mdiq.podcini.activity
 
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.activity.starter.MainActivityStarter
 import ac.mdiq.podcini.config.settings.autoBackup
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
@@ -14,7 +15,6 @@ import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
-import ac.mdiq.podcini.ui.activity.starter.MainActivityStarter
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.appTheme
@@ -25,7 +25,6 @@ import ac.mdiq.podcini.ui.screens.MainActivityUI
 import ac.mdiq.podcini.ui.screens.PSState
 import ac.mdiq.podcini.ui.screens.QuickAccess
 import ac.mdiq.podcini.ui.screens.Screens
-import ac.mdiq.podcini.ui.screens.cancelNavMonitor
 import ac.mdiq.podcini.ui.screens.psState
 import ac.mdiq.podcini.ui.screens.setIntentScreen
 import ac.mdiq.podcini.ui.screens.setOnlineSearchTerms
@@ -79,14 +78,14 @@ import androidx.lifecycle.lifecycleScope
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.await
+import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : BaseActivity() {
@@ -300,7 +299,6 @@ class MainActivity : BaseActivity() {
         WorkManager.getInstance(this).pruneWork()
         WorkManager.getInstance(applicationContext).pruneWork()
         closeTTS()
-        cancelNavMonitor()
         super.onDestroy()
     }
 
@@ -389,7 +387,7 @@ class MainActivity : BaseActivity() {
             intent.hasExtra(Extras.fragment_feed_url.name) -> {
                 val feedurl = intent.getStringExtra(Extras.fragment_feed_url.name)
                 val isShared = intent.getBooleanExtra(Extras.isShared.name, false)
-                if (feedurl != null) setIntentScreen("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(feedurl, StandardCharsets.UTF_8.name())}&shared=${isShared}")
+                if (feedurl != null) setIntentScreen("${Screens.OnlineFeed.name}?url=${feedurl.encodeURLParameter()}&shared=${isShared}")
             }
             intent.hasExtra(Extras.search_string.name) -> {
                 setOnlineSearchTerms(query = intent.getStringExtra(Extras.search_string.name))
@@ -466,9 +464,6 @@ class MainActivity : BaseActivity() {
         private const val INIT_KEY = "app_init_state"
 
         val downloadStates = mutableStateMapOf<String, DownloadStatus>()
-
-        val isRemember: Boolean
-            get() = appPrefs.defaultPage == DefaultPages.Remember.name
 
         fun getIntentToOpenFeed(feedId: Long): Intent {
             val intent = Intent(getAppContext(), MainActivity::class.java)

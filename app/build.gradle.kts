@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 263
-        versionName = "10.10.3"
+        versionCode = 264
+        versionName = "10.11.0"
 
         ndkVersion = "29.0.14206865"
 
@@ -202,7 +202,9 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
 
     implementation("commons-io:commons-io:2.21.0")       // 20030203.000550 is not the lastest
-    implementation("org.apache.commons:commons-lang3:3.20.0")
+
+    implementation("io.ktor:ktor-http:3.4.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
 
     implementation("org.jsoup:jsoup:1.22.1")
 
@@ -210,7 +212,7 @@ dependencies {
     implementation("com.squareup.okio:okio:3.16.4")
     implementation("com.squareup.okhttp3:okhttp-urlconnection:5.3.2")
     implementation("net.dankito.readability4j:readability4j:1.0.8")
-    implementation("com.github.ByteHamster:SearchPreference:v2.5.0")
+
     implementation("androidx.glance:glance-appwidget:1.1.1")
 
     compileOnly("com.google.android.wearable:wearable:2.9.0")

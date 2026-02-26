@@ -2,7 +2,8 @@ package ac.mdiq.podcini.storage.model
 
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
-import java.util.Date
+import ac.mdiq.podcini.storage.utils.nowInMillis
+
 
 class ShareLog : RealmObject {
     @PrimaryKey
@@ -23,7 +24,7 @@ class ShareLog : RealmObject {
     constructor() {}
 
     constructor(url: String) {
-        id = Date().time
+        id = nowInMillis()
         this.url = url
     }
 

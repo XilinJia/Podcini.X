@@ -28,7 +28,7 @@ import java.io.IOException
 import java.io.InputStreamReader
 import java.io.Reader
 import java.io.Writer
-import java.util.Date
+
 
 class OpmlTransporter {
 
@@ -76,7 +76,7 @@ class OpmlTransporter {
             xs.text(OPML_TITLE)
             xs.endTag(null, OpmlSymbols.TITLE)
             xs.startTag(null, OpmlSymbols.DATE_CREATED)
-            xs.text(formatRfc822Date(Date()))
+            xs.text(formatRfc822Date(null))
             xs.endTag(null, OpmlSymbols.DATE_CREATED)
             xs.endTag(null, OpmlSymbols.HEAD)
 

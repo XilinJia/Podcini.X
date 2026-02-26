@@ -35,12 +35,13 @@ import io.github.xilinjia.krdb.types.annotations.Ignore
 import io.github.xilinjia.krdb.types.annotations.Index
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 import kotlinx.serialization.Serializable
-import java.util.Date
+import ac.mdiq.podcini.storage.utils.nowInMillis
+
 
 @Stable
 class Feed : RealmObject {
     @PrimaryKey
-    var id: Long = 0L  // increments from Date().time * 100 at time of creation
+    var id: Long = 0L  // increments from nowInMillis() * 100 at time of creation
 
     @Index
     var volumeId: Long = -1L
@@ -779,7 +780,7 @@ class Feed : RealmObject {
 
         val FeedAutoDeleteOptions = AutoDeleteAction.entries.map { it.tag }
 
-        fun newId(): Long = Date().time * 100
+//        fun newId(): Long = nowInMillis() * 100
 
         fun intervalMillis(n: Int, i: Int): Long {
             return when (i) {

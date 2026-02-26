@@ -15,7 +15,8 @@ import io.github.xilinjia.krdb.types.RealmList
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.annotations.Ignore
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
-import java.util.Date
+import ac.mdiq.podcini.storage.utils.nowInMillis
+
 
 const val VIRTUAL_QUEUE_ID = 100000L
 const val TMP_QUEUE_ID = -1L
@@ -30,7 +31,7 @@ class PlayQueue : RealmObject {
 
     var identity: String = ""
 
-    var updated: Long = Date().time
+    var updated: Long = nowInMillis()
         private set
 
     var enqueueLocation: Int = EnqueueLocation.BACK.code
@@ -82,7 +83,7 @@ class PlayQueue : RealmObject {
     fun contains(episode: Episode): Boolean = realm.query(QueueEntry::class).query("queueId == $id AND episodeId == ${episode.id}").count().find() > 0
 
     fun update() {
-        updated = Date().time
+        updated = nowInMillis()
     }
 
     fun size() : Int = realm.query(QueueEntry::class).query("queueId == $id").count().find().toInt()

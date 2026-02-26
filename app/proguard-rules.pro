@@ -24,7 +24,7 @@
 
 # Keep methods used in tests.
 # This is only needed when running tests with proguard enabled.
--keepclassmembers class org.apache.commons.lang3.StringUtils {*;}
+# -keepclassmembers class org.apache.commons.lang3.StringUtils {*;}
 #-keepclassmembers class androidx.appcompat.app.ActionBar {
 #    public ** getTitle();
 #}

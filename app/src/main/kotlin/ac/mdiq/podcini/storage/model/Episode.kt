@@ -53,23 +53,21 @@ import okhttp3.Request
 import okhttp3.Request.Builder
 import org.apache.commons.io.FilenameUtils.EXTENSION_SEPARATOR
 import org.apache.commons.io.FilenameUtils.getExtension
-import org.apache.commons.lang3.builder.ToStringBuilder
-import org.apache.commons.lang3.builder.ToStringStyle
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.InputStream
-import java.util.Date
 import kotlin.math.max
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 private const val smartMarkAsPlayedPercent: Int = 95
 
 @Stable
 class Episode : RealmObject {
     @PrimaryKey
-    var id: Long = 0L   // increments from Date().time * 100 at time of creation
+    var id: Long = 0L   // increments from nowInMillis() * 100 at time of creation
 
     @Index
     var feedId: Long? = null
@@ -126,13 +124,6 @@ class Episode : RealmObject {
     var playState: Int
         private set
 
-    @Ignore
-    var playStateSetDate: Date? = null
-        get() = field ?: Date(playStateSetTime)
-        set(value) {
-            field = value?.clone() as? Date
-            this.playStateSetTime = value?.time ?: 0L
-        }
     var playStateSetTime: Long = 0L
         private set
 
@@ -165,7 +156,7 @@ class Episode : RealmObject {
     @JvmName("setRatingFunction")
     fun setRating(r: Rating, setTime: Long = 0L) {
         rating = r.code
-        ratingTime = if (setTime > 0L) setTime else System.currentTimeMillis()
+        ratingTime = if (setTime > 0L) setTime else nowInMillis()
     }
 
     var comment: String = ""
@@ -197,19 +188,12 @@ class Episode : RealmObject {
     var downloaded: Boolean
         get() = fileUrl != null
         set(value) {
-            if (value) downloadTime = Date().time
+            if (value) downloadTime = nowInMillis()
             if (playState == EpisodeState.NEW.code) setPlayState(EpisodeState.UNPLAYED)
         }
 
     var downloadTime: Long = 0
 
-    @Ignore
-    var lastPlayedDate: Date? = null
-        get() = field ?: Date(lastPlayedTime)
-        set(value) {
-            field = value?.clone() as? Date
-            this.lastPlayedTime = value?.time ?: 0
-        }
     var lastPlayedTime: Long = 0 // Last time this media was played (in ms)
 
     var startPosition: Int = -1
@@ -227,13 +211,6 @@ class Episode : RealmObject {
     var origFeeddownloadUrl: String? = null
     var origFeedlink: String? = null
 
-    @Ignore
-    var playbackCompletionDate: Date? = null
-        get() = field ?: Date(playbackCompletionTime)
-        set(value) {
-            field = value?.clone() as? Date
-            this.playbackCompletionTime = value?.time ?: 0
-        }
     var playbackCompletionTime: Long = 0
 
     // if null: unknown, need to be checked
@@ -249,13 +226,6 @@ class Episode : RealmObject {
     @Ignore
     var effectMimeType = ""
 
-    @Ignore
-    var dueDate: Date? = null
-        get() = field ?: Date(repeatTime)
-        set(value) {
-            field = value?.clone() as? Date
-            this.repeatTime = value?.time ?: 0L
-        }
     var repeatTime: Long = 0L
 
     var repeatInterval: Long = 0L
@@ -273,18 +243,18 @@ class Episode : RealmObject {
 
     constructor() {
         this.playState = EpisodeState.NEW.code
-        playStateSetTime = System.currentTimeMillis()
+        playStateSetTime = nowInMillis()
     }
 
     // used only in LocalFeedUpdater
-    constructor(id: Long, title: String?, itemIdentifier: String?, link: String?, pubDate: Date?, state: Int, feed: Feed?) {
+    constructor(id: Long, title: String?, itemIdentifier: String?, link: String?, pubTime: Long, state: Int, feed: Feed?) {
         this.id = id
         this.title = title
         this.identifier = itemIdentifier
         this.link = link
-        this.pubDate = pubDate?.time ?: 0
+        this.pubDate = pubTime
         this.playState = state
-        playStateSetTime = System.currentTimeMillis()
+        playStateSetTime = nowInMillis()
         if (feed != null) this.feedId = feed.id
     }
 
@@ -348,7 +318,7 @@ class Episode : RealmObject {
         }
         if (resetPosition || playState in listOf(EpisodeState.PLAYED.code, EpisodeState.IGNORED.code)) position = 0
         if (state in listOf(EpisodeState.QUEUE, EpisodeState.SKIPPED, EpisodeState.PLAYED, EpisodeState.PASSED, EpisodeState.IGNORED)) isAutoDownloadEnabled = false
-        playStateSetTime = if (setTime > 0L) setTime else System.currentTimeMillis()
+        playStateSetTime = if (setTime > 0L) setTime else nowInMillis()
     }
 
     fun isPlayed(): Boolean = playState >= EpisodeState.SKIPPED.code
@@ -380,7 +350,7 @@ class Episode : RealmObject {
     fun addComment(text: String, addition: Boolean = true, setTime: Long = 0L) {
         if (addition) {
             comment = if (comment.isBlank()) "" else (comment + "\n")
-            commentTime = System.currentTimeMillis()
+            commentTime = nowInMillis()
             comment += fullDateTimeString(commentTime) + ":\n" + text
         } else {
             comment = text
@@ -400,13 +370,13 @@ class Episode : RealmObject {
         }
     }
 
-    override fun toString(): String {
-        return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE)
-    }
+//    override fun toString(): String {
+//        return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE)
+//    }
 
     fun fillMedia(duration: Int, position: Int,
                   size: Long, mimeType: String?, fileUrl: String?, downloadUrl: String?,
-                  downloaded: Boolean, playbackCompletionDate: Date?, playedDuration: Int,
+                  downloaded: Boolean, playbackCompletionTime: Long, playedDuration: Int,
                   lastPlayedTime: Long) {
         this.duration = duration
         this.position = position
@@ -414,8 +384,7 @@ class Episode : RealmObject {
         this.playedDurationWhenStarted = playedDuration
         this.size = size
         this.mimeType = mimeType
-        this.playbackCompletionDate =  playbackCompletionDate?.clone() as? Date
-        this.playbackCompletionTime =  playbackCompletionDate?.time ?: 0
+        this.playbackCompletionTime =  playbackCompletionTime
         this.lastPlayedTime = lastPlayedTime
         this.fileUrl = fileUrl
         this.downloadUrl = downloadUrl
@@ -627,11 +596,11 @@ class Episode : RealmObject {
      * Position held by this EpisodeMedia should be set accurately before a call to this method is made.
      */
     fun setPlaybackStart() {
-        Logd(TAG, "setPlaybackStart ${System.currentTimeMillis()} timeSpent: $timeSpent")
+        Logd(TAG, "setPlaybackStart ${nowInMillis()} timeSpent: $timeSpent")
         startPosition = max(position, 0)
         playedDurationWhenStarted = playedDuration
         timeSpentOnStart = timeSpent
-        startTime = System.currentTimeMillis()
+        startTime = nowInMillis()
     }
 
     fun setChapters(chapters_: List<Chapter>) {

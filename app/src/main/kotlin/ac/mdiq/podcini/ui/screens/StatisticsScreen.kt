@@ -13,13 +13,10 @@ import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
-import ac.mdiq.podcini.ui.screens.LocalNavController
-import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import android.annotation.SuppressLint
-import android.text.format.DateFormat
 import android.text.format.Formatter
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -51,7 +48,6 @@ import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,7 +60,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -108,19 +103,25 @@ import coil3.request.ImageRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.time.LocalDate
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.daysUntil
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 import java.time.YearMonth
-import java.time.ZoneId
 import java.time.ZoneOffset
-import java.time.temporal.ChronoUnit
 import java.util.Calendar
-import java.util.Date
 import java.util.Locale
 import kotlin.math.max
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.jvmErasure
+import ac.mdiq.podcini.storage.utils.nowInMillis
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 
 class StatisticsVM: ViewModel() {
@@ -129,7 +130,7 @@ class StatisticsVM: ViewModel() {
     internal val selectedTabIndex = mutableIntStateOf(0)
     internal var showFilter by mutableStateOf(false)
 
-    var date: LocalDate by mutableStateOf(LocalDate.now())
+    var date: LocalDate by mutableStateOf(LocalDate.fromEpochDays(0))
     var statsOfDay by mutableStateOf(StatisticsResult())
     var statsResult by mutableStateOf(StatisticsResult())
 
@@ -159,14 +160,24 @@ class StatisticsVM: ViewModel() {
     }
 
     fun numOfDays(): Int {
-        val dateFrom = Date(if (timeFilterFrom != 0L) timeFilterFrom else statsResult.oldestDate).toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-        val dateTo = (if (timeFilterTo != Long.MAX_VALUE) Date(timeFilterTo) else Date()).toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-        return ChronoUnit.DAYS.between(dateFrom, dateTo).toInt() + 1
+        val fromMillis = if (timeFilterFrom != 0L) timeFilterFrom else statsResult.oldestDate
+        val toMillis = if (timeFilterTo != Long.MAX_VALUE) timeFilterTo else nowInMillis()
+        val timeZone = TimeZone.currentSystemDefault()
+        val dateFrom = Instant.fromEpochMilliseconds(fromMillis).toLocalDateTime(timeZone).date
+        val dateTo = Instant.fromEpochMilliseconds(toMillis).toLocalDateTime(timeZone).date
+        return dateFrom.daysUntil(dateTo) + 1
     }
 
     fun loadDailyStats() {
         Logd(TAG, "loadDailyStats")
-        statsOfDay = getStatistics(date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli())
+        statsOfDay = getStatistics(date.atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds(), date.plus(1, DateTimeUnit.DAY).atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds())
+    }
+
+    fun LocalDate.formatMMDDYY(): String {
+        val month = month.toString().padStart(2, '0')
+        val day = day.toString().padStart(2, '0')
+        val year = (year % 100).toString().padStart(2, '0')
+        return "$month/$day/$year"
     }
 
     internal fun loadStatistics() {
@@ -183,10 +194,12 @@ class StatisticsVM: ViewModel() {
             chartData = LineChartData(chartValues)
             numDays = numOfDays()
             periodText = run {
-                    val dateFormat = SimpleDateFormat("MM/dd/yy", Locale.getDefault())
-                    val dateFrom = dateFormat.format(Date(if (timeFilterFrom != 0L) timeFilterFrom else statsResult.oldestDate))
-                    val dateTo = dateFormat.format(if (timeFilterTo != Long.MAX_VALUE) Date(timeFilterTo) else Date())
-                    "$dateFrom to $dateTo"
+                val tz = TimeZone.currentSystemDefault()
+                val fromMillis = if (timeFilterFrom != 0L) timeFilterFrom else statsResult.oldestDate
+                val toMillis = if (timeFilterTo != Long.MAX_VALUE) timeFilterTo else nowInMillis()
+                val dateFrom = Instant.fromEpochMilliseconds(fromMillis).toLocalDateTime(tz).date
+                val dateTo = Instant.fromEpochMilliseconds(toMillis).toLocalDateTime(tz).date
+                "${dateFrom.formatMMDDYY()} to ${dateTo.formatMMDDYY()}"
                 }
         } catch (error: Throwable) { Logs(TAG, error, "loadStatistics failed") }
     }
@@ -375,43 +388,46 @@ fun StatisticsScreen() {
             Row {
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = {
-                    vm.date = vm.date.minusDays(7)
+                    vm.date = vm.date.minus(7, DateTimeUnit.DAY)
                     vm.loadDailyStats()
                 }) { Text("-7", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }
                 Spacer(Modifier.weight(0.2f))
                 IconButton(onClick = {
-                    vm.date = vm.date.minusDays(1)
+                    vm.date = vm.date.minus(1, DateTimeUnit.DAY)
                     vm.loadDailyStats()
                 }) { Text("-", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }
                 Spacer(Modifier.weight(0.2f))
                 TextButton(onClick = { vm.showTodayStats = true }) {
-                    val dateText by remember { derivedStateOf {
-                        if (vm.date == LocalDate.now()) context.getString(R.string.statistics_today) else {
-                            val locale = Locale.getDefault()
-                            val dateFormat = SimpleDateFormat(DateFormat.getBestDateTimePattern(locale, "MMM d yyyy"), locale)
-                            dateFormat.format(Date.from(vm.date.atStartOfDay(ZoneId.systemDefault()).toInstant()))
+                    val dateText = remember(vm.date) {
+                        if (vm.date == Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) context.getString(R.string.statistics_today) else {
+                            fun LocalDate.formatMMDDYYYY(): String {
+                                val month = month.toString().padStart(2, '0')
+                                val day = day.toString().padStart(2, '0')
+                                return "$month/$day/$year"
+                            }
+                            vm.date.formatMMDDYYYY()
                         }
-                    } }
+                    }
                     Text(dateText, style = MaterialTheme.typography.headlineSmall)
                 }
                 Spacer(Modifier.weight(0.2f))
                 IconButton(onClick = {
-                    if (vm.date.isBefore(LocalDate.now())) {
-                        vm.date = vm.date.plusDays(1)
+                    if (vm.date < Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) {
+                        vm.date = vm.date.plus(1, DateTimeUnit.DAY)
                         vm.loadDailyStats()
                     }
                 }) {
-                    val plusText by remember { derivedStateOf { if (vm.date >= LocalDate.now()) "" else "+" } }
+                    val plusText = remember(vm.date) { if (vm.date >= Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) "" else "+" }
                     Text(plusText, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.weight(0.2f))
                 IconButton(onClick = {
-                    if (vm.date.plusDays(6).isBefore(LocalDate.now())) {
-                        vm.date = vm.date.plusDays(7)
+                    if (vm.date.plus(6, DateTimeUnit.DAY) < Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) {
+                        vm.date = vm.date.plus(7, DateTimeUnit.DAY)
                         vm.loadDailyStats()
                     }
                 }) {
-                    val plusText by remember { derivedStateOf { if (vm.date.plusDays(6) >= LocalDate.now()) "" else "+7" } }
+                    val plusText = remember(vm.date) { if (vm.date.plus(6, DateTimeUnit.DAY) >= Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) "" else "+7" }
                     Text(plusText, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.weight(1f))

@@ -22,6 +22,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.sqrt
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 class SleepManager {
     private var sleepTimer: SleepTimer? = null
@@ -79,9 +80,9 @@ class SleepManager {
         private var shakeListener: ShakeListener? = null
 
         fun start(): Job {
-            var lastTick = System.currentTimeMillis()
+            var lastTick = nowInMillis()
             fun postTimeLeft() {
-                val now = System.currentTimeMillis()
+                val now = nowInMillis()
                 timeLeft -= now - lastTick
                 lastTick = now
                 Logd(TAG, "timeLeft: $timeLeft")

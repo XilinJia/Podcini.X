@@ -23,6 +23,7 @@ import ac.mdiq.podcini.ui.compose.episodeForInfo
 import ac.mdiq.podcini.ui.utils.SearchAlgo
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.formatLargeInteger
+import ac.mdiq.podcini.utils.formatWithGrouping
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -88,6 +89,7 @@ import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import io.github.xilinjia.krdb.notifications.ResultsChange
+import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -98,9 +100,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
-import java.text.NumberFormat
 
 private var curSearchString by mutableStateOf("")
 fun setSearchTerms(query: String? = null) {
@@ -238,7 +237,7 @@ fun SearchScreen() {
                     Text(stringResource(R.string.search_online), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = {
                         val query = vm.queryText
                         if (query.matches("http[s]?://.*".toRegex())) {
-                            navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(query, StandardCharsets.UTF_8.name())}")
+                            navController.navigate("${Screens.OnlineFeed.name}?url=${query.encodeURLParameter()}")
                             return@clickable
                         }
                         setOnlineSearchTerms(query = query)
@@ -280,7 +279,7 @@ fun SearchScreen() {
                             }
                             Text(feed.author ?: "No author", color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
                             Row(Modifier.padding(top = 5.dp)) {
-                                val measureString = remember { NumberFormat.getInstance().format(feed.episodesCount.toLong()) + " : " + durationInHours(feed.totleDuration / 1000) }
+                                val measureString = remember { formatWithGrouping(feed.episodesCount.toLong()) + " : " + durationInHours(feed.totleDuration / 1000) }
                                 Text(measureString, color = textColor, style = MaterialTheme.typography.bodyMedium)
                                 Spacer(modifier = Modifier.weight(1f))
                                 var feedSortInfo by remember { mutableStateOf(feed.sortInfo) }
@@ -311,7 +310,7 @@ fun SearchScreen() {
                 LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     itemsIndexed(vm.pafeeds, key = { _, feed -> feed.id }) { index, feed ->
                         fun navToOnlineFeed() {
-                            if (feed.feedUrl.isNotBlank()) navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(feed.feedUrl, StandardCharsets.UTF_8.name())}")
+                            if (feed.feedUrl.isNotBlank()) navController.navigate("${Screens.OnlineFeed.name}?url=${feed.feedUrl.encodeURLParameter()}")
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover",

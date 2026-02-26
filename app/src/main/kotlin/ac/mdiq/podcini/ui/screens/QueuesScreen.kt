@@ -105,7 +105,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -483,8 +482,8 @@ fun QueuesScreen(id: Long = -1L) {
                 } },
                 navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable(onClick = { drawerController?.open() })) },
                 actions = {
-                    val binIconRes by remember(vm.queuesMode) { derivedStateOf { if (vm.queuesMode != QueuesScreenMode.Queue) R.drawable.playlist_play else R.drawable.ic_history } }
-                    val feedsIconRes by remember(vm.queuesMode) { derivedStateOf { if (vm.queuesMode == QueuesScreenMode.Feed) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 } }
+                    val binIconRes = remember(vm.queuesMode) { if (vm.queuesMode != QueuesScreenMode.Queue) R.drawable.playlist_play else R.drawable.ic_history }
+                    val feedsIconRes = remember(vm.queuesMode) {  if (vm.queuesMode == QueuesScreenMode.Feed) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 }
                     if (vm.queuesMode != QueuesScreenMode.Feed) IconButton(onClick = {
                         vm.cameBack = false
                         vm.queuesMode = when(vm.queuesMode) {
@@ -570,7 +569,7 @@ fun QueuesScreen(id: Long = -1L) {
     @Composable
     fun Settings() {
         Column(Modifier.verticalScroll(rememberScrollState())) {
-            val showRename by remember { mutableStateOf(vm.curQueue.name != "Default" && vm.curQueue.name != "Virtual") }
+            val showRename = remember(vm.curQueue.name) { vm.curQueue.name != "Default" && vm.curQueue.name != "Virtual"}
             if (showRename) Row(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp, end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.rename), style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.weight(0.2f))
@@ -698,7 +697,7 @@ fun QueuesScreen(id: Long = -1L) {
                         EpisodeLazyColumn(episodes, swipeActions = swipeActions)
                     }
                 } else {
-                    val dragDropEnabled by remember(vm.curQueue.id, vm.curQueue.isLocked) { mutableStateOf(!vm.curQueue.isLocked) }
+                    val dragDropEnabled = remember(vm.curQueue.id, vm.curQueue.isLocked) {!vm.curQueue.isLocked }
                     if (dragDropEnabled) {
                         val episodes_ = remember(episodes) { episodes.toMutableStateList() }
                         val rowHeightPx = with(LocalDensity.current) { 56.dp.toPx() }
@@ -713,7 +712,7 @@ fun QueuesScreen(id: Long = -1L) {
                                 val buttonColor = MaterialTheme.colorScheme.tertiary
                                 val imageWidth = 56.dp
                                 val imageHeight = 56.dp
-                                var isDragging by remember(episode.id) { mutableStateOf(false) }
+//                                var isDragging by remember(episode.id) { mutableStateOf(false) }
                                 var yOffset by remember(index) { mutableFloatStateOf(0f) }
                                 var draggedIndex by remember { mutableStateOf<Int?>(null) }
                                 Row(Modifier.background(MaterialTheme.colorScheme.surface).zIndex(if (draggedIndex == index) 1f else 0f).offset { IntOffset(0, if (draggedIndex == index) yOffset.roundToInt() else 0) }) {
@@ -739,12 +738,12 @@ fun QueuesScreen(id: Long = -1L) {
                                             },
                                             onDragStarted = {
                                                 Logd(TAG, "MainRow onDragStart")
-                                                isDragging = true
+//                                                isDragging = true
                                                 draggedIndex = index
                                             },
                                             onDragStopped = {
                                                 Logd(TAG, "MainRow onDragEnd")
-                                                isDragging = false
+//                                                isDragging = false
                                                 persistOrdered(episodes_, queueEntries)
                                                 draggedIndex = null
                                                 yOffset = 0f

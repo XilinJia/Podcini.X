@@ -34,6 +34,7 @@ import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.formatNumberKmp
 import android.view.Gravity
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -104,12 +105,11 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONException
-import java.text.DecimalFormat
-import java.text.DecimalFormatSymbols
 import java.util.Locale
-import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import kotlin.math.round
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 
 private fun speed2Slider(speed: Float, maxSpeed: Float): Float {
     return if (speed < 1) (speed - 0.1f) / 1.8f else (speed - 2f + maxSpeed) / 2 / (maxSpeed - 1f)
@@ -212,11 +212,8 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
         return mutableListOf(1.0f, 1.25f, 1.5f)
     }
     fun setPlaybackSpeedArray(speeds: List<Float>) {
-        val format = DecimalFormatSymbols(Locale.US)
-        format.decimalSeparator = '.'
-        val speedFormat = DecimalFormat("0.00", format)
         val jsonArray = JSONArray()
-        for (speed in speeds) jsonArray.put(speedFormat.format(speed.toDouble()))
+        for (speed in speeds) jsonArray.put(formatNumberKmp(speed.toDouble()))
         upsertBlk(appPrefs) { it.playbackSpeedArray = jsonArray.toString()}
     }
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = onDismiss) {
@@ -458,11 +455,11 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
                             return@Button
                         }
                         try {
-                            val time = if (!toEnd) etxtTime.toLong() else TimeUnit.MILLISECONDS.toMinutes((max(((curEpisode?.duration ?: 0) - (curEpisode?.position ?: 0)), 0) / curPBSpeed).toLong()) // ms to minutes
+                            val time = if (!toEnd) etxtTime.toLong() else (max(((curEpisode?.duration ?: 0) - (curEpisode?.position ?: 0)), 0) / curPBSpeed).toLong().milliseconds.inWholeMinutes // ms to minutes
                             Logd("SleepTimerDialog", "Sleep timer set: $time")
                             if (time == 0L) throw NumberFormatException("Timer must not be zero")
                             upsertBlk(sleepPrefs) { it.LastValue = time }
-                            sleepManager?.setSleepTimer(TimeUnit.MINUTES.toMillis(lastTimerValue))
+                            sleepManager?.setSleepTimer(lastTimerValue.minutes.inWholeMilliseconds)
                             showTimeSetup = false
                             showTimeDisplay = true
                             //                        closeKeyboard(content)

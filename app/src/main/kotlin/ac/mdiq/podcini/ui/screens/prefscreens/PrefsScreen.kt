@@ -5,7 +5,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.settings.developerEmail
 import ac.mdiq.podcini.config.settings.getCopyrightNoticeText
 import ac.mdiq.podcini.config.settings.githubAddress
-import ac.mdiq.podcini.ui.activity.BugReportActivity
+import ac.mdiq.podcini.activity.BugReportActivity
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles

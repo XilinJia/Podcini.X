@@ -1,6 +1,5 @@
-package ac.mdiq.podcini.ui.activity
+package ac.mdiq.podcini.activity
 
-import ac.mdiq.podcini.config.settings.AppPreferences
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.screens.AppNavigator
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog

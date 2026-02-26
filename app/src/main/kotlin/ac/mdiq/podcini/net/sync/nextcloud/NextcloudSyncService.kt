@@ -18,11 +18,11 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
-import org.apache.commons.lang3.StringUtils
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import kotlin.math.min
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 class NextcloudSyncService(private val httpClient: OkHttpClient, baseHosturl: String?, private val username: String, private val password: String) : ISyncService {
     private val hostname = HostnameParser(baseHosturl)
@@ -54,7 +54,7 @@ class NextcloudSyncService(private val httpClient: OkHttpClient, baseHosturl: St
             val requestBody = RequestBody.create("application/json".toMediaType(), requestObject.toString())
             performRequest(url, "POST", requestBody)
         } catch (e: Exception) { throw NextcloudSynchronizationServiceException(e) }
-        return GpodnetUploadChangesResponse(System.currentTimeMillis() / 1000, mutableMapOf())
+        return GpodnetUploadChangesResponse(nowInMillis() / 1000, mutableMapOf())
     }
 
     @Throws(SyncServiceException::class)
@@ -79,7 +79,7 @@ class NextcloudSyncService(private val httpClient: OkHttpClient, baseHosturl: St
             uploadEpisodeActionsPartial(queuedEpisodeActions, i, min(queuedEpisodeActions.size, (i + UPLOAD_BULK_SIZE)))
             i += UPLOAD_BULK_SIZE
         }
-        return NextcloudGpodderEpisodeActionPostResponse(System.currentTimeMillis() / 1000)
+        return NextcloudGpodderEpisodeActionPostResponse(nowInMillis() / 1000)
     }
 
     @Throws(NextcloudSynchronizationServiceException::class)
@@ -112,7 +112,7 @@ class NextcloudSyncService(private val httpClient: OkHttpClient, baseHosturl: St
         val builder = HttpUrl.Builder()
         if (hostname.scheme != null) builder.scheme(hostname.scheme!!)
         if (hostname.host != null) builder.host(hostname.host!!)
-        return builder.port(hostname.port).addPathSegments(StringUtils.stripStart(hostname.subfolder + path, "/"))
+        return builder.port(hostname.port).addPathSegments((hostname.subfolder + path).trimStart('/'))
     }
 
     override fun logout() {}

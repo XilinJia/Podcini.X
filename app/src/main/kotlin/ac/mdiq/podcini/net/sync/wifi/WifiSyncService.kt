@@ -21,6 +21,7 @@ import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -32,7 +33,6 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.delay
-import org.apache.commons.lang3.StringUtils
 import org.json.JSONArray
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -42,7 +42,6 @@ import java.net.ConnectException
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketTimeoutException
-import java.util.Date
 import java.util.concurrent.TimeUnit
 import kotlin.math.min
 
@@ -257,7 +256,7 @@ class WifiSyncService(context: Context, params: WorkerParameters) : SyncService(
             Logd(TAG, "First sync. Upload state for all " + comItems.size + " played episodes")
             for (item in comItems) {
                 val played = EpisodeAction.Builder(item, EpisodeAction.PLAY)
-                    .timestamp(Date(item.lastPlayedTime))
+                    .timestamp(item.lastPlayedTime)
                     .started(item.startPosition / 1000)
                     .position(item.position / 1000)
                     .playedDuration(item.playedDuration / 1000)
@@ -271,7 +270,7 @@ class WifiSyncService(context: Context, params: WorkerParameters) : SyncService(
         if (queuedEpisodeActions.isNotEmpty()) {
             LockingAsyncExecutor.lock.lock()
             try {
-                Logd(TAG, "Uploading ${queuedEpisodeActions.size} actions: ${StringUtils.join(queuedEpisodeActions, ", ")}")
+                Logd(TAG, "Uploading ${queuedEpisodeActions.size} actions: ${queuedEpisodeActions.joinToString(", ")}")
                 val postResponse = uploadEpisodeActions(queuedEpisodeActions)
                 newTimeStamp = postResponse.timestamp
                 Logd(TAG, "Upload episode response: $postResponse")
@@ -290,7 +289,7 @@ class WifiSyncService(context: Context, params: WorkerParameters) : SyncService(
             i += UPLOAD_BULK_SIZE
             Thread.sleep(1000)
         }
-        return WifiEpisodeActionPostResponse(System.currentTimeMillis() / 1000)
+        return WifiEpisodeActionPostResponse(nowInMillis() / 1000)
     }
 
     @Throws(SyncServiceException::class)
@@ -321,13 +320,13 @@ class WifiSyncService(context: Context, params: WorkerParameters) : SyncService(
             return null
         }
         var idRemove: Long? = null
-        Logd(TAG, "processEpisodeAction ${feedItem.lastPlayedTime} ${(action.timestamp?.time?:0L)} ${action.position} ${feedItem.title}")
-        if (feedItem.lastPlayedTime < (action.timestamp?.time?:0L)) {
+        Logd(TAG, "processEpisodeAction ${feedItem.lastPlayedTime} ${(action.timestamp?:0L)} ${action.position} ${feedItem.title}")
+        if (feedItem.lastPlayedTime < (action.timestamp?:0L)) {
             feedItem = upsertBlk(feedItem) {
                 it.startPosition = action.started * 1000
                 it.position = action.position * 1000
                 it.playedDuration = action.playedDuration * 1000
-                it.lastPlayedTime = (action.timestamp!!.time)
+                it.lastPlayedTime = (action.timestamp!!)
                 it.setRating(if (action.isFavorite) Rating.SUPER else Rating.UNRATED)
                 it.setPlayState(EpisodeState.fromCode(action.playState))
                 if (it.hasAlmostEnded()) {

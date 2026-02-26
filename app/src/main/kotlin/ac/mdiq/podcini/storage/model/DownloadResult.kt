@@ -5,7 +5,8 @@ import ac.mdiq.podcini.net.download.DownloadError.Companion.fromCode
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.annotations.Ignore
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
-import java.util.Date
+import ac.mdiq.podcini.storage.utils.nowInMillis
+
 
 /**
  * Contains status attributes for one download
@@ -34,11 +35,11 @@ class DownloadResult : RealmObject {
         }
     var reasonCode: Int = 0
 
-    @Ignore private var completionDate: Date = Date()
-        set(value) {
-            field = value
-            completionTime = field.time
-        }
+//    @Ignore private var completionDate: Date = Date()
+//        set(value) {
+//            field = value
+//            completionTime = field.time
+//        }
     var completionTime: Long = 0L
     /**
      * A message which can be presented to the user to give more information.
@@ -50,13 +51,13 @@ class DownloadResult : RealmObject {
     var id: Long = 0L
         private set
 
-    constructor(title: String, feedfileId: Long, feedfileType: Int, isSuccessful: Boolean, reason: DownloadError?, completionDate: Date, reasonDetailed: String) {
+    constructor(title: String, feedfileId: Long, feedfileType: Int, isSuccessful: Boolean, reason: DownloadError?, completionDate: Long, reasonDetailed: String) {
         this.title = title
         this.feedfileId = feedfileId
         this.isSuccessful = isSuccessful
         this.feedfileType = feedfileType
         this.reason = reason
-        this.completionDate = completionDate
+        this.completionTime = completionDate
         this.reasonDetailed = reasonDetailed
     }
 
@@ -64,21 +65,17 @@ class DownloadResult : RealmObject {
      * Constructor for creating new completed downloads.
      */
     constructor(feedId: Long, title: String, reason: DownloadError, successful: Boolean, reasonDetailed: String)
-            : this(title, feedId, Episode.FEEDFILETYPE_FEEDMEDIA, successful, reason, Date(), reasonDetailed)
+            : this(title, feedId, Episode.FEEDFILETYPE_FEEDMEDIA, successful, reason, nowInMillis(), reasonDetailed)
 
     constructor() : this(0L, "", DownloadError.ERROR_NOT_FOUND, false, "") {}
 
     override fun toString(): String {
-        return ("DownloadStatus [id=$id, title=$title, reason=$reason, reasonDetailed=$reasonDetailed, successful=$isSuccessful, completionDate=$completionDate, feedfileId=$feedfileId, feedfileType=$feedfileType]")
+        return ("DownloadStatus [id=$id, title=$title, reason=$reason, reasonDetailed=$reasonDetailed, successful=$isSuccessful, completionDate=$completionTime, feedfileId=$feedfileId, feedfileType=$feedfileType]")
     }
 
     fun setId() {
-        if (idCounter < 0) idCounter = Date().time
+        if (idCounter < 0) idCounter = nowInMillis()
         id = idCounter++
-    }
-
-    fun getCompletionDate(): Date {
-        return Date(completionTime)
     }
 
     fun setSuccessful() {

@@ -1,6 +1,5 @@
 package ac.mdiq.podcini.net.sync
 
-import org.apache.commons.lang3.StringUtils
 import java.net.IDN
 import java.util.regex.Pattern
 
@@ -22,7 +21,7 @@ class HostnameParser(hosturl: String?) {
             // regex -> can only be digits
             port = m.group(3)?.toInt() ?: -1
             val mg4 = m.group(4)
-            subfolder = if (mg4 == null) "" else StringUtils.stripEnd(mg4, "/")
+            subfolder = mg4?.trimEnd('/') ?: ""
         } else {
             // URL does not match regex: use it anyway -> this will cause an exception on connect
             scheme = "https"

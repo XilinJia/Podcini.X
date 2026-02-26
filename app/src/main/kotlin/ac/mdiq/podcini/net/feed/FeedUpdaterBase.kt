@@ -48,7 +48,7 @@ import androidx.core.app.NotificationManagerCompat
 import io.github.xilinjia.krdb.ext.toRealmSet
 import java.io.File
 import java.io.IOException
-import java.util.Date
+
 import javax.xml.parsers.ParserConfigurationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -56,6 +56,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.xml.sax.SAXException
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = false, val doItAnyway: Boolean = false) {
     private val TAG = "FeedUpdaterBase"
@@ -229,7 +230,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             private set
 
         init {
-            downloadStatus = DownloadResult(request.title?:"", 0L, request.feedfileType, false, DownloadError.ERROR_REQUEST_ERROR, Date(), "Unknown error: Status not set")
+            downloadStatus = DownloadResult(request.title?:"", 0L, request.feedfileType, false, DownloadError.ERROR_REQUEST_ERROR, nowInMillis(), "Unknown error: Status not set")
         }
         suspend fun run(): FeedHandlerResult? {
             Logd(TAG, "in FeedParserTask call(), lastModified=${request.lastModified}")

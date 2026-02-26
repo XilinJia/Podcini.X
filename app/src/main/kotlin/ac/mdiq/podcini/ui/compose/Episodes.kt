@@ -25,6 +25,7 @@ import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.deleteMedia
 import ac.mdiq.podcini.storage.database.eraseEpisodes
+import ac.mdiq.podcini.storage.database.getId
 import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
@@ -114,7 +115,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -153,12 +153,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Date
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atTime
+import kotlinx.datetime.format
+import kotlinx.datetime.format.char
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
+import ac.mdiq.podcini.storage.utils.nowInMillis
+import kotlin.time.Instant
+
 
 private const val TAG = "ComposeEpisodes"
 
@@ -271,7 +279,7 @@ fun TodoDialog(episode: Episode, todo: Todo? = null, onDismissRequest: () -> Uni
             }
             var note by remember { mutableStateOf(TextFieldValue(todo?.note ?: "")) }
             if (addNote) BasicTextField(value = note, onValueChange = { note = it }, textStyle = TextStyle(fontSize = 12.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
-            val sysTime = remember { System.currentTimeMillis() }
+            val sysTime = remember { nowInMillis() }
             var dueTime by remember { mutableLongStateOf(0) }
             var addDueTime by remember { mutableStateOf((todo?.dueTime ?: 0) > 0) }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -284,16 +292,17 @@ fun TodoDialog(episode: Episode, todo: Todo? = null, onDismissRequest: () -> Uni
                 })
                 Text(text = stringResource(R.string.set_due_time), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 10.dp))
             }
-            val zdt by remember(addDueTime) { mutableStateOf(Instant.ofEpochMilli(
-                if (todo != null) {
+            val zdt = remember(addDueTime) {
+                val epochMillis = if (todo != null) {
                     if (todo.dueTime > 0) todo.dueTime
                     else if (addDueTime) sysTime
                     else 0
                 } else sysTime
-            ).atZone(ZoneId.systemDefault())) }
+                Instant.fromEpochMilliseconds(epochMillis).toLocalDateTime(TimeZone.currentSystemDefault())
+            }
             var year by remember(zdt) { mutableIntStateOf(zdt.year) }
-            var month by remember(zdt) { mutableIntStateOf(zdt.monthValue) }
-            var date by remember(zdt) { mutableIntStateOf(zdt.dayOfMonth) }
+            var month by remember(zdt) { mutableIntStateOf(zdt.month.ordinal) }
+            var date by remember(zdt) { mutableIntStateOf(zdt.day) }
             var hour by remember(zdt) { mutableIntStateOf(zdt.hour) }
             var minute by remember(zdt) { mutableIntStateOf(zdt.minute) }
             if (addDueTime) {
@@ -312,10 +321,10 @@ fun TodoDialog(episode: Episode, todo: Todo? = null, onDismissRequest: () -> Uni
             Button(onClick = {
                 runOnIOScope {
                     try {
-                        if (addDueTime) dueTime = LocalDateTime.of(year, month, date, hour, minute, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        if (addDueTime) dueTime = LocalDateTime(year = year, month = month, day = date, hour = hour, minute = minute, second = 0, nanosecond = 0).toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
                         if (todo == null) {
                             val todo_ = todo ?: Todo()
-                            todo_.id = sysTime
+                            todo_.id = getId()
                             todo_.title = title.text
                             todo_.note = note.text
                             todo_.dueTime = dueTime
@@ -403,7 +412,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true) {
                 }
             }
             if (show) Column(modifier = Modifier.padding(start = 20.dp).fillMaxWidth()) {
-                val localTime = remember { System.currentTimeMillis() }
+                val localTime = remember { nowInMillis() }
                 for (todo in todos) {
                     var done by remember(todo) { mutableStateOf(todo.completed) }
                     if (!done || showDone) {
@@ -420,7 +429,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true) {
                             Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "delete", modifier = Modifier.padding(end = 15.dp).clickable(onClick = { upsertBlk(episode) { it.todos.remove(todo) } }))
                         }
                         if (todo.dueTime > 0) {
-                            val dueText by remember(todo.dueTime) { mutableStateOf("D:" + formatDateTimeFlex(Date(todo.dueTime))) }
+                            val dueText = remember(todo.dueTime) { "D:" + formatDateTimeFlex(todo.dueTime) }
                             val bgColor = if (localTime > todo.dueTime) Color.Cyan else MaterialTheme.colorScheme.surface
                             Text(dueText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 20.dp).background(bgColor))
                         }
@@ -603,7 +612,7 @@ fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futur
                                             }
                                         }
                                         EpisodeState.PLAYED -> {
-                                            if (hasAlmostEnded) item_ = upsertBlk(item_) { it.playbackCompletionDate = Date() }
+                                            if (hasAlmostEnded) item_ = upsertBlk(item_) { it.playbackCompletionTime = nowInMillis() }
                                             val shouldAutoDelete = if (item_.feed == null) false else allowForAutoDelete(item_.feed!!) //                                            item = item_
                                             if (hasAlmostEnded && shouldAutoDelete) {
                                                 item_ = deleteMedia(item_)
@@ -748,10 +757,10 @@ fun EpisodeTimetableDialog(episode: Episode, onDismissRequest: () -> Unit, cb: (
 @Composable
 fun EditTimerDialog(timer: Timer, onDismissRequest: () -> Unit) {
     CommonPopupCard(onDismissRequest = onDismissRequest) {
-        val zdt by remember { mutableStateOf(Instant.ofEpochMilli(timer.triggerTime).atZone(ZoneId.systemDefault())) }
+        val zdt = remember(timer.triggerTime) { Instant.fromEpochMilliseconds(timer.triggerTime).toLocalDateTime(TimeZone.currentSystemDefault()) }
         var year by remember(zdt) { mutableIntStateOf(zdt.year) }
-        var month by remember(zdt) { mutableIntStateOf(zdt.monthValue) }
-        var date by remember(zdt) { mutableIntStateOf(zdt.dayOfMonth) }
+        var month by remember(zdt) { mutableIntStateOf(zdt.month.ordinal) }
+        var date by remember(zdt) { mutableIntStateOf(zdt.day) }
         var hour by remember(zdt) { mutableIntStateOf(zdt.hour) }
         var minute by remember(zdt) { mutableIntStateOf(zdt.minute) }
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -769,7 +778,7 @@ fun EditTimerDialog(timer: Timer, onDismissRequest: () -> Unit) {
             Button(onClick = {
                 runOnIOScope {
                     try {
-                        val triggerTime = LocalDateTime.of(year, month, date, hour, minute, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        val triggerTime = LocalDateTime(year, month, date, hour, minute, 0).toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
                         val timer_ = upsertBlkEmb(timer) { it.triggerTime = triggerTime }
                         timer_.reset()
                     } catch (e: Throwable) {
@@ -785,10 +794,10 @@ fun EditTimerDialog(timer: Timer, onDismissRequest: () -> Unit) {
 @Composable
 fun AddTimerDialog(episode: Episode, onDismissRequest: () -> Unit) {
     CommonPopupCard(onDismissRequest = onDismissRequest) {
-        val zdt by remember { mutableStateOf(Instant.ofEpochMilli(System.currentTimeMillis()).atZone(ZoneId.systemDefault())) }
+        val zdt = remember { Instant.fromEpochMilliseconds(System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()) }
         var year by remember(zdt) { mutableIntStateOf(zdt.year) }
-        var month by remember(zdt) { mutableIntStateOf(zdt.monthValue) }
-        var date by remember(zdt) { mutableIntStateOf(zdt.dayOfMonth) }
+        var month by remember(zdt) { mutableIntStateOf(zdt.month.ordinal) }
+        var date by remember(zdt) { mutableIntStateOf(zdt.day) }
         var hour by remember(zdt) { mutableIntStateOf(zdt.hour) }
         var minute by remember(zdt) { mutableIntStateOf(zdt.minute) }
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -811,7 +820,7 @@ fun AddTimerDialog(episode: Episode, onDismissRequest: () -> Unit) {
             Button(onClick = {
                 runOnIOScope {
                     try {
-                        val triggerTime = LocalDateTime.of(year, month, date, hour, minute, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        val triggerTime = LocalDateTime(year, month, date, hour, minute, 0).toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
                         playEpisodeAtTime(triggerTime, episode.id, isRepeat)
                     } catch (e: Throwable) { Loge(TAG, "editing timer error: ${e.message}") }
                 }
@@ -871,7 +880,7 @@ fun FutureStateDialog(selected: List<Episode>, state: EpisodeState, onDismissReq
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val interval = intervalMillis(intervals[sel], sel)
-                        val dueTime = interval + System.currentTimeMillis()
+                        val dueTime = interval + nowInMillis()
                         realm.write {
                             for (e in selected) {
                                 val hasAlmostEnded = e.hasAlmostEnded()
@@ -1202,17 +1211,27 @@ fun DatesFilterDialog(from: Long? = null, to: Long? = null, oldestDate: Long, on
         val regex = Regex("^(0[1-9]|1[0-2])/\\d{4}$")
         if (!regex.matches(monthYear)) return null
         val (month, year) = monthYear.split("/").map { it.toInt() }
-        val localDate = if (start) LocalDate.of(year, month, 1) else LocalDate.of(year, month, 1).plusMonths(1).minusDays(1)
-        return localDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val localDate = if (start) LocalDate(year, month, 1) else {
+            val firstOfMonth = LocalDate(year, month, 1)
+            firstOfMonth.plus(DatePeriod(months = 1)).minus(DatePeriod(days = 1))
+        }
+        return localDate.atTime(0, 0).toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
     }
     fun convertUnixTimeToMonthYear(unixTime: Long): String {
-        return Instant.ofEpochMilli(unixTime).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofPattern("MM/yyyy"))
+        val instant = Instant.fromEpochMilliseconds(unixTime)
+        val localDate = instant.toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val monthYearFormat = LocalDate.Format {
+            monthNumber()
+            char('/')
+            year()
+        }
+        return localDate.format(monthYearFormat)
     }
     var timeFilterFrom by remember { mutableLongStateOf(from ?: 0L) }
     var timeFilterTo by remember { mutableLongStateOf(to ?: Long.MAX_VALUE) }
     var useAllTime by remember { mutableStateOf((from == null || from == 0L) && (to == null || to == Long.MAX_VALUE)) }
-    val timeFrom by remember { derivedStateOf { if (timeFilterFrom == 0L) oldestDate else timeFilterFrom  } }
-    val timeTo by remember { derivedStateOf { if (timeFilterTo == Long.MAX_VALUE) System.currentTimeMillis() else timeFilterTo } }
+    val timeFrom = remember(timeFilterFrom) { if (timeFilterFrom == 0L) oldestDate else timeFilterFrom }
+    val timeTo = remember(timeFilterTo) { if (timeFilterTo == Long.MAX_VALUE) nowInMillis() else timeFilterTo }
     AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
         title = { Text(stringResource(R.string.share_label), style = CustomTextStyles.titleCustom) },
         text = {

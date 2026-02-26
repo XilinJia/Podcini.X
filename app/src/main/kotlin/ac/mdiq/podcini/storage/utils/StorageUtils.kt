@@ -17,8 +17,6 @@ import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.apache.commons.lang3.ArrayUtils
-import org.apache.commons.lang3.StringUtils
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FilterInputStream
@@ -250,17 +248,43 @@ fun createNoMediaFile() {
     }
 }
 
+private val ACCENT_MAP: Map<Char, Char> = mapOf(
+    'À' to 'A','Á' to 'A','Â' to 'A','Ã' to 'A','Ä' to 'A','Å' to 'A',
+    'à' to 'a','á' to 'a','â' to 'a','ã' to 'a','ä' to 'a','å' to 'a',
+    'Ç' to 'C','ç' to 'c',
+    'È' to 'E','É' to 'E','Ê' to 'E','Ë' to 'E',
+    'è' to 'e','é' to 'e','ê' to 'e','ë' to 'e',
+    'Ì' to 'I','Í' to 'I','Î' to 'I','Ï' to 'I',
+    'ì' to 'i','í' to 'i','î' to 'i','ï' to 'i',
+    'Ñ' to 'N','ñ' to 'n',
+    'Ò' to 'O','Ó' to 'O','Ô' to 'O','Õ' to 'O','Ö' to 'O',
+    'ò' to 'o','ó' to 'o','ô' to 'o','õ' to 'o','ö' to 'o',
+    'Ù' to 'U','Ú' to 'U','Û' to 'U','Ü' to 'U',
+    'ù' to 'u','ú' to 'u','û' to 'u','ü' to 'u',
+    'Ý' to 'Y','ý' to 'y','ÿ' to 'y',
+    'Æ' to 'A','æ' to 'a','Ø' to 'O','ø' to 'o',
+    'Þ' to 'T','þ' to 't','ß' to 's'
+)
+
 /**
  * This method will return a new string that doesn't contain any illegal characters of the given string.
  */
-fun generateFileName(string_: String): String {
-    val string = StringUtils.stripAccents(string_)
-    val buf = StringBuilder()
-    for (c in string) {
+fun generateFileName(input: String, replacement: Char = '-'): String {
+//    val string = StringUtils.stripAccents(string_)
+//    val buf = StringBuilder()
+//    for (c in string) {
+//        if (Character.isSpaceChar(c) && (buf.isEmpty() || Character.isSpaceChar(buf[buf.length - 1]))) continue
+//        if (validChars.contains(c)) buf.append(c)
+//    }
+//    val filename = buf.toString().trim { it <= ' ' }
+    val buf = StringBuilder(input.length)
+    for (ch in input) {
+        val c = ACCENT_MAP[ch] ?: ch
         if (Character.isSpaceChar(c) && (buf.isEmpty() || Character.isSpaceChar(buf[buf.length - 1]))) continue
-        if (ArrayUtils.contains(validChars, c)) buf.append(c)
+        if (validChars.contains(c)) buf.append(c)
     }
     val filename = buf.toString().trim { it <= ' ' }
+
     return when {
         filename.isEmpty() -> {
             val length = 8

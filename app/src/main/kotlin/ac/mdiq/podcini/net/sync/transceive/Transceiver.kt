@@ -36,6 +36,7 @@ import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketTimeoutException
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 private const val TAG = "Transceiver"
 
@@ -336,7 +337,7 @@ data class DiscoveredReceiver(
     val port: Int,
     val name: String,
     val uid: String,
-    val lastSeen: Long = System.currentTimeMillis()
+    val lastSeen: Long = nowInMillis()
 )
 
 suspend fun listenForUDPBroadcasts(udpPort: Int, onReceiversUpdated: (List<DiscoveredReceiver>) -> Unit) = withContext(Dispatchers.IO) {
@@ -383,7 +384,7 @@ suspend fun listenForUDPBroadcasts(udpPort: Int, onReceiversUpdated: (List<Disco
                 withContext(Dispatchers.Main) { onReceiversUpdated(receivers.values.toList()) }
             } catch (e: SocketTimeoutException) {
                 Logt(TAG, "listenForBroadcasts socket receive time out: is the receiver started")
-                val cutoff = System.currentTimeMillis() - 10_000
+                val cutoff = nowInMillis() - 10_000
                 receivers.entries.removeAll { it.value.lastSeen < cutoff }
                 withContext(Dispatchers.Main) { onReceiversUpdated(receivers.values.toList()) }
             } catch (e: Throwable) {

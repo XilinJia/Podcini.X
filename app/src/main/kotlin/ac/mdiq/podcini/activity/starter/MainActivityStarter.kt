@@ -1,4 +1,4 @@
-package ac.mdiq.podcini.ui.activity.starter
+package ac.mdiq.podcini.activity.starter
 
 
 import android.content.Context

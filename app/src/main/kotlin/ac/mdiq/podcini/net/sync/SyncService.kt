@@ -57,7 +57,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
-import org.apache.commons.lang3.StringUtils
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import kotlin.text.startsWith
@@ -161,8 +160,8 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         }
 
         if (queuedAddedFeeds.isNotEmpty() || queuedRemovedFeeds.isNotEmpty()) {
-            Logd(TAG, "Added: " + StringUtils.join(queuedAddedFeeds, ", "))
-            Logd(TAG, "Removed: " + StringUtils.join(queuedRemovedFeeds, ", "))
+            Logd(TAG, "Added: " + queuedAddedFeeds.joinToString(", "))
+            Logd(TAG, "Removed: " + queuedRemovedFeeds.joinToString(", "))
 
             LockingAsyncExecutor.lock.lock()
             try {
@@ -238,7 +237,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         if (queuedEpisodeActions.isNotEmpty()) {
             LockingAsyncExecutor.lock.lock()
             try {
-                Logd(TAG, "Uploading ${queuedEpisodeActions.size} actions: ${StringUtils.join(queuedEpisodeActions, ", ")}")
+                Logd(TAG, "Uploading ${queuedEpisodeActions.size} actions: ${queuedEpisodeActions.joinToString(", ")}")
                 val postResponse = syncServiceImpl.uploadEpisodeActions(queuedEpisodeActions)
                 newTimeStamp = postResponse?.timestamp?:0L
                 Logd(TAG, "Upload episode response: $postResponse")
@@ -432,14 +431,14 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
                 val mostRecent = localMostRecentPlayAction[key]
                 when {
                     mostRecent?.timestamp == null -> localMostRecentPlayAction[key] = action
-                    mostRecent.timestamp.before(action.timestamp) -> localMostRecentPlayAction[key] = action
+                    mostRecent.timestamp < action.timestamp?:0L -> localMostRecentPlayAction[key] = action
                 }
             }
             return localMostRecentPlayAction
         }
 
         private fun secondActionOverridesFirstAction(firstAction: EpisodeAction, secondAction: EpisodeAction?): Boolean {
-            return secondAction?.timestamp != null && (firstAction.timestamp == null || secondAction.timestamp.after(firstAction.timestamp))
+            return secondAction?.timestamp != null && (firstAction.timestamp == null || secondAction.timestamp > (firstAction.timestamp))
         }
 
         fun isValidGuid(guid: String?): Boolean {

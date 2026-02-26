@@ -12,14 +12,12 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.Rating.Companion.fromCode
-import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.ActionButton
-import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.ui.activity.ShareReceiverActivity.Companion.receiveShared
+import ac.mdiq.podcini.ui.actions.ButtonTypes
+import ac.mdiq.podcini.activity.MainActivity
+import ac.mdiq.podcini.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
-import ac.mdiq.podcini.ui.screens.LocalNavController
-import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -54,7 +52,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -84,11 +81,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.github.xilinjia.krdb.query.Sort
-import java.util.Date
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ac.mdiq.podcini.storage.utils.nowInMillis
 
 
 class LogsVM(val lcScope: CoroutineScope) {
@@ -264,7 +261,7 @@ fun LogsScreen() {
                             val icon = remember { if (log.status == ShareLog.Status.SUCCESS.ordinal) Icons.Filled.Info else Icons.Filled.Warning }
                             val iconColor = remember { if (log.status == ShareLog.Status.SUCCESS.ordinal) Color.Green else Color.Yellow }
                             Icon(icon, "Info", tint = iconColor, modifier = Modifier.padding(end = 2.dp))
-                            Text(formatDateTimeFlex(Date(log.id)), color = textColor)
+                            Text(formatDateTimeFlex(log.id), color = textColor)
                             Spacer(Modifier.weight(1f))
                             var showAction by remember { mutableStateOf(log.status < ShareLog.Status.SUCCESS.ordinal) }
                             if (showAction) {
@@ -337,7 +334,7 @@ fun LogsScreen() {
                     Icon(imageVector = ImageVector.vectorResource(iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating",
                         modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(40.dp).height(40.dp).padding(end = 15.dp))
                     Column {
-                        Text(log.type + ": " + formatDateTimeFlex(Date(log.id)) + " -- " + formatDateTimeFlex(Date(log.cancelDate)), color = textColor)
+                        Text(log.type + ": " + formatDateTimeFlex(log.id) + " -- " + formatDateTimeFlex(log.cancelDate), color = textColor)
                         Text(log.title, color = textColor)
                     }
                 }
@@ -405,7 +402,7 @@ fun LogsScreen() {
                                     Feed.FEEDFILETYPE_FEED ->  context.getString(R.string.download_type_feed)
                                     Episode.FEEDFILETYPE_FEEDMEDIA -> context.getString(R.string.download_type_media)
                                     else -> "" } + " · " +
-                                DateUtils.getRelativeTimeSpanString(status.getCompletionDate().time, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS, 0)
+                                DateUtils.getRelativeTimeSpanString(status.completionTime, nowInMillis(), DateUtils.MINUTE_IN_MILLIS, 0)
                         }
                         Text(statusText, color = textColor)
                         if (!status.isSuccessful) {
