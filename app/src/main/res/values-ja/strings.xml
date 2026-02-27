@@ -556,6 +556,7 @@
     <string name="pref_print_logs_sum">デバッグメッセージをログに記録するかどうかを切り替えます。これはパフォーマンスを低下させる可能性があります。問題を報告する準備ができているときにのみオンにしてください。</string>
     <string name="pref_dont_ask_restricted">制限された背景をもう一度聞かないでください</string>
     <string name="pref_dont_ask_restricted_sum">権限が許可されていない場合、制限された背景権限の要求が求められます。これによりプロンプトは無効になります。 許可が与えられていることを確認してください。それ以外の場合は、再生の継続とバックグラウンドでのフィードの更新が正しく機能しません。</string>
+    <string name="restore_on_start">Restore on start</string>
     <string name="repeat_current_media">Repeat current media</string>
     <string name="remember_last_page">最後のページを記憶する</string>
     <string name="pref_delete_removes_from_queue_title">キューから削除する</string>
