@@ -566,6 +566,7 @@
     <string name="pref_print_logs_sum">تبديل إذا تم تسجيل رسائل التصحيح. هذا يمكن أن يؤدي إلى تدهور الأداء. قم بتشغيل هذا فقط عند الإعداد للإبلاغ عن المشاكل.</string>
     <string name="pref_dont_ask_restricted">لا تطلب مرة أخرى خلفية مقيدة</string>
     <string name="pref_dont_ask_restricted_sum">طلب الحصول على إذن خلفية مقيد يتم في حالة عدم منح الإذن. هذا يعطل الطلبات. الرجاء التأكد من منح الإذن، وإلا ، الاستمرار في التشغيل والتحديثات في الخلفية لا تعمل بشكل صحيح.</string>
+    <string name="restore_on_start">Restore on start</string>
     <string name="repeat_current_media">Repeat current media</string>
     <string name="remember_last_page">تذكر الصفحة الأخيرة</string>
     <string name="pref_delete_removes_from_queue_title">حذف إزالة من قائمة الانتظار</string>
