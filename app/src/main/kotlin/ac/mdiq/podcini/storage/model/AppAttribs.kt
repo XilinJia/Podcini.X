@@ -20,9 +20,8 @@ class AppAttribs: RealmObject {
 
     var uniqueId: String = ""
 
+    var restoreLastScreen: Boolean = false
     var prefLastScreen: String = ""
-
-    var prefLastScreenArg: String = ""      // TODO: not really used now?
 
     var curQueueId: Long = 0L
 

@@ -195,11 +195,7 @@
 
         <activity
             android:name=".activity.BugReportActivity"
-            android:theme="@style/Theme.Podcini.Dialog"
-            android:label="@string/bug_report_title">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="ac.mdiq.podcini.activity.MainActivity"/>
+            android:theme="@style/Theme.Podcini">
         </activity>
 
         <activity

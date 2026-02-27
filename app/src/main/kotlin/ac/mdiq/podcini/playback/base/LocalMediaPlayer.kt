@@ -28,6 +28,7 @@ import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.timeIt
+import android.annotation.SuppressLint
 import android.app.UiModeManager
 import android.content.Context
 import android.content.res.Configuration
@@ -244,7 +245,8 @@ class LocalMediaPlayer : MediaPlayerBase() {
             .build()
         Logd(TAG, "createStaticPlayer creating exoPlayer_")
 
-        simpleCache = getCache()
+//        simpleCache = getCache()
+        runOnIOScope { initCache() }
 
         // Initialize ExoPlayer
         trackSelector = DefaultTrackSelector(context)

@@ -364,8 +364,8 @@
   <string name="search_podcast_hint">Otsi taskuhäälingut…</string>
 
     <string name="advanced">Täpsem</string>
-    <string name="discover">Avasta</string>
-  <string name="discover_hide">Peida</string>
+
+
 
 
   <string name="search_powered_by">Tulemused: %1$s</string>

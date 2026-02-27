@@ -1,0 +1,7 @@
+* on change of episode being played, PlayerUI, if in the drawer, is restored
+* amended default page "Remember" mechanism, replace it with Restore
+* persisted screen mode of Facets screen
+* fixed OnlineFeed Open not always opening existing feed
+* fixed BugReportActivity not taking full width
+* simple cache is init on app start in IO dispatcher
+* backup and import routines of shared preferences are removed

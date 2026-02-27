@@ -82,6 +82,8 @@ import java.util.GregorianCalendar
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import ac.mdiq.podcini.storage.utils.nowInMillis
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
@@ -142,7 +144,7 @@ abstract class MediaPlayerBase {
 
     open fun createStaticPlayer() {}
 
-    
+
     protected fun setDataSource(media: Episode, metadata: MediaMetadata, mediaUrl: String, user: String?, password: String?) {
         Logd(TAG, "setDataSource: $mediaUrl")
         val uri = mediaUrl.toUri()
@@ -596,7 +598,6 @@ abstract class MediaPlayerBase {
      * Custom DataSource that saves clip data during read when recording is active.
      * Adapted to use an existing CacheDataSource instance.
      */
-    
     class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : DataSource {
         private val TAG = "SegmentSavingDataSource"
 
@@ -756,19 +757,21 @@ abstract class MediaPlayerBase {
                 mPlayer?.startWhenPrepared?.set(s)
             }
 
-        fun getCache(): SimpleCache {
-            val context = getAppContext()
-            return simpleCache ?: synchronized(this) {
-                if (simpleCache != null) simpleCache!!
-                else {
-                    val cacheDir = File(context.filesDir, "media_cache")
-                    if (!cacheDir.exists()) cacheDir.mkdirs()
-                    SimpleCache(cacheDir, LeastRecentlyUsedCacheEvictor(streamingCacheSizeMB * 1024L * 1024), StandaloneDatabaseProvider(context)).also { simpleCache = it }
-                }
+        private val cacheMutex = Mutex()
+        suspend fun initCache() = withContext(Dispatchers.IO) {
+            cacheMutex.withLock {
+                simpleCache?.let { return@withLock }
+                val context = getAppContext()
+                val cacheDir = File(context.filesDir, "media_cache")
+                if (!cacheDir.exists()) cacheDir.mkdirs()
+                simpleCache = SimpleCache(cacheDir, LeastRecentlyUsedCacheEvictor(streamingCacheSizeMB * 1024L * 1024), StandaloneDatabaseProvider(context)).also { simpleCache = it }
             }
         }
 
-        
+        fun getCache(): SimpleCache {
+            return simpleCache ?: throw IllegalStateException("Cache not initialized yet!")
+        }
+
         fun releaseCache() {
             simpleCache?.release()
             simpleCache = null

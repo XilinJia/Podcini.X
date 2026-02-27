@@ -14,4 +14,6 @@ class FacetsPrefs: RealmObject {
     var filtersMap: RealmDictionary<String?> = realmDictionaryOf()
 
     var sortCodesMap: RealmDictionary<Int?> = realmDictionaryOf()
+
+    var screenMode: String = ""
 }

@@ -72,7 +72,6 @@ class BugReportActivity : ComponentActivity() {
     private var showConfirmExport = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-//        setTheme(getNoTitleTheme(this))
         super.onCreate(savedInstanceState)
 
         window.requestFeature(Window.FEATURE_ACTION_MODE_OVERLAY)

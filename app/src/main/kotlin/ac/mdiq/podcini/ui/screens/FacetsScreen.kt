@@ -135,10 +135,10 @@ import ac.mdiq.podcini.storage.utils.nowInMillis
 
 
 enum class QuickAccess {
-    New, Planned, Repeats, Liked, Todos, Timers, Commented, Tagged, Recorded, Queued, Downloaded, History, Archived, Frozen, All, Custom
+    New, Planned, Repeats, Liked, Todos, Timers, Commented, Tagged, Recorded, Queued, Downloaded, History, Archived, Frozen, All, Custom, None
 }
 
-var facetsMode by mutableStateOf(QuickAccess.New)
+var facetsMode by mutableStateOf(QuickAccess.None)
 
 var facetsCustomTag by mutableStateOf("")
 
@@ -162,7 +162,7 @@ class FacetsVM(modeName_: String): ViewModel() {
 
     var showFeeds by mutableStateOf(false)
 
-    val spinnerTexts by mutableStateOf(QuickAccess.entries.map { it.name })  
+    val spinnerTexts by mutableStateOf(QuickAccess.entries.filter { it != QuickAccess.None }.map { it.name })
     var curIndex by mutableIntStateOf(0)
 
     var historyStartDate by mutableLongStateOf(0L)
@@ -436,17 +436,27 @@ class FacetsVM(modeName_: String): ViewModel() {
                 }
             }
         }
-        if (facetsMode != QuickAccess.Custom) {
-            if (modeName.isNotEmpty()) {
-                facetsMode = QuickAccess.entries.find { it.name == modeName } ?: QuickAccess.New
+        Logd(TAG, "facetsMode: ${facetsMode.name} ${facetsPrefs.screenMode}")
+        when {
+            modeName == QuickAccess.None.name -> {
+                facetsMode = QuickAccess.entries.find { it.name == facetsPrefs.screenMode } ?: QuickAccess.New
                 curIndex = facetsMode.ordinal
-            } else {
-                curIndex = facetsPrefs.prefFacetsCurIndex
-                facetsMode = QuickAccess.valueOf(spinnerTexts[curIndex])
             }
-            filter = EpisodeFilter(facetsPrefs.filtersMap[facetsMode.name] ?: "")
-        } else curIndex = QuickAccess.Custom.ordinal
+            facetsMode != QuickAccess.Custom -> {
+                if (modeName.isNotEmpty()) {
+                    facetsMode = QuickAccess.entries.find { it.name == modeName } ?: QuickAccess.New
+                    curIndex = facetsMode.ordinal
+                } else {
+                    curIndex = facetsPrefs.prefFacetsCurIndex
+                    facetsMode = QuickAccess.valueOf(spinnerTexts[curIndex])
+                }
+                upsertBlk(facetsPrefs) { it.screenMode = facetsMode.name }
+                filter = EpisodeFilter(facetsPrefs.filtersMap[facetsMode.name] ?: "")
+            }
+            else -> curIndex = QuickAccess.Custom.ordinal
+        }
         tag = TAG + QuickAccess.entries[curIndex]
+        Logd(TAG, "facetsMode 1: ${facetsMode.name} ${facetsPrefs.screenMode}")
 
         timeIt("$TAG end of init")
     }
@@ -455,7 +465,7 @@ class FacetsVM(modeName_: String): ViewModel() {
         super.onCleared()
         facetsPrefsJob?.cancel()
         facetsPrefsJob = null
-        facetsMode = QuickAccess.New
+//        facetsMode = QuickAccess.New
     }
 }
 
@@ -488,9 +498,7 @@ fun FacetsScreen(modeName: String = "") {
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_CREATE -> {
-                    resetSwipes()
-                }
+                Lifecycle.Event.ON_CREATE -> resetSwipes()
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_STOP -> {}
                 Lifecycle.Event.ON_DESTROY -> {}
@@ -498,9 +506,7 @@ fun FacetsScreen(modeName: String = "") {
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     DisposableEffect(vm.showFeeds, episodeForInfo) {
@@ -554,10 +560,12 @@ fun FacetsScreen(modeName: String = "") {
                                 vm.curIndex = index
                                 facetsMode = QuickAccess.valueOf(vm.spinnerTexts[vm.curIndex])
                                 vm.tag = TAG + QuickAccess.entries[vm.curIndex]
-                                upsertBlk(vm.facetsPrefs) { it.prefFacetsCurIndex = index}
+                                upsertBlk(vm.facetsPrefs) {
+                                    it.prefFacetsCurIndex = index
+                                    it.screenMode = facetsMode.name
+                                }
                                 actionButtonType = if (facetsMode == QuickAccess.Downloaded) ButtonTypes.DELETE else null
                                 resetSwipes()
-//                                vm.buildFlow()
                                 showChooseMode = false
                             }, label = { Text(vm.spinnerTexts[index]) }, selected = vm.curIndex == index, border = filterChipBorder(vm.curIndex == index))
                         }
@@ -568,7 +576,6 @@ fun FacetsScreen(modeName: String = "") {
         if (showChooseMode) ChooseMode()
     }
 
-    
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }

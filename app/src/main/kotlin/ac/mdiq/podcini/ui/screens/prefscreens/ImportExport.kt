@@ -16,7 +16,6 @@ import ac.mdiq.podcini.config.settings.MediaFilesTransporter
 import ac.mdiq.podcini.config.settings.OpmlTransporter
 import ac.mdiq.podcini.config.settings.OpmlTransporter.OpmlElement
 import ac.mdiq.podcini.config.settings.OpmlTransporter.OpmlWriter
-import ac.mdiq.podcini.config.settings.PreferencesTransporter
 import ac.mdiq.podcini.config.settings.autoBackupDirName
 import ac.mdiq.podcini.config.settings.importAP
 import ac.mdiq.podcini.config.settings.importPA
@@ -254,13 +253,13 @@ fun ImportExportScreen() {
                             withContext(Dispatchers.IO) {
                                 val rootFile = DocumentFile.fromTreeUri(getAppContext(), uri)
                                 if (rootFile != null && rootFile.isDirectory) {
-                                    Logd(TAG, "comboDic[\"Preferences\"] ${comboDic["Preferences"]}")
+//                                    Logd(TAG, "comboDic[\"Preferences\"] ${comboDic["Preferences"]}")
                                     Logd(TAG, "comboDic[\"Media files\"] ${comboDic["Media files"]}")
                                     Logd(TAG, "comboDic[\"Database\"] ${comboDic["Database"]}")
                                     for (child in rootFile.listFiles()) {
                                         if (child.isDirectory) {
                                             if (child.name == prefsDirName) {
-                                                if (comboDic["Preferences"] == true) PreferencesTransporter(prefsDirName).importBackup(child.uri)
+//                                                if (comboDic["Preferences"] == true) PreferencesTransporter(prefsDirName).importBackup(child.uri)
                                             } else if (child.name == mediaFilesDirName) {
                                                 if (comboDic["Media files"] == true) MediaFilesTransporter(mediaFilesDirName).importFromUri(child.uri)
                                             }
@@ -307,7 +306,7 @@ fun ImportExportScreen() {
                             val chosenDir = DocumentFile.fromTreeUri(getAppContext(), uri) ?: throw IOException("Destination directory is not valid")
                             val exportSubDir = chosenDir.createDirectory(dateStampFilename("$backupDirName-%s")) ?: throw IOException("Error creating subdirectory $backupDirName")
                             val subUri: Uri = exportSubDir.uri
-                            if (comboDic["Preferences"] == true) PreferencesTransporter(prefsDirName).exportToDocument(subUri)
+//                            if (comboDic["Preferences"] == true) PreferencesTransporter(prefsDirName).exportToDocument(subUri)
                             if (comboDic["Media files"] == true) MediaFilesTransporter(mediaFilesDirName).exportToUri(subUri)
                             if (comboDic["Database"] == true) {
                                 val realmFile = exportSubDir.createFile("application/octet-stream", "backup.realm")
@@ -345,8 +344,9 @@ fun ImportExportScreen() {
                 for (child in rootFile.listFiles()) {
                     Logd(TAG, "restoreComboLauncher child: ${child.isDirectory} ${child.name} ${child.uri} ")
                     if (child.isDirectory) {
-                        if (child.name == prefsDirName) comboDic["Preferences"] = true
-                        else if (child.name == mediaFilesDirName) comboDic["Media files"] = false
+//                        if (child.name == prefsDirName) comboDic["Preferences"] = true
+//                        else
+                            if (child.name == mediaFilesDirName) comboDic["Media files"] = false
                     } else if (isRealmFile(child.uri)) comboDic["Database"] = true
                 }
             }
@@ -365,7 +365,7 @@ fun ImportExportScreen() {
             if (uri != null) {
                 comboDic.clear()
                 comboDic["Database"] = true
-                comboDic["Preferences"] = true
+//                comboDic["Preferences"] = true
                 comboDic["Media files"] = true
                 comboRootUri = uri
                 showComboExportDialog = true

@@ -659,7 +659,8 @@ fun AVPlayerScreen() {
         chapertsLoaded = false
         displayedChapterIndex = -1
         vm.episodeFeed = curEpisode?.feed
-//        if (isPlayingVideoLocally && vm.episodeFeed != null && vm.episodeFeed!!.videoModePolicy != VideoMode.AUDIO_ONLY) {
+        if (psState == PSState.Hidden) psState = PSState.PartiallyExpanded
+        //        if (isPlayingVideoLocally && vm.episodeFeed != null && vm.episodeFeed!!.videoModePolicy != VideoMode.AUDIO_ONLY) {
 //            if (!isRotationEnabled) vm.landscape = vm.episodeFeed!!.videoModePolicy == VideoMode.FULL_SCREEN || appPrefs.videoPlaybackMode == VideoMode.FULL_SCREEN.code
 ////            curVideoMode = vm.episodeFeed!!.videoModePolicy
 //            psState = PSState.Expanded

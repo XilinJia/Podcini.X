@@ -1,9 +1,0 @@
-# 9.9.1
-
-* fixed an issue of initializing curState from DB
-* removing curEpisode from queue when not playing will dismiss the playerUI
-* in Queues screen, the name on the topbar
-* re-adjusted auto-scroll routines
-* amended "Add to queue" popup, removed the radio buttons
-* in Settings, replaces "User forum" with "What's new"
-* removed useless UsageStatistics routines inherited from AntennaPod

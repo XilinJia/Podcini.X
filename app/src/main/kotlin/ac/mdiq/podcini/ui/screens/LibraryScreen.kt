@@ -746,13 +746,13 @@ fun LibraryScreen() {
         }
         val feedsOptionsMap = remember { linkedMapOf<String, @Composable ()->Unit>(
             "AddToQueue" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-            exitSelectMode()
-            episodesToQueue.clear()
-            val eps = realm.query(Episode::class).query("feedId IN $0", feedsSelected.map { it.id }).limit(200).find()
-            if (eps.isNotEmpty()) episodesToQueue.addAll(eps)
-        }) {
-            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.outline_playlist_add_24), "Add to queue")
-            Text(stringResource(id = R.string.add_to_queue) + " (max 200)") } },
+                exitSelectMode()
+                episodesToQueue.clear()
+                val eps = realm.query(Episode::class).query("feedId IN $0", feedsSelected.map { it.id }).limit(200).find()
+                if (eps.isNotEmpty()) episodesToQueue.addAll(eps)
+            }) {
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.outline_playlist_add_24), "Add to queue")
+                Text(stringResource(id = R.string.add_to_queue) + " (max 200)") } },
             "SetRating" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 exitSelectMode()
                 showChooseRatingDialog = true

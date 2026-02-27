@@ -270,13 +270,6 @@ private val ACCENT_MAP: Map<Char, Char> = mapOf(
  * This method will return a new string that doesn't contain any illegal characters of the given string.
  */
 fun generateFileName(input: String, replacement: Char = '-'): String {
-//    val string = StringUtils.stripAccents(string_)
-//    val buf = StringBuilder()
-//    for (c in string) {
-//        if (Character.isSpaceChar(c) && (buf.isEmpty() || Character.isSpaceChar(buf[buf.length - 1]))) continue
-//        if (validChars.contains(c)) buf.append(c)
-//    }
-//    val filename = buf.toString().trim { it <= ' ' }
     val buf = StringBuilder(input.length)
     for (ch in input) {
         val c = ACCENT_MAP[ch] ?: ch
@@ -308,16 +301,12 @@ private fun md5(md5: String): String? {
     } catch (e: UnsupportedEncodingException) { return null }
 }
 
-/**
- * Get the number of free bytes that are available on the external storage.
- */
 fun getFreeSpaceAvailable(path: String?): Long {
     val stat = StatFs(path)
     val availableBlocks = stat.availableBlocksLong
     val blockSize = stat.blockSizeLong
     return availableBlocks * blockSize
 }
-
 
 fun getTotalSpaceAvailable(path: String?): Long {
     val stat = StatFs(path)

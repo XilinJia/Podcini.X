@@ -23,6 +23,7 @@ import ac.mdiq.podcini.storage.model.Todo
 import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.utils.nowInMillis
+import ac.mdiq.podcini.ui.screens.DefaultPages
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.showStackTrace
@@ -79,7 +80,7 @@ val config: RealmConfiguration by lazy {
         FacetsPrefs::class,
         SleepPrefs::class,
         SyncPrefs::class,
-    )).name("Podcini.realm").schemaVersion(114)
+    )).name("Podcini.realm").schemaVersion(116)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -167,6 +168,18 @@ val config: RealmConfiguration by lazy {
                     e.set("repeatInterval", (8.64e7 * 10).toLong())
                     val t = nowInMillis() + (8.64e7 * (10..100).random()).toLong()
                     e.set("repeatTime", t)
+                }
+            }
+            if (oldRealm.schemaVersion() < 115) {
+                Log.d(TAG, "migrating DB from below 115")
+                val prefsNew = newRealm.query("AppPrefs").first().find()
+                if (prefsNew != null) {
+                    val dp = prefsNew.getValue<String>("defaultPage")
+                    if (dp == "Remember") {
+                        prefsNew.set("defaultPage", DefaultPages.Library.name)
+                        val att = newRealm.query("AppAttribs").first().find()
+                        att?.set("restoreLastScreen", true)
+                    }
                 }
             }
         }).build()

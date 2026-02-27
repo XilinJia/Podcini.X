@@ -1,6 +1,0 @@
-* in tags editing (feed or episode), fixed tags not being removed
-* added basic functionalities to manage timers
-	* adding a timer now supports a full calendar
-	* in EpisodeInfo, added icon to add/show/edit/remove timers
-	* on timer list dialog, timer can be edited/removed
-	* in Facets, added sub-screen for episodes with timers set

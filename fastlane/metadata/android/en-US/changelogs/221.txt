@@ -1,5 +1,0 @@
-* in Queues screen, when not in actQueue, long-press on the name on the topbar will switch to actQueue
-* for resizing episodes in a feed, trimEpisode routine is made more efficient
-* some list properties in DB are changed to set
-* in Feed Settings, added setting of preferred languages if languages in the feed is more than one
-* adjusted order of action buttons in popup menu

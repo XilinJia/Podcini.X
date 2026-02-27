@@ -4,9 +4,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
-import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.compose.LargePoster
@@ -90,7 +88,7 @@ fun MainActivityUI() {
         val observer = LifecycleEventObserver { _, event ->
             Logd(TAG, "DisposableEffect LifecycleEventObserver: $event")
             when (event) {
-                Lifecycle.Event.ON_CREATE -> {}
+                Lifecycle.Event.ON_CREATE -> if (appAttribs.restoreLastScreen) initScreen = appAttribs.prefLastScreen
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {}
@@ -242,15 +240,6 @@ fun MainActivityUI() {
     //        }
 
     BackHandler(enabled = handleBackSubScreens.isEmpty()) {
-        fun haveCommonPrefix(a: String, b: String): Boolean {
-            val min = minOf(a.length, b.length)
-            var count = 0
-            for (i in 0 until min) {
-                if (a[i] != b[i]) break
-                count++
-            }
-            return count > 0
-        }
         Logd(TAG, "BackHandler isBSExpanded: $psState")
         val openDrawer = appPrefs.backButtonOpensDrawer
         val defPage = defaultScreen
@@ -267,7 +256,7 @@ fun MainActivityUI() {
                 curruntRoute = currentDestination?.route ?: ""
                 Logd(TAG, "BackHandler curruntRoute: [$curruntRoute]")
             }
-            appPrefs.defaultPage != DefaultPages.Remember.name && defPage.isNotBlank() && curruntRoute.isNotBlank() && !haveCommonPrefix(curruntRoute, defPage) -> {
+            defPage.isNotBlank() && curruntRoute.isNotBlank() && curruntRoute.substringBefore('?') != defPage.substringBefore('?') -> {
                 Logd(TAG, "nav to defPage: $defPage")
                 navigator.navigate(defPage) { popUpTo(0) { inclusive = true } }
                 curruntRoute = currentDestination?.route ?: ""

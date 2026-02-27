@@ -1,6 +1,0 @@
-* in EpisodeInfo screen, the header is scrollable together with details
-* in OnlineFeed screen, all contents are scrollable, and likely fixed the progress mark appearing when rotating screen
-* in FeedDetails list view, the header is hidden when in landscape mode
-* adjusted drawer opening routines, drawer stays closed when rotating to landscape mode
-* amended routines of queues
-* some code refactoring

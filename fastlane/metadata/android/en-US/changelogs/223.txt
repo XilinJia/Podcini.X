@@ -1,6 +1,0 @@
-* reworked the ways of handling relations of feed and episodes, and of queue and episodes
-* in Queues screen, systematic sorting is performed only when requested
-* introduced type Volume that can contain sub-volumes or feeds
-* in Subscriptions, show top volumes (if any) at the top of the list, and feeds whose parent volume is null
-* allows adding local directory tree, from "drawer->Add podcast->Advanced->Add local folder"
-* fixed various issues

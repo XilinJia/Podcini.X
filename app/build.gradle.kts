@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 264
-        versionName = "10.11.0"
+        versionCode = 265
+        versionName = "10.11.1"
 
         ndkVersion = "29.0.14206865"
 
@@ -85,17 +85,17 @@ configure<ApplicationExtension> {
     }
 
     lint {
-        lintConfig = file("lint.xml")
-        checkReleaseBuilds = false
+        checkReleaseBuilds = true
         checkDependencies = true
         warningsAsErrors = true
         abortOnError = true
-        checkGeneratedSources = true
-        disable += listOf("TypographyDashes", "TypographyQuotes", "ObsoleteLintCustomCheck", "BatteryLife",
-            "ExportedReceiver", "VectorDrawableCompat", "NestedWeights", "Overdraw", "TextFields",
-            "AlwaysShowAction", "Autofill", "ClickableViewAccessibility", "ContentDescription",
-            "KeyboardInaccessibleWidget", "LabelFor", "RelativeOverlap", "SetTextI18n",
-            "RtlCompat", "RtlHardcoded", "VectorPath", "RtlEnabled")
+        disable += listOf(
+            "UnsafeOptInUsageError",    // Fixes the Media3 "Unstable API" red lines
+            "TypographyDashes",         // Ignore formatting pedantry
+            "TypographyQuotes",         // Ignore formatting pedantry
+            "ObsoleteLintCustomCheck",  // Stops old library warnings from bothering you
+            "RestrictedApi"             // If Media3/Compose internals still show red
+        )
     }
 
     signingConfigs {

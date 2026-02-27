@@ -2,7 +2,6 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.database.allFeeds
-import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.ui.screens.prefscreens.PrefsScreen
 import ac.mdiq.podcini.utils.Logd
@@ -36,18 +35,10 @@ val defaultScreen: String
         if (allFeeds.isEmpty()) return Screens.FindFeeds.name
 
         var value = appPrefs.defaultPage
-        Logd(TAG, "get defaultScreen 0: [$value]")
+        Logd(TAG, "get defaultScreen defaultPage: [$value]")
         fun isValid(): Boolean = runCatching { Screens.valueOf(value) }.isSuccess
-        if (value == DefaultPages.Remember.name) {
-            value = appAttribs.prefLastScreen
-            Logd(TAG, "get defaultScreen 1: [$value]")
-            if (value.isBlank()) value = Screens.Library.name
-            if (value == Screens.FeedDetails.name) {
-                val feedId = appAttribs.prefLastScreenArg.toLongOrNull()
-                if (feedId != null) value = "${Screens.FeedDetails.name}?feedId=${feedId}"
-            }
-        } else if (value.isBlank() || !isValid()) value = Screens.Library.name
-        Logd(TAG, "get defaultScreen: [$value]")
+        if (value.isBlank() || !isValid()) value = Screens.Library.name
+        Logd(TAG, "get defaultScreen value: [$value]")
         return value
     }
 
@@ -79,6 +70,7 @@ fun Navigate(navController: NavHostController, startScreen: String = "") {
         startScreen = if (isValid(dfs)) dfs else Screens.Library.name
     }
     Logd(TAG, "Navigate startScreen 1: $startScreen")
+
     NavHost(navController = navController, startDestination = startScreen) { // TODO: defaultScreen
         composable(Screens.Library.name) { LibraryScreen() }
         composable(route = "${Screens.Queues.name}?index={index}", arguments = listOf(navArgument("index") {
@@ -109,9 +101,9 @@ fun Navigate(navController: NavHostController, startScreen: String = "") {
         }
         composable("${Screens.Facets.name}?modeName={modeName}", arguments = listOf(navArgument("modeName") {
             type = NavType.StringType
-            defaultValue = QuickAccess.New.name
+            defaultValue = QuickAccess.None.name
         })) { entry ->
-            val modeName = entry.arguments?.getString("modeName") ?: QuickAccess.New.name
+            val modeName = entry.arguments?.getString("modeName") ?: QuickAccess.None.name
             FacetsScreen(modeName)
         }
         composable(Screens.Search.name) { SearchScreen() }
@@ -146,7 +138,7 @@ enum class DefaultPages(val res: Int) {
     Facets(R.string.facets),
     OnlineSearch(R.string.add_feed_label),
     Statistics(R.string.statistics_label),
-    Remember(R.string.remember_last_page);
+//    Remember(R.string.remember_last_page);
 }
 
 enum class Screens {

@@ -1,6 +1,0 @@
-* made the total duration color on PlayerUI more readable
-* in LocalMediaPlayer
-	* loosened request for audio offload, on most devices, at least 1x speed would benefit the battery saving
-	* enhanced player buffer sizes to help playing at higher speed
-	* use faster but slightly imprecise SeekParameter
-* added capability of repeating a media (indefinitely)

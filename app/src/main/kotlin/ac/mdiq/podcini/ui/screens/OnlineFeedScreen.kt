@@ -11,9 +11,9 @@ import ac.mdiq.podcini.net.feed.FeedUrlNotFoundException
 import ac.mdiq.podcini.net.feed.PodcastSearchResult
 import ac.mdiq.podcini.net.feed.PodcastSearcherRegistry
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
+import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.getFeed
-import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.getId
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -142,8 +142,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
     internal val feedId: Long
         get() {
-            if (feeds == null) feeds = getFeedList()
-            for (f in feeds!!) if (gearbox.isSameFeed(f, selectedDownloadUrl, feed?.title)) return f.id
+            for (f in allFeeds) if (gearbox.isSameFeed(f, selectedDownloadUrl, feed?.title, feed?.author)) return f.id
             return 0
         }
 
@@ -151,11 +150,8 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
     internal var episodes = mutableListOf<Episode>()
 
-    @Volatile
-    internal var feeds: List<Feed>? = null
     internal var feed by mutableStateOf<Feed?>(null)
     internal var selectedDownloadUrl: String? = null
-    //    private var downloader: Downloader? = null
     internal var username: String? = null
     internal var password: String? = null
 
@@ -286,12 +282,9 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
     private fun onFeedListChanged(event: FlowEvent.FeedListEvent) {
         viewModelScope.launch(Dispatchers.IO) {
+            Logd(TAG, "onFeedListChanged")
             try {
-                val feeds_ = withContext(Dispatchers.IO) { getFeedList() }
-                withContext(Dispatchers.Main) {
-                    feeds = feeds_
-                    handleUpdatedFeedStatus()
-                }
+                withContext(Dispatchers.Main) { handleUpdatedFeedStatus() }
             } catch (e: Throwable) {
                 Logs(TAG, e)
                 withContext(Dispatchers.Main) {
@@ -398,7 +391,6 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
     override fun onCleared() {
         super.onCleared()
-        feeds = null
         episodes.clear()
     }
 }
@@ -407,7 +399,6 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 @Composable
 fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = false) {
     val lifecycleOwner = LocalLifecycleOwner.current
-//    val scope = rememberCoroutineScope()
     val drawerController = LocalDrawerController.current
     val context by rememberUpdatedState(LocalContext.current)
     val textColor = MaterialTheme.colorScheme.onSurface
@@ -524,13 +515,13 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 }) {
                     Spacer(modifier = Modifier.weight(0.2f))
                     if (vm.showFeedDisplay && vm.enableSubscribe) Button(onClick = {
-                        if (vm.feedId != 0L || realm.query(Feed::class, "eigenTitle == $0 && author == $1", vm.feed!!.eigenTitle, vm.feed!!.author).first().find() != null) {
+                        if (vm.feed == null) return@Button
+                        if (vm.feedId != 0L) {
                             if (vm.isShared) {
                                 val log = realm.query(ShareLog::class).query("url == $0", vm.feedUrl).first().find()
                                 if (log != null) upsertBlk(log) { it.status = ShareLog.Status.EXISTING.ordinal }
                             }
-                            val feed = realm.query(Feed::class, "eigenTitle == $0 && author == $1", vm.feed?.eigenTitle ?: "", vm.feed?.author ?: "").first().find()
-                            if (feed != null) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}&modeName=${FeedScreenMode.Info.name}")
+                            navController.navigate("${Screens.FeedDetails.name}?feedId=${vm.feedId}&modeName=${FeedScreenMode.Info.name}")
                         } else {
                             vm.enableSubscribe = false
                             vm.enableEpisodes = false

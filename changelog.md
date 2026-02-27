@@ -1,3 +1,19 @@
+# 10.11.1
+
+* on change of episode being played, PlayerUI, if in the drawer, is restored
+* amended default page "Remember" mechanism:
+	* "Remember" is removed from the list of choices
+	* added "Restore on start" check
+	* whether "Restore" is checked or not, a specific default page has to be set
+	* "Restore" only matter on app start, it has no effect during app navigation
+	* migrated the prior "Remember" setting to Restore = true and default to Library
+* persisted screen mode of Facets screen
+* fixed OnlineFeed Open not always opening existing feed
+* fixed BugReportActivity not taking full width
+* simple cache is init on app start in IO dispatcher
+* backup and import routines of shared preferences are removed
+* amended lint specs
+
 # 10.11.0
 
 * cover image of feed in abnormal volumes is tinted

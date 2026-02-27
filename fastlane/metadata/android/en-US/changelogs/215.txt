@@ -1,3 +1,0 @@
-# 9.8.7
-
-* likely fixed crash on EpisodeInfo screen

@@ -1,6 +1,5 @@
 package ac.mdiq.podcini.storage.model
 
-import ac.mdiq.podcini.config.settings.AppPreferences
 import ac.mdiq.podcini.ui.screens.DefaultPages
 import ac.mdiq.podcini.ui.screens.prefscreens.EpisodeCleanupOptions
 import android.view.KeyEvent
@@ -28,7 +27,9 @@ class AppPrefs: RealmObject {
     var useEpisodeCover: Boolean = false
     var showSkip: Boolean = true
     var showDownloadReport: Boolean = true
-    var defaultPage: String = (DefaultPages.Library.name)
+
+    var defaultPage: String = DefaultPages.Library.name
+
     var backButtonOpensDrawer: Boolean = false
     var showErrorToasts: Boolean = true
     var printDebugLogs: Boolean = false

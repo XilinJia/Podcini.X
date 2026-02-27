@@ -297,8 +297,8 @@
   <string name="search_podcast_hint">搜尋 Podcast…</string>
 
     <string name="advanced">進階</string>
-    <string name="discover">探索</string>
-  <string name="discover_hide">隱藏</string>
+
+
 
 
   <string name="search_powered_by">來自 %1$s 的搜尋結果</string>

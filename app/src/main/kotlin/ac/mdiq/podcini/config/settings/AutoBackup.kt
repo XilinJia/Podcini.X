@@ -20,7 +20,7 @@ const val autoBackupDirName = "Podcini-AutoBackups"
 fun autoBackup(activity: Activity) {
     val TAG = "autoBackup"
 
-    val prefsDirName = "Podcini-Prefs"
+//    val prefsDirName = "Podcini-Prefs"
 
     val isAutoBackup = appPrefs.autoBackup
     if (!isAutoBackup) return
@@ -40,40 +40,6 @@ fun autoBackup(activity: Activity) {
         try { return  directory.delete() } catch (e: Throwable) { Loge(TAG, "deleteDirectoryAndContents: failed to delete ${directory.name} ${e.message}")}
         return false
     }
-
-//    fun deleteDirectoryAndContents1(dir: DocumentFile): Boolean {
-//        if (dir.isDirectory) {
-//            dir.listFiles().forEach { child ->
-//                val fresh = dir.findFile(child.name ?: return@forEach)
-//                if (fresh != null) {
-//                    if (fresh.isDirectory) deleteDirectoryAndContents1(fresh)
-//                    Logd("DELETE", "Deleting ${fresh.name}")
-//                    fresh.delete()
-//                }
-//            }
-//        }
-//        return dir.delete()
-//    }
-
-//    fun deleteDirectoryAndContents2(directory: DocumentFile): Boolean {
-//        if (!directory.isDirectory) {
-//            Logd(TAG, "deleting file: ${directory.name}")
-//            return directory.delete()
-//        }
-//        val contents = directory.listFiles()
-//        if (contents.isNotEmpty()) {
-//            for (file in contents) {
-//                if (file.isDirectory) {
-//                    if (!deleteDirectoryAndContents2(file)) Loge(TAG, "deleteDirectoryAndContents Failed to recursively delete directory: ${file.name}")
-//                } else {
-//                    Logd(TAG, "deleting file: ${file.name}")
-//                    if (!file.delete()) Loge(TAG, "deleteDirectoryAndContents Failed to delete file: ${file.name}")
-//                }
-//            }
-//        }
-//        Logd(TAG, "deleting empty parent directory: ${directory.name}")
-//        return directory.delete()
-//    }
 
     CoroutineScope(Dispatchers.IO).launch {
         val interval = appPrefs.autoBackupIntervall
@@ -102,8 +68,8 @@ fun autoBackup(activity: Activity) {
 
                         val dirName = dateStampFilename("$autoBackupDirName-%s")
                         val exportSubDir = chosenDir.createDirectory(dirName) ?: throw IOException("Error creating subdirectory $dirName")
-                        val subUri: Uri = exportSubDir.uri
-                        PreferencesTransporter(prefsDirName).exportToDocument(subUri)
+//                        val subUri: Uri = exportSubDir.uri
+//                        PreferencesTransporter(prefsDirName).exportToDocument(subUri)
                         val realmFile = exportSubDir.createFile("application/octet-stream", "backup.realm")
                         if (realmFile != null) DatabaseTransporter().exportToDocument(realmFile.uri)
                         upsertBlk(appPrefs) { it.autoBackupTimeStamp = curTime }
