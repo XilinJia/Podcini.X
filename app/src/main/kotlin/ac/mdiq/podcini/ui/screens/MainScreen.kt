@@ -137,14 +137,6 @@ fun MainActivityUI() {
         //            if ((curEpisode?.id ?: -1L) <= 0) sheetState.bottomSheetState.hide()
     }
 
-    //        val sheetValueState = remember { mutableStateOf(sheetState.bottomSheetState.currentValue) }
-    //        LaunchedEffect(Unit) {
-    //            Logd(TAG, "LaunchedEffect(sheetState.bottomSheetState)")
-    //            snapshotFlow { sheetState.bottomSheetState.currentValue }.distinctUntilChanged().collect { newValue ->
-    //                Logd(TAG, "sheetState.bottomSheetState.currentValue collect")
-    //                sheetValueState.value = newValue
-    //            }
-    //        }
     val bottomInsets = WindowInsets.ime.union(WindowInsets.navigationBars)
     val bottomInsetPadding = bottomInsets.asPaddingValues().calculateBottomPadding()
     val dynamicBottomPadding by remember {
@@ -190,12 +182,10 @@ fun MainActivityUI() {
     if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
     if (commonMessage != null) LargePoster(commonMessage!!)
 
-    //    val screenWidth = configuration.screenWidthDp.dp
     val windowInfo = LocalWindowInfo.current
     val screenWidth = windowInfo.containerSize.width.dp
     Logd(TAG, "before CompositionLocalProvider")
     CompositionLocalProvider(LocalDrawerController provides drawerCtrl, LocalDrawerState provides drawerState, LocalNavController provides navigator) {
-        //            Logd(TAG, "dynamicBottomPadding: $dynamicBottomPadding sheetValue: ${sheetValueState.value}")
         ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
             BottomSheetScaffold(sheetContent = { AVPlayerScreen() }, scaffoldState = sheetState, sheetMaxWidth = screenWidth, sheetPeekHeight = bottomInsetPadding + 100.dp, sheetDragHandle = {}, sheetShape = RectangleShape, topBar = {}) { paddingValues ->
                 Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(top = paddingValues.calculateTopPadding(), bottom = dynamicBottomPadding)) {
@@ -209,7 +199,6 @@ fun MainActivityUI() {
                         popUpTo(0) { inclusive = true }
                         launchSingleTop = true
                     }
-                    intendedScreen = ""
                 }
             }
         }

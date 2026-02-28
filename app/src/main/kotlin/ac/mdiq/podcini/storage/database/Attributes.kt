@@ -20,7 +20,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.net.Proxy
-import java.util.UUID.randomUUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 private const val TAG = "AppPrefs"
 
@@ -41,6 +42,7 @@ var sleepPrefsJob: Job? = null
 
 var syncPrefsJob: Job? = null
 
+@OptIn(ExperimentalUuidApi::class)
 fun initAppPrefs() {
     if (appPrefsJob == null) appPrefsJob = CoroutineScope(Dispatchers.IO).launch {
         val flow = realm.query(AppPrefs::class).query("id == 0").first().asFlow()
@@ -63,7 +65,7 @@ fun initAppPrefs() {
     migrateSharedPrefs()
 
     if (appAttribsJob == null) appAttribsJob = CoroutineScope(Dispatchers.IO).launch {
-        if (appAttribs.uniqueId.isEmpty()) appAttribs = upsert(appAttribs) { it.uniqueId = randomUUID().toString() }
+        if (appAttribs.uniqueId.isEmpty()) appAttribs = upsert(appAttribs) { it.uniqueId = Uuid.random().toString() }
 
         val flow = realm.query(AppAttribs::class).query("id == 0").first().asFlow()
         flow.collect { changes: SingleQueryChange<AppAttribs> ->

@@ -57,13 +57,13 @@ sealed class FlowEvent {
         }
     }
 
-    data class FeedListEvent(val action: Action, val feedIds: List<Long> = emptyList()) : FlowEvent() {
-        enum class Action { ADDED, REMOVED, ERROR, UNKNOWN }
-
-        constructor(action: Action, feedId: Long) : this(action, listOf(feedId))
-
-        fun contains(feed: Feed): Boolean = feedIds.contains(feed.id)
-    }
+//    data class FeedListEvent(val action: Action, val feedIds: List<Long> = emptyList()) : FlowEvent() {
+//        enum class Action { ADDED, REMOVED, ERROR, UNKNOWN }
+//
+//        constructor(action: Action, feedId: Long) : this(action, listOf(feedId))
+//
+//        fun contains(feed: Feed): Boolean = feedIds.contains(feed.id)
+//    }
 
     // TODO: perhaps FeedDetails Settings need to post this?
 //    data class FeedChangeEvent(val feed: Feed, val changedFields: Array<String>) : FlowEvent()

@@ -182,11 +182,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
             if (url != null && !url.startsWith(Feed.PREFIX_LOCAL_FOLDER)) feedID = f.id
         }
         if (feedID != null) {
-            try {
-                runBlocking {
-                    deleteFeed(feedID)
-                    EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, feedID))
-                }
+            try { runBlocking { deleteFeed(feedID) }
             } catch (e: InterruptedException) { Logs(TAG, e)
             } catch (e: ExecutionException) { Logs(TAG, e) }
         } else Loge(TAG, "removeFeedWithDownloadUrl: Could not find feed with url: $downloadUrl")

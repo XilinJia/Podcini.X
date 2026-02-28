@@ -1,0 +1,3 @@
+* fixed trimBin crash with index out of bound
+* fixed navigation target not updating when received from share
+* FeedListEvent is removed

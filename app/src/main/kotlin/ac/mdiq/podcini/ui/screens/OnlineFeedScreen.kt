@@ -34,8 +34,6 @@ import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.episodeForInfo
 import ac.mdiq.podcini.ui.utils.HtmlToPlainText
-import ac.mdiq.podcini.utils.EventFlow
-import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
@@ -116,9 +114,7 @@ import coil3.request.ImageRequest
 import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -263,39 +259,6 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 //        return null
 //    }
 
-    private var eventSink: Job?     = null
-    internal fun cancelFlowEvents() {
-        eventSink?.cancel()
-        eventSink = null
-    }
-    internal fun procFlowEvents() {
-        if (eventSink == null) eventSink = viewModelScope.launch {
-            EventFlow.events.collectLatest { event ->
-                Logd(TAG, "Received event: ${event.TAG}")
-                when (event) {
-                    is FlowEvent.FeedListEvent -> onFeedListChanged(event)
-                    else -> {}
-                }
-            }
-        }
-    }
-
-    private fun onFeedListChanged(event: FlowEvent.FeedListEvent) {
-        viewModelScope.launch(Dispatchers.IO) {
-            Logd(TAG, "onFeedListChanged")
-            try {
-                withContext(Dispatchers.Main) { handleUpdatedFeedStatus() }
-            } catch (e: Throwable) {
-                Logs(TAG, e)
-                withContext(Dispatchers.Main) {
-                    errorMessage = e.message ?: "No message"
-                    errorDetails = ""
-                    showErrorDialog = true
-                }
-            }
-        }
-    }
-
     /**
      * Called when feed parsed successfully.
      * This method is executed on the GUI thread.
@@ -345,7 +308,6 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
             Logd(TAG, "showEpisodes ${episodes.size}")
             if (episodes.isEmpty()) return
             episodes.sortByDescending { it.pubDate }
-            var id_ = getId()
             for (i in 0..<episodes.size) {
                 episodes[i].id = getId()
                 episodes[i].origFeedlink = feed!!.link
@@ -404,24 +366,20 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     val textColor = MaterialTheme.colorScheme.onSurface
     val navController = LocalNavController.current
 
-    val vm: OnlineFeedVM = viewModel(factory = viewModelFactory { initializer { OnlineFeedVM(url, source, shared) } })
+    val vm: OnlineFeedVM = viewModel(key = url, factory = viewModelFactory { initializer { OnlineFeedVM(url, source, shared) } })
 
     var swipeActions by remember { mutableStateOf(SwipeActions(TAG)) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_CREATE -> {
-                    Logd(TAG, "feedUrl: ${vm.feedUrl}")
-                }
+                Lifecycle.Event.ON_CREATE -> Logd(TAG, "feedUrl: ${vm.feedUrl}")
                 Lifecycle.Event.ON_START -> {
                     vm.isPaused = false
-                    vm.procFlowEvents()
                     vm.infoBarText.value = "${vm.episodes.size} episodes"
                 }
                 Lifecycle.Event.ON_STOP -> {
                     vm.isPaused = true
-                    vm.cancelFlowEvents()
 //        if (downloader != null && !downloader!!.isFinished) downloader!!.cancel()
                     if (vm.dialog != null && vm.dialog!!.isShowing) vm.dialog!!.dismiss()
                 }

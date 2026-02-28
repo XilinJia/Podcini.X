@@ -95,8 +95,8 @@ class PlayQueue : RealmObject {
     fun trimBin() {
         if (binLimit <= 0) return
         if (idsBinList.size > binLimit * 1.2) {
-            val newSize = (0.2 * binLimit).toInt()
-            val subList = idsBinList.subList(0, newSize)
+            val newSize = (0.8 * binLimit).toInt()
+            val subList = idsBinList.take(newSize)
             idsBinList.clear()
             idsBinList.addAll(subList)
         }

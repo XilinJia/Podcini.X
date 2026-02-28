@@ -1,3 +1,9 @@
+# 10.11.2
+
+* fixed trimBin crash with index out of bound
+* fixed navigation target not updating when received from share
+* FeedListEvent is removed
+
 # 10.11.1
 
 * on change of episode being played, PlayerUI, if in the drawer, is restored

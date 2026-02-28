@@ -128,8 +128,6 @@ fun monitorFeeds() {
                         changes.insertions.isNotEmpty() -> {
                             compileLanguages()
                             compileTags()
-                            // TODO: not sure why the state flow does not collect
-                            EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.ADDED))
                         }
                         changes.changes.isNotEmpty() -> {
 //                            for (i in changes.changes) {
@@ -403,10 +401,7 @@ private suspend fun trimEpisodes(feed_: Feed) {
 
 fun persistFeedLastUpdateFailed(feed: Feed, lastUpdateFailed: Boolean) : Job {
     Logd(TAG, "persistFeedLastUpdateFailed called")
-    return runOnIOScope {
-        upsert(feed) { it.lastUpdateFailed = lastUpdateFailed }
-        EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.ERROR, feed.id))
-    }
+    return runOnIOScope { upsert(feed) { it.lastUpdateFailed = lastUpdateFailed } }
 }
 
 fun addNewFeed(feed: Feed) {
@@ -517,7 +512,6 @@ fun addRemoteToMiscSyndicate(episode: Episode) {
         feed = createSynthetic(feedId, "Misc Syndicate")
         feed.type = Feed.FeedType.RSS.name
         upsertBlk(feed) {}
-        EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.ADDED))
         return feed
     }
     val feed = getMiscSyndicate()
@@ -539,17 +533,16 @@ fun addRemoteToMiscSyndicate(episode: Episode) {
     EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
 }
 
-fun getPreserveSyndicate(): Feed {
-    val feedId: Long = 21
-    var feed = getFeed(feedId, true)
-    if (feed != null) return feed
-
-    feed = createSynthetic(feedId, "Preserve Syndicate")
-    feed.type = Feed.FeedType.RSS.name
-    upsertBlk(feed) {}
-    EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.ADDED))
-    return feed
-}
+//fun getPreserveSyndicate(): Feed {
+//    val feedId: Long = 21
+//    var feed = getFeed(feedId, true)
+//    if (feed != null) return feed
+//
+//    feed = createSynthetic(feedId, "Preserve Syndicate")
+//    feed.type = Feed.FeedType.RSS.name
+//    upsertBlk(feed) {}
+//    return feed
+//}
 
 // savedFeedId == 0L means saved feed
 class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L, private val isNew: Boolean = false) {

@@ -274,7 +274,7 @@ fun QueuesScreen(id: Long = -1L) {
     val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
-    val vm: QueuesVM = viewModel(factory = viewModelFactory { initializer { QueuesVM(id) } })
+    val vm: QueuesVM = viewModel(key = id.toString(), factory = viewModelFactory { initializer { QueuesVM(id) } })
     
     var browserFuture: ListenableFuture<MediaBrowser>? by remember { mutableStateOf(null) }
 

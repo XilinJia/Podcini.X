@@ -477,7 +477,7 @@ fun FacetsScreen(modeName: String = "") {
     val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
-    val vm: FacetsVM = viewModel(factory = viewModelFactory { initializer { FacetsVM(modeName) } })
+    val vm: FacetsVM = viewModel(key = modeName, factory = viewModelFactory { initializer { FacetsVM(modeName) } })
 
     var swipeActions by remember { mutableStateOf(SwipeActions(TAG+"_${facetsMode.name}")) }
 

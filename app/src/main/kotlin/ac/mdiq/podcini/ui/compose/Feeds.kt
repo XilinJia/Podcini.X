@@ -1,11 +1,10 @@
 package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.config.settings.OpmlTransporter
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.PodcastSearchResult
 import ac.mdiq.podcini.net.sync.transceive.listenForUDPBroadcasts
-import ac.mdiq.podcini.storage.specs.VideoMode
-import ac.mdiq.podcini.config.settings.OpmlTransporter
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.createSynthetic
 import ac.mdiq.podcini.storage.database.deleteFeed
@@ -15,10 +14,10 @@ import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.storage.specs.VideoMode
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.ui.screens.LocalNavController
 import ac.mdiq.podcini.ui.screens.Screens
-import ac.mdiq.podcini.utils.EventFlow
-import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.formatLargeInteger
@@ -88,13 +87,12 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
+import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import io.ktor.http.*
-import ac.mdiq.podcini.storage.utils.nowInMillis
 
 @Composable
 fun ChooseRatingDialog(selected: List<Feed>, onDismissRequest: () -> Unit) {
@@ -160,7 +158,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                             val worthyEps = f.getWorthyEpisodes()
                             deleteFeed(f.id, saveImportant && worthyEps.isNotEmpty())
                         }
-                        EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, feeds.map { it.id }))
+//                        EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, feeds.map { it.id }))
                     } catch (e: Throwable) { Logs("RemoveFeedDialog", e) }
                 }
                 onDismissRequest()
