@@ -1,3 +1,7 @@
+# 10.11.3
+
+* fixed Crash on opening added local podcast
+
 # 10.11.2
 
 * fixed trimBin crash with index out of bound

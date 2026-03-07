@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 266
-        versionName = "10.11.2"
+        versionCode = 267
+        versionName = "10.11.3"
 
         ndkVersion = "29.0.14206865"
 
@@ -191,6 +191,7 @@ dependencies {
     implementation("androidx.media3:media3-session:1.9.2")
 
     implementation("com.google.android.material:material:1.13.0")
+
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("org.jetbrains.kotlin:kotlin-reflect:${project.property("kotlin_version")}")

@@ -660,6 +660,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 val actionButtonName = remember(feed?.prefActionType, feed?.downloadUrl) {
                     when {
                         feed == null -> null
+                        feed?.downloadUrl?.startsWith(Feed.PREFIX_LOCAL_FOLDER) == true -> ButtonTypes.PLAY.name
                         feed?.prefActionType != null -> feed!!.prefActionType!!
                         feed?.downloadUrl == null -> null
                         gearbox.isGearFeed(URL(feed!!.downloadUrl!!)) -> ButtonTypes.STREAM.name

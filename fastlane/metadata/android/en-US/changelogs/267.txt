@@ -1,0 +1,1 @@
+* fixed Crash on opening added local podcast
