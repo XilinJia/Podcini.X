@@ -1,4 +1,4 @@
-package ac.mdiq.podcini.config.settings
+package ac.mdiq.podcini.playback
 
 import ac.mdiq.podcini.storage.database.sleepPrefs
 

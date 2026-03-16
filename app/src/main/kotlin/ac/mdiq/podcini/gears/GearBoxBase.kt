@@ -16,7 +16,6 @@ import ac.mdiq.podcini.utils.ShownotesCleaner
 import androidx.compose.runtime.Composable
 import androidx.media3.common.MediaMetadata
 import androidx.media3.exoplayer.source.MediaSource
-import java.net.URL
 
 open class GearBoxBase {
 
@@ -27,17 +26,13 @@ open class GearBoxBase {
     @Composable
     open fun ConfirmAddEpisode(sharedUrls: List<String>, onDismissRequest: () -> Unit) {}
 
-    open fun isGearFeed(url: URL): Boolean = false
+    open fun isGearFeed(url: String): Boolean = false
 
-    open fun isGearUrl(url: URL): Boolean = false
+    open fun isGearUrl(url: String): Boolean = false
 
     open fun includeExtraSort(): List<EpisodeSortOrder> = listOf()
 
     open fun cleanGearData() {}
-
-    open fun loadChapters(episode: Episode) {
-        episode.loadChapters(false)
-    }
 
     open fun canCheckMediaSize(episode: Episode): Boolean = true
 
@@ -82,7 +77,7 @@ open class GearBoxBase {
     }
 
     open suspend fun buildFeed(url: String, username: String, password: String, fbb: FeedBuilderBase, handleFeed: (Feed, Map<String, String>)->Unit, showDialog: ()->Unit) {
-        fbb.buildPodcast(getFinalRedirectedUrl(url), username, password) { feed_, map -> handleFeed(feed_, map) }
+        fbb.buildPodcast1(getFinalRedirectedUrl(url), username, password) { feed_, map -> handleFeed(feed_, map) }
     }
 
     @Composable
@@ -94,7 +89,7 @@ open class GearBoxBase {
         if (feed.feedUrl == null) return
         runOnIOScope {
             val fbb = FeedBuilderBase { message, details -> Loge("OnineFeedItem", "Subscribe error: $message \n $details") }
-            fbb.buildPodcast(feed.feedUrl, "", "") { feed, _ -> runOnIOScope { fbb.subscribe(feed) } }
+            fbb.buildPodcast1(feed.feedUrl, "", "") { feed, _ -> runOnIOScope { fbb.subscribe(feed) } }
         }
     }
 }

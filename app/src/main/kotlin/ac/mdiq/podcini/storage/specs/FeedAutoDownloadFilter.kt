@@ -38,8 +38,8 @@ class FeedAutoDownloadFilter(
         if (hasMinDurationFilter()) sl.add(" duration >= ${minDurationFilter * 1000L} ")
         if (hasMaxDurationFilter()) sl.add(" duration <= ${maxDurationFilter * 1000L} ")
 
-        for (term in excludeTerms) sl.add(" !(title contains[c] '${term.trim { it <= ' ' }.lowercase(Locale.getDefault())}') ")
-        for (term in includeTerms) sl.add(" title contains[c] '${term.trim { it <= ' ' }.lowercase(Locale.getDefault())}' ")
+        for (term in excludeTerms) sl.add(" !(title contains[c] '${term.trim { it <= ' ' }.lowercase()}') ")
+        for (term in includeTerms) sl.add(" title contains[c] '${term.trim { it <= ' ' }.lowercase()}' ")
 
         if (sl.isEmpty()) return ""
 
@@ -59,7 +59,7 @@ class FeedAutoDownloadFilter(
     fun queryExcludeString() : String {
         if (excludeTerms.isEmpty()) return ""
         val sl = mutableListOf<String>()
-        for (term in excludeTerms) sl.add(" (title contains[c] '${term.trim { it <= ' ' }.lowercase(Locale.getDefault())}') ")
+        for (term in excludeTerms) sl.add(" (title contains[c] '${term.trim { it <= ' ' }.lowercase()}') ")
         val sb = StringBuilder("( ")
         for (i in sl.indices) {
             if (i > 0) sb.append(" AND ")

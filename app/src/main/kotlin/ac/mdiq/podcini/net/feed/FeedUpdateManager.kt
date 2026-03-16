@@ -124,7 +124,6 @@ class FeedUpdateWorkerBase(context: Context, private val params: WorkerParameter
 
 object FeedUpdateManager {
     private val TAG: String = FeedUpdateManager::class.simpleName ?: "Anonymous"
-    val feedUpdateWorkId = getAppContext().packageName + "FeedUpdateWorker"     // this one is for the old periodic work, now for migration purpose only
     val feedUpdateOnceWorkId = getAppContext().packageName + "FeedUpdateOnceWorker"
 
     const val WORK_TAG_FEED_UPDATE: String = "feedUpdate"
@@ -140,11 +139,6 @@ object FeedUpdateManager {
         get() = appPrefs.autoUpdateInterval.toLong() * 1.minutes.inWholeMilliseconds
 
     var nextRefreshTime by mutableStateOf("")
-
-//    private fun isWorkScheduled(workName: String, context: Context): Boolean {
-//        val workInfos = WorkManager.getInstance(context).getWorkInfosForUniqueWork(workName).get()
-//        return workInfos.any { it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING }
-//    }
 
     private fun oneRequest(initialDelay: Long): OneTimeWorkRequest {
         return OneTimeWorkRequest.Builder(FeedUpdateWorkerBase::class.java)
@@ -188,7 +182,7 @@ object FeedUpdateManager {
             if (!mobileAllowFeedRefresh && !force) {
                 Logt(TAG, context.getString(R.string.mobile_feed_refresh_message))
                 doItNow = false
-            }
+            } else Logt(TAG, "Please allow feed refresh on mobile in Settings")
             val initialDelay = getInitialDelay(doItNow)
             Logd(TAG, "initialDelay: $initialDelay")
             val oneTimeRequest = oneRequest(initialDelay)
@@ -237,7 +231,7 @@ object FeedUpdateManager {
     }
 
     fun runOnce(feeds: List<Feed> = listOf(), nextPage: Boolean = false, fullUpdate: Boolean = false) {
-        Logd(TAG, "runOnce feeda: ${feeds.size}")
+        Logd(TAG, "runOnce feeds: ${feeds.size}")
         val workRequest: OneTimeWorkRequest.Builder = OneTimeWorkRequest.Builder(FeedUpdateWorkerBase::class.java)
             .setInitialDelay(0L, TimeUnit.MILLISECONDS)
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)

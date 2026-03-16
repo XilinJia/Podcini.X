@@ -1,5 +1,6 @@
 package ac.mdiq.podcini
 
+import ac.mdiq.podcini.activity.MainActivity
 import ac.mdiq.podcini.config.ApplicationCallbacks
 import ac.mdiq.podcini.config.ClientConfig
 import ac.mdiq.podcini.config.ClientConfigurator
@@ -7,7 +8,6 @@ import ac.mdiq.podcini.net.utils.NetworkUtils
 import ac.mdiq.podcini.playback.base.InTheatre.aController
 import ac.mdiq.podcini.playback.base.InTheatre.aCtrlFuture
 import ac.mdiq.podcini.storage.database.realm
-import ac.mdiq.podcini.activity.MainActivity
 import ac.mdiq.podcini.utils.error.CrashReportWriter
 import ac.mdiq.podcini.utils.startTiming
 import android.app.Application
@@ -16,7 +16,6 @@ import android.content.Intent
 import android.os.StrictMode
 import android.util.Log
 import androidx.media3.session.MediaController
-import com.google.android.material.color.DynamicColors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -30,7 +29,6 @@ class PodciniApp : Application() {
         super.onCreate()
         podciniApp = this
         startTiming()
-
         Log.d("PodciniApp", "PodciniApp onCreate")
 
         ClientConfig.USER_AGENT = "Podcini/" + BuildConfig.VERSION_NAME
@@ -40,11 +38,8 @@ class PodciniApp : Application() {
             val builder: StrictMode.VmPolicy.Builder = StrictMode.VmPolicy.Builder().detectAll().penaltyLog().penaltyDropBox()
             StrictMode.setVmPolicy(builder.build())
         }
-
         ClientConfigurator.initialize()
         if (nmJob == null) nmJob = CoroutineScope(Dispatchers.IO).launch { networkMonitor.networkFlow.collect {} }
-
-        DynamicColors.applyToActivitiesIfAvailable(this)
     }
 
     override fun onTerminate() {
@@ -74,6 +69,7 @@ class PodciniApp : Application() {
         fun forceRestart() {
             val intent = Intent(getApp(), MainActivity::class.java)
             val mainIntent = Intent.makeRestartActivityTask(intent.component)
+            ClientConfigurator.destroy()
             realm.close()
             getApp().startActivity(mainIntent)
             Runtime.getRuntime().exit(0)

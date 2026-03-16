@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 267
-        versionName = "10.11.3"
+        versionCode = 268
+        versionName = "10.12.0"
 
         ndkVersion = "29.0.14206865"
 
@@ -196,18 +196,29 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("org.jetbrains.kotlin:kotlin-reflect:${project.property("kotlin_version")}")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
 
     implementation("io.github.xilinjia.krdb:library-base:${project.property("krdb_version")}")
 
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
 
-    implementation("commons-io:commons-io:2.21.0")       // 20030203.000550 is not the lastest
-
     implementation("io.ktor:ktor-http:3.4.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
 
-    implementation("org.jsoup:jsoup:1.22.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+
+    implementation("io.ktor:ktor-client-core:3.4.1")
+    implementation("io.ktor:ktor-client-okhttp:3.4.1")
+    implementation("io.ktor:ktor-client-cio:3.4.1")
+
+    implementation("com.fleeksoft.ksoup:ksoup:0.2.6")
+    implementation("com.fleeksoft.ksoup:ksoup-network:0.2.6")
+
+    implementation("io.github.pdvrieze.xmlutil:core:1.0.0-rc2")
+    implementation("io.github.pdvrieze.xmlutil:serialization:1.0.0-rc2")
+    implementation("io.github.pdvrieze.xmlutil:core-android:1.0.0-rc2")
+
 
     implementation("com.squareup.okhttp3:okhttp:5.3.2")
     implementation("com.squareup.okio:okio:3.16.4")

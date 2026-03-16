@@ -1,7 +1,10 @@
 package ac.mdiq.podcini.storage.utils
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
@@ -10,19 +13,31 @@ import android.content.Intent
 import android.net.Uri
 import android.os.StatFs
 import android.os.storage.StorageManager
-import android.webkit.MimeTypeMap
+import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
+import io.ktor.http.ContentType
+import io.ktor.http.Url
+import io.ktor.utils.io.charsets.Charset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.io.IOException
+import kotlinx.io.files.FileNotFoundException
+import okio.Buffer
+import okio.FileSystem
+import okio.ForwardingSource
+import okio.Path
+import okio.Path.Companion.toPath
+import okio.Sink
+import okio.Source
+import okio.buffer
+import okio.sink
+import okio.source
 import java.io.File
-import java.io.FileNotFoundException
-import java.io.FilterInputStream
-import java.io.IOException
-import java.io.InputStream
-import java.io.UnsupportedEncodingException
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 
@@ -33,9 +48,6 @@ private const val TAG: String = "StorageUtils"
 
 const val MAX_FILENAME_LENGTH: Int = 242 // limited by CircleCI
 
-private const val FEED_DOWNLOADPATH = "cache/"
-const val MEDIA_DOWNLOADPATH = "media/"
-
 private const val MD5_HEX_LENGTH = 32
 
 private val validChars = ("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-").toCharArray()
@@ -43,178 +55,398 @@ private val validChars = ("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0
 val customMediaUriString: String
     get() = if (appPrefs.useCustomMediaFolder) appPrefs.customMediaUri else ""
 
+val fs = FileSystem.SYSTEM
+
+val internalDir: UnifiedFile
+    get() = PathFile(getAppContext().filesDir.absolutePath.toPath())
+
+fun saveTreeRoot(uri: Uri?) {
+    if (uri != null) upsertBlk(appAttribs) { it.treeRoots.add(uri.toString()) }
+}
+
+val mediaDir: UnifiedFile
+    get() {
+        if (customMediaUriString.isNotBlank()) {
+            val d = customMediaUriString.toUF()
+            if (d.isDirectory()) {
+                Logd(TAG, "mediaDir: $customMediaUriString")
+                if (appAttribs.treeRoots.isEmpty()) {
+                    val root = findRootForUri(customMediaUriString.toSafeUri())
+                    if (root != null) upsertBlk(appAttribs) { it.treeRoots.add(root.toString()) }
+                }
+                return d
+            } else {
+                Loge(TAG, "The chosen custom media folder is not valid: ${appPrefs.customMediaUri}. Reset!")
+                upsertBlk(appPrefs) {
+                    it.useCustomMediaFolder = false
+                    it.customMediaUri = ""
+                    it.customFolderUnavailable = true
+                }
+            }
+        }
+        Logd(TAG, "mediaDir use internal media folder")
+        val mediaDir_ = getAppContext().getExternalFilesDir("media") ?: throw IllegalArgumentException("Invalid media dir")
+        return mediaDir_.toUF()
+    }
+
+
+val clipsDir: UnifiedFile
+    get() {
+        var dir = internalDir / "clips"
+        runBlocking { if (!dir.exists()) dir = internalDir.createDirectory("clips") }
+        return dir
+    }
+
 /**
  * Get the number of free bytes that are available on the external storage.
  */
-
 val freeSpaceAvailable: Long
     get() {
-        if (customMediaUriString.isBlank()) {
-            val dataFolder = getDataFolder(null)
-            return if (dataFolder != null) getFreeSpaceAvailable(dataFolder.absolutePath) else 0
+        return if (customMediaUriString.isBlank()) {
+            val stat = StatFs(internalDir.absPath)
+            val availableBlocks = stat.availableBlocksLong
+            val blockSize = stat.blockSizeLong
+            availableBlocks * blockSize
         } else {
-            val uri = customMediaUriString.toUri()
-            //                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val pickedDir = DocumentFile.fromTreeUri(getAppContext(), uri)
-            if (pickedDir == null || !pickedDir.isDirectory) {
-                Loge("SpaceCheck", "Invalid directory URI: $customMediaUriString")
-                return 0L
-            }
             val storageManager = getAppContext().getSystemService(Context.STORAGE_SERVICE) as StorageManager
             val appSpecificDir = getAppContext().getExternalFilesDir(null) ?: return 0L
             val uuid = storageManager.getUuidForPath(appSpecificDir)
-            return storageManager.getAllocatableBytes(uuid)
-            //                }
-            //                else {
-            //                    fun getFilePathFromUri(uri: Uri): String? {
-            //                        if ("file" == uri.scheme) return uri.path
-            //                        else if ("content" == uri.scheme) {
-            //                            val projection = arrayOf(MediaStore.MediaColumns.DATA)
-            //                            getAppContext().contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
-            //                                if (cursor.moveToFirst()) {
-            //                                    val columnIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA)
-            //                                    return cursor.getString(columnIndex)
-            //                                }
-            //                            }
-            //                        }
-            //                        return null
-            //                    }
-            //                    if (DocumentsContract.isDocumentUri(getAppContext(), uri)) {
-            //                        val documentFile = DocumentFile.fromTreeUri(getAppContext(), uri)
-            //                        if (documentFile != null && documentFile.isDirectory) {
-            //                            val filePath = getFilePathFromUri(uri)
-            //                            if (filePath != null) {
-            //                                val statFs = StatFs(filePath)
-            //                                return statFs.availableBytes
-            //                            }
-            //                        }
-            //                    }
-            //                    return 0L
-            //                }
+            storageManager.getAllocatableBytes(uuid)
         }
     }
 
-val feedfilePath: String
-    get() = getDataFolder(FEED_DOWNLOADPATH).toString() + "/"
+val cacheDir: UnifiedFile = internalDir / "cache"
 
-//    fun getDownloadFolder(): DocumentFile? {
-//        val sharedPreferences = getAppContext().getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-//        val folderUriString = sharedPreferences.getString("custom_folder_uri", null)
-//        return if (folderUriString != null) {
-//            val folderUri = folderUriString.toUri()
-//            DocumentFile.fromTreeUri(getAppContext(), folderUri)
-//        } else null
-//    }
+suspend fun createCacheDir() {
+    if (!cacheDir.exists()) internalDir.createDirectory("cache")
+}
 
-//    fun findUnusedFile(dest: File): File? {
-//        // find different name
-//        var newDest: File? = null
-//        for (i in 1 until Int.MAX_VALUE) {
-//            val newName = (getBaseName(dest.name) + "-" + i + EXTENSION_SEPARATOR + getExtension(dest.name))
-//            Logd(TAG, "Testing filename $newName")
-//            newDest = File(dest.parent, newName)
-//            if (!newDest.exists()) {
-//                Logd(TAG, "File doesn't exist yet. Using $newName")
-//                break
-//            }
-//        }
-//        return newDest
-//    }
+fun findSavedRoot(uri: Uri): Uri? {
+    Logd(TAG, "findSavedRoot uri: $uri")
+    appAttribs.treeRoots.forEach { Logd(TAG, "saved toor: $it") }
+    return appAttribs.treeRoots.find { uri.toString().startsWith(it) }?.toSafeUri()
+}
 
-fun ensureMediaFileExists(destinationUri: Uri) {
-    Logd(TAG, "destinationUri: $destinationUri ${destinationUri.scheme}")
-    when (destinationUri.scheme) {
-        "file" -> {
-            val file = File(destinationUri.path!!)
-            if (!file.exists()) {
-                try {
-                    file.parentFile?.mkdirs()
-                    file.createNewFile()
-                } catch (e: IOException) { Logs(TAG, e, "ensureMediaFileExists Unable to create file") }
+fun findRootForUri(uri: Uri): Uri? {
+    try {
+        val childId = DocumentsContract.getDocumentId(uri)
+        return getAppContext().contentResolver.persistedUriPermissions
+            .filter { it.uri.pathSegments.contains("tree") }
+            .map { it.uri }
+            .find { rootUri ->
+                val treeId = DocumentsContract.getTreeDocumentId(rootUri)
+                childId.startsWith(treeId) && rootUri.authority == uri.authority
+            }
+    } catch (e: Exception) { return null }
+}
+
+fun String.OKPath(): Path {
+    Logd(TAG, "String.OKPath() $this")
+    val uri = this.toSafeUri()
+    return when (uri.scheme) {
+        "file" -> uri.path?.toPath() ?: throw kotlinx.io.IOException("Invalid file URI")
+        "content" -> this.toPath()
+        else -> toPath()
+    }
+}
+
+fun String.toSafeUri(): Uri {
+    Logd(TAG, "String.toSafeUri() $this")
+    return when {
+        startsWith("content://") || startsWith("file://") || startsWith("http") -> this.toUri()
+        startsWith("android_asset/") -> "file:///android_asset/${this.substring(14)}".toUri()
+        startsWith("/") -> Uri.fromFile(File(this))
+        else -> this.toUri()
+    }
+}
+
+suspend fun quietlyDeleteFile(uri: Uri) {
+    val file = uri.toUF()
+    file.delete()
+}
+
+interface UnifiedFile {
+    val name: String
+
+    val absPath: String
+
+    val extension: String?
+        get() {
+            val name = this.name
+            val dot = name.lastIndexOf('.')
+            if (dot <= 0 || dot == name.length - 1) return null
+            return name.substring(dot + 1)
+        }
+
+    suspend fun exists(): Boolean
+
+    suspend fun delete(): Boolean
+
+    fun isDirectory(): Boolean
+    suspend fun listChildren(): List<UnifiedFile>
+
+    suspend fun createDirectory(name: String): UnifiedFile
+    suspend fun createFile(mimeType: String, name: String): UnifiedFile
+
+//    suspend fun createFile(uri: Uri): UnifiedFile?
+
+    suspend fun createFile(): UnifiedFile
+
+    fun source(): Source
+    fun sink(append: Boolean = false): Sink
+    suspend fun size(): Long?
+
+    suspend fun readBytes(): ByteArray = source().buffer().use { it.readByteArray() }
+
+    suspend fun readString(charset: Charset = Charsets.UTF_8): String = source().buffer().use { it.readString(charset) }
+
+    suspend fun writeBytes(bytes: ByteArray) = sink(append = false).buffer().use { it.write(bytes) }
+
+    suspend fun appendBytes(bytes: ByteArray) = sink(append = true).buffer().use { it.write(bytes) }
+
+    suspend fun writeString(string: String, charset: Charset = Charsets.UTF_8) {
+        sink(append = false).buffer().use { sink ->
+            sink.writeString(string, charset)
+            sink.flush()
+        }
+    }
+
+    suspend fun copyTo(target: UnifiedFile) {
+        source().buffer().use { src -> target.sink().buffer().use { dst -> dst.writeAll(src) } }
+    }
+
+    suspend fun moveTo(target: UnifiedFile) {
+        copyTo(target)
+        delete()
+    }
+}
+
+class PathFile(
+    val path: Path,
+    val fs: FileSystem = FileSystem.SYSTEM
+) : UnifiedFile {
+
+    override val name: String
+        get() = path.name
+
+    override val absPath: String = path.toString()
+
+    override suspend fun exists(): Boolean = fs.exists(path)
+
+    override fun isDirectory(): Boolean = fs.metadata(path).isDirectory
+
+    override suspend fun listChildren(): List<UnifiedFile> = fs.list(path).map { PathFile(it) }
+
+    override suspend fun delete(): Boolean =
+        try {
+            fs.delete(this.path)
+            true
+        } catch (e: Throwable) { false }
+
+    override suspend fun createFile(mimeType: String, name: String): UnifiedFile {
+        if (!fs.exists(path)) throw IllegalStateException("Parent path does not exist: $path")
+        if (!fs.metadata(path).isDirectory) throw IllegalStateException("Cannot create file under a file: $path")
+        val newPath: Path = path / name
+        if (!fs.exists(newPath)) fs.sink(newPath).use { }
+        return PathFile(newPath, fs)
+    }
+
+    override suspend fun createFile(): UnifiedFile {
+        writeString("")
+        return this
+    }
+
+    override suspend fun createDirectory(name: String): UnifiedFile {
+        if (!fs.exists(path) || !fs.metadata(path).isDirectory) throw IllegalStateException("Cannot create a subdirectory under a non-directory path: $path")
+        val newDirPath = path / name
+        fs.createDirectories(newDirPath)
+        return PathFile(newDirPath, fs)
+    }
+
+    override fun source(): Source = fs.source(path)
+
+    override fun sink(append: Boolean): Sink = if (append) fs.appendingSink(path) else fs.sink(path)
+
+    override suspend fun size(): Long? = try { fs.metadata(path).size } catch (e: Exception) { null }
+}
+
+class ContentUriFile(
+    val uri: Uri,
+    val context: Context = getAppContext()
+) : UnifiedFile {
+
+    val docFile: DocumentFile? = if (isTreeRoot) DocumentFile.fromTreeUri(context, uri) else DocumentFile.fromSingleUri(context, uri)
+
+    val isTreeRoot: Boolean
+        get() {
+//            Logd(TAG, "isTreeRoot contentRoot: $contentRoot")
+//            Logd(TAG, "isTreeRoot uri: $uri")
+            return uri.toString() in appAttribs.treeRoots
+//            return try { DocumentsContract.getTreeDocumentId(uri) == DocumentsContract.getTreeDocumentId(mediaDir.toAndroidUri()) } catch (e: Exception) { false }
+        }
+
+    fun queryMimeType(): String? =
+        context.contentResolver.query(uri, arrayOf(DocumentsContract.Document.COLUMN_MIME_TYPE), null, null, null)
+            ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+
+    override val name: String
+        get() = docFile?.name ?: "unknown"
+
+    override val absPath: String = uri.toString()
+
+    override suspend fun exists(): Boolean {
+        if (isTreeRoot) return true
+        return try {
+            val df = if (DocumentsContract.isDocumentUri(context, uri)) DocumentFile.fromSingleUri(context, uri) else DocumentFile.fromTreeUri(context, uri)
+            df?.exists() == true
+        } catch (e: FileNotFoundException) { false } catch (e: IllegalArgumentException) { false }
+        return false
+    }
+
+    override suspend fun size(): Long? {
+        return try {
+            context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)
+                ?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val index = cursor.getColumnIndex(OpenableColumns.SIZE)
+                        if (index != -1) cursor.getLong(index) else null
+                    } else null
+                }
+        } catch (_: Exception) { null }
+    }
+
+    override fun isDirectory(): Boolean {
+        Logd(TAG, "isDirectory")
+        if (isTreeRoot) return true
+        val projection = arrayOf(DocumentsContract.Document.COLUMN_MIME_TYPE)
+        context.contentResolver.query(uri, projection, null, null, null)?.use { c ->
+            if (c.moveToFirst()) {
+                val mime = c.getString(0)
+                return mime == DocumentsContract.Document.MIME_TYPE_DIR
             }
         }
-        "content" -> {
-            try { getAppContext().contentResolver.openFileDescriptor(destinationUri, "rw")?.close()
-            } catch (e: FileNotFoundException) { Logs(TAG, e, "file not exist $destinationUri:")
-            } catch (e: Exception) { Logs(TAG, e, "Error checking file existence:") }
+        return false
+    }
+
+    override suspend fun listChildren(): List<UnifiedFile> {
+        val rootUri = findSavedRoot(uri) ?: uri
+        val result = mutableListOf<Uri>()
+        val parentId = if (rootUri == uri) DocumentsContract.getTreeDocumentId(rootUri) else DocumentsContract.getDocumentId(uri)
+        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(rootUri, parentId)
+        context.contentResolver.query(childrenUri, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)?.use { cursor ->
+            while (cursor.moveToNext()) {
+                val childId = cursor.getString(0)
+                val childUri = DocumentsContract.buildDocumentUriUsingTree(rootUri, childId)
+                if (childUri == uri) continue
+                result.add(childUri)
+            }
         }
-        else -> throw IllegalArgumentException("Unsupported URI scheme: ${destinationUri.scheme}")
+        return result.map { ContentUriFile(it, context) }
+    }
+
+    override fun source(): okio.Source {
+        Logd(TAG, "source")
+//        val uri: Uri = docFile?.uri ?: throw IllegalStateException("Cannot open input stream for $uri")
+        val inputStream = context.contentResolver.openInputStream(uri) ?: throw IllegalStateException("Cannot open input stream for $uri")
+        return inputStream.source()
+    }
+
+    override fun sink(append: Boolean): okio.Sink {
+        Logd(TAG, "sink")
+//        val uri: Uri = docFile?.uri ?: throw IllegalStateException("Cannot open input stream for $uri")
+        val mode = if (append) "wa" else "w"
+        val outputStream = context.contentResolver.openOutputStream(uri, mode) ?: throw IllegalStateException("Cannot open output stream for $uri")
+        return outputStream.sink()
+    }
+
+    override suspend fun delete(): Boolean {
+        Logd(TAG, "delete ${docFile?.uri}")
+        return docFile?.delete() ?: false
+    }
+
+    override suspend fun createFile(mimeType: String, name: String): UnifiedFile {
+        Logd(TAG, "createFile")
+        val rootUri = findSavedRoot(uri) ?: uri
+        Logd(TAG, "createFile rootUri: $rootUri")
+        val newUri = try {
+            val parentId = if (rootUri == uri) DocumentsContract.getTreeDocumentId(rootUri) else DocumentsContract.getDocumentId(uri)
+            val parentUri = DocumentsContract.buildDocumentUriUsingTree(uri, parentId)
+            DocumentsContract.createDocument(context.contentResolver, parentUri, mimeType, name)
+        } catch (e: Exception) { throw IOException("failed creating file $name under $uri") }
+        return ContentUriFile(newUri!!)
+    }
+
+    override suspend fun createFile(): UnifiedFile {
+        val docId = DocumentsContract.getDocumentId(uri)
+        val parentId = if (docId.contains("/")) docId.substringBeforeLast("/") else DocumentsContract.getTreeDocumentId(uri)
+        val name = docId.substringAfterLast('/')
+        val parentUri = DocumentsContract.buildDocumentUriUsingTree(uri, parentId)
+        val newFileUri = try { DocumentsContract.createDocument(context.contentResolver, parentUri, "application/octet-stream", name) } catch (e: Exception) { throw IOException("failed creating file at $uri") }
+        return ContentUriFile(newFileUri!!)
+    }
+
+    override suspend fun createDirectory(name: String): UnifiedFile {
+        Logd(TAG, "createDirectory $name $uri")
+        val rootUri: Uri? = findSavedRoot(uri) ?: uri
+        val parentDocId: String = if (rootUri == uri) DocumentsContract.getTreeDocumentId(rootUri) else DocumentsContract.getDocumentId(uri)
+        val parentUri: Uri = DocumentsContract.buildDocumentUriUsingTree(uri, parentDocId)
+        val newUri = DocumentsContract.createDocument(context.contentResolver, parentUri, DocumentsContract.Document.MIME_TYPE_DIR, name) ?: throw IOException("error creating directory $name under $uri")
+        return ContentUriFile(newUri, context)
     }
 }
 
-fun quietlyDeleteFile(uri: Uri) {
-    when(uri.scheme) {
-        "content" -> {
-            try {
-                val documentFile = DocumentFile.fromSingleUri(getAppContext(), uri)
-                documentFile?.delete()
-            } catch (e: Throwable) { Logs(TAG, e, "quietlyDeleteFile Unable to delete file") }
-        }
-        "file" -> {
-            try {
-                val file = File(uri.path!!)
-                file.delete()
-            } catch (e: Throwable) { Logs(TAG, e, "quietlyDeleteFile Unable to delete file") }
-        }
+operator fun UnifiedFile.div(child: String): UnifiedFile = when (this) {
+    is PathFile -> PathFile(this.path / child, this.fs)
+    is ContentUriFile -> {
+        if (DocumentsContract.isTreeUri(this.uri)) {
+            val parentId = DocumentsContract.getTreeDocumentId(this.uri)?: throw IOException("getting parentId for uri failed: $uri")
+            val childUri = DocumentsContract.buildDocumentUriUsingTree(this.uri, "$parentId/$child")
+            ContentUriFile(childUri)
+        } else throw UnsupportedOperationException("Cannot append child to document URI")
     }
-}
-fun getMimeType(fileName: String): String {
-    val extension = fileName.substringAfterLast('.', "").lowercase()
-    val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
-    return mimeType ?: when (extension) {
-        "mp3" -> "audio/mpeg"
-        "wav" -> "audio/wav"
-        "aac" -> "audio/aac"
-        "mp4" -> "video/mp4"
-        "mkv" -> "video/x-matroska"
-        "jpg", "jpeg" -> "image/jpeg"
-        "png" -> "image/png"
-        "gif" -> "image/gif"
-        else -> "application/octet-stream" // Default fallback for unknown types
-    }
+    else -> throw UnsupportedOperationException("Unsupported UnifiedFile type")
 }
 
-private fun getTypeDir(baseDirPath: String?, type: String?): File? {
-    if (baseDirPath == null) return null
-
-    val baseDir = File(baseDirPath)
-    val typeDir = if (type == null) baseDir else File(baseDir, type)
-    if (!typeDir.exists()) {
-        if (!baseDir.canWrite()) {
-            Loge(TAG, "Base dir is not writable " + baseDir.absolutePath)
-            return null
-        }
-        if (!typeDir.mkdirs()) {
-            Loge(TAG, "Could not create type dir " + typeDir.absolutePath)
-            return null
-        }
-    }
-    return typeDir
+fun UnifiedFile.parent(): UnifiedFile? = when (this) {
+    is PathFile -> this.path.parent?.let { PathFile(it, fs) }
+    is ContentUriFile -> this.docFile?.parentFile?.let { ContentUriFile(it.uri, context) }
+    else -> null
 }
 
-/**
- * Return the folder where the app stores all of its data. This method will return the standard data folder if none has been set by the user.
- * @param type The name of the folder inside the data folder. May be null when accessing the root of the data folder.
- * @return The data folder that has been requested or null if the folder could not be created.
- */
-fun getDataFolder(type: String?): File? {
-    var dataFolder = getTypeDir(null, type)
-    if (dataFolder == null || !dataFolder.canWrite()) {
-        Logd(TAG, "User data folder not writable or not set. Trying default.")
-        dataFolder = getAppContext().getExternalFilesDir(type)
-    }
-    if (dataFolder == null || !dataFolder.canWrite()) {
-        Logd(TAG, "Default data folder not available or not writable. Falling back to internal memory.")
-        dataFolder = getTypeDir(getAppContext().filesDir.absolutePath, type)
-    }
-    return dataFolder
+fun UnifiedFile.toAndroidUri(): Uri? = when (this) {
+    is PathFile -> absPath.toUri()
+    is ContentUriFile -> uri
+    else -> null
 }
 
-fun deleteDirectoryRecursively(dir: DocumentFile): Boolean {
-    if (dir.isDirectory) {
-        for (file in dir.listFiles()) if (!deleteDirectoryRecursively(file)) return false
+fun File.toUF(): UnifiedFile = PathFile(absolutePath.toPath())
+
+fun Uri.toUF(): UnifiedFile {
+    Logd(TAG, "Uri.toUF() $this")
+    return when (scheme) {
+        "file" -> PathFile(this.path!!.toPath())
+        "content" -> ContentUriFile(this)
+        else -> PathFile(this.toString().toPath())
     }
-    return dir.delete()
+}
+
+fun String.toUF(): UnifiedFile {
+    Logd(TAG, "String.toUF() $this")
+    val uri = try { this.toSafeUri() } catch (e: Exception) { null }
+    return when (uri?.scheme) {
+        null -> PathFile(this.toPath())
+        "content" -> ContentUriFile(uri)
+        "file" -> PathFile(uri.path!!.toPath())
+        else -> error("Unsupported URI scheme: ${uri.scheme}")
+    }
+}
+
+suspend fun deleteDirectoryRecursively(dir: UnifiedFile) {
+    Logd(TAG, "deleteDirectoryRecursively ${dir.absPath}")
+    if (dir.isDirectory()) {
+        for (file in dir.listChildren()) deleteDirectoryRecursively(file)
+    }
+    dir.delete()
 }
 
 /**
@@ -222,27 +454,18 @@ fun deleteDirectoryRecursively(dir: DocumentFile): Boolean {
  */
 fun createNoMediaFile() {
     CoroutineScope(Dispatchers.IO).launch {
-        if (customMediaUriString.isNotBlank()) {
-            val customUri = customMediaUriString.toUri()
-            val baseDir = DocumentFile.fromTreeUri(getAppContext(), customUri) ?: return@launch
-            if (baseDir.isDirectory) {
-                val nomediaFile = baseDir.findFile(".nomedia")
-                if (nomediaFile == null) {
-                    try {
-                        baseDir.createFile("text/plain", ".nomedia")
-                        Logd(TAG, ".nomedia file created in $customMediaUriString")
-                    } catch (e: Throwable) {
-                        Logs(TAG, e, "Could not create .nomedia file in $customMediaUriString")
+        val nomediaFile = mediaDir / ".nomedia"
+        if (!nomediaFile.exists()) {
+            try { mediaDir.createFile("", ".nomedia")
+            } catch (e: Exception) {
+                Logs(TAG, e, "failed creating .nomedia file")
+                if (customMediaUriString.isNotBlank()) {
+                    upsert(appPrefs) {
+                        it.useCustomMediaFolder = false
+                        it.customMediaUri = ""
+                        it.customFolderUnavailable = true
                     }
                 }
-            }
-        } else {
-            val f = File(getAppContext().getExternalFilesDir(null), ".nomedia")
-            if (!f.exists()) {
-                try {
-                    f.createNewFile()
-                    Logd(TAG, ".nomedia file created")
-                } catch (e: IOException) { Logs(TAG, e, "Could not create .nomedia file") }
             }
         }
     }
@@ -265,6 +488,18 @@ private val ACCENT_MAP: Map<Char, Char> = mapOf(
     'Æ' to 'A','æ' to 'a','Ø' to 'O','ø' to 'o',
     'Þ' to 'T','þ' to 't','ß' to 's'
 )
+
+fun guessFileName(url: String, contentDisposition: String?, mimeType: String?): String {
+    var filename: String? = null
+    if (contentDisposition != null) filename = Regex("filename\\s*=\\s*\"?([^\";]+)\"?").find(contentDisposition)?.groupValues?.get(1)
+    if (filename == null) {
+        val decodedUrl = try { Url(url).encodedPath } catch (e: Exception) { url }
+        val lastSegment = decodedUrl.split('/').lastOrNull { it.isNotEmpty() }
+        filename = lastSegment?.substringBefore('?') ?: "downloadfile"
+    }
+    val extension = mimeType?.let { ContentType.parse(it).contentSubtype }
+    return if (!filename.contains(".") && extension != null) "$filename.$extension" else { filename }
+}
 
 /**
  * This method will return a new string that doesn't contain any illegal characters of the given string.
@@ -298,21 +533,7 @@ private fun md5(md5: String): String? {
         for (b in array) sb.append(Integer.toHexString((b.toInt() and 0xFF) or 0x100).substring(1, 3))
         return sb.toString()
     } catch (e: NoSuchAlgorithmException) { return null
-    } catch (e: UnsupportedEncodingException) { return null }
-}
-
-fun getFreeSpaceAvailable(path: String?): Long {
-    val stat = StatFs(path)
-    val availableBlocks = stat.availableBlocksLong
-    val blockSize = stat.blockSizeLong
-    return availableBlocks * blockSize
-}
-
-fun getTotalSpaceAvailable(path: String?): Long {
-    val stat = StatFs(path)
-    val blockCount = stat.blockCountLong
-    val blockSize = stat.blockSizeLong
-    return blockCount * blockSize
+    } catch (e: Exception) { return null }
 }
 
 class AddLocalFolder : ActivityResultContracts.OpenDocumentTree() {
@@ -321,21 +542,13 @@ class AddLocalFolder : ActivityResultContracts.OpenDocumentTree() {
     }
 }
 
-class CountingInputStream2(
-    private val delegate: InputStream
-) : FilterInputStream(delegate) {
-    var count: Int = 0
+class CountingSource(delegate: Source) : ForwardingSource(delegate) {
+    var count: Long = 0
         private set
 
-    override fun read(): Int {
-        val r = super.read()
-        if (r >= 0) count++
-        return r
-    }
-
-    override fun read(b: ByteArray, off: Int, len: Int): Int {
-        val r = super.read(b, off, len)
-        if (r > 0) count += r
-        return r
+    override fun read(sink: Buffer, byteCount: Long): Long {
+        val read = super.read(sink, byteCount)
+        if (read > 0) count += read
+        return read
     }
 }

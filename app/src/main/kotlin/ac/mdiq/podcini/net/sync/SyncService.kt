@@ -4,7 +4,7 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.CHANNEL_ID
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
+import ac.mdiq.podcini.net.download.PodciniHttpClient.getKtorClient
 import ac.mdiq.podcini.net.sync.LockingAsyncExecutor.executeLockedAsync
 import ac.mdiq.podcini.net.sync.SynchronizationCredentials.hosturl
 import ac.mdiq.podcini.net.sync.SynchronizationCredentials.password
@@ -16,13 +16,12 @@ import ac.mdiq.podcini.net.sync.model.SyncServiceException
 import ac.mdiq.podcini.net.sync.nextcloud.NextcloudSyncService
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueStorage
 import ac.mdiq.podcini.net.utils.NetworkUtils.containsUrl
-import ac.mdiq.podcini.net.utils.NetworkUtils.isAllowMobileFor
+import ac.mdiq.podcini.net.utils.NetworkUtils.isAllowedOnMobile
 import ac.mdiq.podcini.net.utils.NetworkUtils.setAllowMobileFor
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.ui.screens.prefscreens.MobileUpdateOptions
+import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.deleteFeed
 import ac.mdiq.podcini.storage.database.episodeByGuidOrUrl
-import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.removeFromQueue
@@ -34,6 +33,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.ui.screens.prefscreens.MobileUpdateOptions
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -59,7 +59,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
-import kotlin.text.startsWith
 
 open class SyncService(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     val TAG = this::class.simpleName ?: "Anonymous"
@@ -110,7 +109,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
     }
 
     @Throws(SyncServiceException::class)
-    private fun syncSubscriptions(syncServiceImpl: ISyncService) {
+    private suspend fun syncSubscriptions(syncServiceImpl: ISyncService) {
         Logd(TAG, "syncSubscriptions called")
         val lastSync = SynchronizationSettings.lastSubscriptionSynchronizationTimestamp
         EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_subscriptions))
@@ -339,7 +338,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
 
         return when (selectedService) {
 //            SynchronizationProviderViewData.GPODDER_NET -> GpodnetService(getHttpClient(), hosturl, deviceID?:"", username?:"", password?:"")
-            SynchronizationProviderViewData.NEXTCLOUD_GPODDER -> NextcloudSyncService(getHttpClient(), hosturl, username?:"", password?:"")
+            SynchronizationProviderViewData.NEXTCLOUD_GPODDER -> NextcloudSyncService(getKtorClient(), hosturl, username?:"", password?:"")
         }
     }
 
@@ -355,7 +354,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
             isCurrentlyActive = active
         }
         private var isAllowMobileSync: Boolean
-            get() = isAllowMobileFor(MobileUpdateOptions.sync.name)
+            get() = isAllowedOnMobile(MobileUpdateOptions.sync.name)
             set(allow) {
                 setAllowMobileFor(MobileUpdateOptions.sync.name, allow)
             }

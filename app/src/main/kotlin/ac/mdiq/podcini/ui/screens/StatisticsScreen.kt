@@ -120,6 +120,7 @@ import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.jvmErasure
 import ac.mdiq.podcini.storage.utils.nowInMillis
+import ac.mdiq.podcini.utils.format
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -210,7 +211,6 @@ class StatisticsVM: ViewModel() {
 @Composable
 fun StatisticsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
@@ -324,8 +324,7 @@ fun StatisticsScreen() {
     fun OverviewNumbers(stats: StatisticsItem, nd: Int = 1, center: Boolean = true) {
         fun formatEpisodes(num: Int): String {
             if (nd == 1) return num.toString()
-            @SuppressLint("DefaultLocale")
-            return String.format("%.2f", 1f*num/nd)
+            return (1f*num/nd).format(2)
         }
         val textColor = MaterialTheme.colorScheme.onSurface
         Row {
@@ -546,7 +545,7 @@ fun StatisticsScreen() {
                 itemsIndexed(vm.monthStats) { index, item ->
                     Row(Modifier.background(MaterialTheme.colorScheme.surface).clickable(onClick = { onMonthClicked(index) })) {
                         Column {
-                            Text(String.format(Locale.getDefault(), "%d-%d", item.year, item.month), color = textColor, style = MaterialTheme.typography.headlineSmall.merge())
+                            Text("${item.year}-${item.month}", color = textColor, style = MaterialTheme.typography.headlineSmall.merge())
                             OverviewNumbers(item.stats.statTotal, center = false)
                         }
                     }
@@ -576,7 +575,7 @@ fun StatisticsScreen() {
             if (vm.downloadChartData != null) HorizontalLineChart(vm.downloadChartData!!)
             Spacer(Modifier.height(5.dp))
             if (vm.downloadstatsData != null && vm.downloadChartData != null) FeedsList(vm.downloadstatsData!!, vm.downloadChartData!!) { stat ->
-                val info = ("${Formatter.formatShortFileSize(context, stat.item.totalDownloadSize)} • " + String.format(Locale.getDefault(), "%d%s", stat.item.episodesDownloadCount, context.getString(R.string.episodes_suffix)))
+                val info = ("${Formatter.formatShortFileSize(context, stat.item.totalDownloadSize)} • " + "${stat.item.episodesDownloadCount}"+context.getString(R.string.episodes_suffix))
                 Text(info, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 2.dp))
             }
         }
@@ -854,7 +853,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
                 Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) { Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                 Row {
                     Text(stringResource(R.string.statistics_episodes_started_total), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(String.format(Locale.getDefault(), "%d / %d", fStat?.item?.episodesStarted ?: 0, fStat?.item?.episodesTotal ?: 0), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
+                    Text("${fStat?.item?.episodesStarted ?: 0} / ${fStat?.item?.episodesTotal ?: 0}", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
                 Row {
                     Text(stringResource(R.string.statistics_length_played), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
@@ -874,7 +873,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
                 }
                 Row {
                     Text(stringResource(R.string.statistics_episodes_on_device), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(String.format(Locale.getDefault(), "%d", fStat?.item?.episodesDownloadCount ?: 0), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
+                    Text((fStat?.item?.episodesDownloadCount ?: 0).toString(), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
                 Row {
                     Text(stringResource(R.string.statistics_space_used), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))

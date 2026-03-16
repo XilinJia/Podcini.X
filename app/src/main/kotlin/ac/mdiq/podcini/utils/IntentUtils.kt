@@ -4,13 +4,13 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.utils.durationStringFull
+import ac.mdiq.podcini.storage.utils.toSafeUri
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.core.app.ShareCompat.IntentBuilder
 import androidx.core.content.FileProvider
-import androidx.core.net.toUri
 import java.io.File
 
 
@@ -34,7 +34,7 @@ fun openInBrowser(url: String) {
     Logd(TAG, "url: $url")
     val context = getAppContext()
     try {
-        val myIntent = Intent(Intent.ACTION_VIEW, url.toUri())
+        val myIntent = Intent(Intent.ACTION_VIEW, url.toSafeUri())
         myIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(myIntent)
     } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.pref_no_browser_found)) }

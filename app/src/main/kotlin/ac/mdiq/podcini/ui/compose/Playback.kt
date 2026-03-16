@@ -1,9 +1,9 @@
 package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.config.settings.SleepTimer.autoEnableFrom
-import ac.mdiq.podcini.config.settings.SleepTimer.autoEnableTo
-import ac.mdiq.podcini.config.settings.SleepTimer.lastTimerValue
+import ac.mdiq.podcini.playback.SleepTimer.autoEnableFrom
+import ac.mdiq.podcini.playback.SleepTimer.autoEnableTo
+import ac.mdiq.podcini.playback.SleepTimer.lastTimerValue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.tempSkipSilence
@@ -34,6 +34,7 @@ import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.format
 import ac.mdiq.podcini.utils.formatNumberKmp
 import android.view.Gravity
 import androidx.compose.foundation.BorderStroke
@@ -75,14 +76,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
@@ -100,12 +99,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONException
-import java.util.Locale
 import kotlin.math.max
 import kotlin.math.round
 import kotlin.time.Duration.Companion.milliseconds
@@ -119,9 +115,6 @@ private fun slider2Speed(slider: Float, maxSpeed: Float): Float {
 }
 @Composable
 private fun SpeedSetter(initSpeed: Float, maxSpeed: Float, speedCB: (Float) -> Unit) {
-    //    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-    //        Text(text = String.format(Locale.getDefault(), "%.2fx", speed))
-    //    }
     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         var speed by remember { mutableFloatStateOf(initSpeed) }
         var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == SPEED_USE_GLOBAL) 1f else speed, maxSpeed)) }
@@ -151,7 +144,7 @@ private fun SpeedSetter(initSpeed: Float, maxSpeed: Float, speedCB: (Float) -> U
                 }
             }))
         Spacer(Modifier.width(40.dp))
-        Text(text = String.format(Locale.getDefault(), "%.2fx", speed))
+        Text(text = speed.format(2)+"x")
     }
 }
 
@@ -232,7 +225,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                             speeds.add(speed)
                             speeds.sort()
                             setPlaybackSpeedArray(speeds)
-                        } }, label = { Text(String.format(Locale.getDefault(), "%.2f", speed)) }, selected = false,
+                        } }, label = { Text(speed.format(2)) }, selected = false,
                         trailingIcon = { Icon(imageVector = Icons.Filled.Add, contentDescription = "Add icon", modifier = Modifier.size(FilterChipDefaults.IconSize)) })
                     else IconButton(onClick = { showEdit = true }) { Icon(Icons.Default.Edit, contentDescription = "Edit preset") }
                 }
@@ -306,9 +299,9 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                                 EventFlow.postEvent(FlowEvent.SpeedChangedEvent(chipSpeed))
                             }
                             onDismiss()
-                        }, label = { Text(String.format(Locale.getDefault(), "%.2f", chipSpeed)) }, selected = false,
+                        }, label = { Text(chipSpeed.format(2)) }, selected = false,
                             trailingIcon = { Icon(imageVector = Icons.Filled.Close, contentDescription = "Close icon",
-                                modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
+                                modifier = Modifier.size(30.dp).clickable(onClick = {
                                     speeds.remove(chipSpeed)
                                     setPlaybackSpeedArray(speeds)
                                 })) })
@@ -401,36 +394,24 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
 fun SleepTimerDialog(onDismiss: () -> Unit) {
     val TAG = "SleepTimerDialog"
 
-    val lcScope = rememberCoroutineScope()
     val timeLeft by remember { mutableLongStateOf(sleepManager?.sleepTimerTimeLeft?:0) }
     var showTimeDisplay by remember { mutableStateOf(false) }
     var showTimeSetup by remember { mutableStateOf(true) }
     var timerText by remember { mutableStateOf(durationStringFull(timeLeft.toInt())) }
     val context by rememberUpdatedState(LocalContext.current)
 
-    var eventSink: Job? by remember { mutableStateOf(null) }
-    fun cancelFlowEvents() {
-        eventSink?.cancel()
-        eventSink = null
-    }
-    fun procFlowEvents() {
-        if (eventSink != null) return
-        eventSink = lcScope.launch {
-            EventFlow.events.collectLatest { event ->
-                when (event) {
-                    is FlowEvent.SleepTimerUpdatedEvent -> {
-                        showTimeDisplay = !event.isOver && !event.isCancelled
-                        showTimeSetup = event.isOver || event.isCancelled
-                        timerText = durationStringFull(event.getTimeLeft().toInt())
-                    }
-                    else -> {}
+    LaunchedEffect(Unit) {
+        EventFlow.events.collectLatest { event ->
+            when (event) {
+                is FlowEvent.SleepTimerUpdatedEvent -> {
+                    showTimeDisplay = !event.isOver && !event.isCancelled
+                    showTimeSetup = event.isOver || event.isCancelled
+                    timerText = durationStringFull(event.getTimeLeft().toInt())
                 }
+                else -> {}
             }
         }
     }
-
-    LaunchedEffect(Unit) { procFlowEvents() }
-    DisposableEffect(Unit) { onDispose { cancelFlowEvents() } }
 
     var toEnd by remember { mutableStateOf(false) }
     var etxtTime by remember { mutableStateOf(lastTimerValue.toString()) }

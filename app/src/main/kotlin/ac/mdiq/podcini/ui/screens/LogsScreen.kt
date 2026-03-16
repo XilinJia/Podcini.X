@@ -1,7 +1,10 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.activity.MainActivity
+import ac.mdiq.podcini.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.gears.gearbox
+import ac.mdiq.podcini.net.download.RequestTye
 import ac.mdiq.podcini.storage.database.DownloadResultComparator
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.realm
@@ -12,10 +15,9 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.Rating.Companion.fromCode
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.actions.ButtonTypes
-import ac.mdiq.podcini.activity.MainActivity
-import ac.mdiq.podcini.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.utils.EventFlow
@@ -65,7 +67,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -79,16 +80,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.xilinjia.krdb.query.Sort
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import ac.mdiq.podcini.storage.utils.nowInMillis
 
 
-class LogsVM(val lcScope: CoroutineScope) {
+class LogsVM: ViewModel() {
     internal val shareLogs = mutableStateListOf<ShareLog>()
     internal val subscriptionLogs = mutableStateListOf<SubscriptionLog>()
     internal val downloadLogs = mutableStateListOf<DownloadResult>()
@@ -101,7 +103,7 @@ class LogsVM(val lcScope: CoroutineScope) {
         downloadLogs.clear()
     }
     internal fun loadShareLog() {
-        lcScope.launch {
+        viewModelScope.launch {
             try {
                 val result = withContext(Dispatchers.IO) {
                     Logd(TAG, "getDownloadLog() called")
@@ -116,7 +118,7 @@ class LogsVM(val lcScope: CoroutineScope) {
     }
 
     internal fun loadSubscriptionLog() {
-        lcScope.launch {
+        viewModelScope.launch {
             try {
                 val result = withContext(Dispatchers.IO) {
                     Logd(TAG, "getDownloadLog() called")
@@ -131,7 +133,7 @@ class LogsVM(val lcScope: CoroutineScope) {
     }
 
     internal fun loadDownloadLog() {
-        lcScope.launch {
+        viewModelScope.launch {
             try {
                 val result = withContext(Dispatchers.IO) {
                     Logd(TAG, "getDownloadLog() called")
@@ -153,12 +155,11 @@ class LogsVM(val lcScope: CoroutineScope) {
 @Composable
 fun LogsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
-    val vm = remember { LogsVM(scope) }
+    val vm: LogsVM = viewModel()
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -359,11 +360,11 @@ fun LogsScreen() {
         if (showDialog) {
             var url = "unknown"
             when (status.feedfileType) {
-                Episode.FEEDFILETYPE_FEEDMEDIA -> {
+                RequestTye.FEEDMEDIA.ordinal -> {
                     val media = realm.query(Episode::class).query("id == $0", status.feedfileId).first().find()
                     if (media != null) url = media.downloadUrl?:""
                 }
-                Feed.FEEDFILETYPE_FEED -> {
+                RequestTye.FEED.ordinal -> {
                     val feed = feedsMap[status.feedfileId]
                     if (feed != null) url = feed.downloadUrl?:""
                 }
@@ -399,8 +400,8 @@ fun LogsScreen() {
                         }
                         val statusText = remember {"" +
                                 when (status.feedfileType) {
-                                    Feed.FEEDFILETYPE_FEED ->  context.getString(R.string.download_type_feed)
-                                    Episode.FEEDFILETYPE_FEEDMEDIA -> context.getString(R.string.download_type_media)
+                                    RequestTye.FEED.ordinal ->  context.getString(R.string.download_type_feed)
+                                    RequestTye.FEEDMEDIA.ordinal -> context.getString(R.string.download_type_media)
                                     else -> "" } + " · " +
                                 DateUtils.getRelativeTimeSpanString(status.completionTime, nowInMillis(), DateUtils.MINUTE_IN_MILLIS, 0)
                         }
@@ -424,7 +425,7 @@ fun LogsScreen() {
                             contentDescription = null,
                             modifier = Modifier.width(28.dp).height(32.dp).clickable {
                                 when (status.feedfileType) {
-                                    Feed.FEEDFILETYPE_FEED -> {
+                                    RequestTye.FEED.ordinal -> {
                                         showAction = false
                                         val feed: Feed? = feedsMap[status.feedfileId]
                                         if (feed == null) {
@@ -434,7 +435,7 @@ fun LogsScreen() {
 //                                        FeedUpdateManager.runOnce(context, feed)
                                         gearbox.feedUpdater(listOf(feed)).startRefresh()
                                     }
-                                    Episode.FEEDFILETYPE_FEEDMEDIA -> {
+                                    RequestTye.FEEDMEDIA.ordinal -> {
                                         showAction = false
                                         val item_ = realm.query(Episode::class).query("id == $0", status.feedfileId).first().find()
                                         if (item_ != null) ActionButton(item_, ButtonTypes.DOWNLOAD).onClick()

@@ -1,6 +1,5 @@
 package ac.mdiq.podcini.ui.screens
 
-import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.settings.MediaFilesTransporter
 import ac.mdiq.podcini.storage.database.appAttribs
@@ -26,7 +25,9 @@ import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
 import ac.mdiq.podcini.storage.specs.EpisodeState
-import ac.mdiq.podcini.storage.utils.customMediaUriString
+import ac.mdiq.podcini.storage.utils.UnifiedFile
+import ac.mdiq.podcini.storage.utils.mediaDir
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.compose.AssociatedFeedsGrid
@@ -98,8 +99,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
-import androidx.core.net.toUri
-import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
@@ -116,6 +115,7 @@ import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import io.github.xilinjia.krdb.notifications.UpdatedObject
 import io.github.xilinjia.krdb.query.RealmQuery
 import io.github.xilinjia.krdb.query.RealmResults
+import io.ktor.http.decodeURLQueryComponent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -129,9 +129,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.net.URLDecoder
-import ac.mdiq.podcini.storage.utils.nowInMillis
 
 
 enum class QuickAccess {
@@ -322,37 +319,18 @@ class FacetsVM(modeName_: String): ViewModel() {
     fun reconcile() {
         val nameEpisodeMap: MutableMap<String, Episode> = mutableMapOf()
         val filesRemoved: MutableList<String> = mutableListOf()
-        fun traverse(srcFile: File) {
+        suspend fun traverse(srcFile: UnifiedFile) {
             val filename = srcFile.name
-            if (srcFile.isDirectory) {
+            if (srcFile.isDirectory()) {
                 Logd(TAG, "traverse folder title: $filename")
-                val dirFiles = srcFile.listFiles()
-                dirFiles?.forEach { file -> traverse(file) }
+                srcFile.listChildren().forEach { file -> traverse(file) }
             } else {
-                Logd(TAG, "traverse: $srcFile filename: $filename")
+                Logd(TAG, "traverse: ${srcFile.absPath} filename: $filename")
                 val episode = nameEpisodeMap.remove(filename)
                 if (episode == null) {
                     Logd(TAG, "traverse: error: episode not exist in map: $filename")
                     filesRemoved.add(filename)
-                    srcFile.delete()
-                    return
-                }
-                Logd(TAG, "traverse found episode: ${episode.title}")
-            }
-        }
-        fun traverse(srcFile: DocumentFile) {
-            val filename = srcFile.name
-            if (srcFile.isDirectory) {
-                Logd(TAG, "traverse folder title: $filename")
-                val dirFiles = srcFile.listFiles()
-                dirFiles.forEach { file -> traverse(file) }
-            } else {
-                Logd(TAG, "traverse: $srcFile filename: $filename")
-                val episode = nameEpisodeMap.remove(filename)
-                if (episode == null) {
-                    Logd(TAG, "traverse: error: episode not exist in map: $filename")
-                    if (filename != null) filesRemoved.add(filename)
-                    srcFile.delete()
+                    runOnIOScope { srcFile.delete() }
                     return
                 }
                 Logd(TAG, "traverse found episode: ${episode.title}")
@@ -363,7 +341,8 @@ class FacetsVM(modeName_: String): ViewModel() {
             nameEpisodeMap.clear()
             MediaFilesTransporter("").updateDB()    // TODO: check out, may run out of memory?
             var eList = getEpisodes(EpisodeFilter(facetsPrefs.filtersMap[QuickAccess.Downloaded.name] ?: EpisodeFilter.States.downloaded.name), sortOrder, copy=false)
-            val feMap = eList.associateBy { it.feedId }.toMutableMap()
+            Logd(TAG, "reconcile eList: ${eList.size}")
+            val feMap = eList.groupBy { it.feedId }.toMutableMap()
             val iterator = feMap.iterator()
             while (iterator.hasNext()) {
                 val en = iterator.next()
@@ -371,30 +350,26 @@ class FacetsVM(modeName_: String): ViewModel() {
                 val f = getFeed(en.key!!) ?: continue
                 if (f.isLocalFeed) iterator.remove()
             }
-            val el = feMap.values
-            for (e in el) {
-                var fileUrl = e.fileUrl
-                if (fileUrl.isNullOrBlank()) continue
-                Logd(TAG, "reconcile: fileUrl: $fileUrl")
-                fileUrl = fileUrl.substring(fileUrl.lastIndexOf('/') + 1)
-                fileUrl = URLDecoder.decode(fileUrl, "UTF-8")
-                Logd(TAG, "reconcile: add to map: fileUrl: $fileUrl")
-                nameEpisodeMap[fileUrl] = e
+            for (fid in feMap.keys) {
+                val el = feMap[fid] ?: continue
+                for (e in el) {
+                    var fileUrl = e.fileUrl
+                    Logd(TAG, "reconcile e: ${e.title} [$fileUrl]")
+                    if (fileUrl.isNullOrBlank()) continue
+                    Logd(TAG, "reconcile: fileUrl: $fileUrl")
+                    fileUrl = fileUrl.substring(fileUrl.lastIndexOf('/') + 1).decodeURLQueryComponent()
+                    Logd(TAG, "reconcile: add to map: fileUrl: $fileUrl")
+                    nameEpisodeMap[fileUrl] = e
+                }
             }
             eList = listOf()
-            if (customMediaUriString.isBlank()) {
-                val mediaDir = getAppContext().getExternalFilesDir("media") ?: return@runOnIOScope
-                mediaDir.listFiles()?.forEach { file -> traverse(file) }
-            } else {
-                val customUri = customMediaUriString.toUri()
-                val baseDir = DocumentFile.fromTreeUri(getAppContext(), customUri)
-                baseDir?.listFiles()?.forEach { file -> traverse(file) }
-            }
+            mediaDir.listChildren().forEach { file -> traverse(file) }
             Logd(TAG, "reconcile: end, episodes missing file: ${nameEpisodeMap.size}")
-            if (nameEpisodeMap.isNotEmpty()) for (e in nameEpisodeMap.values) upsertBlk(e) { it.fileUrl = null }
+            if (nameEpisodeMap.isNotEmpty()) for (e in nameEpisodeMap.values) { upsertBlk(e) { it.fileUrl = null } }
             val count = nameEpisodeMap.size
             nameEpisodeMap.clear()
             Logt(TAG, "Episodes reconciled: $count\nFiles removed: ${filesRemoved.size}")
+
             realm.write {
                 val el = query(Episode::class, "feedId == nil").find()
                 if (el.isNotEmpty()) {
@@ -404,6 +379,7 @@ class FacetsVM(modeName_: String): ViewModel() {
                     Logt(TAG, "reconcile deleted $size loose episodes")
                 }
             }
+
             val ids = realm.query(Episode::class).find().mapNotNull { it.feedId }.toSet()
             for (id in ids) {
                 val f = feedsMap[id]

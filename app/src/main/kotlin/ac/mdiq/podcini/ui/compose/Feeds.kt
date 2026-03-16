@@ -63,7 +63,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
@@ -144,16 +143,17 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                                     it.cancelDate = nowInMillis()
                                 }
                             } else {
-                                val episodes = f.episodes
-                                for (e in episodes) {
-                                    val sLog = SubscriptionLog(e.id, e.title ?: "", e.downloadUrl ?: "", e.link ?: "", SubscriptionLog.Type.Media.name)
-                                    upsert(sLog) {
-                                        it.rating = e.rating
-                                        it.comment = if (e.comment.isBlank()) "" else (e.comment + "\n")
-                                        it.comment += fullDateTimeString() + "\nReason to remove:\n" + textState.text
-                                        it.cancelDate = nowInMillis()
-                                    }
-                                }
+                                // TODO: f.episodes returns nothing, and this step now is not really needed
+//                                val episodes = f.episodes
+//                                for (e in episodes) {
+//                                    val sLog = SubscriptionLog(e.id, e.title ?: "", e.downloadUrl ?: "", e.link ?: "", SubscriptionLog.Type.Media.name)
+//                                    upsert(sLog) {
+//                                        it.rating = e.rating
+//                                        it.comment = if (e.comment.isBlank()) "" else (e.comment + "\n")
+//                                        it.comment += fullDateTimeString() + "\nReason to remove:\n" + textState.text
+//                                        it.cancelDate = nowInMillis()
+//                                    }
+//                                }
                             }
                             val worthyEps = f.getWorthyEpisodes()
                             deleteFeed(f.id, saveImportant && worthyEps.isNotEmpty())
@@ -296,7 +296,7 @@ fun OpmlImportSelectionDialog(readElements: SnapshotStateList<OpmlTransporter.Op
                                     if (selectedItems[i] != true) continue
                                     val element = readElements[i]
                                     val feed = Feed(element.xmlUrl, null, if (element.text != null) element.text else "Unknown podcast")
-                                    feed.episodes.clear()
+                                    feed.episodes.clear()   // TODO: this doesn't do anything
                                     updateFeedFull(feed, removeUnlistedItems = false)
                                 }
                             }
@@ -376,31 +376,24 @@ fun AssociatedFeedsGrid(feedsAssociated: List<Feed>) {
 
 @Composable
 fun SendToDevice(onDismiss: ()->Unit, cb: (String, Int)->Job?) {
-    val scope = rememberCoroutineScope()
-
     var host by remember { mutableStateOf("") }
     var port by remember { mutableIntStateOf(0) }
     var name by remember { mutableStateOf("") }
     var uid by remember { mutableStateOf("") }
     var udpPort by remember(appAttribs.udpPort) { mutableIntStateOf(appAttribs.udpPort) }
     var sendJob by remember { mutableStateOf<Job?>(null) }
-    var discoverJob by remember { mutableStateOf<Job?>(null) }
     LaunchedEffect(Unit) {
-        discoverJob = scope.launch {
-            listenForUDPBroadcasts(udpPort) { list ->
-                if (list.isNotEmpty()) {
-                    host = list[0].ip
-                    port = list[0].port
-                    name = list[0].name
-                    uid = list[0].uid
-                    Logd("SendToDevice", "name: $name host: $host port: $port")
-                }
+        listenForUDPBroadcasts(udpPort) { list ->
+            if (list.isNotEmpty()) {
+                host = list[0].ip
+                port = list[0].port
+                name = list[0].name
+                uid = list[0].uid
+                Logd("SendToDevice", "name: $name host: $host port: $port")
             }
         }
     }
     fun cleanup() {
-        discoverJob?.cancel()
-        discoverJob = null
         sendJob?.cancel()
         onDismiss()
     }

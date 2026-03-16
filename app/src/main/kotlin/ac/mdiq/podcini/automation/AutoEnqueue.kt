@@ -2,7 +2,7 @@ package ac.mdiq.podcini.automation
 
 import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
+import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.playback.base.InTheatre.isCurMedia
 import ac.mdiq.podcini.storage.database.EPISODE_CACHE_SIZE_UNLIMITED
 import ac.mdiq.podcini.storage.database.addToAssQueue
@@ -69,7 +69,7 @@ class AutoDownloadAlgorithm {
      * 3. There is free space in the episode cache
      * This method is executed on an internal single thread executor.
      */
-    fun run(feeds: List<Feed>?, checkQueues: Boolean = true, onlyExisting: Boolean = false) {
+    suspend fun run(feeds: List<Feed>?, checkQueues: Boolean = true, onlyExisting: Boolean = false) {
         val powerShouldAutoDl = (deviceCharging() || appPrefs.enableAutoDownloadOnBattery)
         Logd(TAG, "run prepare ${getApp().networkMonitor.networkAllowAutoDownload} $powerShouldAutoDl")
         // we should only auto download if both network AND power are happy
@@ -106,10 +106,7 @@ class AutoDownloadAlgorithm {
                     var itemsToDownload = candidates.toMutableList()
                     if (allowedCount < candidates.size) itemsToDownload = itemsToDownload.subList(0, allowedCount)
                     Logt(TAG, "Auto download requesting episodes: ${itemsToDownload.size}")
-                    for (e in itemsToDownload) {
-                        Logd(TAG, "run download ${e.title} ${e.playState} ${e.downloadUrl}")
-                        DownloadServiceInterface.impl?.download(e)
-                    }
+                    EpisodeAdrDLManager.manager?.download(itemsToDownload)
                     itemsToDownload.clear()
                 } else Logt(TAG, "Auto download not performed, allowed count exceeded: candidates: ${candidates.size} allowedCount: $allowedCount")
                 candidates.clear()

@@ -2,9 +2,13 @@ package ac.mdiq.podcini.net.utils
 
 import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.ui.screens.prefscreens.MobileUpdateOptions
+import ac.mdiq.podcini.config.ClientConfig
+import ac.mdiq.podcini.net.download.Downloader
+import ac.mdiq.podcini.net.download.PodciniHttpClient.getKtorClient
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.utils.toSafeUri
+import ac.mdiq.podcini.ui.screens.prefscreens.MobileUpdateOptions
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import android.annotation.SuppressLint
@@ -12,19 +16,21 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
-import androidx.core.net.toUri
+import android.net.wifi.WifiManager
 import io.github.xilinjia.krdb.ext.toRealmSet
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.URLBuilder
+import io.ktor.http.URLProtocol
+import io.ktor.http.Url
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import java.io.BufferedReader
-import java.io.InputStreamReader
 import java.net.Inet4Address
 import java.net.MalformedURLException
 import java.net.NetworkInterface
@@ -40,25 +46,25 @@ object NetworkUtils {
     private const val REGEX_PATTERN_IP_ADDRESS = "([0-9]{1,3}[\\.]){3}[0-9]{1,3}"
 
     var mobileAllowStreaming: Boolean
-        get() = isAllowMobileFor(MobileUpdateOptions.streaming.name)
+        get() = isAllowedOnMobile(MobileUpdateOptions.streaming.name)
         set(allow) {
             setAllowMobileFor(MobileUpdateOptions.streaming.name, allow)
         }
 
     private val mobileAllowAutoDownload: Boolean
-        get() = isAllowMobileFor(MobileUpdateOptions.auto_download.name)
+        get() = isAllowedOnMobile(MobileUpdateOptions.auto_download.name)
 
     var mobileAllowFeedRefresh: Boolean
-        get() = isAllowMobileFor(MobileUpdateOptions.feed_refresh.name)
+        get() = isAllowedOnMobile(MobileUpdateOptions.feed_refresh.name)
         set(allow) {
             setAllowMobileFor(MobileUpdateOptions.feed_refresh.name, allow)
         }
 
     val mobileAllowEpisodeDownload: Boolean
-        get() = isAllowMobileFor(MobileUpdateOptions.episode_download.name)
+        get() = isAllowedOnMobile(MobileUpdateOptions.episode_download.name)
 
     val isImageDownloadAllowed: Boolean
-        get() = isAllowMobileFor(MobileUpdateOptions.images.name) || !getApp().networkMonitor.isNetworkRestricted
+        get() = isAllowedOnMobile(MobileUpdateOptions.images.name) || !getApp().networkMonitor.isNetworkRestricted
 
     val isStreamingAllowed: Boolean
         get() = mobileAllowStreaming || !getApp().networkMonitor.isNetworkRestricted
@@ -66,7 +72,17 @@ object NetworkUtils {
     val isFeedRefreshAllowed: Boolean
         get() = mobileAllowFeedRefresh || !getApp().networkMonitor.isNetworkRestricted
 
-    fun isAllowMobileFor(type: String): Boolean {
+    fun isNetworkUrl(source: String?): Boolean {
+        if (source.isNullOrBlank()) return false
+        return try {
+            val url = Url(source)
+            url.protocol == URLProtocol.HTTP || url.protocol == URLProtocol.HTTPS
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun isAllowedOnMobile(type: String): Boolean {
         val defaultValue = HashSet<String>()
         defaultValue.add("images")
         val allowed = appPrefs.mobileUpdateTypes
@@ -102,17 +118,19 @@ object NetworkUtils {
             Loge(TAG, "fetchHtmlSource urlString invalid: $urlString")
             return@withContext ""
         }
-        val connection = url.openConnection()
-        val inputStream = connection.getInputStream()
-        val bufferedReader = BufferedReader(InputStreamReader(inputStream))
+        getKtorClient().get(url).bodyAsText()
 
-        val stringBuilder = StringBuilder()
-        var line = ""
-        while (bufferedReader.readLine()?.also { line = it } != null) stringBuilder.append(line)
-
-        bufferedReader.close()
-        inputStream.close()
-        stringBuilder.toString()
+//        val connection = url.openConnection()
+//        val inputStream = connection.getInputStream()
+//        val bufferedReader = BufferedReader(InputStreamReader(inputStream))
+//
+//        val stringBuilder = StringBuilder()
+//        var line = ""
+//        while (bufferedReader.readLine()?.also { line = it } != null) stringBuilder.append(line)
+//
+//        bufferedReader.close()
+//        inputStream.close()
+//        stringBuilder.toString()
     }
 
     fun getURIFromRequestUrl(source: String): URI {
@@ -131,11 +149,26 @@ object NetworkUtils {
     }
 
     fun getFinalRedirectedUrl(url: String): String {
-        val client = OkHttpClient()
-        val request = Request.Builder().url(url).build()
-        client.newCall(request).execute().use { response -> return if (response.isSuccessful) response.request.url.toString() else url }
+        return try {
+            val response = runBlocking { getKtorClient().get(url) }
+            if (response.status.isSuccess()) response.call.request.url.toString() else url
+        } catch (e: Exception) { url }
     }
 
+    var wifiLock: WifiManager.WifiLock? = null
+    fun getWifiLock() {
+        if (!appPrefs.disableWifiLock) {
+            val wifiManager = getAppContext().getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            if (wifiManager != null) {
+                wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL, TAG)
+                wifiLock?.acquire()
+            }
+        }
+    }
+    fun releaseWifiLock() {
+        wifiLock?.release()
+        wifiLock = null
+    }
     private const val AP_SUBSCRIBE = "podcini-subscribe://"
 //    private const val AP_SUBSCRIBE_DEEPLINK = "podcini.org/deeplink/subscribe"
 
@@ -184,8 +217,8 @@ object NetworkUtils {
         var base = base_ ?: return prepareUrl(url)
         url = url.trim { it <= ' ' }
         base = prepareUrl(base)
-        val urlUri = url.toUri()
-        val baseUri = base.toUri()
+        val urlUri = url.toSafeUri()
+        val baseUri = base.toSafeUri()
         return if (urlUri.isRelative && baseUri.isAbsolute) urlUri.buildUpon().scheme(baseUri.scheme).build().toString() else prepareUrl(url)
     }
 
@@ -196,16 +229,16 @@ object NetworkUtils {
 
     fun urlEquals(string1: String?, string2: String?): Boolean {
         if (string1 == null || string2 == null) return false
-        val url1 = string1.toHttpUrlOrNull() ?: return false
-        val url2 = string2.toHttpUrlOrNull() ?: return false
+        val url1 = runCatching { URLBuilder(string1) }.getOrNull() ?: return false
+        val url2 = runCatching { URLBuilder(string2) }.getOrNull() ?: return false
         if (url1.host != url2.host) return false
 
         val pathSegments1 = normalizePathSegments(url1.pathSegments)
         val pathSegments2 = normalizePathSegments(url2.pathSegments)
         if (pathSegments1 != pathSegments2) return false
 
-        if (url1.query.isNullOrEmpty()) return url2.query.isNullOrEmpty()
-        return url1.query == url2.query
+        if (url1.parameters.isEmpty()) return url2.parameters.isEmpty()
+        return url1.parameters == url2.parameters
     }
 
     fun getLocalIpAddress(): String? {
@@ -233,16 +266,16 @@ object NetworkUtils {
     class NetworkMonitor() {
         private val connectivityManager = getAppContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
-        @Volatile var isConnected: Boolean = true
+        var isConnected: Boolean = true
             private set
 
-        @Volatile var isNetworkRestricted: Boolean = false
+        var isNetworkRestricted: Boolean = false
             private set
 
-        @Volatile var networkAllowAutoDownload: Boolean = false
+        var networkAllowAutoDownload: Boolean = false
             private set
 
-        @Volatile var isVpnOverWifi: Boolean = false
+        var isVpnOverWifi: Boolean = false
             private set
 
         fun updateDownloadPolicy(caps: NetworkCapabilities?) {

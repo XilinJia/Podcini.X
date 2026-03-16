@@ -459,7 +459,7 @@ fun NumberEditor(initVal: Int, label: String = "seconds", nz: Boolean = true, in
         }
     }
     if (instant)
-        TextField(value = inputVal, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(label) }, singleLine = true, modifier = modifier,
+        TextField(value = inputVal, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(label, style = MaterialTheme.typography.bodySmall) }, singleLine = true, modifier = modifier,
             onValueChange = {
                 if (it.isEmpty() || it.toIntOrNull() != null) inputVal = it
                 if (it.toIntOrNull() != null) showSet = true
@@ -467,13 +467,13 @@ fun NumberEditor(initVal: Int, label: String = "seconds", nz: Boolean = true, in
             },
         )
     else
-        TextField(value = inputVal, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(label) }, singleLine = true, modifier = modifier,
+        TextField(value = inputVal, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(label, style = MaterialTheme.typography.bodySmall) }, singleLine = true, modifier = modifier,
             onValueChange = {
                 if (it.isEmpty() || it.toIntOrNull() != null) inputVal = it
                 if (it.toIntOrNull() != null) showSet = true
                 if (instant && showSet) set()
             },
-            trailingIcon = { if (!instant && showSet) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = { set() })) }
+            trailingIcon = { if (!instant && showSet) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).clickable(onClick = { set() })) }
         )
 }
 
@@ -567,7 +567,7 @@ fun TagSettingDialog(tagType: TagType, existingTags: Set<String>, multiples: Boo
                         }
                     ),
                     trailingIcon = { Icon(imageVector = Icons.Filled.Add, contentDescription = "Add icon",
-                        modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
+                        modifier = Modifier.size(30.dp).clickable(onClick = {
                             if (text.isNotBlank()) {
                                 if (text !in tags) tags.add(text)
                                 text = ""

@@ -1,18 +1,20 @@
 package ac.mdiq.podcini.activity
 
+import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.settings.developerEmail
-import ac.mdiq.podcini.storage.utils.getDataFolder
+import ac.mdiq.podcini.config.settings.githubAddress
+import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.utils.div
+import ac.mdiq.podcini.storage.utils.internalDir
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
-
 import ac.mdiq.podcini.ui.compose.CustomToast
-import ac.mdiq.podcini.utils.openInBrowser
+import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.error.CrashReportWriter
-import ac.mdiq.podcini.config.settings.githubAddress
-import ac.mdiq.podcini.ui.compose.PodciniTheme
+import ac.mdiq.podcini.utils.openInBrowser
 import ac.mdiq.podcini.utils.toastMassege
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -39,7 +41,6 @@ import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -60,16 +61,25 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ShareCompat.IntentBuilder
 import androidx.core.content.FileProvider
 import androidx.core.view.WindowCompat.enableEdgeToEdge
-import org.apache.commons.io.IOUtils
-import java.io.File
-import java.io.FileInputStream
-import java.io.IOException
-import java.nio.charset.Charset
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 class BugReportActivity : ComponentActivity() {
     private var crashDetailsTextView by mutableStateOf("")
     private var showConfirmExport = mutableStateOf(false)
+    private val systemInfo: String
+        get() = """
+                 ## Environment
+                 Android version: ${Build.VERSION.RELEASE}
+                 OS version: ${System.getProperty("os.version")}
+                 Podcini version: ${BuildConfig.VERSION_NAME}
+                 Model: ${Build.MODEL}
+                 Device: ${Build.DEVICE}
+                 Product: ${Build.PRODUCT}
+                 """.trimIndent()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,14 +88,14 @@ class BugReportActivity : ComponentActivity() {
         enableEdgeToEdge(window)
 
         var stacktrace = "No crash report recorded"
-        try {
-            val crashFile = CrashReportWriter.crashLogFile
-            if (crashFile.exists()) stacktrace = IOUtils.toString(FileInputStream(crashFile), Charset.forName("UTF-8"))
+        val crashFile = CrashReportWriter.crashLogFile1
+        runBlocking {
+            if (crashFile.exists()) stacktrace = crashFile.readString()
             else Logd(TAG, stacktrace)
-        } catch (e: IOException) { Logs(TAG, e) }
+        }
 
         crashDetailsTextView = """
-            ${CrashReportWriter.systemInfo}
+            $systemInfo
             
             $stacktrace
             """.trimIndent()
@@ -100,7 +110,7 @@ class BugReportActivity : ComponentActivity() {
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(horizontal = 5.dp).verticalScroll(rememberScrollState())) {
                 if (toastMassege.isNotEmpty()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                 ComfirmDialog(0, stringResource(R.string.confirm_export_log_dialog_message), showConfirmExport) {
-                    exportLog()
+                    runOnIOScope { exportLog() }
                     showConfirmExport.value = false
                 }
                 Button(modifier = Modifier.fillMaxWidth(), onClick = { openInBrowser("${githubAddress}/issues") }) { Text(stringResource(R.string.open_bug_tracker)) }
@@ -136,18 +146,18 @@ class BugReportActivity : ComponentActivity() {
         }
     }
 
-    private fun exportLog() {
-        try {
-            val filename = File(getDataFolder(null), "full-logs.txt")
-            val cmd = "logcat -d -f " + filename.absolutePath
-            Runtime.getRuntime().exec(cmd)
-            //share file
+    private suspend fun exportLog() {
+        withContext(Dispatchers.IO) {
             try {
+                val logfile = internalDir / "full-logs.txt"
+                logfile.sink().use { }
+                val process = Runtime.getRuntime().exec("logcat -d -f ${logfile.absPath}")
+                process.waitFor()
                 val authority = getString(R.string.provider_authority)
-                val fileUri = FileProvider.getUriForFile(this, authority, filename)
-                IntentBuilder(this).setType("text/*").addStream(fileUri).setChooserTitle(R.string.share_file_label).startChooser()
-            } catch (e: Exception) { Logs(TAG, e, getString(R.string.log_file_share_exception)) }
-        } catch (e: IOException) { Logs(TAG, e, "Can't export logcat") }
+                val fileUri = FileProvider.getUriForFile(this@BugReportActivity, authority, java.io.File(logfile.absPath))
+                IntentBuilder(this@BugReportActivity).setType("text/*").addStream(fileUri).setChooserTitle(R.string.share_file_label).startChooser()
+            } catch (e: Throwable) { Logs(TAG, e, "Can't export logcat") }
+        }
     }
 
     private fun sendEmail() {

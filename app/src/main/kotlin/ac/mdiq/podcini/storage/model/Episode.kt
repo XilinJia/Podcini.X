@@ -1,42 +1,29 @@
 package ac.mdiq.podcini.storage.model
 
-import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
+import ac.mdiq.podcini.net.download.PodciniHttpClient.getKtorClient
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.storage.database.episodeById
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_SEPARATOR
-import ac.mdiq.podcini.storage.parser.ChapterReader
-import ac.mdiq.podcini.storage.parser.ID3ReaderException
-import ac.mdiq.podcini.storage.parser.VorbisCommentChapterReader
-import ac.mdiq.podcini.storage.parser.VorbisCommentReaderException
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
-import ac.mdiq.podcini.storage.utils.ChapterStartTimeComparator
-import ac.mdiq.podcini.storage.utils.CountingInputStream2
-import ac.mdiq.podcini.storage.utils.MEDIA_DOWNLOADPATH
-import ac.mdiq.podcini.storage.utils.customMediaUriString
+import ac.mdiq.podcini.storage.utils.UnifiedFile
+import ac.mdiq.podcini.storage.utils.clipsDir
+import ac.mdiq.podcini.storage.utils.div
 import ac.mdiq.podcini.storage.utils.generateFileName
-import ac.mdiq.podcini.storage.utils.getDataFolder
-import ac.mdiq.podcini.storage.utils.getMimeType
-import ac.mdiq.podcini.storage.utils.loadChaptersFromUrl
-import ac.mdiq.podcini.storage.utils.merge
+import ac.mdiq.podcini.storage.utils.guessFileName
+import ac.mdiq.podcini.storage.utils.mediaDir
+import ac.mdiq.podcini.storage.utils.nowInMillis
+import ac.mdiq.podcini.storage.utils.toSafeUri
+import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.fullDateTimeString
-import android.content.ContentResolver
-import android.media.MediaMetadataRetriever
-import android.net.Uri
-import android.provider.OpenableColumns
-import android.webkit.URLUtil.guessFileName
 import androidx.compose.runtime.Stable
-import androidx.core.net.toUri
-import androidx.documentfile.provider.DocumentFile
 import io.github.xilinjia.krdb.ext.realmListOf
 import io.github.xilinjia.krdb.ext.realmSetOf
 import io.github.xilinjia.krdb.ext.toRealmSet
@@ -46,21 +33,16 @@ import io.github.xilinjia.krdb.types.RealmSet
 import io.github.xilinjia.krdb.types.annotations.Ignore
 import io.github.xilinjia.krdb.types.annotations.Index
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
+import io.ktor.client.request.head
+import io.ktor.client.request.header
+import io.ktor.http.HttpHeaders
+import io.ktor.http.isSuccess
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import okhttp3.Request
-import okhttp3.Request.Builder
-import org.apache.commons.io.FilenameUtils.EXTENSION_SEPARATOR
-import org.apache.commons.io.FilenameUtils.getExtension
-import java.io.BufferedInputStream
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileNotFoundException
-import java.io.IOException
-import java.io.InputStream
 import kotlin.math.max
-import ac.mdiq.podcini.storage.utils.nowInMillis
 
 private const val smartMarkAsPlayedPercent: Int = 95
 
@@ -403,144 +385,37 @@ class Episode : RealmObject {
         return MediaType.fromMimeType(mimeType)
     }
 
-//    fun updateFromOther(other: Episode) {
-//        this.downloadUrl = other.downloadUrl
-//
-//        if (other.size > 0) size = other.size
-//        // Do not overwrite duration that we measured after downloading
-//        if (other.duration > 0 && duration <= 0) duration = other.duration
-//        if (other.mimeType != null) mimeType = other.mimeType
-//    }
-
-//    fun compareWithOther(other: Episode): Boolean {
-//        if (downloadUrl != other.downloadUrl) return true
-//
-//        if (other.mimeType != null) {
-//            if (mimeType == null || mimeType != other.mimeType) return true
-//        }
-//        if (other.size > 0 && other.size != size) return true
-//        if (other.duration > 0 && duration <= 0) return true
-//
-//        return false
-//    }
-
-    fun fileSize(): Long? {
-        if (fileUrl == null) return null
-        val fileUri = fileUrl!!.toUri()
-        return try {
-            when (fileUri.scheme) {
-                "file" -> {
-                    val file = File(fileUri.path ?: return null)
-                    if (file.exists()) file.length() else null
-                }
-                "content" -> {
-                    getAppContext().contentResolver.query(fileUri, null, null, null, null)?.use { cursor ->
-                        if (cursor.moveToFirst()) {
-                            val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
-                            if (sizeIndex != -1) cursor.getLong(sizeIndex) else null
-                        } else null
-                    }
-                }
-                else -> {
-                    Loge(TAG, "getFileSize: unsupported uri scheme: $fileUrl")
-                    null
-                }
-            }
-        } catch (e: Exception) {
-            Logs(TAG, e, "getFileSize failed")
-            null
-        }
-    }
-
-    fun fileExists(): Boolean {
-        if (fileUrl == null) {
-            Loge(TAG, "fileUrl is null")
-            return false
-        }
-        val fileuri = fileUrl!!.toUri()
-        return when (fileuri.scheme) {
-            "file" -> {
-                val file = File(fileuri.path!!)
-                try { file.exists()
-                } catch (e: SecurityException) {
-                    Loge(TAG, "file can not be accessed $fileuri: ${e.message}")
-                    false
-                }
-            }
-            "content" -> {
-                try {
-                    getAppContext().contentResolver.openFileDescriptor(fileuri, "r")?.close()
-                    true
-                } catch (e: FileNotFoundException) {
-                    Loge(TAG, "file not exist $fileuri: ${e.message}")
-                    false
-                } catch (e: Exception) {
-                    Loge(TAG, "Error checking file existence: ${e.message}")
-                    false
-                }
-            }
-            else -> {
-                Loge(TAG, "Unsupported URI scheme: ${fileuri.scheme}")
-                false
-            }
-        }
-    }
-
-    fun getMediaFileUriString(): String {
+    suspend fun getMediaFileUriString(): String {
         val fileName = getMediafilename()
-        Logd(TAG, "getMediaFileUriString: filename: $fileName customMediaUriString: $customMediaUriString")
+        Logd(TAG, "getMediaFileUriString: filename: $fileName")
         val subDirectoryName = generateFileName(feed?.title ?: "NoFeed")
-        return if (customMediaUriString.isNotBlank()) {
-            val customUri = customMediaUriString.toUri()
-            val baseDir = DocumentFile.fromTreeUri(getAppContext(), customUri)
-            if (baseDir == null || !baseDir.isDirectory) throw IllegalArgumentException("Invalid tree URI: $customMediaUriString")
-
-            var subDirectory = baseDir.findFile(subDirectoryName)
-            Logd(TAG, "getMediaFileUriString subDirectoryName: [$subDirectoryName] ${subDirectory.toString()}")
-            if (subDirectory == null) subDirectory = baseDir.createDirectory(subDirectoryName)
-            var fileUri: Uri? = null
-            if (subDirectory != null) fileUri = subDirectory.findFile(fileName)?.uri ?: subDirectory.createFile(getMimeType(fileName), fileName)?.uri
-            fileUri.toString()
-        } else {
-            val baseDir = getAppContext().getExternalFilesDir("media")
-            val subDirectory = File(baseDir, subDirectoryName)
-            if (!subDirectory.exists() && !subDirectory.mkdir()) throw IllegalStateException("Failed to create sub-directory: ${subDirectory.absolutePath}")
-            val file = File(subDirectory, fileName)
-            if (!file.exists() && !file.createNewFile()) throw IllegalStateException("Failed to create file: ${file.absolutePath}")
-            Uri.fromFile(file).toString()
+        var subDirectory = mediaDir.listChildren().find { it.name == subDirectoryName }
+        if (subDirectory == null || !subDirectory.exists()) subDirectory = mediaDir.createDirectory(subDirectoryName)
+        Logd(TAG, "getMediaFileUriString subDirectory: ${subDirectory.absPath}")
+        var fileUri: String? = subDirectory.listChildren().find { it.name == fileName }?.absPath
+        Logd(TAG, "getMediaFileUriString fileUri: $fileUri")
+        if (fileUri == null) {
+            var file = subDirectory / fileName
+            if (!file.exists()) file = subDirectory.createFile(mimeType?:"", fileName)
+            fileUri = file.absPath
         }
+        Logd(TAG, "getMediaFileUriString fileUri 1: $fileUri")
+        return fileUri
     }
 
     fun getMediafilename(): String {
-        var titleBaseFilename = ""
-        if (title != null) titleBaseFilename = generateFileName(title!!)
-        val urlBaseFilename = guessFileName(downloadUrl, null, mimeType)
-        var baseFilename: String
-        baseFilename = if (titleBaseFilename != "") titleBaseFilename else urlBaseFilename
+        val titleBaseFilename = if (title != null) generateFileName(title!!) else ""
+        val urlBaseFilename = if (!downloadUrl.isNullOrBlank()) guessFileName(downloadUrl!!, null, mimeType) else ""
+        var baseFilename = if (titleBaseFilename != "") titleBaseFilename else urlBaseFilename
         val filenameMaxLength = 220
         if (baseFilename.length > filenameMaxLength) baseFilename = baseFilename.take(filenameMaxLength)
-        return (baseFilename + EXTENSION_SEPARATOR + id + EXTENSION_SEPARATOR + getExtension(urlBaseFilename))
-    }
-
-    // TODO: for TTS temp file
-    fun getMediafilePath(): String {
-        val title = feed?.title?:return ""
-        val mediaPath = (MEDIA_DOWNLOADPATH + generateFileName(title))
-        return getDataFolder(mediaPath).toString() + "/"
+        return baseFilename + "." + id + "." + urlBaseFilename.substringAfterLast('.', "")
     }
 
     fun isDownloaded(): Boolean {
+        Logd(TAG, "isDownloaded fileUrl: $fileUrl")
         val url = fileUrl ?: return false
-        when {
-            url.startsWith("content://") -> {
-                val documentFile = DocumentFile.fromSingleUri(getAppContext(), url.toUri())
-                return documentFile != null && documentFile.exists()
-            }
-            else -> {
-                val path = url.toUri().path ?: return false
-                return File(path).exists()
-            }
-        }
+        return runBlocking { url.toSafeUri().toUF().exists() }
     }
 
     suspend fun fetchMediaSize(persist: Boolean = true, force: Boolean = false) : Long {
@@ -552,26 +427,23 @@ class Episode : RealmObject {
 
             var size_ = CHECKED_ON_SIZE_BUT_UNKNOWN.toLong()
             when {
-                fileUrl != null -> {
-                    val url = fileUrl
-                    if (!url.isNullOrEmpty()) size_ = fileSize() ?: 0
-                }
+                fileUrl != null -> size_ = if (fileUrl!!.isNotBlank()) fileUrl!!.toSafeUri().toUF().size() ?: -1L else -1L
                 force || !isSizeSetUnknown() -> {
                     // only query the network if we haven't already checked
                     val url = downloadUrl
                     if (url.isNullOrEmpty()) return@withContext -1
-
-                    val client = getHttpClient()
-                    val httpReq: Builder = Builder().url(url).header("Accept-Encoding", "identity").head()
                     try {
-                        val response = client.newCall(httpReq.build()).execute()
-                        if (response.isSuccessful) {
-                            val contentLength = response.header("Content-Length")?:"0"
-                            try { size_ = contentLength.toInt().toLong() } catch (e: NumberFormatException) { Logs(TAG, e, "fetchMediaSize failed") }
+                        val response = getKtorClient().head(url) { header(HttpHeaders.AcceptEncoding, "identity") }
+                        if (response.status.isSuccess()) {
+                            val contentLength = response.headers[HttpHeaders.ContentLength]
+                            size_ = contentLength?.toLongOrNull() ?: -1L
                         }
+                    } catch (e: CancellationException) {
+                        Logd(TAG, "fetchMediaSize canceled")
+                        return@withContext -1L
                     } catch (e: Exception) {
                         Logs(TAG, e, "fetchMediaSize failed")
-                        return@withContext -1  // better luck next time
+                        return@withContext -1L  // better luck next time
                     }
                 }
             }
@@ -581,10 +453,8 @@ class Episode : RealmObject {
         }
     }
 
-    fun getClipFile(clipname: String): File {
-        val context = getAppContext()
-        val mediaFilesDir = context.getExternalFilesDir("media")?.apply { mkdirs() } ?: File(context.filesDir, "media").apply { mkdirs() }
-        return File(mediaFilesDir, "recorded_${id}_$clipname")
+    fun getClipFile1(clipname: String): UnifiedFile {
+        return clipsDir / "recorded_${id}_$clipname"
     }
 
     fun isSizeSetUnknown(): Boolean = (CHECKED_ON_SIZE_BUT_UNKNOWN.toLong() == this.size)
@@ -616,110 +486,15 @@ class Episode : RealmObject {
         return chapters.size - 1
     }
 
-    fun loadChapters(forceRefresh: Boolean) {
-        if (chaptersLoaded && !forceRefresh) return
-        var chaptersFromDatabase: List<Chapter>? = null
-        var chaptersFromPodcastIndex: List<Chapter>? = null
-        if (chapters.isNotEmpty()) chaptersFromDatabase = chapters
-        if (!podcastIndexChapterUrl.isNullOrEmpty()) chaptersFromPodcastIndex = loadChaptersFromUrl(podcastIndexChapterUrl!!, forceRefresh)
+    fun suitableForDownload(): Boolean = !downloadUrl.isNullOrEmpty() && !isDownloaded() && feed?.isLocalFeed != true
 
-        val chaptersFromMediaFile = loadChaptersFromMediaFile()
-        val chaptersMergePhase1 = merge(chaptersFromDatabase, chaptersFromMediaFile)
-        val chapters = merge(chaptersMergePhase1, chaptersFromPodcastIndex)
-        Logd(TAG, "loadChapters chapters size: ${chapters?.size?:0} ${getEpisodeTitle()}")
-        upsertBlk(this) {
-            if (chapters == null) it.setChapters(listOf())    // Do not try loading again. There are no chapters.
-            else it.setChapters(chapters)
-        }
-    }
-
-    fun loadChaptersFromMediaFile(): List<Chapter> {
-        @Throws(IOException::class)
-        fun openStream(): CountingInputStream2 {
-            val context = getAppContext()
-            if (!fileUrl.isNullOrBlank()) {
-                if (fileUrl.isNullOrBlank()) throw IOException("No local url")
-                val fileuri = fileUrl!!.toUri()
-                when (fileuri.scheme) {
-                    "file" -> {
-                        if (fileuri.path.isNullOrBlank()) throw IOException("Local file does not exist")
-                        val source = File(fileuri.path!!)
-                        if (!source.exists()) throw IOException("Local file does not exist")
-                        return CountingInputStream2(BufferedInputStream(FileInputStream(source)))
-                    }
-                    "content" -> return CountingInputStream2(BufferedInputStream(context.contentResolver.openInputStream(fileuri)))
-                }
-                throw IOException("Local file is not valid")
-            } else {
-                val streamurl = downloadUrl
-                if (streamurl != null && streamurl.startsWith(ContentResolver.SCHEME_CONTENT))
-                    return CountingInputStream2(BufferedInputStream(context.contentResolver.openInputStream(streamurl.toUri())))
-
-                if (streamurl.isNullOrEmpty()) throw IOException("stream url is null of empty")
-                val request: Request = Builder().url(streamurl).build()
-                val response = getHttpClient().newCall(request).execute()
-                if (response.body == null) throw IOException("Body is null")
-                return CountingInputStream2(BufferedInputStream(response.body.byteStream()))
-            }
-        }
-        fun enumerateEmptyChapterTitles(chapters: List<Chapter>) {
-            for (i in chapters.indices) {
-                val c = chapters[i]
-                if (c.title == null) c.title = i.toString()
-            }
-        }
-        fun chaptersValid(chapters: List<Chapter>): Boolean {
-            if (chapters.isEmpty()) return false
-            for (c in chapters) if (c.start < 0) return false
-            return true
-        }
-        @Throws(IOException::class, ID3ReaderException::class)
-        fun readId3ChaptersFrom(inVal: CountingInputStream2): List<Chapter> {
-            val reader = ChapterReader(inVal)
-            reader.readInputStream()
-            var chapters = reader.chapters.toList()
-            chapters = chapters.sortedWith(ChapterStartTimeComparator())
-            enumerateEmptyChapterTitles(chapters)
-            if (!chaptersValid(chapters)) return emptyList()
-            return chapters
-        }
-        @Throws(VorbisCommentReaderException::class)
-        fun readOggChaptersFromInputStream(input: InputStream): List<Chapter> {
-            val reader = VorbisCommentChapterReader(BufferedInputStream(input))
-            reader.readInputStream()
-            var chapters = reader.chapters.toList()
-            chapters = chapters.sortedWith(ChapterStartTimeComparator())
-            enumerateEmptyChapterTitles(chapters)
-            if (chaptersValid(chapters)) return chapters
-            return emptyList()
-        }
-
-        try {
-            openStream().use { inVal ->
-                val chapters = readId3ChaptersFrom(inVal)
-                if (chapters.isNotEmpty()) return chapters
-            }
-        } catch (e: IOException) { Logs(TAG, e, "Unable to load ID3 chapters: ")
-        } catch (e: ID3ReaderException) { Logs(TAG, e, "Unable to load ID3 chapters: ") }
-
-        try {
-            openStream().use { inVal ->
-                val chapters = readOggChaptersFromInputStream(inVal)
-                if (chapters.isNotEmpty()) return chapters
-            }
-        } catch (e: IOException) { Logs(TAG, e, "Unable to load vorbis chapters: ")
-        } catch (e: VorbisCommentReaderException) { Logs(TAG, e, "Unable to load vorbis chapters: ") }
-        return listOf()
-    }
-
-
-//    fun checkEmbeddedPicture(persist: Boolean = true) {
+    //    fun checkEmbeddedPicture(persist: Boolean = true) {
 //        if (!localFileAvailable()) hasEmbeddedPicture = false
 //        else {
 //            var retriever: FFmpegMediaMetadataRetriever? = null
 //            try {
 //                retriever = FFmpegMediaMetadataRetriever()
-//                retriever.setDataSource(fileUrl?.toUri().toString())
+//                retriever.setDataSource(fileUrl?.toSafeUri().toString())
 //                hasEmbeddedPicture = (retriever.embeddedPicture != null)
 //            } catch (e: Exception) { Logs(TAG, e, "checkEmbeddedPicture failed.") } finally { retriever?.release() }
 //        }
@@ -786,16 +561,16 @@ class Episode : RealmObject {
         if (link != other.link) return false
         if (parentTitle != other.parentTitle) return false
         if (parentURL != other.parentURL) return false
-        if (related != other.related) return false
+        if (related.size != other.related.size) return false
         if (podcastIndexChapterUrl != other.podcastIndexChapterUrl) return false
         if (paymentLink != other.paymentLink) return false
         if (imageUrl != other.imageUrl) return false
-        if (tags != other.tags) return false
-        if (clips != other.clips) return false
-        if (marks != other.marks) return false
-        if (chapters != other.chapters) return false
+        if (tags.size != other.tags.size) return false
+        if (clips.size != other.clips.size) return false
+        if (marks.size != other.marks.size) return false
+        if (chapters.size != other.chapters.size) return false
         if (comment != other.comment) return false
-        if (todos != other.todos) return false
+        if (todos.size != other.todos.size) return false
         if (fileUrl != other.fileUrl) return false
         if (downloadUrl != other.downloadUrl) return false
         if (mimeType != other.mimeType) return false
@@ -844,16 +619,16 @@ class Episode : RealmObject {
         result = 31 * result + (link?.hashCode() ?: 0)
         result = 31 * result + (parentTitle?.hashCode() ?: 0)
         result = 31 * result + (parentURL?.hashCode() ?: 0)
-        result = 31 * result + related.hashCode()
+        result = 31 * result + related.size
         result = 31 * result + (podcastIndexChapterUrl?.hashCode() ?: 0)
         result = 31 * result + (paymentLink?.hashCode() ?: 0)
         result = 31 * result + (imageUrl?.hashCode() ?: 0)
-        result = 31 * result + tags.hashCode()
-        result = 31 * result + clips.hashCode()
-        result = 31 * result + marks.hashCode()
-        result = 31 * result + chapters.hashCode()
+        result = 31 * result + tags.size
+        result = 31 * result + clips.size
+        result = 31 * result + marks.size
+        result = 31 * result + chapters.size
         result = 31 * result + comment.hashCode()
-        result = 31 * result + todos.hashCode()
+        result = 31 * result + todos.size
         result = 31 * result + (fileUrl?.hashCode() ?: 0)
         result = 31 * result + (downloadUrl?.hashCode() ?: 0)
         result = 31 * result + (mimeType?.hashCode() ?: 0)
@@ -865,22 +640,11 @@ class Episode : RealmObject {
         return result
     }
 
-    /**
-     * On SDK<29, this class does not have a close method yet, so the app crashes when using try-with-resources.
-     */
-    class MediaMetadataRetrieverCompat : MediaMetadataRetriever(), AutoCloseable {
-        override fun close() {
-            try { release() } catch (e: IOException) { Logs(TAG, e, "MediaMetadataRetriever failed") }
-        }
-    }
-
     companion object {
-        val TAG: String = Episode::class.simpleName ?: "Anonymous"
+        private val TAG: String = Episode::class.simpleName ?: "Anonymous"
 
-        // from EpisodeMedia
         const val INVALID_TIME: Int = -1
-        const val FEEDFILETYPE_FEEDMEDIA: Int = 2
-        const val PLAYABLE_TYPE_FEEDMEDIA: Int = 1
+
         const val FILENAME_PREFIX_EMBEDDED_COVER: String = "metadata-retriever:"
         /**
          * Indicates we've checked on the size of the item via the network
@@ -1020,7 +784,7 @@ fun EpisodeDTO.toRealm() = Episode().apply {
         it.tags = this@toRealm.tags.toRealmSet()
         it.marks = this@toRealm.marks.toRealmSet()
         it.todos.clear()
-        it.todos.addAll(this@toRealm.todos.map { it.toRealm() })
+        it.todos.addAll(this@toRealm.todos.map { td -> td.toRealm() })
 
         it.setRating(Rating.fromCode(this@toRealm.rating), setTime = this@toRealm.ratingTime)
         it.addComment(this@toRealm.comment, addition = false, setTime = this@toRealm.commentTime)

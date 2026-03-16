@@ -4,11 +4,13 @@ import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.DownloadStatus
-import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
+import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
+import ac.mdiq.podcini.net.download.Downloader.Companion.downloadStates
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.playerStat
+import ac.mdiq.podcini.playback.base.PlayerStatusInt
 import ac.mdiq.podcini.storage.database.addRemoteToMiscSyndicate
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.addToQueue
@@ -17,19 +19,18 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.smartRemoveFromAllQueues
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationStringFull
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeAction
 import ac.mdiq.podcini.ui.actions.NoAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
-import ac.mdiq.podcini.activity.MainActivity.Companion.downloadStates
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.screens.LocalNavController
 import ac.mdiq.podcini.ui.screens.Screens
@@ -79,9 +80,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -115,11 +114,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.net.MalformedURLException
-import java.net.URL
-
 import kotlin.math.abs
 import kotlin.math.roundToInt
-import ac.mdiq.podcini.storage.utils.nowInMillis
 
 private const val TAG = "EpisodesVM"
 
@@ -231,7 +227,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
         if (showPlayStateDialog) PlayStateDialog(selected, onDismissRequest = { showPlayStateDialog = false }, { futureState = it }, { showIgnoreDialog = true })
         if (showPutToQueueDialog) PutToQueueDialog(selected) { showPutToQueueDialog = false }
         if (showShelveDialog) ShelveDialog(selected) { showShelveDialog = false }
-        if (showMulticastDialog) MulticastDialog(selected, { showMulticastDialog = false })
+        if (showMulticastDialog) MulticastDialog(selected) { showMulticastDialog = false }
 
         if (showEraseDialog && feed != null) EraseEpisodesDialog(selected, feed, onDismissRequest = { showEraseDialog = false })
         if (showIgnoreDialog) IgnoreEpisodesDialog(selected, onDismissRequest = { showIgnoreDialog = false })
@@ -290,7 +286,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                         Logd(TAG, "Screen on, triggered scroll for recomposition")
                     }
                     scrollToOnStart >= 0 -> {
-                        scope.launch { if (scrollToOnStart >= 0) lazyListState.scrollToItem(scrollToOnStart) }
+                         if (scrollToOnStart >= 0) lazyListState.scrollToItem(scrollToOnStart)
                         Logd(TAG, "on start, triggered scroll for recomposition: $scrollToOnStart")
                     }
                 }
@@ -507,15 +503,30 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                             Box(Modifier.weight(1f).wrapContentHeight()) {
                                 TitleColumn(modifier = Modifier.fillMaxWidth())
                                 if (showActionButtons) {
-                                    when {
-                                        episode.id == curEpisode?.id -> {
-                                            if (playerStat == PLAYER_STATUS_PLAYING) actionButton.type = ButtonTypes.PAUSE
-                                            else actionButton.update(episode)
+                                    val dlStats = downloadStates[episode.downloadUrl]
+                                    if (dlStats != null) {
+//                                        Logd(TAG, "${episode.id} dlStats: ${dlStats.progress} ${dlStats.state}")
+                                        actionButton.processing.intValue = dlStats.progress
+                                        when (dlStats.state) {
+                                            DownloadStatus.State.COMPLETED.ordinal -> {
+//                                                actionButton.update(episode)
+                                            }
+                                            DownloadStatus.State.INCOMPLETE.ordinal -> actionButton.type = ButtonTypes.DOWNLOAD
+                                            else -> {}
                                         }
-                                        actionButton.speaking -> actionButton.type = ButtonTypes.PAUSE
-                                        actionButton.type == ButtonTypes.PAUSE -> actionButton.update(episode)
                                     }
-                                    LaunchedEffect(episode.downloaded) { actionButton.update(episode) }
+                                    LaunchedEffect(episode.fileUrl) { actionButton.update(episode) }
+                                    LaunchedEffect(playerStat, curEpisode?.id, actionButton.speaking) {
+                                        when {
+                                            episode.id == curEpisode?.id -> {
+                                                Logd(TAG, "playerStat: $playerStat episode: ${episode.title}")
+                                                if (playerStat == PlayerStatusInt.PLAYING.code) actionButton.type = ButtonTypes.PAUSE
+                                                else actionButton.update(episode)
+                                            }
+                                            actionButton.speaking.value -> actionButton.type = ButtonTypes.PAUSE
+                                            actionButton.type == ButtonTypes.PAUSE -> actionButton.update(episode)
+                                        }
+                                    }
                                     Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).align(Alignment.BottomEnd).pointerInput(Unit) {
                                         detectTapGestures(
                                             onLongPress = { showAltActionsDialog = true },
@@ -524,18 +535,8 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                                 actionButton.onClick()
                                                 actionButtonCB?.invoke(episode, actType)
                                             }) }) {
-                                        val dlStats = downloadStates[episode.downloadUrl]
-                                        if (dlStats != null) {
-                                            Logd(TAG, "${episode.id} dlStats: ${dlStats?.progress} ${dlStats?.state}")
-                                            actionButton.processing = dlStats!!.progress
-                                            when (dlStats!!.state) {
-                                                DownloadStatus.State.COMPLETED.ordinal -> actionButton.update(episode)
-                                                DownloadStatus.State.INCOMPLETE.ordinal -> actionButton.type = ButtonTypes.DOWNLOAD
-                                                else -> {}
-                                            }
-                                        }
                                         Icon(imageVector = ImageVector.vectorResource(actionButton.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.size(33.dp))
-                                        if (actionButton.processing > -1) CircularProgressIndicator(progress = { 0.01f * actionButton.processing }, strokeWidth = 4.dp, color = textColor, modifier = Modifier.size(37.dp).offset(y = 4.dp))
+                                        if (actionButton.processing.intValue > -1) CircularProgressIndicator(progress = { 0.01f * actionButton.processing.intValue }, strokeWidth = 4.dp, color = textColor, modifier = Modifier.size(37.dp).offset(y = 4.dp))
                                     }
                                     if (showAltActionsDialog) actionButton.AltActionsDialog(onDismiss = { showAltActionsDialog = false })
                                 }
@@ -635,10 +636,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                             Text(stringResource(id = R.string.add_comments)) } },
                         { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                             onSelected()
-                            fun download(now: Boolean) {
-                                for (e in selected) if (e.feed != null && !e.feed!!.isLocalFeed) DownloadServiceInterface.impl?.downloadNow(e, now)
-                            }
-                            if (mobileAllowEpisodeDownload || !getApp().networkMonitor.isNetworkRestricted) download(true)
+                            if (mobileAllowEpisodeDownload || !getApp().networkMonitor.isNetworkRestricted) EpisodeAdrDLManager.manager?.downloadNow(selected, true)
                             else {
                                 commonConfirm = CommonConfirmAttrib(
                                     title = context.getString(R.string.confirm_mobile_download_dialog_title),
@@ -646,8 +644,8 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                     confirmRes = R.string.confirm_mobile_download_dialog_download_later,
                                     cancelRes = R.string.cancel_label,
                                     neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,
-                                    onConfirm = { download(false) },
-                                    onNeutral = { download(true) })
+                                    onConfirm = { EpisodeAdrDLManager.manager?.download(selected) },
+                                    onNeutral = { EpisodeAdrDLManager.manager?.downloadNow(selected, true) })
                             }
                         }, verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_download), contentDescription = "Download")
@@ -733,8 +731,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                     ytUrls.clear()
                                     for (e in selected) {
                                         try {
-                                            val url = URL(e.downloadUrl ?: "")
-                                            if (gearbox.isGearUrl(url)) ytUrls.add(e.downloadUrl!!)
+                                            if (gearbox.isGearUrl(e.downloadUrl ?: "")) ytUrls.add(e.downloadUrl!!)
                                             else addRemoteToMiscSyndicate(e)
                                         } catch (ex: MalformedURLException) { Loge(TAG, "episode downloadUrl not valid: ${e.title} : ${e.downloadUrl}") }
                                     }

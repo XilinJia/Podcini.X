@@ -245,15 +245,15 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
 
         private fun completeDate(item: Episode?): Long = item?.playbackCompletionTime ?: 0L
 
-        private fun itemTitle(item: Episode?): String = (item?.title ?: "").lowercase(Locale.getDefault())
+        private fun itemTitle(item: Episode?): String = (item?.title ?: "").lowercase()
 
         private fun duration(item: Episode?): Int = item?.duration ?: 0
 
         private fun size(item: Episode?): Long = item?.size ?: 0
 
-        private fun itemLink(item: Episode?): String = (item?.link ?: "").lowercase(Locale.getDefault())
+        private fun itemLink(item: Episode?): String = (item?.link ?: "").lowercase()
 
-        private fun feedTitle(item: Episode?): String = (item?.feed?.title ?: "").lowercase(Locale.getDefault())
+        private fun feedTitle(item: Episode?): String = (item?.feed?.title ?: "").lowercase()
 
         private fun viewCount(item: Episode?): Int = item?.viewCount ?: 0
 

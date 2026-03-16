@@ -3,6 +3,7 @@ package ac.mdiq.podcini.ui.compose
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.DownloadStatus
+import ac.mdiq.podcini.net.download.Downloader.Companion.downloadStates
 import ac.mdiq.podcini.net.utils.NetworkUtils.fetchHtmlSource
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.playback.base.InTheatre
@@ -14,17 +15,18 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Timer
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.storage.utils.div
 import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
+import ac.mdiq.podcini.storage.utils.internalDir
 import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.Combo
-import ac.mdiq.podcini.activity.MainActivity.Companion.downloadStates
-import ac.mdiq.podcini.ui.screens.psState
 import ac.mdiq.podcini.ui.screens.LocalNavController
 import ac.mdiq.podcini.ui.screens.PSState
 import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.screens.handleBackSubScreens
+import ac.mdiq.podcini.ui.screens.psState
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
@@ -104,14 +106,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import net.dankito.readability4j.extended.Readability4JExtended
-import java.io.File
-
 import java.util.Locale
 
 private const val TAG: String = "EpisodeScreen"
@@ -238,8 +239,8 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                             }
                         }
                         if (!cleanedNotes.isNullOrEmpty()) {
-                            val file = File(context.filesDir, "test_content.html")
-                            file.writeText(cleanedNotes ?: "No content")
+                            val file = internalDir / "test_content.html"
+                            file.writeString(cleanedNotes ?: "No content")
                             if (tts == null) {
                                 tts = TextToSpeech(context) { status: Int ->
                                     if (status == TextToSpeech.SUCCESS) {
@@ -481,16 +482,17 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                             val txtvDuration = remember(episode.id) { if (episode.duration > 0) durationStringFull(episode.duration) else "" }
                             var txtvSize by remember(episode.id) { mutableStateOf("") }
                             LaunchedEffect(episode.id) {
-                                txtvSize = when {
-                                    episode.size > 0 -> formatShortFileSize(context, episode.size)
-                                    isImageDownloadAllowed && gearbox.canCheckMediaSize(episode) && !episode.isSizeSetUnknown() -> {
-                                        withContext(Dispatchers.IO) {
+                                Logd(TAG, "LaunchedEffect(episode.id)")
+                                when {
+                                    episode.size > 0 -> txtvSize = formatShortFileSize(context, episode.size)
+                                    isImageDownloadAllowed && gearbox.canCheckMediaSize(episode) && !episode.isSizeSetUnknown() ->
+                                        runOnIOScope {
                                             val sizeValue = if (episodeFeed?.prefStreamOverDownload == false) episode.fetchMediaSize() else 0L
-                                            if (sizeValue <= 0) "" else formatShortFileSize(context, sizeValue)
+                                            txtvSize = if (sizeValue <= 0) "" else formatShortFileSize(context, sizeValue)
                                         }
-                                    }
-                                    else -> ""
+                                    else -> txtvSize = ""
                                 }
+                                Logd(TAG, "LaunchedEffect(episode.id) ended")
                             }
                             Text("$pubTimeText · $txtvDuration · $txtvSize", color = textColor, style = MaterialTheme.typography.bodyMedium)
                             Spacer(Modifier.weight(1f))
@@ -506,7 +508,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                             if (actionButton != null) {
                                 val dlStats = downloadStates[episode.downloadUrl]
                                 if (dlStats != null) {
-                                    actionButton!!.processing = dlStats.progress
+                                    actionButton!!.processing.intValue = dlStats.progress
                                     if (dlStats.state == DownloadStatus.State.COMPLETED.ordinal) actionButton!!.type = ButtonTypes.PLAY
                                 }
                                 Icon(imageVector = ImageVector.vectorResource(actionButton!!.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp).combinedClickable(onClick = { actionButton?.onClick() }, onLongClick = { showAltActionsDialog = true }))

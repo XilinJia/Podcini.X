@@ -4,7 +4,7 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
+import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.net.feed.CombinedSearcher
 import ac.mdiq.podcini.net.feed.FeedBuilderBase
 import ac.mdiq.podcini.net.feed.FeedUrlNotFoundException
@@ -183,15 +183,46 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
             showProgress = true
             // Remove subscribeonandroid.com from feed URL in order to subscribe to the actual feed URL
             if (feedUrl.contains("subscribeonandroid.com")) feedUrl = feedUrl.replaceFirst("((www.)?(subscribeonandroid.com/))".toRegex(), "")
-            //                            if (savedInstanceState != null) {
-            //                                vm.username = savedInstanceState.getString("username")
-            //                                vm.password = savedInstanceState.getString("password")
-            //                            }
-            lookupUrlAndBuild(feedUrl)
+            viewModelScope.launch(Dispatchers.IO) {
+                urlToLog = feedUrl
+                try {
+                    val urlString = PodcastSearcherRegistry.lookupUrl1(feedUrl)
+                    Logd(TAG, "lookupUrlAndBuild: urlString: $urlString")
+                    gearbox.buildFeed(urlString, username ?: "", password ?: "", feedBuilder, handleFeed = { feed_, map -> handleFeed(feed_, map) }) { showTabsDialog = true }
+                } catch (error: FeedUrlNotFoundException) {
+                    Logd(TAG, "lookupUrlAndBuild in error, trying to Retrieve FeedUrl By Search")
+                    var url: String? = null
+                    val searcher = CombinedSearcher()
+                    val query = "${error.trackName} ${error.artistName}"
+                    val results = searcher.search(query)
+                    if (results.isEmpty()) return@launch
+                    for (result in results) {
+                        if (result.feedUrl != null && result.author != null && result.author.equals(error.artistName, ignoreCase = true)
+                            && result.title.equals(error.trackName, ignoreCase = true)) {
+                            url = result.feedUrl
+                            break
+                        }
+                    }
+                    if (url != null) {
+                        urlToLog = url
+                        Logd(TAG, "Successfully retrieve feed url")
+                        isFeedFoundBySearch = true
+                        //                feeds = getFeedList()
+                        gearbox.buildFeed(url, username?:"", password?:"", feedBuilder, handleFeed = { feed_, map -> handleFeed(feed_, map) }) { showTabsDialog = true }
+                    } else {
+                        withContext(Dispatchers.Main) { showNoPodcastFoundDialog = true }
+                        Logd(TAG, "Failed to retrieve feed url")
+                    }
+                } catch (e: Throwable) {
+                    Logs(TAG, e)
+                    withContext(Dispatchers.Main) { showNoPodcastFoundDialog = true }
+                }
+            }
         }
         timeIt("$TAG end of init")
     }
     internal fun handleFeed(feed_: Feed, map: Map<String, String>) {
+        Logd(TAG, "handleFeed feed_.title: ${feed_.title}")
         selectedDownloadUrl = feedBuilder.selectedDownloadUrl
         feed = feed_
         if (isShared) {
@@ -206,96 +237,9 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
             val fl = CombinedSearcher::class.java.getDeclaredConstructor().newInstance().search("${feed?.author} podcasts")
             withContext(Dispatchers.Main) { if (fl.isNotEmpty()) relatedFeeds.addAll(fl) }
         }
-        showFeedInformation(feed_, map)
-    }
-
-    internal fun lookupUrlAndBuild(url: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            urlToLog = url
-            try {
-                val urlString = PodcastSearcherRegistry.lookupUrl1(url)
-                Logd(TAG, "lookupUrlAndBuild: urlString: $urlString")
-                gearbox.buildFeed(urlString, username ?: "", password ?: "", feedBuilder, handleFeed = { feed_, map -> handleFeed(feed_, map) }) { showTabsDialog = true }
-            } catch (error: FeedUrlNotFoundException) {
-                Logd(TAG, "lookupUrlAndBuild in error, trying to Retrieve FeedUrl By Search")
-                var url: String? = null
-                val searcher = CombinedSearcher()
-                val query = "${error.trackName} ${error.artistName}"
-                val results = searcher.search(query)
-                if (results.isEmpty()) return@launch
-                for (result in results) {
-                    if (result.feedUrl != null && result.author != null && result.author.equals(error.artistName, ignoreCase = true)
-                        && result.title.equals(error.trackName, ignoreCase = true)) {
-                        url = result.feedUrl
-                        break
-                    }
-                }
-                if (url != null) {
-                    urlToLog = url
-                    Logd(TAG, "Successfully retrieve feed url")
-                    isFeedFoundBySearch = true
-                    //                feeds = getFeedList()
-                    gearbox.buildFeed(url, username?:"", password?:"", feedBuilder, handleFeed = { feed_, map -> handleFeed(feed_, map) }) { showTabsDialog = true }
-                } else {
-                    withContext(Dispatchers.Main) { showNoPodcastFoundDialog = true }
-                    Logd(TAG, "Failed to retrieve feed url")
-                }
-            } catch (e: Throwable) {
-                Logs(TAG, e)
-                withContext(Dispatchers.Main) { showNoPodcastFoundDialog = true }
-            }
-        }
-    }
-
-//    private fun searchFeedUrlByTrackName(trackName: String, artistName: String): String? {
-//        val searcher = CombinedSearcher()
-//        val query = "$trackName $artistName"
-//        val results = searcher.search(query).blockingGet()
-//        if (results.isNullOrEmpty()) return null
-//        for (result in results) {
-//            if (result?.feedUrl != null && result.author != null && result.author.equals(artistName, ignoreCase = true)
-//                    && result.title.equals(trackName, ignoreCase = true)) return result.feedUrl
-//        }
-//        return null
-//    }
-
-    /**
-     * Called when feed parsed successfully.
-     * This method is executed on the GUI thread.
-     */
-    // TODO: what to do?
-    private fun showFeedInformation(feed: Feed, alternateFeedUrls: Map<String, String>) {
         showProgress = false
         showFeedDisplay = true
         if (isFeedFoundBySearch) Loge(TAG, getAppContext().getString(R.string.no_feed_url_podcast_found_by_search))
-
-//        if (alternateFeedUrls.isEmpty()) binding.alternateUrlsSpinner.visibility = View.GONE
-//        else {
-//            binding.alternateUrlsSpinner.visibility = View.VISIBLE
-//            val alternateUrlsList: MutableList<String> = mutableListOf()
-//            val alternateUrlsTitleList: MutableList<String?> = mutableListOf()
-//            if (feed.downloadUrl != null) alternateUrlsList.add(feed.downloadUrl!!)
-//            alternateUrlsTitleList.add(feed.title)
-//            alternateUrlsList.addAll(alternateFeedUrls.keys)
-//            for (url in alternateFeedUrls.keys) {
-//                alternateUrlsTitleList.add(alternateFeedUrls[url])
-//            }
-//            val adapter: ArrayAdapter<String> = object : ArrayAdapter<String>(requireContext(),
-//                R.layout.alternate_urls_item, alternateUrlsTitleList) {
-//                override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
-//                    // reusing the old view causes a visual bug on Android <= 10
-//                    return super.getDropDownView(position, null, parent)
-//                }
-//            }
-//            adapter.setDropDownViewResource(R.layout.alternate_urls_dropdown_item)
-//            binding.alternateUrlsSpinner.adapter = adapter
-//            binding.alternateUrlsSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-//                override fun onItemSelected(parent: AdapterView<*>?, view: View, position: Int, id: Long) {
-//                    selectedDownloadUrl = alternateUrlsList[position]
-//                }
-//                override fun onNothingSelected(parent: AdapterView<*>?) {}
-//            }
-//        }
         handleUpdatedFeedStatus()
     }
 
@@ -319,11 +263,11 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
     }
 
     internal fun handleUpdatedFeedStatus() {
-        val dli = DownloadServiceInterface.impl
+        val dli = EpisodeAdrDLManager.manager
         if (dli == null || selectedDownloadUrl == null) return
 
         when {
-            dli.isDownloadingEpisode(selectedDownloadUrl!!) -> {
+            dli.isDownloading(selectedDownloadUrl!!) -> {
                 enableSubscribe = false
                 subButTextRes = R.string.subscribe_label
             }
@@ -332,16 +276,16 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                 subButTextRes = R.string.open
                 if (didPressSubscribe) {
                     didPressSubscribe = false
-                    val feed1 = getFeed(feedId, true)?: return
+                    val feedExisting = getFeed(feedId, true)?: return
                     if (feedSource == "VistaGuide") {
-                        feed1.prefStreamOverDownload = true
-                        feed1.autoDownload = false
-                    } else if (appPrefs.enableAutoDl) feed1.autoDownload = autoDownloadChecked
+                        feedExisting.prefStreamOverDownload = true
+                        feedExisting.autoDownload = false
+                    } else if (appPrefs.enableAutoDl) feedExisting.autoDownload = autoDownloadChecked
                     if (username != null) {
-                        feed1.username = username
-                        feed1.password = password
+                        feedExisting.username = username
+                        feedExisting.password = password
                     }
-                    runOnIOScope { upsert(feed1) {} }
+                    runOnIOScope { upsert(feedExisting) {} }
                 }
             }
             else -> {
@@ -380,7 +324,6 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 }
                 Lifecycle.Event.ON_STOP -> {
                     vm.isPaused = true
-//        if (downloader != null && !downloader!!.isFinished) downloader!!.cancel()
                     if (vm.dialog != null && vm.dialog!!.isShowing) vm.dialog!!.dismiss()
                 }
                 Lifecycle.Event.ON_DESTROY -> {}

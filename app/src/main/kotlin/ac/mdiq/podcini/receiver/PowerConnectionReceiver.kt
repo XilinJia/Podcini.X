@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.receiver
 
 import ac.mdiq.podcini.automation.autodownload
-import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
+import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.config.ClientConfigurator
 import ac.mdiq.podcini.storage.database.appPrefs
@@ -31,7 +31,7 @@ class PowerConnectionReceiver : BroadcastReceiver() {
             // if we're not supposed to be auto-downloading when we're not charging, stop it
             if (!appPrefs.enableAutoDownloadOnBattery) {
                 Logd(TAG, "not charging anymore, canceling auto-download")
-                DownloadServiceInterface.impl?.cancelAll()
+                EpisodeAdrDLManager.manager?.cancelAll()
             } else Logd(TAG, "not charging anymore, but the user allows auto-download when on battery so we'll keep going")
         }
     }

@@ -17,6 +17,30 @@ class Todo : EmbeddedRealmObject {
     var dueTime: Long = 0L
 
     constructor() {}
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Todo
+
+        if (id != other.id) return false
+        if (completed != other.completed) return false
+        if (dueTime != other.dueTime) return false
+        if (title != other.title) return false
+        if (note != other.note) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = id.hashCode()
+        result = 31 * result + completed.hashCode()
+        result = 31 * result + dueTime.hashCode()
+        result = 31 * result + title.hashCode()
+        result = 31 * result + note.hashCode()
+        return result
+    }
 }
 
 @Serializable

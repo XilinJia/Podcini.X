@@ -581,7 +581,7 @@ fun QueuesScreen(id: Long = -1L) {
                         showIcon = true
                     },
                     trailingIcon = {
-                        if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).padding(start = 5.dp).clickable(
+                        if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).clickable(
                             onClick = {
                                 if (newName.isNotEmpty() && vm.curQueue.name != newName && vm.queueNames.indexOf(newName) < 0) {
                                     upsertBlk(vm.curQueue) { it.name = newName }
@@ -688,7 +688,7 @@ fun QueuesScreen(id: Long = -1L) {
                 var listInfoText by remember { mutableStateOf("") }
                 LaunchedEffect(episodes.size) {
                     Logd(TAG, "LaunchedEffect(episodes.size) ${episodes.size}")
-                    scope.launch(Dispatchers.IO) { listInfoText = buildListInfo(episodes) }
+                    withContext(Dispatchers.IO) { listInfoText = buildListInfo(episodes) }
                 }
                 if (vm.queuesMode == QueuesScreenMode.Bin) {
                     Logd(TAG, "vm.queuesMode == QueuesScreenMode.Bin")

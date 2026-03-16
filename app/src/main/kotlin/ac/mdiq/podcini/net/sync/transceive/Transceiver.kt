@@ -18,35 +18,49 @@ import ac.mdiq.podcini.storage.model.toBasicDTO
 import ac.mdiq.podcini.storage.model.toDTO
 import ac.mdiq.podcini.storage.model.toRealm
 import ac.mdiq.podcini.storage.model.volumes
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
+import io.ktor.network.selector.SelectorManager
+import io.ktor.network.sockets.BoundDatagramSocket
+import io.ktor.network.sockets.Datagram
+import io.ktor.network.sockets.InetSocketAddress
+import io.ktor.network.sockets.ServerSocket
+import io.ktor.network.sockets.Socket
+import io.ktor.network.sockets.SocketTimeoutException
+import io.ktor.network.sockets.aSocket
+import io.ktor.network.sockets.isClosed
+import io.ktor.network.sockets.openReadChannel
+import io.ktor.network.sockets.openWriteChannel
+import io.ktor.utils.io.CancellationException
+import io.ktor.utils.io.core.buildPacket
+import io.ktor.utils.io.core.writeText
+import io.ktor.utils.io.readFully
+import io.ktor.utils.io.readInt
+import io.ktor.utils.io.writeByteArray
+import io.ktor.utils.io.writeInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.io.readString
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.io.DataInputStream
-import java.io.DataOutputStream
-import java.net.DatagramPacket
-import java.net.DatagramSocket
-import java.net.InetAddress
-import java.net.ServerSocket
-import java.net.Socket
-import java.net.SocketTimeoutException
-import ac.mdiq.podcini.storage.utils.nowInMillis
 
 private const val TAG = "Transceiver"
+val socketSelector = SelectorManager(Dispatchers.IO)
 
 enum class ContentType { Feed, Catalog, Episodes }
 
 abstract class Receiver(private val port: Int) {
     var serverSocket: ServerSocket? = null
-    open fun start() {
+
+    open suspend fun start() {
         try {
-            serverSocket = ServerSocket(port)
+            serverSocket = aSocket(socketSelector).tcp().bind("0.0.0.0", port)
             Logd(TAG, "Server listening on port $port")
         } catch (e: Exception) {
             Loge(TAG, "Error starting server socket: ${e.message}")
@@ -59,6 +73,7 @@ abstract class Receiver(private val port: Int) {
     }
 }
 
+
 @Serializable
 data class FeedPackage(
     val feed: FeedDTO,
@@ -66,7 +81,7 @@ data class FeedPackage(
 )
 
 class FeedReceiver(port: Int): Receiver(port) {
-    override fun start() {
+    override suspend fun start() {
         super.start()
 
         while (true) {
@@ -74,10 +89,10 @@ class FeedReceiver(port: Int): Receiver(port) {
                 if (serverSocket?.isClosed == true) break
                 val clientSocket = serverSocket?.accept() ?: break
 
-                Logd(TAG, "Client connected: ${clientSocket.inetAddress}")
+                Logd(TAG, "Client connected: ${clientSocket.remoteAddress}")
 
                 try {
-                    val input = DataInputStream(clientSocket.getInputStream())
+                    val input = clientSocket.openReadChannel()
                     val size = input.readInt()
                     val bytes = ByteArray(size)
                     input.readFully(bytes)
@@ -104,16 +119,17 @@ class FeedReceiver(port: Int): Receiver(port) {
 }
 
 fun sendFeed(host: String, port: Int, feedId: Long, onEnd: ()->Unit): Job? {
+    Logd(TAG, "sendFeed host: $host port: $port")
     val feed = getFeed(feedId) ?: return null
     val feedDTO = feed.toDTO()
-    val episodesDTO = getEpisodes(null, null, feedId = feedId).map { it.toDTO() }
+    val episodesDTO = getEpisodes(null, null, feedId = feedId, copy = false).map { it.toDTO() }
     val pkg = FeedPackage(feedDTO, episodesDTO)
     Logd(TAG, "built package: feed: ${pkg.feed.eigenTitle} ${pkg.episodes.size} episodes")
 
     var socket: Socket? = null
     return runOnIOScope {
         try {
-            socket = Socket(host, port)
+            socket = aSocket(socketSelector).tcp().connect(host, port)
             Logd(TAG, "got socket")
 
             val json = Json.encodeToString(pkg)
@@ -121,9 +137,9 @@ fun sendFeed(host: String, port: Int, feedId: Long, onEnd: ()->Unit): Job? {
             val bytes = json.toByteArray()
             Logd(TAG, "(${bytes.size} bytes)")
 
-            val output = DataOutputStream(socket.getOutputStream())
+            val output = socket.openWriteChannel()
             output.writeInt(bytes.size)
-            output.write(bytes)
+            output.writeByteArray(bytes)
             output.flush()
 
             upsert(feed) { it.freezeFeed(true) }
@@ -143,7 +159,7 @@ data class EpisodesPackage(
 )
 
 class EpisodesReceiver(port: Int, val onEnd: ()->Unit): Receiver(port) {
-    override fun start() {
+    override suspend fun start() {
         super.start()
 
         while (true) {
@@ -151,10 +167,10 @@ class EpisodesReceiver(port: Int, val onEnd: ()->Unit): Receiver(port) {
                 if (serverSocket?.isClosed == true) break
                 val clientSocket = serverSocket?.accept() ?: break
 
-                Logd(TAG, "Client connected: ${clientSocket.inetAddress}")
+                Logd(TAG, "Client connected: ${clientSocket.remoteAddress}")
 
                 try {
-                    val input = DataInputStream(clientSocket.getInputStream())
+                    val input = clientSocket.openReadChannel()
                     val size = input.readInt()
                     val bytes = ByteArray(size)
                     input.readFully(bytes)
@@ -194,7 +210,7 @@ fun sendEpisodes(host: String, port: Int, syntheticName: String, episodes: List<
     var socket: Socket? = null
     return runOnIOScope {
         try {
-            socket = Socket(host, port)
+            socket = aSocket(socketSelector).tcp().connect(host, port)
             Logd(TAG, "got socket")
 
             val json = Json.encodeToString(pkg)
@@ -202,9 +218,9 @@ fun sendEpisodes(host: String, port: Int, syntheticName: String, episodes: List<
             val bytes = json.toByteArray()
             Logd(TAG, "(${bytes.size} bytes)")
 
-            val output = DataOutputStream(socket.getOutputStream())
+            val output = socket.openWriteChannel()
             output.writeInt(bytes.size)
-            output.write(bytes)
+            output.writeByteArray(bytes)
             output.flush()
 
             Logt(TAG, "Sent feed: $syntheticName ${pkg.episodes.size} episodes (${bytes.size} bytes)")
@@ -224,17 +240,17 @@ data class CatalogPackage(
 )
 
 class CatalogReceiver(port: Int, val onEnd: ()->Unit): Receiver(port) {
-    override fun start() {
+    override suspend fun start() {
         super.start()
 
         while (true) {
             try {
                 if (serverSocket?.isClosed == true) break
                 val clientSocket = serverSocket?.accept() ?: break
-                Logd(TAG, "Client connected: ${clientSocket.inetAddress}")
+                Logd(TAG, "Client connected: ${clientSocket.remoteAddress}")
 
                 try {
-                    val input = DataInputStream(clientSocket.getInputStream())
+                    val input = clientSocket.openReadChannel()
                     val size = input.readInt()
                     val bytes = ByteArray(size)
                     input.readFully(bytes)
@@ -291,7 +307,7 @@ fun sendCatalog(host: String, port: Int, onEnd: ()->Unit): Job {
     var socket: Socket? = null
     return runOnIOScope {
         try {
-            socket = Socket(host, port)
+            socket = aSocket(socketSelector).tcp().connect(host, port)
             Logd(TAG, "sendCatalog got socket")
 
             val json = Json.encodeToString(pack)
@@ -299,9 +315,9 @@ fun sendCatalog(host: String, port: Int, onEnd: ()->Unit): Job {
             val bytes = json.toByteArray()
             Logd(TAG, "sendCatalog (${bytes.size} bytes)")
 
-            val output = DataOutputStream(socket.getOutputStream())
+            val output = socket.openWriteChannel()
             output.writeInt(bytes.size)
-            output.write(bytes)
+            output.writeByteArray(bytes)
             output.flush()
 
             Logt(TAG, "sendCatalog Sent ${feedsDTO.size} feeds (${bytes.size} bytes)")
@@ -314,20 +330,36 @@ fun sendCatalog(host: String, port: Int, onEnd: ()->Unit): Job {
 }
 
 suspend fun broadcastPresence(udpPort: Int, tcpPort: Int) = withContext(Dispatchers.IO) {
-    val socket = DatagramSocket()
-    socket.broadcast = true
+    val socket = aSocket(socketSelector).udp().bind { broadcast = true }
 
-    val myIp = getLocalIpAddress()
+    fun computeBroadcast(ip: String, prefixLength: Int): String {
+        val ipParts = ip.split(".").map { it.toInt() }
+        val mask = IntArray(4)
+        for (i in 0 until 4) {
+            val remaining = prefixLength - i * 8
+            mask[i] = when {
+                remaining >= 8 -> 0xFF
+                remaining <= 0 -> 0
+                else -> (0xFF shl (8 - remaining)) and 0xFF
+            }
+        }
+        val broadcast = IntArray(4)
+        for (i in 0 until 4) broadcast[i] = ipParts[i] or (mask[i].inv() and 0xFF)
+        return broadcast.joinToString(".")
+    }
+
+    val myIp = getLocalIpAddress() ?: return@withContext
+    val mask = computeBroadcast(myIp, 24)
+
     val message = "PodciniReceiver:$myIp:$tcpPort:${appAttribs.name}:${appAttribs.uniqueId}"
 
     try {
         while (isActive) {
-            val sendData = message.toByteArray()
-            val packet = DatagramPacket(sendData, sendData.size, InetAddress.getByName("255.255.255.255"), udpPort)
-            socket.send(packet)
+            listOf("255.255.255.255", mask).forEach { socket.send(Datagram(buildPacket { writeText(message) }, InetSocketAddress(it, udpPort))) }
             Logd(TAG, "broadcastPresence send to udp port: $udpPort $message")
             delay(2000)
         }
+    } catch (e: CancellationException) { Logd(TAG, "listener socket is canceled")
     } catch (e: Exception) { Loge(TAG, "broadcastPresence error: ${e.message}")
     } finally { socket.close() }
 }
@@ -341,26 +373,22 @@ data class DiscoveredReceiver(
 )
 
 suspend fun listenForUDPBroadcasts(udpPort: Int, onReceiversUpdated: (List<DiscoveredReceiver>) -> Unit) = withContext(Dispatchers.IO) {
-    var socket: DatagramSocket? = null
+    var socket:  BoundDatagramSocket? = null
     val receivers = mutableMapOf<String, DiscoveredReceiver>()
     try {
-        socket = DatagramSocket(udpPort)
-        socket.soTimeout = 10000
+        socket = aSocket(socketSelector).udp().bind(InetSocketAddress("0.0.0.0", udpPort))
         Logd(TAG, "listenForBroadcasts 1 udpPort: $udpPort")
-        val buffer = ByteArray(1024)
 
         while (isActive) {
             try {
-                val packet = DatagramPacket(buffer, buffer.size)
-                socket.receive(packet)
-                if (packet.length == 0) continue
-                val message = String(packet.data, 0, packet.length).trim()
+                val datagram = withTimeoutOrNull(10_000) { socket.receive() } ?: continue
+                val message = datagram.packet.readString()
+
                 if (message.isBlank()) continue
                 Logd(TAG, "listenForBroadcasts 5 message: $message")
                 if (!message.startsWith("PodciniReceiver:")) continue
 
-                val parts = message.split(":")
-
+                val parts = message.trim().split(":")
                 if (parts.size < 5) {
                     Loge(TAG, "listenForBroadcasts Invalid message format: $message")
                     continue
@@ -387,6 +415,7 @@ suspend fun listenForUDPBroadcasts(udpPort: Int, onReceiversUpdated: (List<Disco
                 val cutoff = nowInMillis() - 10_000
                 receivers.entries.removeAll { it.value.lastSeen < cutoff }
                 withContext(Dispatchers.Main) { onReceiversUpdated(receivers.values.toList()) }
+            } catch (e: CancellationException) { Logd(TAG, "listener socket is canceled")
             } catch (e: Throwable) {
                 Loge(TAG, "listenForBroadcasts socket exception: ${e.message}")
                 break

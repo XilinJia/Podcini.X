@@ -1,26 +1,40 @@
-package ac.mdiq.podcini.net.download.service
+package ac.mdiq.podcini.net.download
 
-import ac.mdiq.podcini.net.download.service.HttpCredentialEncoder.encode
+import ac.mdiq.podcini.config.ClientConfig
 import ac.mdiq.podcini.net.utils.NetworkUtils.getURIFromRequestUrl
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.ProxyConfig
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
-import ac.mdiq.podcini.config.ClientConfig
 import android.annotation.SuppressLint
 import android.net.TrafficStats
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.DefaultRequest
+import io.ktor.client.plugins.HttpRedirect
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.cache.HttpCache
+import io.ktor.client.plugins.cookies.AcceptAllCookiesStorage
+import io.ktor.client.plugins.cookies.HttpCookies
+import io.ktor.client.request.header
+import io.ktor.http.HttpHeaders
+import kotlinx.io.IOException
+import okhttp3.ConnectionSpec
+import okhttp3.Credentials.basic
+import okhttp3.Interceptor
+import okhttp3.Interceptor.Chain
+import okhttp3.OkHttpClient.Builder
+import okhttp3.Request
+import okhttp3.Response
+import okio.ByteString
 import java.io.ByteArrayInputStream
-import java.io.File
-import java.io.IOException
-import java.net.CookieManager
-import java.net.CookiePolicy
+import java.io.UnsupportedEncodingException
 import java.net.HttpURLConnection
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.Socket
-import java.net.SocketAddress
 import java.nio.charset.Charset
 import java.security.GeneralSecurityException
 import java.security.KeyStore
@@ -29,115 +43,108 @@ import java.security.NoSuchAlgorithmException
 import java.security.cert.CertificateException
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
-import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.TrustManager
 import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
-import okhttp3.Cache
-import okhttp3.ConnectionSpec
-import okhttp3.Credentials.basic
-import okhttp3.Interceptor
-import okhttp3.Interceptor.Chain
-import okhttp3.JavaNetCookieJar
-import okhttp3.OkHttpClient
-import okhttp3.OkHttpClient.Builder
-import okhttp3.Request
-import okhttp3.Response
-import okhttp3.Route
 
 /**
  * Provides access to a HttpClient singleton.
  */
 object PodciniHttpClient {
     private val TAG: String = PodciniHttpClient::class.simpleName ?: "Anonymous"
-    private const val CONNECTION_TIMEOUT = 20000
-    private const val READ_TIMEOUT = 30000
-    private const val MAX_CONNECTIONS = 8
-    private var cacheDirectory: File? = null
-    private var proxyConfig: ProxyConfig? = null
+    const val CONNECTION_TIMEOUT = 20000
+    const val READ_TIMEOUT = 30000
+    var proxyConfig: ProxyConfig? = null
 
-    @Volatile
-    private var httpClient: OkHttpClient? = null
+    private var ktorClient: HttpClient? = null
 
-    @Synchronized
-    fun getHttpClient(): OkHttpClient {
-        if (httpClient == null) httpClient = newBuilder().build()
-        return httpClient!!
+    fun getKtorClient(): HttpClient {
+        if (ktorClient == null) ktorClient = createKtorClient()
+        return ktorClient!!
     }
 
-    @Synchronized
-    fun reinit() {
-        httpClient = newBuilder().build()
+    fun resetClient() {
+        ktorClient = null
     }
 
-    /**
-     * Creates a new HTTP client.  Most users should just use
-     * getHttpClient() to get the standard Podcini client,
-     * but sometimes it's necessary for others to have their own
-     * copy so that the clients don't share state.
-     * @return http client
-     */
-    fun newBuilder(): Builder {
+    fun createKtorClient(): HttpClient {
         Logd(TAG, "Creating new instance of HTTP client")
-        System.setProperty("http.maxConnections", MAX_CONNECTIONS.toString())
 
-        val builder = Builder()
-        builder.interceptors().add(BasicAuthorizationInterceptor())
-        builder.addNetworkInterceptor(UserAgentInterceptor())
-
-//        builder.networkInterceptors().add(UserAgentInterceptor())
-
-        // set cookie handler
-        val cm = CookieManager()
-        cm.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER)
-        builder.cookieJar(JavaNetCookieJar(cm))
-
-        // set timeouts
-        builder.connectTimeout(CONNECTION_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
-        builder.readTimeout(READ_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
-        builder.writeTimeout(READ_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
-        builder.cache(Cache(cacheDirectory!!, 20L * 1000000)) // 20MB
-
-        // configure redirects
-        builder.followRedirects(true)
-        builder.followSslRedirects(true)
-
-        if (proxyConfig != null && proxyConfig!!.type != Proxy.Type.DIRECT && !proxyConfig?.host.isNullOrEmpty()) {
-            val port = if (proxyConfig!!.port > 0) proxyConfig!!.port else ProxyConfig.DEFAULT_PORT
-            val address: SocketAddress = InetSocketAddress.createUnresolved(proxyConfig!!.host, port)
-            builder.proxy(Proxy(proxyConfig!!.type, address))
-            if (!proxyConfig!!.username.isNullOrEmpty() && proxyConfig!!.password != null) {
-                builder.proxyAuthenticator { _: Route?, response: Response ->
-                    val credentials = basic(proxyConfig!!.username!!, proxyConfig!!.password!!)
-                    response.request.newBuilder().header("Proxy-Authorization", credentials).build()
+        return HttpClient(OkHttp) {
+            install(DefaultRequest) {
+                header(HttpHeaders.UserAgent, ClientConfig.USER_AGENT)
+                header(HttpHeaders.Accept, "application/json")
+                if (!proxyConfig?.username.isNullOrEmpty() && proxyConfig?.password != null)
+                    header(HttpHeaders.Authorization, basic(proxyConfig!!.username!!, proxyConfig!!.password!!))
+            }
+            install(HttpCookies) { storage = AcceptAllCookiesStorage() }
+            install(HttpRedirect) { checkHttpMethod = false }
+            install(HttpTimeout) {
+                connectTimeoutMillis = CONNECTION_TIMEOUT.toLong()
+                requestTimeoutMillis = READ_TIMEOUT.toLong()
+                socketTimeoutMillis = READ_TIMEOUT.toLong()
+            }
+            install(HttpCache)
+            engine {
+                config {
+                    followRedirects(true)
+                    proxyConfig?.let { proxy ->
+                        if (proxy.type != Proxy.Type.DIRECT && !proxy.host.isNullOrEmpty()) {
+                            proxy(Proxy(proxy.type, InetSocketAddress.createUnresolved(proxy.host, if (proxy.port > 0) proxy.port else ProxyConfig.DEFAULT_PORT)))
+                            if (!proxy.username.isNullOrEmpty() && proxy.password != null)
+                                proxyAuthenticator { _, response -> response.request.newBuilder().header("Proxy-Authorization", basic(proxy.username, proxy.password)).build() }
+                        }
+                    }
+                    installCertificates(this)
                 }
             }
         }
-
-        installCertificates(builder)
-        return builder
     }
 
-    fun setCacheDirectory(cacheDirectory: File?) {
-        PodciniHttpClient.cacheDirectory = cacheDirectory
-    }
-    
-    fun setProxyConfig(proxyConfig: ProxyConfig?) {
+    fun configProxy(proxyConfig: ProxyConfig?) {
         PodciniHttpClient.proxyConfig = proxyConfig
     }
 
-    class UserAgentInterceptor : Interceptor {
-        @Throws(IOException::class)
-        override fun intercept(chain: Chain): Response {
-            TrafficStats.setThreadStatsTag(Thread.currentThread().id.toInt())
-            return chain.proceed(chain.request().newBuilder().header("User-Agent", ClientConfig.USER_AGENT?:"").build())
-        }
+    fun encodeCredentials(username: String, password: String, charset: String?): String {
+        try {
+            val credentials = "$username:$password"
+            val bytes = credentials.toByteArray(charset(charset!!))
+            val encoded: String = ByteString.of(*bytes).base64()
+            return "Basic $encoded"
+        } catch (e: UnsupportedEncodingException) { throw AssertionError(e) }
     }
 
-    private fun installCertificates(builder: Builder) {
+    fun installCertificates(builder: Builder) {
+        fun create(): X509TrustManager? {
+            try {
+                val keystore = KeyStore.getInstance(KeyStore.getDefaultType())
+                keystore.load(null) // Clear
+                val cf = CertificateFactory.getInstance("X.509")
+                keystore.setCertificateEntry("BACKPORT_COMODO_ROOT_CA", cf.generateCertificate(ByteArrayInputStream(COMODO.toByteArray(Charset.forName("UTF-8")))))
+                keystore.setCertificateEntry("SECTIGO_USER_TRUST_CA", cf.generateCertificate(ByteArrayInputStream(SECTIGO_USER_TRUST.toByteArray(Charset.forName("UTF-8")))))
+                keystore.setCertificateEntry("LETSENCRYPT_ISRG_CA", cf.generateCertificate(ByteArrayInputStream(LETSENCRYPT_ISRG.toByteArray(Charset.forName("UTF-8")))))
+
+                val managers: MutableList<X509TrustManager> = mutableListOf()
+                managers.add(getSystemTrustManager(keystore))
+                managers.add(getSystemTrustManager(null))
+                return CompositeX509TrustManager(managers)
+            } catch (e: KeyStoreException) {
+                Logs(TAG, e)
+                return null
+            } catch (e: CertificateException) {
+                Logs(TAG, e)
+                return null
+            } catch (e: NoSuchAlgorithmException) {
+                Logs(TAG, e)
+                return null
+            } catch (e: IOException) {
+                Logs(TAG, e)
+                return null
+            }
+        }
         val trustManager = create()
         builder.sslSocketFactory(PodciniSslSocketFactory(trustManager!!), trustManager)
         builder.connectionSpecs(listOf(ConnectionSpec.MODERN_TLS, ConnectionSpec.CLEARTEXT))
@@ -274,13 +281,13 @@ object PodciniHttpClient {
             val password = userInfo.substring(userInfo.indexOf(':') + 1)
 
             Logd(TAG, "Authorization failed, re-trying with ISO-8859-1 encoded credentials")
-            newRequest.header(HEADER_AUTHORIZATION, encode(username, password, "ISO-8859-1"))
+            newRequest.header(HEADER_AUTHORIZATION, encodeCredentials(username, password, "ISO-8859-1"))
             response = chain.proceed(newRequest.build())
 
             if (response.code != HttpURLConnection.HTTP_UNAUTHORIZED) return response
 
             Logd(TAG, "Authorization failed, re-trying with UTF-8 encoded credentials")
-            newRequest.header(HEADER_AUTHORIZATION, encode(username, password, "UTF-8"))
+            newRequest.header(HEADER_AUTHORIZATION, encodeCredentials(username, password, "UTF-8"))
             return chain.proceed(newRequest.build())
         }
 
@@ -313,35 +320,6 @@ object PodciniHttpClient {
         } catch (e: NoSuchAlgorithmException) { Logs(TAG, e)
         } catch (e: KeyStoreException) { Logs(TAG, e) }
         throw IllegalStateException("Unexpected default trust managers")
-    }
-
-    
-    fun create(): X509TrustManager? {
-        try {
-            val keystore = KeyStore.getInstance(KeyStore.getDefaultType())
-            keystore.load(null) // Clear
-            val cf = CertificateFactory.getInstance("X.509")
-            keystore.setCertificateEntry("BACKPORT_COMODO_ROOT_CA", cf.generateCertificate(ByteArrayInputStream(COMODO.toByteArray(Charset.forName("UTF-8")))))
-            keystore.setCertificateEntry("SECTIGO_USER_TRUST_CA", cf.generateCertificate(ByteArrayInputStream(SECTIGO_USER_TRUST.toByteArray(Charset.forName("UTF-8")))))
-            keystore.setCertificateEntry("LETSENCRYPT_ISRG_CA", cf.generateCertificate(ByteArrayInputStream(LETSENCRYPT_ISRG.toByteArray(Charset.forName("UTF-8")))))
-
-            val managers: MutableList<X509TrustManager> = mutableListOf()
-            managers.add(getSystemTrustManager(keystore))
-            managers.add(getSystemTrustManager(null))
-            return CompositeX509TrustManager(managers)
-        } catch (e: KeyStoreException) {
-            Logs(TAG, e)
-            return null
-        } catch (e: CertificateException) {
-            Logs(TAG, e)
-            return null
-        } catch (e: NoSuchAlgorithmException) {
-            Logs(TAG, e)
-            return null
-        } catch (e: IOException) {
-            Logs(TAG, e)
-            return null
-        }
     }
 
     /**

@@ -8,7 +8,6 @@ import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.storage.model.ARCHIVED_VOLUME_ID
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.Episode.MediaMetadataRetrieverCompat
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
@@ -20,12 +19,16 @@ import ac.mdiq.podcini.storage.parser.VorbisCommentReaderException
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
-import ac.mdiq.podcini.storage.utils.CountingInputStream2
+import ac.mdiq.podcini.storage.utils.CountingSource
 import ac.mdiq.podcini.storage.utils.DAY_MIL
 import ac.mdiq.podcini.storage.utils.FOUR_DAY_MIL
-import ac.mdiq.podcini.storage.utils.feedfilePath
+import ac.mdiq.podcini.storage.utils.MediaMetadataRetrieverCompat
+import ac.mdiq.podcini.storage.utils.cacheDir
+import ac.mdiq.podcini.storage.utils.div
 import ac.mdiq.podcini.storage.utils.getMimeType
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.storage.utils.parseDate
+import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -42,20 +45,14 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
-import androidx.documentfile.provider.DocumentFile
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.UpdatedResults
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import java.io.BufferedInputStream
-import java.io.File
-import java.io.IOException
+import kotlinx.io.IOException
 import kotlin.math.abs
-import ac.mdiq.podcini.storage.utils.nowInMillis
-import kotlin.use
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -175,8 +172,7 @@ fun feedByIdentityOrID(feed: Feed, copy: Boolean = false): Feed? {
  * I.e. episodes are removed from the database if they are not in this episode list.
  * @return The updated Feed from the database if it already existed, or the new Feed from the parameters otherwise.
  */
-@Synchronized
-fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwriteStates: Boolean = false) {
+suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwriteStates: Boolean = false) {
     Logd(TAG, "updateFeedFull called")
     //        showStackTrace()
 
@@ -203,7 +199,7 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
     }
     Logd(TAG, "updateFeedFull savedFeed.isLocalFeed: ${savedFeed.isLocalFeed} savedFeed.prefStreamOverDownload: ${savedFeed.prefStreamOverDownload}")
     val priorMostRecent = savedFeed.mostRecentItem
-    val priorMostRecentDate = priorMostRecent?.let { it.pubDate }
+    val priorMostRecentDate = priorMostRecent?.pubDate
     var idLong = getId()
     Logd(TAG, "updateFeedFull building savedFeedAssistant")
     val savedFeedAssistant = FeedAssistant(savedFeed)
@@ -239,7 +235,7 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
 //            episode.feed = savedFeed
             episode.id = idLong++
             episode.feedId = savedFeed.id
-            if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) runBlocking { episode.fetchMediaSize(false) }
+            if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(false)
 
             if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
 
@@ -283,10 +279,12 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
     Logd(TAG, "updateFeedFull savedFeed lastFullUpdateTime: ${savedFeed.lastFullUpdateTime}")
 
     val episodes = getEpisodes(null, null, feedId=savedFeed.id, copy = false)
+    Logd(TAG, "updateFeedFull ")
     savedFeed.episodesCount = episodes.size
     for (e in episodes) savedFeed.totleDuration += e.duration
+    Logd(TAG, "updateFeedFull episodesCount: ${savedFeed.episodesCount} ${savedFeed.totleDuration}")
 
-    upsertBlk(savedFeed) {}
+    upsert(savedFeed) {}
     if (removeUnlistedItems && unlistedItems.isNotEmpty()) deleteMedias(unlistedItems)
 
     runOnIOScope {
@@ -415,11 +413,12 @@ fun addNewFeed(feed: Feed) {
         Logd(TAG, "feed.episodes count: ${feed.episodes.size}")
         for (episode in feed.episodes) {
             episode.id = getId()
-            Logd(TAG, "addNewFeeds ${episode.id} ${episode.downloadUrl}")
+//            Logd(TAG, "addNewFeeds episode: ${episode.id} ${episode.downloadUrl}")
             episode.feedId = feed.id
             feed.totleDuration += episode.duration
             copyToRealm(episode)
         }
+        feed.episodesCount = feed.episodes.size
         copyToRealm(feed)
     }
     if (!feed.isLocalFeed && feed.downloadUrl != null) SynchronizationQueueSink.enqueueFeedAddedIfSyncActive(feed.downloadUrl!!)
@@ -496,8 +495,8 @@ fun createSynthetic(feedId: Long, name: String, video: Boolean = false): Feed {
     feed.author = "Yours Truly"
     feed.downloadUrl = null
     feed.hasVideoMedia = video
-    feed.fileUrl = File(feedfilePath, feed.getFeedfileName()).toString()
-    //        feed.preferences = FeedPreferences(feed.id, false, AutoDeleteAction.GLOBAL, VolumeAdaptionSetting.OFF, "", "")
+//    feed.fileUrl = File(feedfilePath, feed.getFeedfileName()).toString()
+    feed.fileUrl =(cacheDir / feed.getFeedfileName()).absPath
     feed.keepUpdated = false
     feed.queueId = -2L
     return feed
@@ -532,17 +531,6 @@ fun addRemoteToMiscSyndicate(episode: Episode) {
     upsertBlk(feed) {}
     EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
 }
-
-//fun getPreserveSyndicate(): Feed {
-//    val feedId: Long = 21
-//    var feed = getFeed(feedId, true)
-//    if (feed != null) return feed
-//
-//    feed = createSynthetic(feedId, "Preserve Syndicate")
-//    feed.type = Feed.FeedType.RSS.name
-//    upsertBlk(feed) {}
-//    return feed
-//}
 
 // savedFeedId == 0L means saved feed
 class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L, private val isNew: Boolean = false) {
@@ -702,7 +690,7 @@ class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L, private 
 }
 
 @OptIn(ExperimentalUuidApi::class)
-fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) {
+suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) {
     /**
      * Android's DocumentFile is slow because every single method call queries the ContentResolver.
      * This queries the ContentResolver a single time with all the information.
@@ -736,10 +724,10 @@ fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) {
         }
         // Did not find existing item. Scan metadata.
         try {
-            MediaMetadataRetrieverCompat().use { mediaMetadataRetriever ->
+            MediaMetadataRetrieverCompat().use { mmr ->
                 val NULL_DATE_PLACEHOLDER = "19040101T000000.000Z"
-                mediaMetadataRetriever.setDataSource(getAppContext(), file.uri)
-                val dateStr = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)
+                mmr.setDataSource(getAppContext(), file.uri)
+                val dateStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)
                 if (!dateStr.isNullOrEmpty() && dateStr != NULL_DATE_PLACEHOLDER) {
                     try {
                         item.pubDate = parsePatternTimestampToMillis("yyyyMMdd'T'HHmmss", dateStr)?: 0L
@@ -749,28 +737,26 @@ fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) {
                         if (date != null) item.pubDate = date.toEpochMilliseconds()
                     }
                 }
-                val title = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+                val title = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
                 if (!title.isNullOrEmpty()) item.title = title
-                val durationStr = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                val durationStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
                 if (!durationStr.isNullOrBlank()) item.duration = durationStr.toIntOrNull() ?: 30000
-                item.hasEmbeddedPicture = (mediaMetadataRetriever.embeddedPicture != null)
+                item.hasEmbeddedPicture = (mmr.embeddedPicture != null)
+            }
+            try {
+                val source = CountingSource(file.uri.toUF().source())
+                val reader = Id3MetadataReader(source)
+                reader.readSource()
+                item.setDescriptionIfLonger(reader.comment)
+            } catch (e: Throwable) {
+                Logs(TAG, e, "Unable to parse ID3 of " + file.uri + ": ")
                 try {
-                    getAppContext().contentResolver.openInputStream(file.uri).use { inputStream ->
-                        val reader = Id3MetadataReader(CountingInputStream2(BufferedInputStream(inputStream)))
-                        reader.readInputStream()
-                        item.setDescriptionIfLonger(reader.comment)
-                    }
-                } catch (e: Throwable) {
-                    Logs(TAG, e, "Unable to parse ID3 of " + file.uri + ": ")
-                    try {
-                        getAppContext().contentResolver.openInputStream(file.uri)?.use { inputStream ->
-                            val reader = VorbisCommentMetadataReader(inputStream)
-                            reader.readInputStream()
-                            item.setDescriptionIfLonger(reader.description)
-                        }
-                    } catch (e2: IOException) { Logs(TAG, e2, "Unable to parse vorbis comments of " + file.uri + ": ")
-                    } catch (e2: VorbisCommentReaderException) { Logs(TAG, e2, "Unable to parse vorbis comments of " + file.uri + ": ") }
-                }
+                    val source = CountingSource(file.uri.toUF().source())
+                    val reader = VorbisCommentMetadataReader(source)
+                    reader.readSource()
+                    item.setDescriptionIfLonger(reader.description)
+                } catch (e2: IOException) { Logs(TAG, e2, "Unable to parse vorbis comments of " + file.uri + ": ")
+                } catch (e2: VorbisCommentReaderException) { Logs(TAG, e2, "Unable to parse vorbis comments of " + file.uri + ": ") }
             }
         } catch (e: Exception) {
             Logs(TAG, e, "loadMetadata failed")
@@ -800,10 +786,10 @@ fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) {
 
     if (feed.downloadUrl.isNullOrEmpty()) return
     val uriString = feed.downloadUrl!!.replace(Feed.PREFIX_LOCAL_FOLDER, "")
-    val documentFolder = DocumentFile.fromTreeUri(getAppContext(), uriString.toUri()) ?: throw IOException("Unable to retrieve document tree. Try re-connecting the folder on the podcast info page.")
-    if (!documentFolder.exists() || !documentFolder.canRead()) throw IOException("Cannot read local directory. Try re-connecting the folder on the podcast info page.")
+    val documentFolder = uriString.toUF()
+    if (!documentFolder.exists()) throw IOException("Cannot read local directory. Try re-connecting the folder on the podcast info page.")
 
-    val folderUri = documentFolder.uri
+    val folderUri = uriString.toUri()
     val allFiles = listFastFiles(folderUri)
     val mediaFiles: MutableList<FastDocumentFile> = mutableListOf()
     val mediaFileNames: MutableSet<String> = HashSet()

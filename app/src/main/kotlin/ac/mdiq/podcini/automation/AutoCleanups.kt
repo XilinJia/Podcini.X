@@ -15,7 +15,6 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.ui.screens.prefscreens.EpisodeCleanupOptions
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
-import ac.mdiq.podcini.storage.utils.nowInMillis
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
@@ -48,7 +47,7 @@ class ExceptFavoriteCleanupAlgorithm : EpisodeCleanupAlgorithm() {
         return candidates.size
     }
 
-    public override fun performCleanup(numToRemove: Int): Int {
+    public override suspend fun performCleanup(numToRemove: Int): Int {
         var candidates = candidates
         // in the absence of better data, we'll sort by item publication date
         candidates = candidates.sortedWith { lhs: Episode, rhs: Episode ->
@@ -85,7 +84,7 @@ class APQueueCleanupAlgorithm : EpisodeCleanupAlgorithm() {
     override fun getReclaimableItems(): Int {
         return candidates.size
     }
-    public override fun performCleanup(numToRemove: Int): Int {
+    public override suspend fun performCleanup(numToRemove: Int): Int {
         var candidates = candidates
         // in the absence of better data, we'll sort by item publication date
         candidates = candidates.sortedWith { lhs: Episode, rhs: Episode ->
@@ -104,7 +103,7 @@ class APQueueCleanupAlgorithm : EpisodeCleanupAlgorithm() {
  * A cleanup algorithm that never removes anything
  */
 class APNullCleanupAlgorithm : EpisodeCleanupAlgorithm() {
-    public override fun performCleanup(numToRemove: Int): Int {
+    public override suspend fun performCleanup(numToRemove: Int): Int {
         // never clean anything up
         Logt(TAG, "performCleanup: Not removing anything")
         return 0
@@ -138,7 +137,7 @@ class APCleanupAlgorithm( val numberOfHoursAfterPlayback: Int) : EpisodeCleanupA
     override fun getReclaimableItems(): Int {
         return candidates.size
     }
-    public override fun performCleanup(numToRemove: Int): Int {
+    public override suspend fun performCleanup(numToRemove: Int): Int {
         val candidates = candidates.toMutableList()
         candidates.sortWith { lhs: Episode, rhs: Episode ->
             val l = lhs.playbackCompletionTime
@@ -162,9 +161,9 @@ abstract class EpisodeCleanupAlgorithm {
      * or getPerformCleanupParameter.
      * @return The number of episodes that were deleted.
      */
-    protected abstract fun performCleanup(numToRemove: Int): Int
+    protected abstract suspend fun performCleanup(numToRemove: Int): Int
 
-    protected fun cleanup(candidates: List<Episode>, numToRemove: Int): Int {
+    protected suspend fun cleanup(candidates: List<Episode>, numToRemove: Int): Int {
         val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
         try {
             deleteMedias(delete)
@@ -186,7 +185,7 @@ abstract class EpisodeCleanupAlgorithm {
      * @param amountOfRoomNeeded the number of episodes we need space for
      * @return The number of epiosdes that were deleted
      */
-    fun makeRoomForEpisodes(amountOfRoomNeeded: Int): Int {
+    suspend fun makeRoomForEpisodes(amountOfRoomNeeded: Int): Int {
         val numToRemove = getNumEpisodesToCleanup(amountOfRoomNeeded)
         Logt("EpisodeCleanupAlgorithm", "makeRoomForEpisodes: $numToRemove")
         if (numToRemove <= 0) return 0

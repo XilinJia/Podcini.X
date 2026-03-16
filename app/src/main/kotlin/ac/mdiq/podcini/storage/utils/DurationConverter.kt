@@ -2,7 +2,7 @@ package ac.mdiq.podcini.storage.utils
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import java.util.Locale
+import ac.mdiq.podcini.utils.format
 
 const val DAY_MIL = 8.64e+7
 const val FOUR_DAY_MIL = 3.456e+8
@@ -26,7 +26,7 @@ fun durationStringFull(duration: Int): String {
     if (duration <= 0) return "00:00:00"
     else {
         val hms = millisecondsToHms(duration.toLong())
-        return String.format(Locale.getDefault(), "%02d:%02d:%02d", hms[0], hms[1], hms[2])
+        return hms[0].toString().padStart(2, '0') + ":" + hms[1].toString().padStart(2, '0') + ":" + hms[2].toString().padStart(2, '0')
     }
 }
 
@@ -36,8 +36,8 @@ fun durationStringAdapt(ms: Int): String {
     val minutes = (if (totalSeconds > 3600) (totalSeconds % 3600) else totalSeconds) / 60
     val seconds = totalSeconds % 60
 
-    return if (hours > 0) String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
-    else String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
+    return if (hours > 0) hours.toString().padStart(2, '0') + ":" + minutes.toString().padStart(2, '0') + ":" + seconds.toString().padStart(2, '0')
+    else minutes.toString().padStart(2, '0') + ":" + seconds.toString().padStart(2, '0')
 }
 
 /**
@@ -48,7 +48,7 @@ fun getDurationStringShort(duration: Long, inHours: Boolean): String {
     val firstPart = duration / firstPartBase
     val leftoverFromFirstPart = duration - firstPart * firstPartBase
     val secondPart = leftoverFromFirstPart / (if (inHours) MINUTES_MIL else SECONDS_MIL)
-    return String.format(Locale.getDefault(), "%02d:%02d", firstPart, secondPart)
+    return firstPart.toString().padStart(2, '0') + ":" + secondPart.toString().padStart(2, '0')
 }
 
 /**
@@ -75,29 +75,29 @@ fun durationStringShortToMs(input: String, inHours: Boolean): Int {
 /**
  * Converts milliseconds to a localized string containing hours and minutes.
  */
-fun getDurationStringLocalized(duration: Long): String {
-    val resources = getAppContext().resources
-    var result = ""
-    var h = (duration / HOURS_MIL).toInt()
-    val d = h / 24
-    if (d > 0) {
-        val days = resources.getQuantityString(R.plurals.time_days_quantified, d, d)
-        result += days.replace(" ", "\u00A0") + " "
-        h -= d * 24
-    }
-    val rest = (duration - (d * 24 + h) * HOURS_MIL).toInt()
-    val m = rest / MINUTES_MIL
-    if (h > 0) {
-        val hours = resources.getQuantityString(R.plurals.time_hours_quantified, h, h)
-        result += hours.replace(" ", "\u00A0")
-        if (d == 0) result += " "
-    }
-    if (d == 0) {
-        val minutes = resources.getQuantityString(R.plurals.time_minutes_quantified, m, m)
-        result += minutes.replace(" ", "\u00A0")
-    }
-    return result
-}
+//fun getDurationStringLocalized(duration: Long): String {
+//    val resources = getAppContext().resources
+//    var result = ""
+//    var h = (duration / HOURS_MIL).toInt()
+//    val d = h / 24
+//    if (d > 0) {
+//        val days = resources.getQuantityString(R.plurals.time_days_quantified, d, d)
+//        result += days.replace(" ", "\u00A0") + " "
+//        h -= d * 24
+//    }
+//    val rest = (duration - (d * 24 + h) * HOURS_MIL).toInt()
+//    val m = rest / MINUTES_MIL
+//    if (h > 0) {
+//        val hours = resources.getQuantityString(R.plurals.time_hours_quantified, h, h)
+//        result += hours.replace(" ", "\u00A0")
+//        if (d == 0) result += " "
+//    }
+//    if (d == 0) {
+//        val minutes = resources.getQuantityString(R.plurals.time_minutes_quantified, m, m)
+//        result += minutes.replace(" ", "\u00A0")
+//    }
+//    return result
+//}
 
 /**
  * Converts seconds to a localized representation.
@@ -106,5 +106,5 @@ fun getDurationStringLocalized(duration: Long): String {
  */
 fun durationInHours(time: Long, showHoursText: Boolean = true): String {
     val hours = time.toFloat() / 3600f
-    return String.format(Locale.getDefault(), "%.2f ", hours) + if (showHoursText) getAppContext().getString(R.string.time_hours) else ""
+    return hours.format(2) + if (showHoursText) getAppContext().getString(R.string.time_hours) else ""
 }

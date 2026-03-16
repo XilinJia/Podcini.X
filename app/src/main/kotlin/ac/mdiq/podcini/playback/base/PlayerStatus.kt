@@ -1,9 +1,5 @@
 package ac.mdiq.podcini.playback.base
 
-import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_OTHER
-import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PAUSED
-import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
-
 enum class PlayerStatus(private val statusValue: Int) {
     ERROR(-1),
     INDETERMINATE(0),  // player is currently changing its state, listeners should wait until the state is left
@@ -20,13 +16,19 @@ enum class PlayerStatus(private val statusValue: Int) {
 
     fun getAsInt(): Int {
         return when (this) {
-            PLAYING -> PLAYER_STATUS_PLAYING
-            PAUSED -> PLAYER_STATUS_PAUSED
-            else -> PLAYER_STATUS_OTHER
+            PLAYING -> PlayerStatusInt.PLAYING.code
+            PAUSED -> PlayerStatusInt.PAUSED.code
+            else -> PlayerStatusInt.OTHER.code
         }
     }
 
     companion object {
         private val fromOrdinalLookup = entries.toTypedArray()
     }
+}
+
+enum class PlayerStatusInt(val code: Int) {
+    PLAYING(1),   // Value of PREF_CURRENT_PLAYER_STATUS if media player status is playing.
+    PAUSED(2),    // Value of PREF_CURRENT_PLAYER_STATUS if media player status is paused.
+    OTHER(3),     // Value of PREF_CURRENT_PLAYER_STATUS if media player status is neither playing nor paused.
 }

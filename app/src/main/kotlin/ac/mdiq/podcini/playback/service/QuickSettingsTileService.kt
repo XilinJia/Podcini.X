@@ -1,8 +1,8 @@
 package ac.mdiq.podcini.playback.service
 
 import ac.mdiq.podcini.playback.base.InTheatre.curState
+import ac.mdiq.podcini.playback.base.PlayerStatusInt
 import ac.mdiq.podcini.receiver.MediaButtonReceiver
-import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
 import ac.mdiq.podcini.utils.Logd
 import android.content.ComponentName
 import android.content.Intent
@@ -10,8 +10,6 @@ import android.os.IBinder
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import android.view.KeyEvent
-import androidx.annotation.OptIn
-import androidx.media3.common.util.UnstableApi
 
 class QuickSettingsTileService : TileService() {
     override fun onTileAdded() {
@@ -44,7 +42,7 @@ class QuickSettingsTileService : TileService() {
         val qsTile = qsTile
         if (qsTile == null) Logd(TAG, "Ignored call to update QS tile: getQsTile() returned null.")
         else {
-            val isPlaying = (PlaybackService.isRunning && curState.curPlayerStatus == PLAYER_STATUS_PLAYING)
+            val isPlaying = (PlaybackService.isRunning && curState.curPlayerStatus == PlayerStatusInt.PLAYING.code)
             qsTile.state = if (isPlaying) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
             qsTile.updateTile()
         }

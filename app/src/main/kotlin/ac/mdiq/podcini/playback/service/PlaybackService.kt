@@ -9,9 +9,10 @@ import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.monitorState
 import ac.mdiq.podcini.playback.base.InTheatre.restoreMediaFromPreferences
 import ac.mdiq.podcini.playback.base.InTheatre.setAsCurEpisode
-import ac.mdiq.podcini.playback.base.LocalMediaPlayer
-import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.buildMediaItem
+import ac.mdiq.podcini.playback.base.Media3Player
+import ac.mdiq.podcini.playback.base.Media3Player.Companion.buildMetadata
+import ac.mdiq.podcini.playback.base.Media3Player.Companion.exoPlayer
+import ac.mdiq.podcini.playback.base.Media3Player.Companion.releaseCache
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.currentMediaType
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isInitialized
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPaused
@@ -20,7 +21,6 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPrepared
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPreparing
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isStreamingCapable
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.releaseCache
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.base.PositionSaver
 import ac.mdiq.podcini.playback.base.PositionSaver.Companion.positionSaver
@@ -34,7 +34,9 @@ import ac.mdiq.podcini.storage.database.episodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.fastForwardSecs
 import ac.mdiq.podcini.storage.database.rewindSecs
 import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.MediaType
+import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -100,6 +102,12 @@ class PlaybackService : MediaLibraryService() {
 
     private var clickCount = 0
     private val clickHandler = Handler(Looper.getMainLooper())
+
+    val isAudioChannelInUse: Boolean
+        get() {
+            val audioManager = getAppContext().getSystemService(AUDIO_SERVICE) as AudioManager
+            return (audioManager.mode != AudioManager.MODE_NORMAL || audioManager.isMusicActive)
+        }
 
     private val autoStateUpdated: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -216,6 +224,15 @@ class PlaybackService : MediaLibraryService() {
         }
         Logd(TAG, "mediaItemsInQueue: ${list.size}")
         list
+    }
+
+    fun buildMediaItem(e: Episode): MediaItem? {
+        val url = e.downloadUrl ?: return null
+        val metadata = buildMetadata(e)
+        return MediaItem.Builder()
+            .setMediaId(url)
+            .setUri(url.toSafeUri())
+            .setMediaMetadata(metadata).build()
     }
 
     inner class MediaLibrarySessionCK : MediaLibrarySession.Callback {
@@ -403,12 +420,14 @@ class PlaybackService : MediaLibraryService() {
             mPlayer!!.shutdown()
         }
         mPlayer = CastMediaPlayer.getInstanceIfConnected(applicationContext)
-        if (mPlayer == null) mPlayer = LocalMediaPlayer() // Cast not supported or not connected
+        if (mPlayer == null) mPlayer = Media3Player() // Cast not supported or not connected
 
-        Logd(TAG, "recreateMediaPlayer wasPlaying: $wasPlaying")
-        // TODO: test not preparing on first start
-//        if (media != null) mPlayer!!.prepareMedia(playable = media, streaming = !media.localFileAvailable(), startWhenPrepared = wasPlaying, prepareImmediately = true, doPostPlayback = true)
+        Logd(TAG, "recreateMediaPlayer mPlayer casting: ${mPlayer?.isCasting()} wasPlaying: $wasPlaying curEpisode: ${curEpisode?.title}")
+//        // TODO: test not preparing on first start
+//        val media = curEpisode
+//        if (media != null) mPlayer!!.prepareMedia(playable = media, streaming = !media.isDownloaded(), startWhenPrepared = wasPlaying, prepareImmediately = true, doPostPlayback = true)
         isCasting = mPlayer!!.isCasting()
+
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -423,7 +442,7 @@ class PlaybackService : MediaLibraryService() {
         currentMediaType = MediaType.UNKNOWN
         castStateListener.destroy()
 
-        LocalMediaPlayer.cleanup()
+        Media3Player.cleanup()
         mediaSession?.run {
             player.release()
             release()
@@ -608,7 +627,7 @@ class PlaybackService : MediaLibraryService() {
             else -> {
                 Logd(TAG, "Unhandled key code: $keycode")
                 // only notify the user about an unknown key event if it is actually doing something
-                if (curEpisode != null && isPlaying) Loge(TAG, String.format(resources.getString(R.string.unknown_media_key), keycode))
+                if (curEpisode != null && isPlaying) Loge(TAG, resources.getString(R.string.unknown_media_key, keycode))
             }
         }
         return false
@@ -621,7 +640,7 @@ class PlaybackService : MediaLibraryService() {
             return
         }
         val media = curEpisode!!
-        val needStreaming = media.feed?.isLocalFeed != true && media.fileUrl.isNullOrBlank()
+        val needStreaming = media.feed?.isLocalFeed != true && media.fileUrl.isNullOrBlank() || mPlayer?.isCasting() == true
         if (needStreaming && !isStreamingCapable(media)) return
         mPlayer?.prepareMedia(playable = media, streaming = needStreaming, startWhenPrepared = true, prepareImmediately = true, forceReset = true, doPostPlayback = false)
     }
@@ -706,7 +725,7 @@ class PlaybackService : MediaLibraryService() {
      */
     @RequiresPermission(Manifest.permission.VIBRATE)
     private fun unpauseIfPauseOnDisconnect(bluetooth: Boolean) {
-        if (mPlayer != null && mPlayer!!.isAudioChannelInUse) {
+        if (mPlayer != null && isAudioChannelInUse) {
             Logd(TAG, "unpauseIfPauseOnDisconnect() audio is in use")
             return
         }
@@ -787,7 +806,6 @@ class PlaybackService : MediaLibraryService() {
 
         var isRunning: Boolean = false
 
-        @Volatile
         var isCasting: Boolean = false
             internal set
 

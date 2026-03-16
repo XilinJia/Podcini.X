@@ -2,6 +2,8 @@ package ac.mdiq.podcini.storage.utils
 
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
+import android.media.MediaMetadataRetriever
+import kotlinx.io.IOException
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.DataInputStream
@@ -11,7 +13,6 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
-import java.io.IOException
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -150,91 +151,16 @@ fun mergeAudios(selection: Array<String>, outpath: String?, callback: OperationC
     }
 }
 
-@Throws(IOException::class)
-fun rawToWave(rawfn: String, wavefn: String) {
-    @Throws(IOException::class)
-    fun fullyReadFileToBytes(f: File): ByteArray {
-        val size = f.length().toInt()
-        val bytes = ByteArray(size)
-        val tmpBuff = ByteArray(size)
-        val fis = FileInputStream(f)
-        try {
-            var read = fis.read(bytes, 0, size)
-            if (read < size) {
-                var remain = size - read
-                while (remain > 0) {
-                    read = fis.read(tmpBuff, 0, remain)
-                    System.arraycopy(tmpBuff, 0, bytes, size - remain, read)
-                    remain -= read
-                }
-            }
-        } catch (e: IOException) { throw e
-        } finally { fis.close() }
-        return bytes
-    }
-    @Throws(IOException::class)
-    fun writeInt(output: DataOutputStream, value: Int) {
-        output.write(value shr 0)
-        output.write(value shr 8)
-        output.write(value shr 16)
-        output.write(value shr 24)
-    }
-
-    @Throws(IOException::class)
-    fun writeShort(output: DataOutputStream, value: Short) {
-        output.write(value.toInt() shr 0)
-        output.write(value.toInt() shr 8)
-    }
-
-    @Throws(IOException::class)
-    fun writeString(output: DataOutputStream, value: String) {
-        for (element in value) output.write(element.code)
-    }
-
-    val rawFile = File(rawfn)
-    val waveFile = File(wavefn)
-    val rawData = ByteArray(rawFile.length().toInt())
-    var input: DataInputStream? = null
-    try {
-        input = DataInputStream(FileInputStream(rawFile))
-        input.read(rawData)
-    } finally {
-        input?.close()
-    }
-
-    val SAMPLE_RATE = 24000
-
-    var output: DataOutputStream? = null
-    try {
-        output = DataOutputStream(FileOutputStream(waveFile))
-        // WAVE header
-        // see http://ccrma.stanford.edu/courses/422/projects/WaveFormat/
-        writeString(output, "RIFF") // chunk id
-        writeInt(output, 36 + rawData.size) // chunk size
-        writeString(output, "WAVE") // format
-        writeString(output, "fmt ") // subchunk 1 id
-        writeInt(output, 16) // subchunk 1 size
-        writeShort(output, 1.toShort()) // audio format (1 = PCM)
-        writeShort(output, 1.toShort()) // number of channels
-        writeInt(output, SAMPLE_RATE) // sample rate
-        writeInt(output, SAMPLE_RATE * 2) // byte rate
-        writeShort(output, 2.toShort()) // block align
-        writeShort(output, 16.toShort()) // bits per sample
-        writeString(output, "data") // subchunk 2 id
-        writeInt(output, rawData.size) // subchunk 2 size
-        // Audio data (conversion big endian -> little endian)
-        val shorts = ShortArray(rawData.size / 2)
-        ByteBuffer.wrap(rawData).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()[shorts]
-        val bytes = ByteBuffer.allocate(shorts.size * 2)
-        for (s in shorts) bytes.putShort(s)
-
-        output.write(fullyReadFileToBytes(rawFile))
-    } finally {
-        output?.close()
-    }
-}
-
 interface OperationCallbacks {
     fun onAudioOperationFinished()
     fun onAudioOperationError(e: Exception?)
+}
+
+/**
+ * On SDK<29, this class does not have a close method yet, so the app crashes when using try-with-resources.
+ */
+class MediaMetadataRetrieverCompat : MediaMetadataRetriever(), AutoCloseable {
+    override fun close() {
+        try { release() } catch (e: Exception) { Logs(TAG, e, "MediaMetadataRetriever failed") }
+    }
 }

@@ -1,17 +1,19 @@
 package ac.mdiq.podcini.activity
 
 import ac.mdiq.podcini.BuildConfig
-import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
+import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.activity.starter.MainActivityStarter
-import ac.mdiq.podcini.config.settings.autoBackup
+import ac.mdiq.podcini.storage.utils.autoBackup
 import ac.mdiq.podcini.net.download.DownloadStatus
-import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
+import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
+import ac.mdiq.podcini.net.download.Downloader.Companion.downloadStates
 import ac.mdiq.podcini.net.feed.FeedUpdateManager
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.TTSEngine.closeTTS
 import ac.mdiq.podcini.playback.cast.BaseActivity
+import ac.mdiq.podcini.playback.moveClips
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -20,7 +22,6 @@ import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.appTheme
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.dialog.RatingDialog
-import ac.mdiq.podcini.ui.screens.DefaultPages
 import ac.mdiq.podcini.ui.screens.MainActivityUI
 import ac.mdiq.podcini.ui.screens.PSState
 import ac.mdiq.podcini.ui.screens.QuickAccess
@@ -63,7 +64,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -74,7 +74,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat.enableEdgeToEdge
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.await
@@ -84,7 +86,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -154,20 +155,14 @@ class MainActivity : BaseActivity() {
 
         title = "Podcini.MainActivity"
 
-        // TODO: how to monitor WorkManager
-//        WorkManager.getInstance(applicationContext).getWorkInfosForUniqueWorkLiveData(feedUpdateOnceWorkId)
-//            .observe(this) { workInfos ->
-//                Logd(TAG, "workInfos: ${workInfos?.size}")
-//                workInfos?.forEach { workInfo -> Logd(TAG, "FeedUpdateWork status: ${workInfo.state}") }
-//            }
-
-//        WindowCompat.setDecorFitsSystemWindows(window, false)
-        setContent { PodciniTheme { intentState?.let { currentIntent ->
+        setContent { PodciniTheme { intentState?.let {
             if (showUnrestrictedBackgroundPermissionDialog) UnrestrictedBackgroundPermissionDialog { showUnrestrictedBackgroundPermissionDialog = false }
             MainActivityUI()
         } } }
 
         timeIt("$TAG after setContent")
+
+        if (!appPrefs.clipsMoved) moveClips()
 
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) postFornotificationPermission()
         else checkAndRequestUnrestrictedBackgroundActivity()
@@ -176,8 +171,6 @@ class MainActivity : BaseActivity() {
         val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName ?: "0"
         val lastScheduledVersion = appPrefs.lastVersion
         if (currentVersion != lastScheduledVersion) {
-//            WorkManager.getInstance(applicationContext).cancelUniqueWork(feedUpdateWorkId)
-//            scheduleUpdateTaskOnce(applicationContext, true)
             upsertBlk(appPrefs) { it.lastVersion = currentVersion }
         }
 
@@ -198,7 +191,7 @@ class MainActivity : BaseActivity() {
                 }
                 EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(isRefreshingFeeds))
             }
-        observeDownloads()
+//        observeDownloads()
         timeIt("$TAG end of onCreate")
     }
 
@@ -219,8 +212,6 @@ class MainActivity : BaseActivity() {
                 TextButton(onClick = {
                     if (dontAskAgain) upsertBlk(appPrefs) { it.dont_ask_again_unrestricted_background = true }
                     val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply { data = "package:$packageName".toUri() }
-//                    val intent = Intent()
-//                    intent.action = Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
                     this@MainActivity.startActivity(intent)
                     onDismiss()
                 }) { Text("OK") }
@@ -238,53 +229,57 @@ class MainActivity : BaseActivity() {
 
     private fun observeDownloads() {
         lifecycleScope.launch {
-            withContext(Dispatchers.IO) { WorkManager.getInstance(this@MainActivity).pruneWork().await() }
-            WorkManager.getInstance(this@MainActivity)
-                .getWorkInfosByTagLiveData(DownloadServiceInterface.WORK_TAG)
-                .observe(this@MainActivity) { workInfos: List<WorkInfo> ->
-                    if (!hasDownloadObserverStarted) {
-                        hasDownloadObserverStarted = true
-                        return@observe
-                    }
-                    Logd(TAG, "workInfos: ${workInfos.size}")
-                    downloadStates.clear()
-                    var hasFinished = false
-                    for (workInfo in workInfos) {
-                        var downloadUrl: String? = null
-                        for (tag in workInfo.tags) {
-                            if (tag.startsWith(DownloadServiceInterface.WORK_TAG_EPISODE_URL)) downloadUrl = tag.substring(DownloadServiceInterface.WORK_TAG_EPISODE_URL.length)
+            val wm = WorkManager.getInstance(this@MainActivity)
+            wm.pruneWork().await()
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                wm.getWorkInfosByTagFlow(EpisodeAdrDLManager.WORK_TAG)
+                    .collect { workInfos: List<WorkInfo> ->
+                        if (!hasDownloadObserverStarted) {
+                            hasDownloadObserverStarted = true
+                            return@collect
                         }
-                        if (downloadUrl == null) continue
-                        Logd(TAG, "workInfo.state: ${workInfo.state} isFinished: ${workInfo.state.isFinished}")
-                        var status: Int = when (workInfo.state) {
-                            WorkInfo.State.RUNNING -> DownloadStatus.State.RUNNING.ordinal
-                            WorkInfo.State.ENQUEUED, WorkInfo.State.BLOCKED -> DownloadStatus.State.QUEUED.ordinal
-                            WorkInfo.State.SUCCEEDED -> DownloadStatus.State.COMPLETED.ordinal
-                            WorkInfo.State.FAILED -> {
-                                Loge(TAG, "download failed $downloadUrl")
-                                DownloadStatus.State.INCOMPLETE.ordinal
+                        Logd(TAG, "workInfos: ${workInfos.size}")
+                        downloadStates.clear()
+                        var hasFinished = false
+                        for (workInfo in workInfos) {
+                            var downloadUrl: String? = null
+                            for (tag in workInfo.tags) {
+                                if (tag.startsWith(EpisodeAdrDLManager.WORK_TAG_EPISODE_URL)) downloadUrl = tag.substring(EpisodeAdrDLManager.WORK_TAG_EPISODE_URL.length)
                             }
-                            WorkInfo.State.CANCELLED -> {
-                                Logt(TAG, "download cancelled $downloadUrl")
-                                DownloadStatus.State.INCOMPLETE.ordinal
+                            if (downloadUrl == null) continue
+                            Logd(TAG, "workInfo.state: ${workInfo.state} isFinished: ${workInfo.state.isFinished}")
+                            var status: Int = when (workInfo.state) {
+                                WorkInfo.State.RUNNING -> DownloadStatus.State.RUNNING.ordinal
+                                WorkInfo.State.ENQUEUED, WorkInfo.State.BLOCKED -> DownloadStatus.State.QUEUED.ordinal
+                                WorkInfo.State.SUCCEEDED -> DownloadStatus.State.COMPLETED.ordinal
+                                WorkInfo.State.FAILED -> {
+                                    Loge(TAG, "download failed $downloadUrl")
+                                    DownloadStatus.State.INCOMPLETE.ordinal
+                                }
+                                WorkInfo.State.CANCELLED -> {
+                                    Logt(TAG, "download cancelled $downloadUrl")
+                                    DownloadStatus.State.INCOMPLETE.ordinal
+                                }
                             }
+                            var progress = workInfo.progress.getInt(EpisodeAdrDLManager.WORK_DATA_PROGRESS, -1)
+                            if (progress == -1 && status < DownloadStatus.State.COMPLETED.ordinal) {
+                                status = DownloadStatus.State.QUEUED.ordinal
+                                progress = 0
+                            }
+                            downloadStates[downloadUrl] = DownloadStatus(status, progress)
+                            if (status == DownloadStatus.State.COMPLETED.ordinal) downloadStates.remove(downloadUrl)
+
+                            Logd(TAG, "downloadStates: ${downloadStates.size}")
+                            Logd(TAG, "downloadStates[$downloadUrl]: ${downloadStates[downloadUrl]?.state}")
+                            if (workInfo.state.isFinished) hasFinished = true
                         }
-                        var progress = workInfo.progress.getInt(DownloadServiceInterface.WORK_DATA_PROGRESS, -1)
-                        if (progress == -1 && status < DownloadStatus.State.COMPLETED.ordinal) {
-                            status = DownloadStatus.State.QUEUED.ordinal
-                            progress = 0
+                        EpisodeAdrDLManager.manager?.setCurrentDownloads(downloadStates)
+                        if (hasFinished) lifecycleScope.launch(Dispatchers.IO) {
+                            delay(2000)
+                            WorkManager.getInstance(this@MainActivity).pruneWork().await()
                         }
-                        downloadStates[downloadUrl] = DownloadStatus(status, progress)
-                        Logd(TAG, "downloadStates: ${downloadStates.size}")
-                        Logd(TAG, "downloadStates[$downloadUrl]: ${downloadStates[downloadUrl]?.state}")
-                        if (workInfo.state.isFinished) hasFinished = true
                     }
-                    DownloadServiceInterface.impl?.setCurrentDownloads(downloadStates)
-                    if (hasFinished) lifecycleScope.launch(Dispatchers.IO) {
-                        delay(2000)
-                        WorkManager.getInstance(this@MainActivity).pruneWork().await()
-                    }
-                }
+            }
         }
     }
 
@@ -316,11 +311,12 @@ class MainActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
-        autoBackup(this)
+        autoBackup()
         RatingDialog.check()
         if (lastTheme != appTheme) {
             finish()
-            startActivity(Intent(this, MainActivity::class.java))
+            forceRestart()
+//            startActivity(Intent(this, MainActivity::class.java))
         }
         timeIt("$TAG end of onResume")
     }
@@ -462,30 +458,6 @@ class MainActivity : BaseActivity() {
         private val TAG: String = MainActivity::class.simpleName ?: "Anonymous"  // have to keep, otherwise release build may fail?!
 
         private const val INIT_KEY = "app_init_state"
-
-        val downloadStates = mutableStateMapOf<String, DownloadStatus>()
-
-        fun getIntentToOpenFeed(feedId: Long): Intent {
-            val intent = Intent(getAppContext(), MainActivity::class.java)
-            intent.putExtra(Extras.feed_id.name, feedId)
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            return intent
-        }
-
-        fun showOnlineFeed(feedUrl: String, isShared: Boolean = false): Intent {
-            val intent = Intent(getAppContext(), MainActivity::class.java)
-            intent.putExtra(Extras.fragment_feed_url.name, feedUrl)
-            intent.putExtra(Extras.isShared.name, isShared)
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            return intent
-        }
-
-        fun showOnlineSearch(query: String): Intent {
-            val intent = Intent(getAppContext(), MainActivity::class.java)
-            intent.putExtra(Extras.search_string.name, query)
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            return intent
-        }
 
         fun Context.findActivity(): Activity? {
             var context = this

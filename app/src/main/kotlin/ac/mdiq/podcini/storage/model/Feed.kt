@@ -2,7 +2,6 @@ package ac.mdiq.podcini.storage.model
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.queuesLive
@@ -16,6 +15,7 @@ import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.FeedAutoDownloadFilter
 import ac.mdiq.podcini.storage.specs.FeedFunding
 import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting.Companion.fromInteger
 import ac.mdiq.podcini.storage.utils.generateFileName
@@ -35,7 +35,6 @@ import io.github.xilinjia.krdb.types.annotations.Ignore
 import io.github.xilinjia.krdb.types.annotations.Index
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 import kotlinx.serialization.Serializable
-import ac.mdiq.podcini.storage.utils.nowInMillis
 
 
 @Stable
@@ -596,7 +595,7 @@ class Feed : RealmObject {
         if (customTitle != other.customTitle) return false
         if (link != other.link) return false
         if (description != other.description) return false
-        if (langSet != other.langSet) return false
+        if (langSet.size != other.langSet.size) return false
         if (author != other.author) return false
         if (imageUrl != other.imageUrl) return false
         if (episodes != other.episodes) return false
@@ -613,12 +612,12 @@ class Feed : RealmObject {
         if (sortInfo != other.sortInfo) return false
         if (username != other.username) return false
         if (password != other.password) return false
-        if (tags != other.tags) return false
-        if (repeatIntervals != other.repeatIntervals) return false
+        if (tags.size != other.tags.size) return false
+        if (repeatIntervals.size != other.repeatIntervals.size) return false
         if (filterStringADL != other.filterStringADL) return false
         if (autoDLInclude != other.autoDLInclude) return false
         if (autoDLExclude != other.autoDLExclude) return false
-        if (preferredLnaguages != other.preferredLnaguages) return false
+        if (preferredLnaguages.size != other.preferredLnaguages.size) return false
         if (isBuilding != other.isBuilding) return false
 
         return true
@@ -682,7 +681,7 @@ class Feed : RealmObject {
         result = 31 * result + (customTitle?.hashCode() ?: 0)
         result = 31 * result + (link?.hashCode() ?: 0)
         result = 31 * result + (description?.hashCode() ?: 0)
-        result = 31 * result + langSet.hashCode()
+        result = 31 * result + langSet.size
         result = 31 * result + (author?.hashCode() ?: 0)
         result = 31 * result + (imageUrl?.hashCode() ?: 0)
         result = 31 * result + episodes.hashCode()
@@ -699,12 +698,12 @@ class Feed : RealmObject {
         result = 31 * result + sortInfo.hashCode()
         result = 31 * result + (username?.hashCode() ?: 0)
         result = 31 * result + (password?.hashCode() ?: 0)
-        result = 31 * result + tags.hashCode()
-        result = 31 * result + repeatIntervals.hashCode()
+        result = 31 * result + tags.size
+        result = 31 * result + repeatIntervals.size
         result = 31 * result + filterStringADL.hashCode()
         result = 31 * result + (autoDLInclude?.hashCode() ?: 0)
         result = 31 * result + (autoDLExclude?.hashCode() ?: 0)
-        result = 31 * result + preferredLnaguages.hashCode()
+        result = 31 * result + preferredLnaguages.size
         result = 31 * result + isBuilding.hashCode()
         return result
     }
@@ -763,9 +762,8 @@ class Feed : RealmObject {
     }
 
     companion object {
-        val TAG: String = Feed::class.simpleName ?: "Anonymous"
+        private val TAG: String = Feed::class.simpleName ?: "Anonymous"
 
-        const val FEEDFILETYPE_FEED: Int = 0
         const val PREFIX_LOCAL_FOLDER: String = "podcini_local:"
         const val PREFIX_GENERATIVE_COVER: String = "podcini_generative_cover:"
 

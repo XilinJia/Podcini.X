@@ -2,7 +2,7 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.config.settings.OpmlBackupAgent.Companion.performRestore
+import ac.mdiq.podcini.config.OpmlBackupAgent.Companion.performRestore
 import ac.mdiq.podcini.config.settings.OpmlTransporter
 import ac.mdiq.podcini.config.settings.OpmlTransporter.OpmlElement
 import ac.mdiq.podcini.gears.gearbox
@@ -28,6 +28,10 @@ import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.utils.AddLocalFolder
+import ac.mdiq.podcini.storage.utils.UnifiedFile
+import ac.mdiq.podcini.storage.utils.saveTreeRoot
+import ac.mdiq.podcini.storage.utils.toAndroidUri
+import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
@@ -75,7 +79,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -86,7 +89,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
@@ -167,20 +169,20 @@ class FindFeedsVM: ViewModel() {
         context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
         runOnIOScope {
             try {
-                val documentFile = DocumentFile.fromTreeUri(context, uri)
-                requireNotNull(documentFile) { "Unable to retrieve document tree" }
-
+                saveTreeRoot(uri)
+                val documentFile = uri.toUF()
                 val feeds = mutableListOf<Feed>()
                 val volumes = mutableListOf<Volume>()
-                fun traverseDirectory(directory: DocumentFile?, parentId: Long = -1) {
-                    if (directory == null || !directory.isDirectory) return
 
-                    val content = directory.listFiles()
-                    val filesInThisDir = content.filter { it.isFile }
+                suspend fun traverseDirectory(directory: UnifiedFile?, parentId: Long = -1) {
+                    if (directory == null || !directory.isDirectory()) return
+
+                    val content = directory.listChildren()
+                    val filesInThisDir = content.filter { !it.isDirectory() }
 
                     if (filesInThisDir.isNotEmpty()) {
-                        Logd(TAG,"Found files in folder: ${directory.uri}")
-                        val uri = directory.uri
+                        Logd(TAG,"Found files in folder: ${directory.toAndroidUri()}")
+                        val uri = directory.toAndroidUri()
                         val title = directory.name ?: context.getString(R.string.local_folder)
                         val dirFeed = Feed(Feed.PREFIX_LOCAL_FOLDER + uri.toString(), null, title)
                         val fExist = feedByIdentityOrID(dirFeed)
@@ -196,15 +198,15 @@ class FindFeedsVM: ViewModel() {
                         } else Logt(TAG, "local feed already exists: $title $uri")
                     }
 
-                    val subDirsInThisDir = content.filter { it.isDirectory }
+                    val subDirsInThisDir = content.filter { it.isDirectory() }
                     if (subDirsInThisDir.isNotEmpty()) {
                         val v: Volume
-                        val vExist = realm.query(Volume::class).query("uriString == $0", directory.uri.toString()).first().find()
+                        val vExist = realm.query(Volume::class).query("uriString == $0", directory.absPath).first().find()
                         if (vExist == null) {
                             v = Volume()
                             v.id = getId()
-                            v.name = directory.name ?: "no name"
-                            v.uriString = directory.uri.toString()
+                            v.name = directory.name
+                            v.uriString = directory.absPath
                             v.parentId = parentId
                             v.isLocal = true
                             volumes.add(v)
@@ -234,7 +236,6 @@ class FindFeedsVM: ViewModel() {
 @Composable
 fun FindFeedsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current

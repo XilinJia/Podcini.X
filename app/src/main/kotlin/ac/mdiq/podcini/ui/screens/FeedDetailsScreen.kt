@@ -26,6 +26,8 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.FeedFunding
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.AddLocalFolder
+import ac.mdiq.podcini.storage.utils.nowInMillis
+import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.actions.playActions
@@ -129,8 +131,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
-import androidx.core.net.toUri
-import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
@@ -154,8 +154,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.net.URL
-import ac.mdiq.podcini.storage.utils.nowInMillis
 
 
 enum class FeedScreenMode {
@@ -255,8 +253,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         runOnIOScope {
             try {
-                val documentFile = DocumentFile.fromTreeUri(context, uri)
-                requireNotNull(documentFile) { "Unable to retrieve document tree" }
                 if (feed != null) {
                     val feed_ = upsert(feed!!) { it.downloadUrl = Feed.PREFIX_LOCAL_FOLDER + uri.toString() }
                     updateFeedFull(feed_, removeUnlistedItems = true)
@@ -455,7 +451,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 expanded = false
                             })
                             if (!feed?.link.isNullOrBlank()) DropdownMenuItem(text = { Text(stringResource(R.string.visit_website_label)) }, onClick = {
-                                val isCallable = if (!feed?.link.isNullOrEmpty()) isCallable(Intent(Intent.ACTION_VIEW, feed!!.link!!.toUri())) else false
+                                val isCallable = if (!feed?.link.isNullOrEmpty()) isCallable(Intent(Intent.ACTION_VIEW, feed!!.link!!.toSafeUri())) else false
                                 if (isCallable) openInBrowser(feed!!.link!!)
                                 else Loge(TAG, "feed link is not valid: ${feed?.link}")
                                 expanded = false
@@ -468,7 +464,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 showConnectLocalFolderConfirm.value = true
                                 expanded = false
                             })
-                            if (vm.feedEpisodesSize > 0 && feed?.downloadUrl != null && !gearbox.isGearFeed(URL(feed!!.downloadUrl!!))) DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {
+                            if (vm.feedEpisodesSize > 0 && feed?.downloadUrl != null && !gearbox.isGearFeed(feed!!.downloadUrl!!)) DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {
                                 feedOperationText = context.getString(R.string.fetch_size)
                                 scope.launch(Dispatchers.IO) {
                                     val feedEpisodes = getEpisodes(null, null, feedId, copy = false)
@@ -534,6 +530,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         Spacer(modifier = Modifier.weight(0.2f))
                         Text(stringResource(R.string.episodes_label) + ": " + (vm.feedEpisodesSize).toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                     }
+                    if (feed?.inNormalVolume != true) Text(stringResource(R.string.archived_feed), color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                     Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                     Text(HtmlToPlainText.getPlainText(feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
                 }
@@ -660,10 +657,10 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 val actionButtonName = remember(feed?.prefActionType, feed?.downloadUrl) {
                     when {
                         feed == null -> null
-                        feed?.downloadUrl?.startsWith(Feed.PREFIX_LOCAL_FOLDER) == true -> ButtonTypes.PLAY.name
+                        feed?.isLocalFeed == true -> ButtonTypes.PLAY.name
                         feed?.prefActionType != null -> feed!!.prefActionType!!
                         feed?.downloadUrl == null -> null
-                        gearbox.isGearFeed(URL(feed!!.downloadUrl!!)) -> ButtonTypes.STREAM.name
+                        gearbox.isGearFeed(feed!!.downloadUrl!!) -> ButtonTypes.STREAM.name
                         else -> null
                     } }
                 Logd(TAG, "actionButtonName: $actionButtonName")

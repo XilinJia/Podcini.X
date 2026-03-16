@@ -14,7 +14,7 @@ import ac.mdiq.podcini.net.sync.transceive.sendEpisodes
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
+import ac.mdiq.podcini.playback.base.Media3Player.Companion.exoPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
@@ -49,8 +49,10 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.fromCode
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationStringFull
-import ac.mdiq.podcini.storage.utils.getDurationStringLocalized
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
+import ac.mdiq.podcini.storage.utils.loadChapters
+import ac.mdiq.podcini.storage.utils.nowInMillis
+import ac.mdiq.podcini.storage.utils.toAndroidUri
 import ac.mdiq.podcini.ui.actions.ActionButton.Companion.playVideoIfNeeded
 import ac.mdiq.podcini.ui.screens.SearchBy
 import ac.mdiq.podcini.ui.utils.SearchAlgo
@@ -66,7 +68,6 @@ import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.shareFeedItemFile
 import ac.mdiq.podcini.utils.shareFeedItemLinkWithDownloadLink
 import ac.mdiq.podcini.utils.shareLink
-import android.net.Uri
 import android.view.Gravity
 import androidx.collection.LruCache
 import androidx.compose.foundation.BorderStroke
@@ -88,8 +89,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -122,7 +121,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
@@ -152,6 +150,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -164,7 +163,6 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import ac.mdiq.podcini.storage.utils.nowInMillis
 import kotlin.time.Instant
 
 
@@ -219,50 +217,6 @@ fun ShareDialog(item: Episode, onDismissRequest: () -> Unit) {
         },
         dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
     )
-}
-
-
-@Composable
-fun ChaptersDialog(media: Episode, onDismissRequest: () -> Unit) {
-    CommonPopupCard(onDismissRequest = onDismissRequest) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            val lazyListState = rememberLazyListState()
-            val chapters = remember { media.chapters }
-            val textColor = MaterialTheme.colorScheme.onSurface
-            Text(stringResource(R.string.chapters_label))
-            var currentChapterIndex by remember { mutableIntStateOf(-1) }
-            LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(chapters.size, key = { index -> chapters[index].start }) { index ->
-                    val ch = chapters[index]
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        //                            if (!ch.imageUrl.isNullOrEmpty()) {
-                        //                                val imgUrl = ch.imageUrl
-                        //                                AsyncImage(model = imgUrl, contentDescription = "imgvCover",
-                        //                                    placeholder = painterResource(R.drawable.ic_launcher_foreground),
-                        //                                    error = painterResource(R.drawable.ic_launcher_foreground),
-                        //                                    modifier = Modifier.width(56.dp).height(56.dp))
-                        //                            }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(durationStringFull(ch.start.toInt()), color = textColor)
-                            Text(ch.title ?: "No title", color = textColor, fontWeight = FontWeight.Bold)
-                            //                                Text(ch.link?: "")
-                            val duration = if (index + 1 < chapters.size) chapters[index + 1].start - ch.start
-                            else media.duration - ch.start
-                            Text(stringResource(R.string.chapter_duration0) + getDurationStringLocalized(duration), color = textColor)
-                        }
-                        val playRes = if (index == currentChapterIndex) R.drawable.ic_replay else R.drawable.ic_play_48dp
-                        Icon(imageVector = ImageVector.vectorResource(playRes), tint = textColor, contentDescription = "play button",
-                            modifier = Modifier.width(28.dp).height(32.dp).clickable {
-                                if (!isPlaying) playPause()
-                                mPlayer?.seekTo(ch.start.toInt())
-                                currentChapterIndex = index
-                            })
-                    }
-                }
-            }
-        }
-    }
 }
 
 @Composable
@@ -346,9 +300,8 @@ fun TodoDialog(episode: Episode, todo: Todo? = null, onDismissRequest: () -> Uni
 val webDataCache = LruCache<Long, String>(10)
 
 @Composable
-fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true) {
+fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters: Boolean = false) {
     val textColor = MaterialTheme.colorScheme.onSurface
-    val scope = rememberCoroutineScope()
     var webviewData by remember { mutableStateOf<String?>("") }
     var playerLocal: ExoPlayer? by remember { mutableStateOf(null) }
 
@@ -356,6 +309,8 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true) {
     var showTagsSettingDialog by remember { mutableStateOf(false) }
     var showTodoDialog by remember { mutableStateOf(false) }
     var onTodo by remember { mutableStateOf<Todo?>(null) }
+
+    LaunchedEffect(Unit) { if (fetchChapters) withContext(Dispatchers.IO) { loadChapters(episode, false) }}
 
     if (showEditComment) {
         var commentText by remember { mutableStateOf(TextFieldValue(episode.compileCommentText())) }
@@ -375,8 +330,8 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true) {
         if (fetchWebdata) {
             webviewData = webDataCache[episode.id]
             if (webviewData.isNullOrBlank()) {
-                Logd(TAG, "description: ${episode.description}")
-                scope.launch(Dispatchers.IO) {
+//                Logd(TAG, "description: ${episode.description}")
+                withContext(Dispatchers.IO) {
                     episode.let {
                         webviewData = gearbox.buildWebviewData(it)
                         if (webviewData != null) webDataCache.put(it.id, webviewData!!)
@@ -475,7 +430,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true) {
                 AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { cliptToRemove = "" }, text = { Text(stringResource(R.string.ask_remove_clip, cliptToRemove.substringBefore("."))) }, confirmButton = {
                     TextButton(onClick = {
                         runOnIOScope {
-                            val file = episode.getClipFile(cliptToRemove)
+                            val file = episode.getClipFile1(cliptToRemove)
                             file.delete()
                             upsert(episode) { it.clips.remove(cliptToRemove) }
                             withContext(Dispatchers.Main) { cliptToRemove = "" }
@@ -487,12 +442,13 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true) {
             FlowRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
                 episode.clips.forEach { clip ->
                     FilterChip(onClick = {
-                        val file = episode.getClipFile(clip)
-                        if (playerLocal != null && file.exists()) {
-                            playerLocal!!.setMediaItem(MediaItem.fromUri(Uri.fromFile(file)))
+                        val file = episode.getClipFile1(clip)
+                        val uri = file.toAndroidUri()
+                        if (playerLocal != null && uri != null && runBlocking { file.exists() }) {
+                            playerLocal!!.setMediaItem(MediaItem.fromUri(uri))
                             playerLocal!!.prepare()
                             playerLocal!!.play()
-                        } else Loge(TAG, "clip file doesn't exist: ${file.path}")
+                        } else Loge(TAG, "clip file doesn't exist: ${file.absPath}")
                     }, label = { Text(clip.substringBefore(".")) }, selected = false, trailingIcon = {
                         Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete", modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { cliptToRemove = clip }))
                     })
@@ -916,7 +872,8 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                     Row(modifier = Modifier.padding(start = 5.dp).fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Absolute.Left, verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.join_categories_with) + " :", style = MaterialTheme.typography.bodyMedium , color = textColor, modifier = Modifier.padding(end = 10.dp))
                         Spacer(Modifier.width(30.dp))
-                        OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (andOr == "OR") buttonColor else buttonAltColor),
+                        OutlinedButton(
+                            modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (andOr == "OR") buttonColor else buttonAltColor),
                             onClick = {
                                 andOr = "AND"
                                 filter.andOr = andOr
@@ -924,7 +881,8 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                             },
                         ) { Text(text = "AND", color = textColor) }
                         Spacer(Modifier.width(20.dp))
-                        OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (andOr == "AND") buttonColor else buttonAltColor),
+                        OutlinedButton(
+                            modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (andOr == "AND") buttonColor else buttonAltColor),
                             onClick = {
                                 andOr = "OR"
                                 filter.andOr = andOr
@@ -984,7 +942,8 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                         }
                         if (expandRow) ScrollRowGrid(columns = 3, itemCount = tagList.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                             LaunchedEffect(Unit) { if (filter.containsTag(tagList[index])) selectedList[index].value = true }
-                            OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
+                            OutlinedButton(
+                                modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                 onClick = {
                                     selectNone = false
                                     selectedList[index].value = !selectedList[index].value
@@ -1008,7 +967,8 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                             }
                             Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge , color = textColor, modifier = Modifier.padding(end = 10.dp))
                             Spacer(Modifier.width(30.dp))
-                            OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) buttonColor else buttonAltColor),
+                            OutlinedButton(
+                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) buttonColor else buttonAltColor),
                                 onClick = {
                                     if (selectedIndex != 0) {
                                         selectNone = false
@@ -1024,7 +984,8 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                                 },
                             ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
                             Spacer(Modifier.width(20.dp))
-                            OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) buttonColor else buttonAltColor),
+                            OutlinedButton(
+                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) buttonColor else buttonAltColor),
                                 onClick = {
                                     if (selectedIndex != 1) {
                                         selectNone = false
@@ -1083,7 +1044,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                                             },
                                             trailingIcon = {
                                                 if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
-                                                    modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
+                                                    modifier = Modifier.size(30.dp).clickable(onClick = {
                                                         filter.titleText = titleText
                                                         showIcon = false
                                                     }))
@@ -1111,7 +1072,8 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                                 LaunchedEffect(Unit) {
                                     if (item.properties[index].filterId in filter.propertySet) selectedList[index].value = true
                                 }
-                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
+                                OutlinedButton(
+                                    modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                     onClick = {
                                         selectNone = false
                                         selectedList[index].value = !selectedList[index].value
@@ -1275,16 +1237,13 @@ fun DatesFilterDialog(from: Long? = null, to: Long? = null, oldestDate: Long, on
 
 @Composable
 fun MulticastDialog(selected: List<Episode>, onDismiss: ()->Unit) {
-    val scope = rememberCoroutineScope()
-
     var udpPort by remember(appAttribs.udpPort) { mutableIntStateOf(appAttribs.udpPort) }
     var synthName by remember { mutableStateOf("") }
     var receivers by remember { mutableStateOf<List<DiscoveredReceiver>>(listOf()) }
     val sendJobs = remember { mutableStateMapOf<String, Job>() }
     var started by remember { mutableStateOf(false) }
-    var discoverJob by remember { mutableStateOf<Job?>(null) }
     LaunchedEffect(Unit) {
-        discoverJob = scope.launch {
+        withContext(Dispatchers.IO) {
             listenForUDPBroadcasts(udpPort) { list ->
                 if (list.isNotEmpty()) {
                     receivers = list
@@ -1294,7 +1253,6 @@ fun MulticastDialog(selected: List<Episode>, onDismiss: ()->Unit) {
         }
     }
     fun cleanup() {
-        discoverJob?.cancel()
         sendJobs.forEach { it.value.cancel() }
         onDismiss()
     }

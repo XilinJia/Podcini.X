@@ -22,7 +22,10 @@ import ac.mdiq.podcini.storage.model.Timer
 import ac.mdiq.podcini.storage.model.Todo
 import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.storage.utils.customMediaUriString
+import ac.mdiq.podcini.storage.utils.findRootForUri
 import ac.mdiq.podcini.storage.utils.nowInMillis
+import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.ui.screens.DefaultPages
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
@@ -34,7 +37,9 @@ import io.github.xilinjia.krdb.RealmConfiguration
 import io.github.xilinjia.krdb.UpdatePolicy
 import io.github.xilinjia.krdb.dynamic.DynamicMutableRealmObject
 import io.github.xilinjia.krdb.dynamic.DynamicRealmObject
+import io.github.xilinjia.krdb.dynamic.getNullableValue
 import io.github.xilinjia.krdb.dynamic.getValue
+import io.github.xilinjia.krdb.dynamic.getValueSet
 import io.github.xilinjia.krdb.ext.isManaged
 import io.github.xilinjia.krdb.notifications.InitialObject
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
@@ -80,7 +85,7 @@ val config: RealmConfiguration by lazy {
         FacetsPrefs::class,
         SleepPrefs::class,
         SyncPrefs::class,
-    )).name("Podcini.realm").schemaVersion(116)
+    )).name("Podcini.realm").schemaVersion(124)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -179,6 +184,30 @@ val config: RealmConfiguration by lazy {
                         prefsNew.set("defaultPage", DefaultPages.Library.name)
                         val att = newRealm.query("AppAttribs").first().find()
                         att?.set("restoreLastScreen", true)
+                    }
+                }
+            }
+            if (oldRealm.schemaVersion() < 124) {
+                Log.d(TAG, "migrating DB from below 124")
+                val prefsNew = newRealm.query("AppPrefs").first().find()
+                if (prefsNew != null) {
+                    val rts = mutableSetOf<String>()
+                    val useCustDir = prefsNew.getValue<Boolean>("useCustomMediaFolder")
+                    if (useCustDir) {
+                        val custDir = prefsNew.getValue<String>("customMediaUri")
+                        if (custDir.isNotBlank()) findRootForUri(customMediaUriString.toSafeUri())?.let { rts.add(it.toString()) }
+                    }
+                    val autobk = prefsNew.getValue<Boolean>("autoBackup")
+                    if (autobk) {
+                        val backupDir = prefsNew.getNullableValue<String>("autoBackupFolder")
+                        if (!backupDir.isNullOrBlank()) rts.add(backupDir)
+                    }
+                    if (rts.isNotEmpty()) {
+                        val attribs = newRealm.query("AppAttribs").first().find()
+                        if (attribs != null) {
+                            val rootSet = attribs.getValueSet<String>("treeRoots")
+                            rootSet.addAll(rts)
+                        }
                     }
                 }
             }

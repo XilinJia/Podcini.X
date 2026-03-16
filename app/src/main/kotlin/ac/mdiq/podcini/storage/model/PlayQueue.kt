@@ -115,6 +115,48 @@ class PlayQueue : RealmObject {
             if(launchAutoEQDlWhenEmpty) autodownloadForQueue(this)
         }
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as PlayQueue
+
+        if (id != other.id) return false
+        if (playInSequence != other.playInSequence) return false
+        if (updated != other.updated) return false
+        if (enqueueLocation != other.enqueueLocation) return false
+        if (launchAutoEQDlWhenEmpty != other.launchAutoEQDlWhenEmpty) return false
+        if (autoDownloadEpisodes != other.autoDownloadEpisodes) return false
+        if (sortOrderCode != other.sortOrderCode) return false
+        if (autoSort != other.autoSort) return false
+        if (isLocked != other.isLocked) return false
+        if (scrollPosition != other.scrollPosition) return false
+        if (binLimit != other.binLimit) return false
+        if (name != other.name) return false
+        if (identity != other.identity) return false
+        if (idsBinList.size != other.idsBinList.size) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = id.hashCode()
+        result = 31 * result + playInSequence.hashCode()
+        result = 31 * result + updated.hashCode()
+        result = 31 * result + enqueueLocation
+        result = 31 * result + launchAutoEQDlWhenEmpty.hashCode()
+        result = 31 * result + autoDownloadEpisodes.hashCode()
+        result = 31 * result + sortOrderCode
+        result = 31 * result + autoSort.hashCode()
+        result = 31 * result + isLocked.hashCode()
+        result = 31 * result + scrollPosition
+        result = 31 * result + binLimit
+        result = 31 * result + name.hashCode()
+        result = 31 * result + identity.hashCode()
+        result = 31 * result + idsBinList.size
+        return result
+    }
 }
 
 fun tmpQueue(): PlayQueue = PlayQueue().apply { id = TMP_QUEUE_ID }

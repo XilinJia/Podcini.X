@@ -1,6 +1,5 @@
 package ac.mdiq.podcini.config.settings
 
-import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -8,18 +7,23 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.storage.utils.OKPath
+import ac.mdiq.podcini.storage.utils.UnifiedFile
+import ac.mdiq.podcini.storage.utils.div
+import ac.mdiq.podcini.storage.utils.fs
+import ac.mdiq.podcini.storage.utils.internalDir
+import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.utils.Logd
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import androidx.core.database.getStringOrNull
 import io.github.xilinjia.krdb.ext.realmSetOf
 import io.github.xilinjia.krdb.ext.toRealmSet
-import java.io.File
-import java.io.FileInputStream
-import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
+import kotlinx.io.IOException
+import okio.buffer
+import okio.openZip
 
-fun importPA(uri: Uri, importDb: Boolean, importDirectory: Boolean, onDismiss: ()->Unit) {
+suspend fun importPA(uri: Uri, importDb: Boolean, importDirectory: Boolean, onDismiss: ()->Unit) {
     val TAG = "importPA"
 
     val idImageMap = mutableMapOf<Int, String>()
@@ -126,7 +130,7 @@ fun importPA(uri: Uri, importDb: Boolean, importDirectory: Boolean, onDismiss: (
         return feedIds
     }
 
-    fun buildFeeds(db: SQLiteDatabase) {
+    suspend fun buildFeeds(db: SQLiteDatabase) {
         buildImageMap(db)
 
         val idTagMap = mutableMapOf<Int, String>()
@@ -322,43 +326,42 @@ fun importPA(uri: Uri, importDb: Boolean, importDirectory: Boolean, onDismiss: (
         }
     }
 
-    fun deleteDirectory(directory: File): Boolean {
-        if (directory.isDirectory) {
-            directory.listFiles()?.forEach { file ->
-                if (file.isDirectory) deleteDirectory(file)
+    suspend fun deleteDirectory(directory: UnifiedFile) {
+        if (directory.isDirectory()) {
+            directory.listChildren().forEach { file ->
+                if (file.isDirectory()) deleteDirectory(file)
                 else file.delete()
             }
         }
-        return directory.delete()
+        directory.delete()
     }
 
-    fun unzip(zipFile: File, targetDir: File) {
-        ZipInputStream(FileInputStream(zipFile)).use { zipInputStream ->
-            var entry: ZipEntry?
-            while (zipInputStream.nextEntry.also { entry = it } != null) {
-                val file = File(targetDir, entry!!.name)
-                if (entry.isDirectory) file.mkdirs()
-                else file.outputStream().use { outputStream -> zipInputStream.copyTo(outputStream) }
-                zipInputStream.closeEntry()
+    var unzipDir: UnifiedFile? = null
+
+    suspend fun unzipArchive(): UnifiedFile? {
+        val zipFileName = "tempArchive.zip"
+        val zipFile = internalDir / zipFileName
+        val sourcePath = uri.toUF()
+        sourcePath.source().use { bufferedSource -> zipFile.sink().buffer().use { sink -> sink.writeAll(bufferedSource) } }
+
+        unzipDir = internalDir / "UnzippedFiles"
+        if (unzipDir!!.exists()) deleteDirectory(unzipDir!!)
+        unzipDir = internalDir.createDirectory("UnzippedFiles")
+
+        val unzipPath = unzipDir!!
+        fs.openZip(zipFile.absPath.OKPath()).use { zipFs ->
+            zipFs.listRecursively(".".OKPath()).forEach { entry ->
+                var outPath = unzipPath / entry.toString()
+                if (zipFs.metadata(entry).isDirectory) outPath = unzipPath.createDirectory(entry.toString())
+                else {
+//                    outPath.parent()?.createDirectories()
+                    zipFs.source(entry).buffer().use { source -> outPath.sink().buffer().use { sink -> source.readAll(sink) } }
+                }
             }
         }
-    }
 
-    var unzipDir: File? = null
-
-    fun unzipArchive(): File? {
-        val internalDir = getAppContext().filesDir
-        val zipFileName = "tempArchive.zip"
-        val zipFile = File(internalDir, zipFileName)
-
-        getAppContext().contentResolver.openInputStream(uri)?.use { inputStream -> zipFile.outputStream().use { outputStream -> inputStream.copyTo(outputStream) } } ?: throw IllegalArgumentException("Unable to read from URI: $uri")
-
-        unzipDir = File(internalDir, "UnzippedFiles")
-        if (unzipDir.exists()) deleteDirectory(unzipDir)
-        unzipDir.mkdir()
-        unzip(zipFile, unzipDir)
         zipFile.delete()
-        val targetFile = File(unzipDir, "podcastAddict.db")
+        val targetFile = unzipDir / "podcastAddict.db"
         return if (targetFile.exists()) targetFile else null
     }
 
@@ -367,7 +370,7 @@ fun importPA(uri: Uri, importDb: Boolean, importDirectory: Boolean, onDismiss: (
     val dbFile = unzipArchive() ?: return
     Logd(TAG, "chooseAPImportPathLauncher: dbFile: $dbFile")
 
-    val database = SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READONLY)
+    val database = SQLiteDatabase.openDatabase(dbFile.absPath, null, SQLiteDatabase.OPEN_READONLY)
 
     if (importDb) buildFeeds(database)
 

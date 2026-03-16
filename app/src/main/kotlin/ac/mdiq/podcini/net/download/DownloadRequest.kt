@@ -1,25 +1,31 @@
-package ac.mdiq.podcini.net.download.service
+package ac.mdiq.podcini.net.download
 
-import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
+import ac.mdiq.podcini.net.utils.NetworkUtils
+import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.Episode.Companion.FEEDFILETYPE_FEEDMEDIA
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.Feed.Companion.FEEDFILETYPE_FEED
+import ac.mdiq.podcini.storage.utils.cacheDir
+import ac.mdiq.podcini.storage.utils.div
+import ac.mdiq.podcini.storage.utils.toUF
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
 import android.os.Bundle
-import android.os.Parcel
+
+enum class RequestTye { FEED, FEEDMEDIA }
 
 class DownloadRequest private constructor(
-        val destination: String?,
-        val source: String?,
-        val title: String?,
-        val feedfileId: Long,
-        val feedfileType: Int,
-        var lastModified: String?,
-        var username: String?,
-        var password: String?,
-        private val mediaEnqueued: Boolean,
-        val arguments: Bundle?,
-        private val initiatedByUser: Boolean) {
+    var destination: String,
+    val source: String?,
+    val title: String?,
+    val feedfileId: Long,
+    val feedfileType: Int,
+    var lastModified: String?,
+    var username: String?,
+    var password: String?,
+    private val mediaEnqueued: Boolean,
+    val arguments: Bundle?,
+    private val initiatedByUser: Boolean) {
 
     var progressPercent: Int = 0
     var soFar: Long = 0
@@ -38,21 +44,6 @@ class DownloadRequest private constructor(
         false,
         builder.arguments,
         builder.initiatedByUser)
-
-    private constructor(inVal: Parcel) : this(
-        inVal.readString(),
-        inVal.readString(),
-        inVal.readString(),
-        inVal.readLong(),
-        inVal.readInt(),
-        inVal.readString(),
-        nullIfEmpty(inVal.readString()),
-        nullIfEmpty(inVal.readString()),
-        inVal.readByte() > 0,
-        inVal.readBundle(DownloadRequest::class.java.classLoader),
-        inVal.readByte() > 0)
-
-//    override fun describeContents(): Int = 0
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -93,6 +84,17 @@ class DownloadRequest private constructor(
         return result
     }
 
+    suspend fun ensureMediaFileExists() {
+        val destinationPath = destination
+        Logd(TAG, "ensureMediaFileExists destinationUri: $destinationPath ")
+        var file = destinationPath.toUF()
+        if (!file.exists()) file = file.createFile()
+        if (!file.exists()) Loge(TAG, "ensureMediaFileExists no: ${file.absPath}")
+        Logd(TAG, "ensureMediaFileExists request.destination: $destination")
+        Logd(TAG, "ensureMediaFileExists file.absPath: ${file.absPath}")
+        destination = file.absPath
+    }
+
     class Builder {
         internal val destination: String
         var source: String?
@@ -107,29 +109,26 @@ class DownloadRequest private constructor(
 
         constructor(destination: String, media: Episode) {
             this.destination = destination
-            this.source = if (media.downloadUrl != null) prepareUrl(media.downloadUrl!!) else null
+            this.source = if (media.downloadUrl != null) NetworkUtils.prepareUrl(media.downloadUrl!!) else null
             this.title = media.title ?: media.downloadUrl
             this.feedfileId = media.id
-            this.feedfileType = FEEDFILETYPE_FEEDMEDIA
+            this.feedfileType = RequestTye.FEEDMEDIA.ordinal
         }
         constructor(destination: String, feed: Feed) {
             this.destination = destination
             this.source = when {
                 feed.isLocalFeed -> feed.downloadUrl
-                feed.downloadUrl != null -> prepareUrl(feed.downloadUrl!!)
+                feed.downloadUrl != null -> NetworkUtils.prepareUrl(feed.downloadUrl!!)
                 else -> null
             }
             this.title = feed.getTextIdentifier()
             this.feedfileId = feed.id
-            this.feedfileType = FEEDFILETYPE_FEED
+            this.feedfileType = RequestTye.FEED.ordinal
             arguments.putInt(REQUEST_ARG_PAGE_NR, feed.pageNr)
         }
         fun withInitiatedByUser(initiatedByUser: Boolean): Builder {
             this.initiatedByUser = initiatedByUser
             return this
-        }
-        fun setForce(force: Boolean) {
-            if (force) lastModified = null
         }
         fun lastModified(lastModified: String?): Builder {
             this.lastModified = lastModified
@@ -144,9 +143,30 @@ class DownloadRequest private constructor(
     }
 
     companion object {
+        private const val TAG = "DownloadRequest"
         const val REQUEST_ARG_PAGE_NR: String = "page"
 
-        private fun nullIfEmpty(str: String?): String? = if (str.isNullOrEmpty()) null else str
+        suspend fun requestFor(feed: Feed): Builder {
+            val dest = cacheDir / feed.getFeedfileName()
+            if (dest.exists()) runOnIOScope { dest.delete() }
+            Logd(TAG, "requestFor download feed from url " + feed.downloadUrl)
+            val username = feed.username
+            val password = feed.password
+            return Builder(dest.absPath, feed).withAuthentication(username, password).lastModified(feed.lastUpdate)
+        }
 
+        suspend fun requestFor(media: Episode): Builder {
+            Logd(TAG, "requestFor: ${media.fileUrl} ${media.title}")
+            val destUriString = try { media.getMediaFileUriString() } catch (e: Throwable ) {
+                Logs(TAG, e, "destUriString is invalid")
+                ""
+            }
+            Logd(TAG, "requestFor destUriString: $destUriString")
+            if (destUriString.isBlank()) Loge(TAG, "destUriString is empty")
+            val feed = media.feed
+            val username = feed?.username
+            val password = feed?.password
+            return Builder(destUriString, media).withAuthentication(username, password)
+        }
     }
 }

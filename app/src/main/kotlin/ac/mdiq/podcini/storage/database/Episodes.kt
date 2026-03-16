@@ -2,8 +2,7 @@ package ac.mdiq.podcini.storage.database
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.net.download.DownloadError
-import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
+import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
@@ -12,7 +11,6 @@ import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.currentPlaybackSpeed
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.ACTION_SHUTDOWN_PLAYBACK_SERVICE
-import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
@@ -21,29 +19,24 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.EpisodeState.Companion.fromCode
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
+import ac.mdiq.podcini.storage.utils.nowInMillis
+import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.sendLocalBroadcast
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.net.toUri
-import androidx.documentfile.provider.DocumentFile
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
-import java.io.File
-
-import java.util.Locale
 import kotlin.math.min
-import ac.mdiq.podcini.storage.utils.nowInMillis
 
 private const val TAG: String = "Episodes"
 
@@ -120,7 +113,7 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
     val context = getAppContext()
     val localItems: MutableList<Episode> = mutableListOf()
     val repeatItems: MutableList<Episode> = mutableListOf()
-    fun deleteItems(items_: List<Episode>) {
+    suspend fun deleteItems(items_: List<Episode>) {
         deleteMedias(items_)
         if (appPrefs.deleteRemovesFromQueue) removeFromAllQueues(items_)
     }
@@ -194,55 +187,23 @@ suspend fun eraseEpisodes(episodes: List<Episode>, msg: String, saveLog: Boolean
     EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
 }
 
-
-fun deleteMedia(episode: Episode): Episode {
+suspend fun deleteMedia(episode: Episode): Episode {
     val context = getAppContext()
-    Logd(TAG, String.format(Locale.US, "deleteMedia [id=%d, title=%s, downloaded=%s", episode.id, episode.getEpisodeTitle(), episode.downloaded))
+    Logd(TAG, "deleteMedia [id=${episode.id}, title=${episode.getEpisodeTitle()}, downloaded=${episode.downloaded}")
     var localDelete = false
     val url = episode.fileUrl
     Logd(TAG, "deleteMedia $url")
     var episode = episode
     try {
-        when {
-            url != null && url.startsWith("content://") -> {
-                // Local feed or custom media folder
-                val documentFile = DocumentFile.fromSingleUri(context, url.toUri())
-                if (documentFile == null || !documentFile.exists() || !documentFile.delete()) {
-                    Loge(TAG, "deleteMedia delete media file failed: file not exists? ${episode.title} $url")
-                    EventFlow.postEvent(FlowEvent.MessageEvent(getAppContext().getString(R.string.delete_local_failed)))
-                    return episode
-                }
-                episode = upsertBlk(episode) {
-                    it.fileUrl = null
-                    if (it.playState < EpisodeState.SKIPPED.code && !shouldPreserve(it.playState)) it.setPlayState(EpisodeState.SKIPPED)
-                }
-                // TODO: need to change event
-                EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode))
-                localDelete = true
+        if (url != null) {
+            val path = url.toUF()
+            path.delete()
+            episode = upsertBlk(episode) {
+                it.fileUrl = null
+                it.hasEmbeddedPicture = false
+                if (it.playState < EpisodeState.SKIPPED.code && !shouldPreserve(it.playState)) it.setPlayState(EpisodeState.SKIPPED)
             }
-            url != null -> {
-                // delete downloaded media file
-                val path = url.toUri().path
-                if (path == null) {
-                    Loge(TAG, "deleteMedia delete media file failed: file not exists? ${episode.title} $url")
-                    EventFlow.postEvent(FlowEvent.MessageEvent(getAppContext().getString(R.string.delete_local_failed)))
-                    return episode
-                }
-                val mediaFile = File(path)
-                if (mediaFile.exists() && !mediaFile.delete()) {
-                    Loge(TAG, "deleteMedia delete media file failed: file not exists? ${episode.title} $url")
-                    val evt = FlowEvent.MessageEvent(getAppContext().getString(R.string.delete_failed_simple) + ": $url")
-                    EventFlow.postEvent(evt)
-                    return episode
-                }
-                episode = upsertBlk(episode) {
-                    it.fileUrl = null
-                    it.hasEmbeddedPicture = false
-                    if (it.playState < EpisodeState.SKIPPED.code && !shouldPreserve(it.playState)) it.setPlayState(EpisodeState.SKIPPED)
-                }
-                // TODO: need to change event
-                EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode))
-            }
+            EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode))
         }
     } catch (e: Throwable) { Logs(TAG, e, "deleteMedia failed") }
 
@@ -253,25 +214,12 @@ fun deleteMedia(episode: Episode): Episode {
         nm.cancel(R.id.notification_playing)
     }
 
-    // Do full update of this feed to get rid of the episode
-    if (localDelete) {
-        if (episode.feed != null) {
-            try { updateLocalFeed(episode.feed!!, null)
-            } catch (e: Exception) {
-                Loge(TAG, "refreshFeeds: update failed ${episode.feed!!.title} ${e.message}")
-                persistFeedLastUpdateFailed(episode.feed!!, true)
-                val status = DownloadResult(episode.feed!!.id, episode.feed!!.title ?: "", DownloadError.ERROR_IO_ERROR, false, e.message ?: "")
-                addDownloadStatus(status)
-            }
-        }
-    } else {
-        if (isProviderConnected) {
-            // Gpodder: queue delete action for synchronization
-            val action = EpisodeAction.Builder(episode, EpisodeAction.DELETE).currentTimestamp().build()
-            SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(action)
-        }
-        EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode))
+    if (isProviderConnected) {
+        // Gpodder: queue delete action for synchronization
+        val action = EpisodeAction.Builder(episode, EpisodeAction.DELETE).currentTimestamp().build()
+        SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(action)
     }
+
     return episode
 }
 
@@ -281,7 +229,7 @@ fun deleteMedia(episode: Episode): Episode {
  * Deleting media also removes the download log entries.
  */
 
-fun deleteMedias(episodes: List<Episode>)  {
+suspend fun deleteMedias(episodes: List<Episode>)  {
     val removedFromQueue: MutableList<Episode> = mutableListOf()
     val queueItems = actQueue.episodes.toMutableList()
     for (episode in episodes) {
@@ -292,7 +240,7 @@ fun deleteMedias(episodes: List<Episode>)  {
             sendLocalBroadcast(ACTION_SHUTDOWN_PLAYBACK_SERVICE)
         }
         if (episode.feed != null && !episode.feed!!.isLocalFeed) {
-            DownloadServiceInterface.impl?.cancel(episode)
+            EpisodeAdrDLManager.manager?.cancel(episode)
             if (episode.downloaded) deleteMedia(episode)
         }
     }
@@ -356,8 +304,8 @@ suspend fun setPlayState(state: EpisodeState, episodes: List<Episode>, resetMedi
 
 fun buildListInfo(episodes: List<Episode>, total: Int = 0): String {
     Logd(TAG, "buildListInfo")
-    var infoText = String.format(Locale.getDefault(), "%d", episodes.size)
-    if (total > 0) infoText += "/" + String.format(Locale.getDefault(), "%d", total)
+    var infoText = episodes.size.toString()
+    if (total > 0) infoText += "/" + total.toString()
     if (episodes.isNotEmpty()) {
         var timeLeft: Long = 0
         for (item in episodes) timeLeft += ((item.duration - item.position) / (currentPlaybackSpeed(item).takeIf { it > 0 } ?: 1f)).toLong()

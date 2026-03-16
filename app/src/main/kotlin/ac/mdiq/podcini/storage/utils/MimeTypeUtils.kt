@@ -1,7 +1,6 @@
 package ac.mdiq.podcini.storage.utils
 
 import android.webkit.MimeTypeMap
-import org.apache.commons.io.FilenameUtils
 
 private const val OCTET_STREAM: String = "application/octet-stream"
 
@@ -12,12 +11,10 @@ fun getMimeType(type: String?, filename: String?): String? {
     return type
 }
 
-
 fun isMediaFile(type: String?): Boolean {
     return if (type == null) false
     else type.startsWith("audio/") || type.startsWith("video/") || type == "application/ogg" || type == "application/octet-stream"
 }
-
 
 fun isImageFile(type: String?): Boolean {
     return type?.startsWith("image/") ?: false
@@ -30,7 +27,7 @@ fun isImageFile(type: String?): Boolean {
 private fun getMimeTypeFromUrl(url: String?): String? {
     if (url == null) return null
 
-    val extension = FilenameUtils.getExtension(url)
+    val extension = url.substringAfterLast('.', "")
     val mapResult = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
     if (mapResult != null) return mapResult
 

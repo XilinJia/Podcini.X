@@ -40,7 +40,6 @@ object AppPreferences {
             appSPrefs = PreferenceManager.getDefaultSharedPreferences(getAppContext())
             AppSPrefs.entries.map { it.name }.forEach { key -> cachedPrefs[key] = appSPrefs.all[key] }
         }
-        createNoMediaFile()
         timeIt("$TAG end of init")
     }
 

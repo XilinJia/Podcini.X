@@ -1,9 +1,9 @@
 package ac.mdiq.podcini.activity
 
-import ac.mdiq.podcini.ui.screens.AppNavigator
-import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.AppThemes
+import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.appTheme
+import ac.mdiq.podcini.ui.screens.AppNavigator
 import ac.mdiq.podcini.ui.screens.PlayerUIScreen
 import ac.mdiq.podcini.utils.Logd
 import android.os.Bundle
@@ -21,7 +21,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.rememberNavController
 
 private const val TAG = "PlayerUIActivity"
@@ -29,7 +28,7 @@ class PlayerUIActivity : ComponentActivity() {
     private var lastTheme = appTheme
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+//        installSplashScreen()
         super.onCreate(savedInstanceState)
         Logd(TAG, "in onCreate")
 

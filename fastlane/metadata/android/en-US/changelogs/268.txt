@@ -1,0 +1,6 @@
+* added in the dynamic themes (Android 12 and above)
+* added setting on checking available storage at download time, default to false
+* fixed possible out of memory issues with reconcile and updateDB routines
+* fixed issue of exporting large number of media files
+* recorded clips are in external storage, together with downloaded media, existing clip files are moved
+* migrations to some platform-neutral dependencies, lots of rewrites and re-organizations

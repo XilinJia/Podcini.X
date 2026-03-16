@@ -2,10 +2,10 @@ package ac.mdiq.podcini.ui.screens.prefscreens
 
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.activity.BugReportActivity
 import ac.mdiq.podcini.config.settings.developerEmail
 import ac.mdiq.podcini.config.settings.getCopyrightNoticeText
 import ac.mdiq.podcini.config.settings.githubAddress
-import ac.mdiq.podcini.activity.BugReportActivity
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -54,7 +54,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,9 +72,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.io.IOException
 import java.io.BufferedReader
-import java.io.IOException
 import java.io.InputStreamReader
 import javax.xml.parsers.DocumentBuilderFactory
 
@@ -104,9 +103,9 @@ fun PrefsScreen() {
                     topAppBarTitle = stringResource(PrefScreens.InterfaceScreen.titleRes)
                     UserInterfaceScreen()
                 }
-                composable(PrefScreens.DownloadScreen.name) {
-                    topAppBarTitle = stringResource(PrefScreens.DownloadScreen.titleRes)
-                    NetworkScreen()
+                composable(PrefScreens.NetworkStorageScreen.name) {
+                    topAppBarTitle = stringResource(PrefScreens.NetworkStorageScreen.titleRes)
+                    NetworkStorageScreen()
                 }
                 composable(PrefScreens.ImportExportScreen.name) {
                     topAppBarTitle = stringResource(PrefScreens.ImportExportScreen.titleRes)
@@ -169,7 +168,7 @@ fun PrefPortalScreen(navController: NavController) {
         }
         IconTitleSummaryScreenRow(R.drawable.ic_appearance, R.string.user_interface_label, R.string.user_interface_sum, PrefScreens.InterfaceScreen.name)
         IconTitleSummaryScreenRow(R.drawable.ic_play_24dp, R.string.playback_pref, R.string.playback_pref_sum, PrefScreens.PlaybackScreen.name)
-        IconTitleSummaryScreenRow(R.drawable.ic_download, R.string.network_pref, R.string.downloads_pref_sum, PrefScreens.DownloadScreen.name)
+        IconTitleSummaryScreenRow(R.drawable.ic_download, R.string.network_storage_pref, R.string.downloads_pref_sum, PrefScreens.NetworkStorageScreen.name)
         IconTitleSummaryScreenRow(R.drawable.ic_storage, R.string.import_export_pref, R.string.import_export_summary, PrefScreens.ImportExportScreen.name)
         IconTitleActionRow(R.drawable.ic_notifications, R.string.notification_pref_fragment) { navController.navigate(PrefScreens.NotificationScreen.name) }
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
@@ -199,7 +198,7 @@ fun AboutScreen(navController: NavController) {
                 if (Build.VERSION.SDK_INT <= 32) Logt(TAG, context.getString(R.string.copied_to_clipboard))
             })) {
                 Text(stringResource(R.string.podcini_version), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
-                Text(String.format("%s", BuildConfig.VERSION_NAME), color = textColor)
+                Text(BuildConfig.VERSION_NAME, color = textColor)
             }
         }
         IconTitleSummaryActionRow(R.drawable.ic_questionmark, R.string.online_help, R.string.online_help_sum) { openInBrowser(githubAddress) }
@@ -220,21 +219,19 @@ fun AboutScreen(navController: NavController) {
 @Composable
 fun LicensesScreen() {
     val context by rememberUpdatedState(LocalContext.current)
-    val scope = rememberCoroutineScope()
     class LicenseItem(val title: String, val subtitle: String, val licenseUrl: String, val licenseTextFile: String)
     val licenses = remember { mutableStateListOf<LicenseItem>() }
     LaunchedEffect(Unit) {
-        scope.launch(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
             licenses.clear()
             val stream = context.assets.open("licenses.xml")
             val docBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
             val libraryList = docBuilder.parse(stream).getElementsByTagName("library")
             for (i in 0 until libraryList.length) {
                 val lib = libraryList.item(i).attributes
-                licenses.add(LicenseItem(lib.getNamedItem("name").textContent,
-                    String.format("By %s, %s license", lib.getNamedItem("author").textContent, lib.getNamedItem("license").textContent), lib.getNamedItem("website").textContent, lib.getNamedItem("licenseText").textContent))
+                licenses.add(LicenseItem(lib.getNamedItem("name").textContent, "By ${lib.getNamedItem("author").textContent}, ${lib.getNamedItem("license").textContent} license", lib.getNamedItem("website").textContent, lib.getNamedItem("licenseText").textContent))
             }
-        }.invokeOnCompletion { throwable -> if (throwable!= null) Logs(TAG, throwable) }
+        }
     }
     val lazyListState = rememberLazyListState()
     val textColor = MaterialTheme.colorScheme.onSurface
@@ -289,7 +286,7 @@ enum class PrefScreens(val titleRes: Int) {
     PortalScreen(R.string.settings_label),
     InterfaceScreen(R.string.user_interface_label),
     PlaybackScreen(R.string.playback_pref),
-    DownloadScreen(R.string.network_pref),
+    NetworkStorageScreen(R.string.network_storage_pref),
     ImportExportScreen(R.string.import_export_pref),
     NotificationScreen(R.string.notification_pref_fragment),
     AboutScreen(R.string.about_pref),

@@ -74,6 +74,8 @@ fun UserInterfaceScreen() {
             Text(stringResource(R.string.pref_theme_title_dark), color = textColor, fontWeight = FontWeight.Bold)
             Spacer(Modifier.weight(1f))
         }
+        TitleSummarySwitchRow(R.string.pref_dynamic_theme_title, R.string.pref_dynamic_theme_message, appPrefs.useDynamicThemes) {
+            upsertBlk(appPrefs) { p-> p.useDynamicThemes = it } }
         TitleSummarySwitchRow(R.string.pref_black_theme_title, R.string.pref_black_theme_message, appPrefs.themeBlack) {
             upsertBlk(appPrefs) { p-> p.themeBlack = it } }
         TitleSummarySwitchRow(R.string.pref_episode_cover_title, R.string.pref_episode_cover_summary, appPrefs.useEpisodeCover) {

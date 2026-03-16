@@ -5,7 +5,6 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.settings.DatabaseTransporter
 import ac.mdiq.podcini.config.settings.DocumentFileExportWorker
-import ac.mdiq.podcini.config.settings.EpisodeProgressReader
 import ac.mdiq.podcini.config.settings.EpisodesProgressWriter
 import ac.mdiq.podcini.config.settings.ExportTypes
 import ac.mdiq.podcini.config.settings.ExportWorker
@@ -16,11 +15,21 @@ import ac.mdiq.podcini.config.settings.MediaFilesTransporter
 import ac.mdiq.podcini.config.settings.OpmlTransporter
 import ac.mdiq.podcini.config.settings.OpmlTransporter.OpmlElement
 import ac.mdiq.podcini.config.settings.OpmlTransporter.OpmlWriter
-import ac.mdiq.podcini.config.settings.autoBackupDirName
 import ac.mdiq.podcini.config.settings.importAP
 import ac.mdiq.podcini.config.settings.importPA
+import ac.mdiq.podcini.net.sync.SyncService.Companion.isValidGuid
+import ac.mdiq.podcini.net.sync.model.EpisodeAction
+import ac.mdiq.podcini.net.sync.model.EpisodeAction.Companion.readFromJsonObject
 import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.database.episodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.storage.utils.autoBackupDirName
+import ac.mdiq.podcini.storage.utils.saveTreeRoot
+import ac.mdiq.podcini.storage.utils.toAndroidUri
+import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
@@ -31,6 +40,7 @@ import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.dateStampFilename
 import android.app.Activity.RESULT_OK
@@ -80,23 +90,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ShareCompat.IntentBuilder
-import androidx.core.content.FileProvider
-import androidx.documentfile.provider.DocumentFile
+import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import java.io.BufferedReader
-import java.io.IOException
-import java.io.InputStream
-import java.io.InputStreamReader
+import okio.BufferedSource
+import okio.buffer
+import org.json.JSONArray
 
 @Composable
 fun ImportExportScreen() {
     val context by rememberUpdatedState(LocalContext.current)
     val TAG = "ImportExportScreen"
     val backupDirName = "Podcini-Backups"
-    val prefsDirName = "Podcini-Prefs"
     val mediaFilesDirName = "Podcini-MediaFiles"
 
     var showProgress by remember { mutableStateOf(false) }
@@ -128,18 +136,15 @@ fun ImportExportScreen() {
     ComfirmDialog(titleRes = R.string.import_export_error_label, message = importErrorMessage, showDialog = showImporErrortDialog) {}
 
     fun exportWithWriter(exportWriter: ExportWriter, uri: Uri?, exportType: ExportTypes) {
-        val context = getAppContext()
         showProgress = true
         if (uri == null) {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val output = ExportWorker(exportWriter).exportFile()
-                    withContext(Dispatchers.Main) {
-                        val fileUri = FileProvider.getUriForFile(context, context.getString(R.string.provider_authority), output!!)
-                        showExportSuccess(fileUri, exportType.contentType)
-                    }
+                    withContext(Dispatchers.Main) { showExportSuccess(output.toAndroidUri(), exportType.contentType) }
                 } catch (e: Exception) {
                     showProgress = false
+                    Logs(TAG, e, "export error: ${e.message}")
                     importErrorMessage = e.message?:"Reason unknown"
                     showImporErrortDialog.value = true
                 } finally { showProgress = false }
@@ -149,9 +154,10 @@ fun ImportExportScreen() {
                 val worker = DocumentFileExportWorker(exportWriter, uri)
                 try {
                     val output = worker.exportFile()
-                    withContext(Dispatchers.Main) { showExportSuccess(output.uri, exportType.contentType) }
+                    withContext(Dispatchers.Main) { showExportSuccess(output.toAndroidUri(), exportType.contentType) }
                 } catch (e: Exception) {
                     showProgress = false
+                    Logs(TAG, e, "export error: ${e.message}")
                     importErrorMessage = e.message?:"Reason unknown"
                     showImporErrortDialog.value = true
                 } finally { showProgress = false }
@@ -187,19 +193,14 @@ fun ImportExportScreen() {
                 showProgress = true
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        withContext(Dispatchers.IO) {
-                            val inputStream: InputStream? = getAppContext().contentResolver.openInputStream(uri)
-                            val reader = BufferedReader(InputStreamReader(inputStream))
-                            EpisodeProgressReader().readDocument(reader)
-                            reader.close()
-                        }
+                        EpisodeProgressReader().readDocument(uri.toUF().source().buffer())
                         withContext(Dispatchers.Main) {
                             showImporSuccessDialog.value = true
-//                                showImportSuccessDialog()
                             showProgress = false
                         }
                     } catch (e: Throwable) {
                         showProgress = false
+                        Logs(TAG, e, "export error: ${e.message}")
                         importErrorMessage = e.message?:"Reason unknown"
                         showImporErrortDialog.value = true
                     }
@@ -207,6 +208,7 @@ fun ImportExportScreen() {
             } else {
                 val message = context.getString(R.string.import_file_type_toast) + ".json"
                 showProgress = false
+                Loge(TAG, "export error: $message")
                 importErrorMessage = message
                 showImporErrortDialog.value = true
             }
@@ -251,20 +253,13 @@ fun ImportExportScreen() {
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
                             withContext(Dispatchers.IO) {
-                                val rootFile = DocumentFile.fromTreeUri(getAppContext(), uri)
-                                if (rootFile != null && rootFile.isDirectory) {
-//                                    Logd(TAG, "comboDic[\"Preferences\"] ${comboDic["Preferences"]}")
-                                    Logd(TAG, "comboDic[\"Media files\"] ${comboDic["Media files"]}")
-                                    Logd(TAG, "comboDic[\"Database\"] ${comboDic["Database"]}")
-                                    for (child in rootFile.listFiles()) {
-                                        if (child.isDirectory) {
-                                            if (child.name == prefsDirName) {
-//                                                if (comboDic["Preferences"] == true) PreferencesTransporter(prefsDirName).importBackup(child.uri)
-                                            } else if (child.name == mediaFilesDirName) {
-                                                if (comboDic["Media files"] == true) MediaFilesTransporter(mediaFilesDirName).importFromUri(child.uri)
-                                            }
-                                        } else if (isRealmFile(child.uri) && comboDic["Database"] == true) DatabaseTransporter().importBackup(child.uri)
-                                    }
+                                val rootFile = uri.toUF()
+                                Logd(TAG, "comboDic[\"Media files\"] ${comboDic["Media files"]}")
+                                Logd(TAG, "comboDic[\"Database\"] ${comboDic["Database"]}")
+                                for (file in rootFile.listChildren()) {
+                                    if (file.isDirectory()) {
+                                        if (file.name == mediaFilesDirName && comboDic["Media files"] == true) MediaFilesTransporter(mediaFilesDirName).fromUriToMediaDir(file)
+                                    } else if (isRealmFile(file.toAndroidUri()!!) && comboDic["Database"] == true) DatabaseTransporter().importBackup(file)
                                 }
                             }
                             withContext(Dispatchers.Main) {
@@ -273,6 +268,7 @@ fun ImportExportScreen() {
                             }
                         } catch (e: Throwable) {
                             showProgress = false
+                            Logs(TAG, e, "export error: ${e.message}")
                             importErrorMessage = e.message?:"Reason unknown"
                             showImporErrortDialog.value = true
                         }
@@ -302,18 +298,15 @@ fun ImportExportScreen() {
                     val uri = comboRootUri!!
                     showProgress = true
                     CoroutineScope(Dispatchers.IO).launch {
-                        withContext(Dispatchers.IO) {
-                            val chosenDir = DocumentFile.fromTreeUri(getAppContext(), uri) ?: throw IOException("Destination directory is not valid")
-                            val exportSubDir = chosenDir.createDirectory(dateStampFilename("$backupDirName-%s")) ?: throw IOException("Error creating subdirectory $backupDirName")
-                            val subUri: Uri = exportSubDir.uri
-//                            if (comboDic["Preferences"] == true) PreferencesTransporter(prefsDirName).exportToDocument(subUri)
-                            if (comboDic["Media files"] == true) MediaFilesTransporter(mediaFilesDirName).exportToUri(subUri)
-                            if (comboDic["Database"] == true) {
-                                val realmFile = exportSubDir.createFile("application/octet-stream", "backup.realm")
-                                if (realmFile != null) DatabaseTransporter().exportToDocument(realmFile.uri)
-                            }
+                        val chosenDir = uri.toUF()
+                        val exportSubDir = chosenDir.createDirectory(dateStampFilename("$backupDirName-%s"))
+                        if (comboDic["Media files"] == true) MediaFilesTransporter(mediaFilesDirName).fromMediaDirToUri(exportSubDir)
+                        if (comboDic["Database"] == true) {
+                            val realmFile = exportSubDir.createFile("application/octet-stream", "backup.realm")
+                            DatabaseTransporter().exportToUri(realmFile)
                         }
                         withContext(Dispatchers.Main) { showProgress = false }
+                        saveTreeRoot(null)
                     }
                     showComboExportDialog = false
                 }) { Text(text = "OK") }
@@ -327,6 +320,7 @@ fun ImportExportScreen() {
         if (it.resultCode == RESULT_OK) {
             val uri: Uri? = it.data?.data
             if (uri != null) {
+                saveTreeRoot(uri)
                 getAppContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                 backupFolder = uri.toString()
                 upsertBlk(appPrefs) { p-> p.autoBackupFolder = uri.toString() }
@@ -338,23 +332,23 @@ fun ImportExportScreen() {
         if (result.resultCode != RESULT_OK || result.data?.data == null) return@rememberLauncherForActivityResult
         val uri = result.data!!.data!!
         if (isComboDir(uri)) {
-            val rootFile = DocumentFile.fromTreeUri(getAppContext(), uri)
-            if (rootFile != null && rootFile.isDirectory) {
-                comboDic.clear()
-                for (child in rootFile.listFiles()) {
-                    Logd(TAG, "restoreComboLauncher child: ${child.isDirectory} ${child.name} ${child.uri} ")
-                    if (child.isDirectory) {
-//                        if (child.name == prefsDirName) comboDic["Preferences"] = true
-//                        else
-                            if (child.name == mediaFilesDirName) comboDic["Media files"] = false
-                    } else if (isRealmFile(child.uri)) comboDic["Database"] = true
+            comboRootUri = uri
+            saveTreeRoot(uri)
+            val rootFile = uri.toUF()
+            comboDic.clear()
+            runBlocking {
+                for (child in rootFile.listChildren()) {
+                    Logd(TAG, "restoreComboLauncher child: ${child.isDirectory()} ${child.name} ${child.toAndroidUri()} ")
+                    if (child.isDirectory()) {
+                        if (child.name == mediaFilesDirName) comboDic["Media files"] = false
+                    } else if (isRealmFile(child.toAndroidUri()!!)) comboDic["Database"] = true
                 }
             }
-            comboRootUri = uri
             showComboImportDialog = true
         } else {
             val message = context.getString(R.string.import_directory_toast) + backupDirName + " or " + autoBackupDirName
             showProgress = false
+            Loge(TAG, "export error: $message")
             importErrorMessage = message
             showImporErrortDialog.value = true
         }
@@ -365,9 +359,9 @@ fun ImportExportScreen() {
             if (uri != null) {
                 comboDic.clear()
                 comboDic["Database"] = true
-//                comboDic["Preferences"] = true
                 comboDic["Media files"] = true
                 comboRootUri = uri
+                saveTreeRoot(uri)
                 showComboExportDialog = true
             }
         }
@@ -393,14 +387,6 @@ fun ImportExportScreen() {
                 showProgress = false
             }
         } }
-
-    fun launchExportCombos() {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-        intent.addCategory(Intent.CATEGORY_DEFAULT)
-        backupComboLauncher.launch(intent)
-    }
-
     fun openExportPathPicker(exportType: ExportTypes, result: ActivityResultLauncher<Intent>, writer: ExportWriter) {
         val title = dateStampFilename(exportType.outputNameTemplate)
         val intentPickAction = Intent(Intent.ACTION_CREATE_DOCUMENT)
@@ -427,9 +413,6 @@ fun ImportExportScreen() {
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
         TitleSummarySwitchRow(R.string.pref_backup_on_google_title, R.string.pref_backup_on_google_sum, appPrefs.OPMLBackup) {
             upsertBlk(appPrefs) { p -> p.OPMLBackup = it}
-            val intent = context.packageManager?.getLaunchIntentForPackage(context.packageName)
-            intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            context.startActivity(intent)
         }
         var isAutoBackup by remember { mutableStateOf(appPrefs.autoBackup) }
         TitleSummarySwitchRow(R.string.pref_auto_backup_title, R.string.pref_auto_backup_sum, appPrefs.autoBackup) {
@@ -450,7 +433,7 @@ fun ImportExportScreen() {
                 var count by remember { mutableStateOf(appPrefs.autoBackupLimit.toString()) }
                 var showIcon by remember { mutableStateOf(false) }
                 TextField(value = count, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true, modifier = Modifier.weight(0.4f),  label = { Text("1 - 9") },
+                    singleLine = true, modifier = Modifier.weight(0.4f),  label = { Text("1:9", style = MaterialTheme.typography.bodySmall) },
                     onValueChange = {
                         val intVal = it.toIntOrNull()
                         if (it.isEmpty() || (intVal != null && intVal>0 && intVal<10)) {
@@ -460,7 +443,7 @@ fun ImportExportScreen() {
                     },
                     trailingIcon = {
                         if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
-                            modifier = Modifier.size(30.dp).padding(start = 5.dp).clickable(onClick = {
+                            modifier = Modifier.size(30.dp).clickable(onClick = {
                                 if (count.isEmpty()) count = "0"
                                 upsertBlk(appPrefs) { p-> p.autoBackupLimit = count.toIntOrNull()?:0 }
                                 showIcon = false
@@ -469,8 +452,7 @@ fun ImportExportScreen() {
             }
             Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp).clickable(onClick = {
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                intent.addCategory(Intent.CATEGORY_DEFAULT)
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
                 selectAutoBackupDirLauncher.launch(intent)
             })) {
                 Text(stringResource(R.string.pref_auto_backup_folder), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
@@ -478,7 +460,14 @@ fun ImportExportScreen() {
             }
         }
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
-        TitleSummaryActionColumn(R.string.combo_export_label, R.string.combo_export_summary) { launchExportCombos() }
+        TitleSummaryActionColumn(R.string.combo_export_label, R.string.combo_export_summary) {
+            val uri = "content://com.android.externalstorage.documents/tree/primary:".toUri()
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                putExtra("android.provider.extra.INITIAL_URI", uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+            }
+            backupComboLauncher.launch(intent)
+        }
         val showComboImportDialog = remember { mutableStateOf(false) }
         ComfirmDialog(titleRes = R.string.combo_import_label, message = stringResource(R.string.combo_import_warning), showDialog = showComboImportDialog) {
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
@@ -544,3 +533,41 @@ fun ImportExportScreen() {
         TitleSummaryActionColumn(R.string.favorites_export_label, R.string.favorites_export_summary) { openExportPathPicker(ExportTypes.FAVORITES, chooseFavoritesExportPathLauncher, FavoritesWriter()) }
     }
 }
+
+class EpisodeProgressReader {
+    val TAG = "EpisodeProgressReader"
+
+    fun readDocument(reader: BufferedSource) {
+        val jsonString = reader.readUtf8Line()
+        val jsonArray = JSONArray(jsonString)
+        for (i in 0 until jsonArray.length()) {
+            val jsonAction = jsonArray.getJSONObject(i)
+            Logd(TAG, "Loaded EpisodeActions message: $i $jsonAction")
+            val action = readFromJsonObject(jsonAction) ?: continue
+            Logd(TAG, "processing action: $action")
+            val result = processEpisodeAction(action) ?: continue
+            //                upsertBlk(result.second) {}
+        }
+    }
+    private fun processEpisodeAction(action: EpisodeAction): Pair<Long, Episode>? {
+        val guid = if (isValidGuid(action.guid)) action.guid else null
+        var feedItem = episodeByGuidOrUrl(guid, action.episode, false) ?: return null
+        var idRemove = 0L
+        feedItem = upsertBlk(feedItem) {
+            it.startPosition = action.started * 1000
+            it.position = action.position * 1000
+            it.playedDuration = action.playedDuration * 1000
+            it.lastPlayedTime = (action.timestamp!!)
+            it.setRating(if (action.isFavorite) Rating.SUPER else Rating.UNRATED)
+            it.setPlayState(EpisodeState.fromCode(action.playState))
+            if (it.hasAlmostEnded()) {
+                Logd(TAG, "Marking as played: $action")
+                it.setPlayState(EpisodeState.PLAYED)
+                //                it.setPosition(0)
+                idRemove = it.id
+            } else Logd(TAG, "Setting position: $action")
+        }
+        return Pair(idRemove, feedItem)
+    }
+}
+

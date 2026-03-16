@@ -13,6 +13,7 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.VideoMode
+import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -23,7 +24,6 @@ import android.app.UiModeManager
 import android.content.ContentResolver
 import android.content.Context
 import android.content.res.Configuration
-import androidx.core.net.toUri
 import com.google.android.gms.cast.CastDevice
 import com.google.android.gms.cast.MediaError
 import com.google.android.gms.cast.MediaInfo
@@ -39,10 +39,9 @@ import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.common.images.WebImage
-import java.io.IOException
+import kotlinx.io.IOException
 import java.util.Calendar
 import java.util.Date
-
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import kotlin.math.min
@@ -52,24 +51,25 @@ import kotlin.math.min
  */
 @SuppressLint("VisibleForTests")
 class CastMediaPlayer : MediaPlayerBase() {
-    @Volatile
     private var mediaInfo: MediaInfo? = null
-    @Volatile
     private var remoteState: Int
-//    private val castContext by lazy { CastContext.getSharedInstance(context) }
+//    private var castContext by lazy { CastContext.getSharedInstance(getAppContext()) }
     private val remoteMediaClient: RemoteMediaClient?
     private val isBuffering: AtomicBoolean
 
     private val remoteMediaClientCallback: RemoteMediaClient.Callback = object : RemoteMediaClient.Callback() {
         override fun onMetadataUpdated() {
+            Logd(TAG, "onMetadataUpdated")
             super.onMetadataUpdated()
             this@CastMediaPlayer.onStatusUpdated()
         }
         override fun onPreloadStatusUpdated() {
+            Logd(TAG, "onPreloadStatusUpdated")
             super.onPreloadStatusUpdated()
             this@CastMediaPlayer.onStatusUpdated()
         }
         override fun onStatusUpdated() {
+            Logd(TAG, "onStatusUpdated")
             super.onStatusUpdated()
             this@CastMediaPlayer.onStatusUpdated()
         }
@@ -82,7 +82,8 @@ class CastMediaPlayer : MediaPlayerBase() {
         if (castContext == null) castContext = CastContext.getSharedInstance(getAppContext())
         remoteMediaClient = castContext!!.sessionManager.currentCastSession?.remoteMediaClient
         remoteMediaClient?.registerCallback(remoteMediaClientCallback)
-        setAsCurEpisode(null)
+        // TODO: test
+//        setAsCurEpisode(null)
         isStreaming = true
         isBuffering = AtomicBoolean(false)
         remoteState = MediaStatus.PLAYER_STATE_UNKNOWN
@@ -210,7 +211,7 @@ class CastMediaPlayer : MediaPlayerBase() {
      * @see .prepareMedia
      */
     override fun prepareMedia(playable: Episode, streaming: Boolean, startWhenPrepared: Boolean, prepareImmediately: Boolean, forceReset: Boolean, doPostPlayback: Boolean) {
-       Logd(TAG, "prepareMedia")
+       Logd(TAG, "prepareMedia playable: ${playable.title}")
         if (!isCastable(playable, castContext?.sessionManager?.currentCastSession)) {
             Loge(TAG, "media provided is not compatible with cast device: ${playable.title}, getting next in queue")
             var prevPlayable: Episode? = playable
@@ -237,22 +238,19 @@ class CastMediaPlayer : MediaPlayerBase() {
         this.mediaType = curEpisode!!.getMediaType()
         this.startWhenPrepared.set(startWhenPrepared)
 
-        val metadata = buildMetadata(curEpisode!!)
         try {
             setPlaybackParams(currentPlaybackSpeed(curEpisode))
             when {
                 streaming -> {
                     val streamurl = curEpisode!!.downloadUrl
                     if (!streamurl.isNullOrBlank()) {
-                        mediaItem = null
-                        mediaSource = null
-                        setDataSource(metadata, curEpisode!!)
+                        setDataSource(curEpisode!!)
                     } else throw IOException("episode downloadUrl is empty ${curEpisode?.title}")
                 }
                 else -> {}
             }
             mediaInfo = toMediaInfo(curEpisode)
-            val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
+            val uiModeManager = getAppContext().getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
             if (uiModeManager.currentModeType != Configuration.UI_MODE_TYPE_CAR) setPlayerStatus(PlayerStatus.INITIALIZED, curEpisode)
             if (prepareImmediately) prepare()
         } catch (e: IOException) {
@@ -268,7 +266,7 @@ class CastMediaPlayer : MediaPlayerBase() {
     }
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
-    override fun setDataSource(metadata: androidx.media3.common.MediaMetadata, media: Episode) {
+    override fun setDataSource(media: Episode) {
         Logd(TAG, "setDataSource called")
         if (!gearbox.formCastMediaSource(media)) {
             media.effectUrl = media.downloadUrl ?: ""
@@ -283,10 +281,12 @@ class CastMediaPlayer : MediaPlayerBase() {
     }
 
     override fun pause(reinit: Boolean) {
+        Logd(TAG, "pause: reinit: $reinit")
         remoteMediaClient?.pause()
     }
 
     override fun prepare() {
+        Logd(TAG, "prepare() status: $status")
         if (status == PlayerStatus.INITIALIZED) {
             Logd(TAG, "Preparing media player $mediaInfo")
             setPlayerStatus(PlayerStatus.PREPARING, curEpisode)
@@ -301,7 +301,7 @@ class CastMediaPlayer : MediaPlayerBase() {
 
     override fun reinit() {
         Logd(TAG, "reinit() called")
-        if (curEpisode != null) prepareMedia(playable = curEpisode!!, streaming = false, startWhenPrepared = startWhenPrepared.get(), prepareImmediately = false, forceReset = true, doPostPlayback = true)
+        if (curEpisode != null) prepareMedia(playable = curEpisode!!, streaming = true, startWhenPrepared = startWhenPrepared.get(), prepareImmediately = false, forceReset = true, doPostPlayback = true)
         else Logd(TAG, "Call to reinit was ignored: media was null")
     }
 
@@ -406,7 +406,7 @@ class CastMediaPlayer : MediaPlayerBase() {
             val feed: Feed? = media.feed
             // Manual because cast does not support embedded images
             val url: String = if (media.imageUrl == null && feed != null) feed.imageUrl?:"" else media.imageUrl?:""
-            if (url.isNotEmpty()) metadata.addImage(WebImage(url.toUri()))
+            if (url.isNotEmpty()) metadata.addImage(WebImage(url.toSafeUri()))
             val calendar = Calendar.getInstance()
             calendar.time = Date(media.pubDate)
             metadata.putDate(MediaMetadata.KEY_RELEASE_DATE, calendar)
@@ -430,7 +430,7 @@ class CastMediaPlayer : MediaPlayerBase() {
             metadata.putString(KEY_STREAM_URL, media.downloadUrl!!)
 
             Logd(TAG, "media: ${media.id} ${media.title}")
-            Logd(TAG, "url: ${media.getMediaType()} $media.effectUrl")
+            Logd(TAG, "media type: ${media.getMediaType()} effectUrl ${media.effectUrl}")
             val builder = MediaInfo.Builder(media.effectUrl)
                 .setEntity(media.id.toString())
                 .setContentType(media.effectMimeType)

@@ -1,34 +1,39 @@
 package ac.mdiq.podcini.net.sync.nextcloud
 
 import ac.mdiq.podcini.net.sync.HostnameParser
+import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import android.content.Context
 import android.content.Intent
-import androidx.core.net.toUri
+import io.ktor.client.HttpClient
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Request.Builder
-import okhttp3.RequestBody
+import kotlinx.io.IOException
 import org.json.JSONException
 import org.json.JSONObject
-import java.io.IOException
 import java.net.URI
 import java.net.URL
 
 class NextcloudLoginFlow(
-        private val httpClient: OkHttpClient,
-        private val rawHostUrl: String,
-        private val context: Context,
-        private val callback: AuthenticationCallback) {
+    private val httpClient: HttpClient,
+    private val rawHostUrl: String,
+    private val context: Context,
+    private val callback: AuthenticationCallback) {
 
+    private var job1: Job? = null
+    private var job2: Job? = null
     private val hostname = HostnameParser(rawHostUrl)
     private var token: String? = null
     private var endpoint: String? = null
@@ -48,8 +53,7 @@ class NextcloudLoginFlow(
             return
         }
 
-        val coroutineScope = CoroutineScope(Dispatchers.Main)
-        coroutineScope.launch {
+        job1 = CoroutineScope(Dispatchers.Main).launch {
             try {
                 val result = withContext(Dispatchers.IO) {
                     val url = URI(hostname.scheme, null, hostname.host, hostname.port, hostname.subfolder + "/index.php/login/v2", null, null).toURL()
@@ -60,7 +64,7 @@ class NextcloudLoginFlow(
                     loginUrl
                 }
                 withContext(Dispatchers.Main) {
-                    val browserIntent = Intent(Intent.ACTION_VIEW, result.toUri())
+                    val browserIntent = Intent(Intent.ACTION_VIEW, result.toSafeUri())
                     context.startActivity(browserIntent)
                     isWaitingForBrowser = true
                 }
@@ -96,7 +100,7 @@ class NextcloudLoginFlow(
     }
 
     fun poll() {
-        CoroutineScope(Dispatchers.IO).launch {
+        job2 = CoroutineScope(Dispatchers.IO).launch {
             try {
                 // time out in 5 minutes, retry 5 times
                 val result = withTimeout(5 * 60 * 1000) { retryIO(5) { doRequest(URI.create(endpoint).toURL(), "token=$token") } }
@@ -112,22 +116,24 @@ class NextcloudLoginFlow(
     }
 
     fun cancel() {
-//        TODO: need to cancel the coroutines
+        job2?.cancel()
+        job1?.cancel()
     }
 
     @Throws(IOException::class, JSONException::class)
-    private fun doRequest(url: URL, bodyContent: String): JSONObject {
+    private suspend fun doRequest(url: URL, bodyContent: String): JSONObject {
         Logd(TAG, "doRequest $url $bodyContent")
-        val requestBody = RequestBody.create("application/x-www-form-urlencoded".toMediaType(), bodyContent)
-        val request: Request = Builder().url(url).method("POST", requestBody).build()
-        val response = httpClient.newCall(request).execute()
-        if (response.code != 200) {
-            response.close()
-            throw IOException("Return code " + response.code)
+        val response: HttpResponse = httpClient.post(url) {
+            contentType(ContentType.Application.FormUrlEncoded)
+            setBody(bodyContent)
         }
-        val body = response.body
-        Logd(TAG, "doRequest body: $body ")
-        return JSONObject(body.string())
+        val responseBody = response.bodyAsText()
+        if (response.status.value != 200) {
+//            response.close()
+            throw IOException("Return code " + response.status)
+        }
+        Logd(TAG, "doRequest body: $responseBody ")
+        return JSONObject(responseBody)
     }
 
     interface AuthenticationCallback {
@@ -138,7 +144,7 @@ class NextcloudLoginFlow(
     companion object {
         private val TAG: String = NextcloudLoginFlow::class.simpleName ?: "Anonymous"
 
-        fun fromInstanceState(httpClient: OkHttpClient, context: Context, callback: AuthenticationCallback, instanceState: MutableList<String>): NextcloudLoginFlow {
+        fun fromInstanceState(httpClient: HttpClient, context: Context, callback: AuthenticationCallback, instanceState: MutableList<String>): NextcloudLoginFlow {
             val flow = NextcloudLoginFlow(httpClient, instanceState[0], context, callback)
             flow.token = instanceState[1]
             flow.endpoint = instanceState[2]

@@ -13,7 +13,7 @@ import kotlin.time.Instant
 import kotlin.math.*
 
 fun formatRfc822Date(date: Instant?): String {
-    val formatter = LocalDateTime.Format { byUnicodePattern("dd MMM yy HH:mm:ss Z") }
+    val formatter = LocalDateTime.Format { byUnicodePattern("dd MM yy HH:mm:ss") }
     val localDateTime = (date?: Instant.fromEpochSeconds(0)).toLocalDateTime(TimeZone.currentSystemDefault())
     return localDateTime.format(formatter)
 }
@@ -351,3 +351,15 @@ private fun ymdFromDaysSinceEpoch(daysSinceEpoch: Long): Triple<Int, Int, Int> {
 }
 
 private fun floorDiv(x: Long, y: Long): Long = if (x >= 0) x / y else -(((-x) + y - 1) / y)
+
+fun Double.format(digits: Int): String {
+    val multiplier = 10.0.pow(digits)
+    val rounded = (this * multiplier).roundToInt() / multiplier
+    return rounded.toString()
+}
+
+fun Float.format(digits: Int): String {
+    val multiplier = 10.0.pow(digits)
+    val rounded = (this * multiplier).roundToInt() / multiplier
+    return rounded.toString()
+}

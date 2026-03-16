@@ -1,12 +1,14 @@
 package ac.mdiq.podcini.config.settings
 
-import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_SEPARATOR
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.storage.utils.div
+import ac.mdiq.podcini.storage.utils.internalDir
+import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.utils.Logd
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
@@ -14,10 +16,10 @@ import androidx.core.database.getIntOrNull
 import androidx.core.database.getStringOrNull
 import io.github.xilinjia.krdb.ext.realmSetOf
 import io.github.xilinjia.krdb.ext.toRealmSet
-import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import okio.buffer
 
 fun importAP(uri: Uri, onDismiss: ()->Unit) {
     val TAG = "importAP"
@@ -81,7 +83,7 @@ fun importAP(uri: Uri, onDismiss: ()->Unit) {
         }
     }
 
-    fun buildFeeds(db: SQLiteDatabase) {
+    suspend fun buildFeeds(db: SQLiteDatabase) {
         val cursor = db.rawQuery("SELECT * FROM Feeds", null)
         cursor.use {
             val columnCount = cursor.columnCount
@@ -132,9 +134,12 @@ fun importAP(uri: Uri, onDismiss: ()->Unit) {
 
     Logd(TAG, "chooseAPImportPathLauncher: uri: $uri")
     CoroutineScope(Dispatchers.IO).launch {
-        val dbFile = File(getAppContext().filesDir, "temp.db")
-        getAppContext().contentResolver.openInputStream(uri)?.use { inputStream -> dbFile.outputStream().use { outputStream -> inputStream.copyTo(outputStream) } }
-        val database = SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READONLY)
+        val dbFile = internalDir / "temp.db"
+        val sourcePath = uri.toUF()
+
+        sourcePath.source().buffer().use { bufferedSource -> dbFile.absPath.toUF().sink().buffer().use { sink -> sink.writeAll(bufferedSource) } }
+
+        val database = SQLiteDatabase.openDatabase(dbFile.absPath, null, SQLiteDatabase.OPEN_READONLY)
 
         buildFeeds(database)
 

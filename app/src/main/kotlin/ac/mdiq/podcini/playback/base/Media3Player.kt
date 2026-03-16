@@ -2,13 +2,16 @@ package ac.mdiq.podcini.playback.base
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.net.download.service.PodciniHttpClient
+import ac.mdiq.podcini.gears.gearbox
+import ac.mdiq.podcini.net.download.PodciniHttpClient.encodeCredentials
 import ac.mdiq.podcini.net.utils.NetworkUtils.wasDownloadBlocked
+import ac.mdiq.podcini.playback.SegmentSavingDataSourceFactory
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.playback.base.InTheatre.setAsCurEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.tempSkipSilence
+import ac.mdiq.podcini.playback.base.OKHTTP.getOKHttpClient
 import ac.mdiq.podcini.receiver.PodciniWidget
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.fastForwardSecs
@@ -16,11 +19,13 @@ import ac.mdiq.podcini.storage.database.getNextInQueue
 import ac.mdiq.podcini.storage.database.isSkipSilence
 import ac.mdiq.podcini.storage.database.rewindSecs
 import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.streamingCacheSizeMB
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
+import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -28,18 +33,18 @@ import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.timeIt
-import android.annotation.SuppressLint
 import android.app.UiModeManager
 import android.content.Context
 import android.content.res.Configuration
 import android.media.audiofx.LoudnessEnhancer
-import android.util.Pair
-import android.view.SurfaceHolder
+import android.net.wifi.WifiManager
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Format
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
@@ -54,28 +59,46 @@ import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.Player.State
 import androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences
 import androidx.media3.common.Tracks
+import androidx.media3.database.StandaloneDatabaseProvider
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.HttpDataSource.HttpDataSourceException
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
+import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.SeekParameters
+import androidx.media3.exoplayer.source.MediaSource
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector.SelectionOverride
 import androidx.media3.exoplayer.trackselection.ExoTrackSelection
+import androidx.media3.extractor.DefaultExtractorsFactory
+import androidx.media3.extractor.mp3.Mp3Extractor
 import androidx.media3.ui.DefaultTrackNameProvider
 import androidx.media3.ui.TrackNameProvider
-import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.io.IOException
+import java.io.File
 import kotlin.math.abs
 
 
-class LocalMediaPlayer : MediaPlayerBase() {
-    @Volatile
+class Media3Player : MediaPlayerBase() {
+    val context = getAppContext()
+
     private var videoSize: Pair<Int, Int>? = null
+
+    private var mediaSource: MediaSource? = null
+    private var mediaItem: MediaItem? = null
 
     private var trackSelector: DefaultTrackSelector? = null
 
@@ -104,9 +127,41 @@ class LocalMediaPlayer : MediaPlayerBase() {
     private val videoHeight: Int
         get() = exoPlayer?.videoFormat?.height ?: 0
 
+    /**
+     * A wifi-lock that is acquired if the media file is being streamed.
+     */
+    private var wifiLock: WifiManager.WifiLock? = null
+
+    @Synchronized
+    private fun acquireWifiLockIfNecessary() {
+        if (isStreaming && !appPrefs.disableWifiLock) {
+            if (wifiLock == null) {
+                wifiLock = (context.getSystemService(Context.WIFI_SERVICE) as WifiManager).createWifiLock(WifiManager.WIFI_MODE_FULL, TAG)
+                wifiLock?.setReferenceCounted(false)
+            }
+            wifiLock?.acquire()
+        }
+    }
+
+    @Synchronized
+    private fun releaseWifiLockIfNecessary() {
+        if (wifiLock?.isHeld == true) wifiLock!!.release()
+    }
+
+    private val cacheMutex = Mutex()
+    suspend fun initCache() = withContext(Dispatchers.IO) {
+        cacheMutex.withLock {
+            simpleCache?.let { return@withLock }
+            val context = getAppContext()
+            val cacheDir = File(context.filesDir, "media_cache")
+            if (!cacheDir.exists()) cacheDir.mkdirs()
+            simpleCache = SimpleCache(cacheDir, LeastRecentlyUsedCacheEvictor(streamingCacheSizeMB * 1024L * 1024), StandaloneDatabaseProvider(context)).also { simpleCache = it }
+        }
+    }
+
     init {
         timeIt("$TAG start of init")
-        if (httpDataSourceFactory == null) runOnIOScope { httpDataSourceFactory = OkHttpDataSource.Factory(PodciniHttpClient.getHttpClient() as okhttp3.Call.Factory).setUserAgent("Mozilla/5.0") }
+        if (httpDataSourceFactory == null) runOnIOScope { httpDataSourceFactory = OkHttpDataSource.Factory(getOKHttpClient() as okhttp3.Call.Factory).setUserAgent("Mozilla/5.0") }
         if (exoPlayer == null) {
             exoplayerListener = object: Listener {
                 override fun onPlaybackStateChanged(playbackState: @State Int) {
@@ -148,7 +203,18 @@ class LocalMediaPlayer : MediaPlayerBase() {
                 }
                 override fun onAudioSessionIdChanged(audioSessionId: Int) {
                     Logd(TAG, "onAudioSessionIdChanged $audioSessionId")
-                    initLoudnessEnhancer(audioSessionId)
+                    runOnIOScope {
+                        try {
+                            val newEnhancer = LoudnessEnhancer(audioSessionId)
+                            val oldEnhancer = loudnessEnhancer
+                            if (oldEnhancer != null) {
+                                newEnhancer.enabled = oldEnhancer.enabled
+                                if (oldEnhancer.enabled) newEnhancer.setTargetGain(oldEnhancer.targetGain.toInt())
+                                oldEnhancer.release()
+                            }
+                            loudnessEnhancer = newEnhancer
+                        } catch (e: Throwable) { Logs(TAG, e, "Failed to init LoudnessEnhancer") }
+                    }
                 }
                 override fun onTracksChanged(tracks: Tracks) {
                     Logd(TAG, "onTracksChanged tracks: ${tracks.groups.size}")
@@ -283,6 +349,79 @@ class LocalMediaPlayer : MediaPlayerBase() {
         bufferingUpdateListener = null
     }
 
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
+    override fun setDataSource(media: Episode) {
+        Logd(TAG, "setDataSource called ${media.title}")
+        Logd(TAG, "setDataSource url [${media.downloadUrl}]")
+        val url = media.downloadUrl
+        if (url.isNullOrBlank()) {
+            Loge(TAG, "setDataSource: media downloadUrl is null or blank ${media.title}")
+            upsertBlk(media) { it.setPlayState(EpisodeState.ERROR) }
+            throw IllegalArgumentException("blank url")
+        }
+        val feed = media.feed
+        val user = feed?.username
+        val password = feed?.password
+        bitrate = 0
+        try {
+            val metadata = buildMetadata(curEpisode!!)
+            mediaSource = gearbox.formMediaSource(metadata, media)
+            if (mediaSource != null) {
+                Logd(TAG, "setDataSource setting for Podcast source")
+                mediaItem = mediaSource?.mediaItem
+                setSourceCredentials(user, password)
+            } else {
+                Logd(TAG, "setDataSource setting for Podcast source")
+                setDataSource(media, metadata, url, user, password)
+            }
+        } catch (e: Throwable) {
+            Loge(TAG, "setDataSource: ${e.message}")
+            upsertBlk(media) { it.setPlayState(EpisodeState.ERROR) }
+            throw e
+        }
+    }
+
+    private fun setDataSource(media: Episode, metadata: MediaMetadata, mediaUrl: String, user: String?, password: String?) {
+        Logd(TAG, "setDataSource: $mediaUrl")
+        val uri = mediaUrl.toSafeUri()
+        Logd(TAG, "setDataSource uri: $uri")
+        mediaItem = MediaItem.Builder().setUri(uri).setCustomCacheKey(media.id.toString()).setMediaMetadata(metadata).build()
+        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
+            .setAllowCrossProtocolRedirects(true)
+            .setConnectTimeoutMs(15_000)
+            .setReadTimeoutMs(15_000)
+        //        val dataSourceFactory = CustomDataSourceFactory(context, httpDataSourceFactory)
+
+        val cacheFactory = CacheDataSource.Factory()
+            .setCache(getCache())
+            .setUpstreamDataSourceFactory(httpDataSourceFactory)
+            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        val segmentFactory = SegmentSavingDataSourceFactory(cacheFactory)
+        val dataSourceFactory = DefaultDataSource.Factory(context, segmentFactory)
+
+        mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem!!)
+        setSourceCredentials(user, password)
+    }
+
+    private fun setSourceCredentials(user: String?, password: String?) {
+        if (!user.isNullOrEmpty() && !password.isNullOrEmpty()) {
+            if (httpDataSourceFactory == null)
+                httpDataSourceFactory = OkHttpDataSource.Factory(getOKHttpClient() as okhttp3.Call.Factory).setUserAgent("Mozilla/5.0")
+
+            val requestProperties = mutableMapOf<String, String>()
+            requestProperties["Authorization"] = encodeCredentials(user, password, "ISO-8859-1")
+            httpDataSourceFactory!!.setDefaultRequestProperties(requestProperties)
+
+            val dataSourceFactory: DataSource.Factory = DefaultDataSource.Factory(context, httpDataSourceFactory!!)
+            val extractorsFactory = DefaultExtractorsFactory()
+            extractorsFactory.setConstantBitrateSeekingEnabled(true)
+            extractorsFactory.setMp3ExtractorFlags(Mp3Extractor.FLAG_DISABLE_ID3_METADATA)
+            val f = ProgressiveMediaSource.Factory(dataSourceFactory, extractorsFactory)
+
+            mediaSource = f.createMediaSource(mediaItem!!)
+        }
+    }
+
     /**
      * Starts or prepares playback of the specified EpisodeMedia object. If another EpisodeMedia object is already being played, the currently playing
      * episode will be stopped and replaced with the new EpisodeMedia object. If the EpisodeMedia object is already being played, the method will not do anything.
@@ -337,7 +476,6 @@ class LocalMediaPlayer : MediaPlayerBase() {
         resetMediaPlayer()
 
         this.startWhenPrepared.set(startWhenPrepared)
-        val metadata = buildMetadata(curEpisode!!)
         setPlaybackParams(currentPlaybackSpeed(curEpisode))
         setRepeat(shouldRepeat)
         setSkipSilence()
@@ -350,13 +488,16 @@ class LocalMediaPlayer : MediaPlayerBase() {
                         if (!streamurl.isNullOrBlank()) {
                             mediaItem = null
                             mediaSource = null
-                            setDataSource(metadata, curEpisode!!)
+                            setDataSource(curEpisode!!)
                         } else throw IOException("episode downloadUrl is empty ${curEpisode?.title}")
                     }
                     else -> {   // TODO: playing video often gets here??
                         val localMediaurl = curEpisode?.fileUrl
                         Logd(TAG, "prepareMedia localMediaurl: $localMediaurl")
-                        if (!localMediaurl.isNullOrBlank()) setDataSource(curEpisode!!, metadata, localMediaurl, null, null)
+                        if (!localMediaurl.isNullOrBlank()) {
+                            val metadata = buildMetadata(curEpisode!!)
+                            setDataSource(curEpisode!!, metadata, localMediaurl, null, null)
+                        }
                         else throw IOException("Unable to read local file $localMediaurl")
                     }
                 }
@@ -408,7 +549,7 @@ class LocalMediaPlayer : MediaPlayerBase() {
 //            Logs(TAG, e, "setDataSource error: [${e.localizedMessage}]")
 //        } finally { }
     }
-
+    
     private fun setSource() {
         Logd(TAG, "setSource() called")
         if (mediaSource == null && mediaItem == null) return
@@ -603,9 +744,9 @@ class LocalMediaPlayer : MediaPlayerBase() {
         releaseWifiLockIfNecessary()
     }
 
-    override fun setVideoSurface(surface: SurfaceHolder?) {
-        exoPlayer?.setVideoSurfaceHolder(surface)
-    }
+//    override fun setVideoSurface(surface: SurfaceHolder?) {
+//        exoPlayer?.setVideoSurfaceHolder(surface)
+//    }
 
     override fun resetVideoSurface() {
         if (mediaType == MediaType.VIDEO) {
@@ -750,10 +891,13 @@ class LocalMediaPlayer : MediaPlayerBase() {
         }
     }
 
-    override fun shouldLockWifi(): Boolean = isStreaming && appPrefs.disableWifiLock
+    /**
+     * @return `true` if the WifiLock feature should be used, `false` otherwise.
+     */
+    fun shouldLockWifi(): Boolean = isStreaming && !appPrefs.disableWifiLock
 
     companion object {
-        private val TAG: String = LocalMediaPlayer::class.simpleName ?: "Anonymous"
+        private val TAG: String = Media3Player::class.simpleName ?: "Anonymous"
 
         const val BUFFERING_STARTED: Int = -1
         const val BUFFERING_ENDED: Int = -2
@@ -765,24 +909,17 @@ class LocalMediaPlayer : MediaPlayerBase() {
         private var bufferingUpdateListener: ((Int) -> Unit)? = null
         private var loudnessEnhancer: LoudnessEnhancer? = null
 
-//        fun resetMemoryBuffer() {
-//            val memoryBufferSize = (128 * 1024 / 8) * BufferDurationSeconds
-//            memoryBuffer = CircularByteBuffer(memoryBufferSize)
-//        }
+        var httpDataSourceFactory:  OkHttpDataSource.Factory? = null
 
-        private fun initLoudnessEnhancer(audioStreamId: Int) {
-            runOnIOScope {
-                try {
-                    val newEnhancer = LoudnessEnhancer(audioStreamId)
-                    val oldEnhancer = loudnessEnhancer
-                    if (oldEnhancer != null) {
-                        newEnhancer.enabled = oldEnhancer.enabled
-                        if (oldEnhancer.enabled) newEnhancer.setTargetGain(oldEnhancer.targetGain.toInt())
-                        oldEnhancer.release()
-                    }
-                    loudnessEnhancer = newEnhancer
-                } catch (e: Throwable) { Logs(TAG, e, "Failed to init LoudnessEnhancer") }
-            }
+        var simpleCache: SimpleCache? = null
+
+        fun getCache(): SimpleCache {
+            return simpleCache ?: throw IllegalStateException("Cache not initialized yet!")
+        }
+
+        fun releaseCache() {
+            simpleCache?.release()
+            simpleCache = null
         }
 
         fun cleanup() {
@@ -793,6 +930,19 @@ class LocalMediaPlayer : MediaPlayerBase() {
             bufferingUpdateListener = null
             loudnessEnhancer = null
             httpDataSourceFactory = null
+        }
+
+        fun buildMetadata(e: Episode): MediaMetadata {
+            val builder = MediaMetadata.Builder()
+                .setIsBrowsable(true)
+                .setIsPlayable(true)
+                .setArtist(e.feed?.title?:"")
+                .setTitle(e.getEpisodeTitle())
+                .setAlbumArtist(e.feed?.title?:"")
+                .setDisplayTitle(e.getEpisodeTitle())
+                .setSubtitle(e.feed?.title?:"")
+                .setArtworkUri((e.imageUrl ?: e.feed?.imageUrl ?: "").toSafeUri())
+            return builder.build()
         }
     }
 }

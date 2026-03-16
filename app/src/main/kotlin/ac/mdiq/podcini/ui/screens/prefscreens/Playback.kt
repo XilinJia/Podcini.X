@@ -100,7 +100,7 @@ fun PlaybackScreen() {
                         showIcon =  true
                     },
                     trailingIcon = {
-                        if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(
+                        if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).clickable(
                             onClick = {
                                 runOnIOScope { upsert(appAttribs) { att->
                                     att.langsPreferred.clear()

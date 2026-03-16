@@ -3,21 +3,18 @@ package ac.mdiq.podcini.playback.base
 import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.net.download.service.HttpCredentialEncoder
-import ac.mdiq.podcini.net.download.service.PodciniHttpClient
+import ac.mdiq.podcini.playback.SleepTimer.autoEnableFrom
+import ac.mdiq.podcini.playback.SleepTimer.autoEnableTo
+import ac.mdiq.podcini.playback.SleepTimer.isInTimeRange
+import ac.mdiq.podcini.playback.SleepTimer.lastTimerValue
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
-import ac.mdiq.podcini.playback.base.InTheatre.bitrate
+import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkUrl
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.playback.base.PositionSaver.Companion.positionSaver
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.service.QuickSettingsTileService
-import ac.mdiq.podcini.config.settings.SleepTimer.autoEnableFrom
-import ac.mdiq.podcini.config.settings.SleepTimer.autoEnableTo
-import ac.mdiq.podcini.config.settings.SleepTimer.isInTimeRange
-import ac.mdiq.podcini.config.settings.SleepTimer.lastTimerValue
 import ac.mdiq.podcini.storage.database.allowForAutoDelete
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.deleteMedia
@@ -25,7 +22,6 @@ import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.sleepPrefs
-import ac.mdiq.podcini.storage.database.streamingCacheSizeMB
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
@@ -34,71 +30,33 @@ import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.storage.utils.loadChapters
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.sendLocalBroadcast
-import android.annotation.SuppressLint
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
-import android.media.AudioManager
-import android.net.Uri
-import android.net.wifi.WifiManager
 import android.service.quicksettings.TileService
-import android.util.Pair
-import android.view.SurfaceHolder
-import android.webkit.URLUtil
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.net.toUri
-import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
-import androidx.media3.database.StandaloneDatabaseProvider
-import androidx.media3.datasource.DataSource
-import androidx.media3.datasource.DataSpec
-import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.datasource.TransferListener
-import androidx.media3.datasource.cache.Cache
-import androidx.media3.datasource.cache.CacheDataSource
-import androidx.media3.datasource.cache.CacheSpan
-import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
-import androidx.media3.datasource.cache.SimpleCache
-import androidx.media3.datasource.okhttp.OkHttpDataSource
-import androidx.media3.exoplayer.source.MediaSource
-import androidx.media3.exoplayer.source.ProgressiveMediaSource
-import androidx.media3.extractor.DefaultExtractorsFactory
-import androidx.media3.extractor.mp3.Mp3Extractor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
 import java.util.Calendar
-
 import java.util.GregorianCalendar
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
-import ac.mdiq.podcini.storage.utils.nowInMillis
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
-
 abstract class MediaPlayerBase {
-
-    val context = getAppContext()
-    @Volatile
     private var oldStatus: PlayerStatus? = null
     internal var prevMedia: Episode? = null
-
-    protected var mediaSource: MediaSource? = null
-    protected var mediaItem: MediaItem? = null
 
     internal var autoSkippedFeedMediaId: String? = null
 
@@ -111,17 +69,6 @@ abstract class MediaPlayerBase {
 
     var widgetId: String = ""
 
-    /**
-     * A wifi-lock that is acquired if the media file is being streamed.
-     */
-    private var wifiLock: WifiManager.WifiLock? = null
-
-    val isAudioChannelInUse: Boolean
-        get() {
-            val audioManager = getAppContext().getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            return (audioManager.mode != AudioManager.MODE_NORMAL || audioManager.isMusicActive)
-        }
-    
     init {
         status = PlayerStatus.STOPPED
     }
@@ -144,79 +91,8 @@ abstract class MediaPlayerBase {
 
     open fun createStaticPlayer() {}
 
-
-    protected fun setDataSource(media: Episode, metadata: MediaMetadata, mediaUrl: String, user: String?, password: String?) {
-        Logd(TAG, "setDataSource: $mediaUrl")
-        val uri = mediaUrl.toUri()
-        mediaItem = MediaItem.Builder().setUri(uri).setCustomCacheKey(media.id.toString()).setMediaMetadata(metadata).build()
-        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-            .setAllowCrossProtocolRedirects(true)
-            .setConnectTimeoutMs(15_000)
-            .setReadTimeoutMs(15_000)
-//        val dataSourceFactory = CustomDataSourceFactory(context, httpDataSourceFactory)
-
-        val cacheFactory = CacheDataSource.Factory()
-            .setCache(getCache())
-            .setUpstreamDataSourceFactory(httpDataSourceFactory)
-            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-        val segmentFactory = SegmentSavingDataSourceFactory(cacheFactory)
-        val dataSourceFactory = DefaultDataSource.Factory(context, segmentFactory)
-
-        mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem!!)
-        setSourceCredentials(user, password)
-    }
-
-    
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
-    protected open fun setDataSource(metadata: MediaMetadata, media: Episode) {
-        Logd(TAG, "setDataSource called ${media.title}")
-        Logd(TAG, "setDataSource url [${media.downloadUrl}]")
-        val url = media.downloadUrl
-        if (url.isNullOrBlank()) {
-            Loge(TAG, "setDataSource: media downloadUrl is null or blank ${media.title}")
-            upsertBlk(media) { it.setPlayState(EpisodeState.ERROR) }
-            throw IllegalArgumentException("blank url")
-        }
-        val feed = media.feed
-        val user = feed?.username
-        val password = feed?.password
-        bitrate = 0
-        try {
-            mediaSource = gearbox.formMediaSource(metadata, media)
-            if (mediaSource != null) {
-                Logd(TAG, "setDataSource setting for Podcast source")
-                mediaItem = mediaSource?.mediaItem
-                setSourceCredentials(user, password)
-            } else {
-                Logd(TAG, "setDataSource setting for Podcast source")
-                setDataSource(media, metadata, url, user, password)
-            }
-        } catch (e: Throwable) {
-            Loge(TAG, "setDataSource: ${e.message}")
-            upsertBlk(media) { it.setPlayState(EpisodeState.ERROR) }
-            throw e
-        }
-    }
-
-    
-    private fun setSourceCredentials(user: String?, password: String?) {
-        if (!user.isNullOrEmpty() && !password.isNullOrEmpty()) {
-            if (httpDataSourceFactory == null)
-                httpDataSourceFactory = OkHttpDataSource.Factory(PodciniHttpClient.getHttpClient() as okhttp3.Call.Factory).setUserAgent("Mozilla/5.0")
-
-            val requestProperties = mutableMapOf<String, String>()
-            requestProperties["Authorization"] = HttpCredentialEncoder.encode(user, password, "ISO-8859-1")
-            httpDataSourceFactory!!.setDefaultRequestProperties(requestProperties)
-
-            val dataSourceFactory: DataSource.Factory = DefaultDataSource.Factory(context, httpDataSourceFactory!!)
-            val extractorsFactory = DefaultExtractorsFactory()
-            extractorsFactory.setConstantBitrateSeekingEnabled(true)
-            extractorsFactory.setMp3ExtractorFlags(Mp3Extractor.FLAG_DISABLE_ID3_METADATA)
-            val f = ProgressiveMediaSource.Factory(dataSourceFactory, extractorsFactory)
-
-            mediaSource = f.createMediaSource(mediaItem!!)
-        }
-    }
+    protected abstract fun setDataSource(media: Episode)
 
     /**
      * Starts or prepares playback of the specified EpisodeMedia object. If another EpisodeMedia object is already being played, the currently playing
@@ -270,7 +146,7 @@ abstract class MediaPlayerBase {
                 if (duration !in 1..skipIntroMS) {
                     Logd(TAG, "onPlaybackStart skipIntro ${playable.getEpisodeTitle()}")
                     seekTo(skipIntroMS)
-                    Logt(TAG, context.getString(R.string.pref_feed_skip_intro_toast, skipIntro))
+                    Logt(TAG, getAppContext().getString(R.string.pref_feed_skip_intro_toast, skipIntro))
                 }
             }
             upsertBlk(playable) { it.setPlaybackStart() }
@@ -342,9 +218,9 @@ abstract class MediaPlayerBase {
      */
     abstract fun shutdown()
 
-    open fun setVideoSurface(surface: SurfaceHolder?) {
-        throw UnsupportedOperationException("Setting Video Surface unsupported in Remote Media Player")
-    }
+//    open fun setVideoSurface(surface: SurfaceHolder?) {
+//        throw UnsupportedOperationException("Setting Video Surface unsupported in Remote Media Player")
+//    }
 
     open fun resetVideoSurface() {
         Loge(TAG, "Resetting Video Surface unsupported in Remote Media Player")
@@ -356,6 +232,25 @@ abstract class MediaPlayerBase {
 //        in first second of playback, ignoring skip
         if (getPosition() < 1000) return
         endPlayback(hasEnded = false, wasSkipped = !shouldRepeat)
+    }
+
+    /**
+     * @param currentPosition  current position in a media file in ms
+     * @param lastPlayedTime  timestamp when was media paused
+     * @return  new rewinded position for playback in milliseconds
+     */
+    fun positionWithRewind(currentPosition: Int, lastPlayedTime: Long): Int {
+        if (currentPosition > 0 && lastPlayedTime > 0) {
+            val elapsedTime = nowInMillis() - lastPlayedTime
+            var rewindTime: Long = when {
+                elapsedTime > 1.days.inWholeMilliseconds ->  20.seconds.inWholeMilliseconds
+                elapsedTime > 1.hours.inWholeMilliseconds -> 10.seconds.inWholeMilliseconds
+                elapsedTime > 1.minutes.inWholeMilliseconds -> 3.seconds.inWholeMilliseconds
+                else -> 0L
+            }
+            val newPosition = currentPosition - rewindTime.toInt()
+            return max(newPosition, 0)
+        } else return currentPosition
     }
 
     /**
@@ -431,27 +326,6 @@ abstract class MediaPlayerBase {
 
     open fun isCasting(): Boolean = false
 
-    /**
-     * @return `true` if the WifiLock feature should be used, `false` otherwise.
-     */
-    protected open fun shouldLockWifi(): Boolean = false
-
-    @Synchronized
-    protected fun acquireWifiLockIfNecessary() {
-        if (shouldLockWifi()) {
-            if (wifiLock == null) {
-                wifiLock = (context.getSystemService(Context.WIFI_SERVICE) as WifiManager).createWifiLock(WifiManager.WIFI_MODE_FULL, TAG)
-                wifiLock?.setReferenceCounted(false)
-            }
-            wifiLock?.acquire()
-        }
-    }
-
-    @Synchronized
-    protected fun releaseWifiLockIfNecessary() {
-        if (wifiLock?.isHeld == true) wifiLock!!.release()
-    }
-
     fun persistCurrentPosition(fromMediaPlayer: Boolean, playable_: Episode?, position_: Int) {
         var playable = if (curEpisode != null && playable_?.id == curEpisode?.id) curEpisode else playable_
         var position = position_
@@ -502,7 +376,7 @@ abstract class MediaPlayerBase {
         }
         runOnIOScope {
             try {
-                gearbox.loadChapters(media)
+                loadChapters(media, false)
                 withContext(Dispatchers.Main) { onChapterLoaded(media) }
             } catch (e: Throwable) { Logs(TAG, e, "Error loading chapters:") }
         }
@@ -573,6 +447,7 @@ abstract class MediaPlayerBase {
             }
             else -> {}
         }
+        val context = getAppContext()
         TileService.requestListeningState(context, ComponentName(context, QuickSettingsTileService::class.java))
         sendLocalBroadcast(ACTION_PLAYER_STATUS_CHANGED)
         bluetoothNotifyChange(AVRCP_ACTION_PLAYER_STATUS_CHANGED)
@@ -590,117 +465,16 @@ abstract class MediaPlayerBase {
             i.putExtra("playing", isPlaying)
             i.putExtra("duration", curEpisode!!.duration.toLong())
             i.putExtra("position", curEpisode!!.position.toLong())
-            context.sendBroadcast(i)
-        }
-    }
-
-    /**
-     * Custom DataSource that saves clip data during read when recording is active.
-     * Adapted to use an existing CacheDataSource instance.
-     */
-    class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : DataSource {
-        private val TAG = "SegmentSavingDataSource"
-
-        private var cacheListener: Cache.Listener? = null
-        private var isRecording = false
-        private var clipTempFile: File? = null
-        private var clipTempFos: FileOutputStream? = null
-        private var clipStartByte: Long = 0L
-        private var clipBytesWritten: Long = 0L
-        private lateinit var tempDir: File // Must be set externally, e.g., via constructor or setter
-
-        override fun open(dataSpec: DataSpec): Long {
-//            val keys = simpleCache?.keys
-//            keys?.forEach { Logd(TAG, "key: $it") }
-            val mediaId = dataSpec.key ?: dataSpec.uri.toString()
-            val existingSpans = simpleCache?.getCachedSpans(mediaId)
-            Logd(TAG, "Before listener: mediaId=[$mediaId] spans=${existingSpans?.size}, totalBytes=${existingSpans?.sumOf { it.length }}")
-
-            cacheListener = object : Cache.Listener {
-                override fun onSpanAdded(cache: Cache, span: CacheSpan) {
-                    Logd(TAG, "Span added: key=$mediaId, position=${span.position}, length=${span.length}, file=${span.file?.absolutePath}")
-                }
-                override fun onSpanRemoved(cache: Cache, span: CacheSpan) {
-                    Logd(TAG, "Span removed: key=$mediaId, position=${span.position}, length=${span.length}")
-                }
-                override fun onSpanTouched(cache: Cache, oldSpan: CacheSpan, newSpan: CacheSpan) {
-                    Logd(TAG, "Span touched: key=$mediaId, oldPos=${oldSpan.position}, newPos=${newSpan.position}")
-                }
-            }
-            simpleCache?.addListener(mediaId, cacheListener!!)
-            return cacheDataSource.open(dataSpec).also { Logd(TAG, "Open: position=${dataSpec.position}, length=$it") }
-        }
-
-        override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
-            var bytesRead = -1
-            try {
-                bytesRead = cacheDataSource.read(buffer, offset, length)
-//            Logd(TAG, "read offset=$offset length=$length bytesRead=$bytesRead")
-                if (bytesRead > 0 && isRecording) {
-                    clipTempFos?.write(buffer, offset, bytesRead)
-                    clipBytesWritten += bytesRead
-                }
-            } catch (e: Throwable) { Logd(TAG, "data source read/write error: ${e.message}") }
-            return bytesRead
-        }
-
-        override fun getUri(): Uri? = cacheDataSource.uri
-
-        override fun close() {
-            Logd(TAG, "closing")
-            if (isRecording) stopRecording(0) // Fallback if not explicitly stopped
-            clipTempFos?.close()
-            clipTempFos = null
-            clipTempFile = null
-            clipBytesWritten = 0L
-            cacheDataSource.uri?.toString()?.let { mediaId -> cacheListener?.let { simpleCache?.removeListener(mediaId, it) } }
-            cacheDataSource.close()
-        }
-
-        // Start recording at a given position (in ms, converted to bytes)
-        fun startRecording(startPositionMs: Long, bitrate: Int, tmpDir: File) {
-            tempDir = tmpDir
-            if (!isRecording) {
-                isRecording = true
-                clipTempFile = File(tempDir, "clip_temp_${nowInMillis()}.tmp")
-                clipTempFos = FileOutputStream(clipTempFile!!)
-                clipStartByte = (startPositionMs * bitrate / 8 / 1000)
-                clipBytesWritten = 0L
-                Logd(TAG, "Started recording at byte offset $clipStartByte")
-            } else Loge(TAG, "Cannot start recording: tempDir not set or already recording")
-        }
-
-        // Stop recording and return the temp file for processing
-        fun stopRecording(endPositionMs: Long): File? {
-            if (isRecording) {
-                isRecording = false
-                clipTempFos?.close()
-                clipTempFos = null
-                val endByte = (endPositionMs * bitrate / 8 / 1000)
-                Logd(TAG, "Stopped recording at byte offset $endByte, written: $clipBytesWritten")
-                return clipTempFile?.takeIf { it.exists() && clipBytesWritten > 0 }
-            }
-            return null
-        }
-        override fun addTransferListener(transferListener: TransferListener) {
-            cacheDataSource.addTransferListener(transferListener)
-        }
-    }
-
-    class SegmentSavingDataSourceFactory(private val upstreamFactory: CacheDataSource.Factory) : DataSource.Factory {
-        override fun createDataSource(): DataSource {
-            return SegmentSavingDataSource(upstreamFactory.createDataSource())
+            getAppContext().sendBroadcast(i)
         }
     }
 
     companion object {
         private val TAG: String = MediaPlayerBase::class.simpleName ?: "Anonymous"
 
-        @SuppressLint("StaticFieldLeak")
         internal var mPlayer: MediaPlayerBase? = null
         var shouldRepeat by mutableStateOf(false)
 
-        @Volatile
         var currentMediaType: MediaType? = MediaType.UNKNOWN
 
         @get:Synchronized
@@ -712,24 +486,6 @@ abstract class MediaPlayerBase {
         private const val AVRCP_ACTION_META_CHANGED = "com.android.music.metachanged"
 
         const val ACTION_PLAYER_STATUS_CHANGED: String = "action.ac.mdiq.podcini.service.playerStatusChanged"
-
-        val ELAPSED_TIME_FOR_SHORT_REWIND: Long = 1.minutes.inWholeMilliseconds
-        
-        val ELAPSED_TIME_FOR_MEDIUM_REWIND: Long = 1.hours.inWholeMilliseconds
-        
-        val ELAPSED_TIME_FOR_LONG_REWIND: Long = 1.days.inWholeMilliseconds
-
-        
-        val SHORT_REWIND: Long = 3.seconds.inWholeMilliseconds
-        
-        val MEDIUM_REWIND: Long = 10.seconds.inWholeMilliseconds
-        
-        val LONG_REWIND: Long = 20.seconds.inWholeMilliseconds
-
-        var simpleCache: SimpleCache? = null
-        var curDataSource: SegmentSavingDataSource? = null
-
-        var httpDataSourceFactory:  OkHttpDataSource.Factory? = null
 
         val prefPlaybackSpeed: Float
             get() {
@@ -745,9 +501,6 @@ abstract class MediaPlayerBase {
         internal var isSpeedForward = false
         internal var isFallbackSpeed = false
 
-        val curDurationFB: Int
-            get() = mPlayer?.getDuration() ?: curEpisode?.duration ?: Episode.INVALID_TIME
-
         val curPBSpeed: Float
             get() = mPlayer?.getPlaybackSpeed() ?: currentPlaybackSpeed(curEpisode)
 
@@ -756,67 +509,6 @@ abstract class MediaPlayerBase {
             set(s) {
                 mPlayer?.startWhenPrepared?.set(s)
             }
-
-        private val cacheMutex = Mutex()
-        suspend fun initCache() = withContext(Dispatchers.IO) {
-            cacheMutex.withLock {
-                simpleCache?.let { return@withLock }
-                val context = getAppContext()
-                val cacheDir = File(context.filesDir, "media_cache")
-                if (!cacheDir.exists()) cacheDir.mkdirs()
-                simpleCache = SimpleCache(cacheDir, LeastRecentlyUsedCacheEvictor(streamingCacheSizeMB * 1024L * 1024), StandaloneDatabaseProvider(context)).also { simpleCache = it }
-            }
-        }
-
-        fun getCache(): SimpleCache {
-            return simpleCache ?: throw IllegalStateException("Cache not initialized yet!")
-        }
-
-        fun releaseCache() {
-            simpleCache?.release()
-            simpleCache = null
-        }
-
-        fun buildMetadata(e: Episode): MediaMetadata {
-            val builder = MediaMetadata.Builder()
-                .setIsBrowsable(true)
-                .setIsPlayable(true)
-                .setArtist(e.feed?.title?:"")
-                .setTitle(e.getEpisodeTitle())
-                .setAlbumArtist(e.feed?.title?:"")
-                .setDisplayTitle(e.getEpisodeTitle())
-                .setSubtitle(e.feed?.title?:"")
-                .setArtworkUri((e.imageUrl ?: e.feed?.imageUrl ?: "").toUri())
-            return builder.build()
-        }
-
-        fun buildMediaItem(e: Episode): MediaItem? {
-            val url = e.downloadUrl ?: return null
-            val metadata = buildMetadata(e)
-            return MediaItem.Builder()
-                .setMediaId(url)
-                .setUri(url.toUri())
-                .setMediaMetadata(metadata).build()
-        }
-
-        /**
-         * @param currentPosition  current position in a media file in ms
-         * @param lastPlayedTime  timestamp when was media paused
-         * @return  new rewinded position for playback in milliseconds
-         */
-        fun positionWithRewind(currentPosition: Int, lastPlayedTime: Long): Int {
-            if (currentPosition > 0 && lastPlayedTime > 0) {
-                val elapsedTime = nowInMillis() - lastPlayedTime
-                var rewindTime: Long = 0
-                when {
-                    elapsedTime > ELAPSED_TIME_FOR_LONG_REWIND -> rewindTime = LONG_REWIND
-                    elapsedTime > ELAPSED_TIME_FOR_MEDIUM_REWIND -> rewindTime = MEDIUM_REWIND
-                    elapsedTime > ELAPSED_TIME_FOR_SHORT_REWIND -> rewindTime = SHORT_REWIND
-                }
-                val newPosition = currentPosition - rewindTime.toInt()
-                return max(newPosition, 0)
-            } else return currentPosition
-        }
 
         fun currentPlaybackSpeed(media: Episode?): Float {
             var playbackSpeed = SPEED_USE_GLOBAL
@@ -853,7 +545,7 @@ abstract class MediaPlayerBase {
 
         fun isStreamingCapable(media: Episode): Boolean {
 //            showStackTrace()
-            if (!URLUtil.isNetworkUrl(media.downloadUrl)) {
+            if (!isNetworkUrl(media.downloadUrl)) {
                 Loge(TAG, "streaming media without a remote downloadUrl: ${media.downloadUrl}. Abort")
                 return false
             }

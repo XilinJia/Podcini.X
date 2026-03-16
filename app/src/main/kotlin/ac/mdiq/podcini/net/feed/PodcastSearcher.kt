@@ -3,28 +3,33 @@ package ac.mdiq.podcini.net.feed
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.config.ClientConfig
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.net.download.service.PodciniHttpClient
+import ac.mdiq.podcini.net.download.PodciniHttpClient.getKtorClient
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.formatEpochMillisSimple
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.setValue
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpHeaders
 import io.ktor.http.encodeURLParameter
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.supervisorScope
-import kotlinx.coroutines.withContext
-import okhttp3.Request
+import kotlinx.io.IOException
 import org.json.JSONException
 import org.json.JSONObject
-import java.io.IOException
-import java.io.UnsupportedEncodingException
 import java.security.MessageDigest
 import java.util.Locale
 import java.util.regex.Pattern
-import ac.mdiq.podcini.storage.utils.nowInMillis
+
+private const val TAG = "PodcastSearcher"
 
 interface PodcastSearcher {
 
@@ -66,19 +71,14 @@ class PodcastIndexPodcastSearcher : PodcastSearcher {
             return PodcastSearchResult(title, imageUrl, feedUrl, author, count, update, -1, "PodcastIndex")
         }
 
-        val encodedQuery = try {
-            withContext(Dispatchers.IO) { query.encodeURLParameter() }
-        } catch (e: UnsupportedEncodingException) {
-            Logs("PodcastIndexPodcastSearcher", e)
-            query
-        }
-        val formattedUrl = String.format(SEARCH_API_URL, encodedQuery)
+        val encodedQuery = query.encodeURLParameter()
+
+        val formattedUrl = "https://api.podcastindex.org/api/1.0/search/byterm?q=${encodedQuery}"
         val podcasts: MutableList<PodcastSearchResult> = mutableListOf()
         try {
-            val client = PodciniHttpClient.getHttpClient()
-            val response = client.newCall(buildAuthenticatedRequest(formattedUrl)).execute()
-            if (response.isSuccessful) {
-                val resultString = response.body.string()
+            val response = getKtorClient().get(formattedUrl) { applyPodcastIndexAuth() }
+            if (response.status.isSuccess()) {
+                val resultString = response.bodyAsText()
                 val result = JSONObject(resultString)
                 val j = result.getJSONArray("feeds")
 
@@ -96,20 +96,16 @@ class PodcastIndexPodcastSearcher : PodcastSearcher {
     override val name: String
         get() = "Podcast Index"
 
-    private fun buildAuthenticatedRequest(url: String): Request {
+    private fun HttpRequestBuilder.applyPodcastIndexAuth() {
         val now = nowInMillis()
         val secondsSinceEpoch = now / 1000L
         val apiHeaderTime = secondsSinceEpoch.toString()
         val data4Hash = BuildConfig.PODCASTINDEX_API_KEY + BuildConfig.PODCASTINDEX_API_SECRET + apiHeaderTime
-        val hashString = sha1(data4Hash) ?:""
-
-        val httpReq: Request.Builder = Request.Builder()
-            .addHeader("X-Auth-Date", apiHeaderTime)
-            .addHeader("X-Auth-Key", BuildConfig.PODCASTINDEX_API_KEY)
-            .addHeader("Authorization", hashString)
-            .addHeader("User-Agent", ClientConfig.USER_AGENT ?:"")
-            .url(url)
-        return httpReq.build()
+        val hashString = sha1(data4Hash) ?: ""
+        header("X-Auth-Date", apiHeaderTime)
+        header("X-Auth-Key", BuildConfig.PODCASTINDEX_API_KEY)
+        header("Authorization", hashString)
+        header(HttpHeaders.UserAgent, ClientConfig.USER_AGENT ?: "")
     }
 
     companion object {
@@ -128,7 +124,7 @@ class PodcastIndexPodcastSearcher : PodcastSearcher {
 
         private fun toHex(bytes: ByteArray): String {
             val buffer = StringBuilder()
-            for (b in bytes) buffer.append(String.format(Locale.getDefault(), "%02x", b))
+            for (b in bytes) buffer.append(b.toHexString())
             return buffer.toString()
         }
     }
@@ -149,26 +145,16 @@ class ItunesPodcastSearcher : PodcastSearcher {
             val author: String? = json.optString("artistName").takeIf { it.isNotEmpty() }
             return PodcastSearchResult(title, imageUrl, feedUrl, author, null, null, -1, "Itunes")
         }
+        val encodedQuery = query.encodeURLParameter()
+        val formattedUrl = "https://itunes.apple.com/search?media=podcast&term=$encodedQuery"
 
-        val encodedQuery = try {
-            withContext(Dispatchers.IO) { query.encodeURLParameter() }
-        } catch (e: UnsupportedEncodingException) {
-            Logs(TAG, e)
-            query
-        }
-        val formattedUrl = String.format(ITUNES_API_URL, encodedQuery)
-
-        val client = PodciniHttpClient.getHttpClient()
-        val httpReq: Request.Builder = Request.Builder().url(formattedUrl)
         val podcasts: MutableList<PodcastSearchResult> = mutableListOf()
         try {
-            val response = client.newCall(httpReq.build()).execute()
-
-            if (response.isSuccessful) {
-                val resultString = response.body.string()
+            val response = getKtorClient().get(formattedUrl) { header(HttpHeaders.CacheControl, "max-stale=86400") }
+            if (response.status.isSuccess()) {
+                val resultString = response.bodyAsText()
                 val result = JSONObject(resultString)
                 val j = result.getJSONArray("results")
-
                 for (i in 0 until j.length()) {
                     val podcastJson = j.getJSONObject(i)
                     val podcast = fromItunes(podcastJson)
@@ -184,11 +170,14 @@ class ItunesPodcastSearcher : PodcastSearcher {
         val pattern = Pattern.compile(PATTERN_BY_ID)
         val matcher = pattern.matcher(url)
         val lookupUrl = if (matcher.find()) "https://itunes.apple.com/lookup?id=" + matcher.group(1) else url
-        val client = PodciniHttpClient.getHttpClient()
-        val httpReq = Request.Builder().url(lookupUrl).build()
-        val response = client.newCall(httpReq).execute()
-        if (!response.isSuccessful) throw IOException(response.toString())
-        val resultString = response.body.string()
+        val resultString = try {
+            val response = getKtorClient().get(lookupUrl) { header(HttpHeaders.CacheControl, "max-stale=86400") }
+            if (response.status.isSuccess()) response.bodyAsText()
+            else throw IOException(response.toString())
+        } catch (e: Exception) {
+            Logs(TAG, e, "get feedString error")
+            ""
+        }
         if (resultString.trim().startsWith('<')) return url     // XML already
 
         Logd(TAG, "lookupUrl resultString: $resultString")
@@ -320,4 +309,9 @@ object PodcastSearcherRegistry {
     }
 
     class SearcherInfo(val searcher: PodcastSearcher, val weight: Float)
+}
+
+class FeedUrlNotFoundException( val artistName: String,  val trackName: String) : IOException() {
+    override val message: String
+        get() = "Result does not specify a feed url"
 }

@@ -1,3 +1,25 @@
+# 10.12.0
+
+* in FeedDetails screen, if the feed is archived or frozen, it's marked with text
+* download single episode (including tapping multiple download buttons) now run directly in coroutine
+* download multiple episodes runs in one Worker
+* after download, skipped parsing the media file for duration and mimeType
+* revamped feed RSS parsing routines
+* added in the dynamic themes (Android 12 and above)
+* likely fixed cast to speaker not playing
+	* cast button color adapts to theme
+	* if downloaded media is cast to speaker, it switches to streaming
+* changed Setttings Network to "Network and Storage"
+	* added setting on checking available storage at download time, default to false
+* added recurring warning if custom media folder is set but becomes inaccessible
+* fixed possible out of memory issues with reconcile and updateDB routines
+* fixed issue of exporting large number of media files
+* in Settings, set refresh interval to 0 no longer triggers immediate refresh
+* recorded clips are in external storage, together with downloaded media, existing clip files are moved
+* reworked chapters routines, and added m4a chapters (yet to be tested)
+* toggle OPML backup no longer restarts the app
+* migrations to some platform-neutral dependencies, lots of rewrites and re-organizations
+
 # 10.11.3
 
 * fixed Crash on opening added local podcast

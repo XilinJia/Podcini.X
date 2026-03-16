@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.storage.model
 
+import ac.mdiq.podcini.playback.base.PlayerStatusInt
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 
@@ -7,7 +8,7 @@ class CurrentState : RealmObject {
     @PrimaryKey
     var id: Long = 0L
 
-    var curMediaType: Long = NO_MEDIA_PLAYING
+    var curMediaType: Long = LONG_MINUS_1
 
     var curFeedId: Long = 0
 
@@ -15,35 +16,16 @@ class CurrentState : RealmObject {
 
     var curIsVideo: Boolean = false
 
-    var curPlayerStatus: Int = PLAYER_STATUS_OTHER
-
-//    var curTempSpeed: Float = SPEED_USE_GLOBAL
+    var curPlayerStatus: Int = PlayerStatusInt.OTHER.code
 
     constructor() {}
 
     companion object {
-        val TAG: String = CurrentState::class.simpleName ?: "Anonymous"
+        private val TAG: String = CurrentState::class.simpleName ?: "Anonymous"
 
         const val SPEED_USE_GLOBAL: Float = -1f
 
-        /**
-         * Value of PREF_CURRENTLY_PLAYING_MEDIA if no media is playing.
-         */
-        const val NO_MEDIA_PLAYING: Long = -1
-
-        /**
-         * Value of PREF_CURRENT_PLAYER_STATUS if media player status is playing.
-         */
-        const val PLAYER_STATUS_PLAYING: Int = 1
-
-        /**
-         * Value of PREF_CURRENT_PLAYER_STATUS if media player status is paused.
-         */
-        const val PLAYER_STATUS_PAUSED: Int = 2
-
-        /**
-         * Value of PREF_CURRENT_PLAYER_STATUS if media player status is neither playing nor paused.
-         */
-        const val PLAYER_STATUS_OTHER: Int = 3
+        const val LONG_MINUS_1: Long = -1
+        const val LONG_PLUS_1: Long = 1
     }
 }

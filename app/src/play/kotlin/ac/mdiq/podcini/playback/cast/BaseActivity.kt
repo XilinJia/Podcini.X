@@ -1,6 +1,8 @@
 package ac.mdiq.podcini.playback.cast
 
+import ac.mdiq.podcini.ui.compose.isLightTheme
 import android.os.Bundle
+import android.view.ContextThemeWrapper
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -28,6 +30,13 @@ abstract class BaseActivity : AppCompatActivity() {
 
     @Composable
     fun CastIconButton() {
-        if (canCast) AndroidView(modifier = Modifier.size(24.dp), factory = { ctx -> MediaRouteButton(ctx).apply { CastButtonFactory.setUpMediaRouteButton(ctx, this) } })
+        val isLight = isLightTheme()
+        if (canCast) AndroidView(modifier = Modifier.size(24.dp),
+            factory = { ctx ->
+                val themedContext = ContextThemeWrapper(ctx, if (!isLight) androidx.appcompat.R.style.Theme_AppCompat
+                else androidx.appcompat.R.style.Theme_AppCompat_Light)
+                MediaRouteButton(themedContext).apply { CastButtonFactory.setUpMediaRouteButton(ctx, this) }
+            }
+        )
     }
 }

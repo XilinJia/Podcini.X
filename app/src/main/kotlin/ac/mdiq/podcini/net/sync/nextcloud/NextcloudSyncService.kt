@@ -9,22 +9,28 @@ import ac.mdiq.podcini.net.sync.model.ISyncService
 import ac.mdiq.podcini.net.sync.model.SubscriptionChanges
 import ac.mdiq.podcini.net.sync.model.SyncServiceException
 import ac.mdiq.podcini.net.sync.model.UploadChangesResponse
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.Logd
-import java.io.IOException
-import java.net.MalformedURLException
+import io.ktor.client.HttpClient
+import io.ktor.client.request.request
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
+import io.ktor.http.headers
+import kotlinx.coroutines.runBlocking
+import kotlinx.io.IOException
 import okhttp3.Credentials.basic
 import okhttp3.HttpUrl
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import okhttp3.RequestBody
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import java.net.MalformedURLException
 import kotlin.math.min
-import ac.mdiq.podcini.storage.utils.nowInMillis
 
-class NextcloudSyncService(private val httpClient: OkHttpClient, baseHosturl: String?, private val username: String, private val password: String) : ISyncService {
+class NextcloudSyncService(private val httpClient: HttpClient, baseHosturl: String?, private val username: String, private val password: String) : ISyncService {
     private val hostname = HostnameParser(baseHosturl)
 
     override fun login() {}
@@ -35,8 +41,7 @@ class NextcloudSyncService(private val httpClient: OkHttpClient, baseHosturl: St
         try {
             val url: HttpUrl.Builder = makeUrl("/index.php/apps/gpoddersync/subscriptions")
             url.addQueryParameter("since", "" + lastSync)
-            val responseString = performRequest(url, "GET", null)
-            val json = JSONObject(responseString)
+            val json = JSONObject(runBlocking { performRequest(url, "GET", null) })
             return readSubscriptionChangesFromJsonObject(json)
         } catch (e: JSONException) { throw SyncServiceException(e)
         } catch (e: MalformedURLException) { throw SyncServiceException(e)
@@ -52,7 +57,7 @@ class NextcloudSyncService(private val httpClient: OkHttpClient, baseHosturl: St
             requestObject.put("add", JSONArray(added))
             requestObject.put("remove", JSONArray(removed))
             val requestBody = RequestBody.create("application/json".toMediaType(), requestObject.toString())
-            performRequest(url, "POST", requestBody)
+            runBlocking { performRequest(url, "POST", requestBody) }
         } catch (e: Exception) { throw NextcloudSynchronizationServiceException(e) }
         return GpodnetUploadChangesResponse(nowInMillis() / 1000, mutableMapOf())
     }
@@ -63,8 +68,7 @@ class NextcloudSyncService(private val httpClient: OkHttpClient, baseHosturl: St
         try {
             val uri: HttpUrl.Builder = makeUrl("/index.php/apps/gpoddersync/episode_action")
             uri.addQueryParameter("since", "" + timestamp)
-            val responseString = performRequest(uri, "GET", null)
-            val json = JSONObject(responseString)
+            val json = JSONObject(runBlocking { performRequest(uri, "GET", null) })
             return readEpisodeActionsFromJsonObject(json)
         } catch (e: JSONException) { throw SyncServiceException(e)
         } catch (e: MalformedURLException) { throw SyncServiceException(e)
@@ -94,17 +98,23 @@ class NextcloudSyncService(private val httpClient: OkHttpClient, baseHosturl: St
             }
             val url: HttpUrl.Builder = makeUrl("/index.php/apps/gpoddersync/episode_action/create")
             val requestBody = RequestBody.create("application/json".toMediaType(), list.toString())
-            performRequest(url, "POST", requestBody)
+            runBlocking { performRequest(url, "POST", requestBody) }
         } catch (e: Exception) { throw NextcloudSynchronizationServiceException(e) }
     }
 
     @Throws(IOException::class)
-    private fun performRequest(url: HttpUrl.Builder, method: String, body: RequestBody?): String {
-        Logd(TAG, "performRequest $url $method $body")
-        val request: Request = Request.Builder().url(url.build()).header("Authorization", basic(username, password)).header("Accept", "application/json").method(method, body).build()
-        val response = httpClient.newCall(request).execute()
-        if (response.code != 200) throw IOException("Response code: " + response.code)
-        return response.body.string()
+    private suspend fun performRequest(url: HttpUrl.Builder, method_: String, body: RequestBody?): String {
+        Logd(TAG, "performRequest $url $method_ $body")
+        val response = httpClient.request(url.build().toString()) {
+            method = HttpMethod.parse(method_)
+            headers {
+                append(HttpHeaders.Authorization, basic(username, password))
+                append(HttpHeaders.Accept, "application/json")
+            }
+            setBody(body)
+        }
+        if (response.status.value != 200) throw IOException("Response code: " + response.status)
+        return response.bodyAsText()
     }
 
     private fun makeUrl(path: String): HttpUrl.Builder {

@@ -19,8 +19,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
+import io.ktor.http.decodeURLQueryComponent
 
 private const val TAG = "ScreensUtils"
 
@@ -119,7 +118,8 @@ fun Navigate(navController: NavHostController, startScreen: String = "") {
             defaultValue = false
         })) { entry ->
             val encodedUrl = entry.arguments?.getString("url") ?: "Error"
-            val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.name())
+//            val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.name())
+            val url = encodedUrl.decodeURLQueryComponent()
             val source = entry.arguments?.getString("source") ?: ""
             val shared = entry.arguments?.getBoolean("shared") ?: false
             OnlineFeedScreen(url, source, shared)

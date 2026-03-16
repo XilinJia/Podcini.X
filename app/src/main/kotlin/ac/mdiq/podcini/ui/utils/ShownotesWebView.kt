@@ -2,6 +2,7 @@ package ac.mdiq.podcini.ui.utils
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.utils.durationStringFull
+import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
@@ -23,7 +24,6 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
 import androidx.core.view.get
 import androidx.core.view.size
 import kotlin.math.max
@@ -129,7 +129,7 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
             menu.add(Menu.NONE, R.id.go_to_position_item, Menu.NONE, R.string.go_to_position_label)
             menu.setHeaderTitle(durationStringFull(ShownotesCleaner.getTimecodeLinkTime(selectedUrl)))
         } else {
-            val uri = selectedUrl!!.toUri()
+            val uri = selectedUrl!!.toSafeUri()
             val intent = Intent(Intent.ACTION_VIEW, uri)
             if (isCallable(intent)) menu.add(Menu.NONE, R.id.open_in_browser_item, Menu.NONE, R.string.open_in_browser_label)
             menu.add(Menu.NONE, R.id.copy_url_item, Menu.NONE, R.string.copy_url_label)

@@ -2,7 +2,7 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
+import ac.mdiq.podcini.net.download.PodciniHttpClient.getKtorClient
 import ac.mdiq.podcini.net.feed.PodcastSearchResult
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -81,17 +81,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.CacheControl
-import okhttp3.Request
+import kotlinx.io.IOException
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-import java.io.IOException
 import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 class DiscoveryVM: ViewModel() {
     val countryNameCodeMap: MutableMap<String, String> = hashMapOf()
@@ -124,22 +127,21 @@ class DiscoveryVM: ViewModel() {
             try {
                 val NUM_LOADED = 100
                 val COUNTRY_CODE_UNSET = "99"
-                val client = getHttpClient()
                 var loadCountry = countryCode
                 if (countryCode == COUNTRY_CODE_UNSET) loadCountry = Locale.getDefault().country
-
-                val url0 = "https://itunes.apple.com/%s/rss/toppodcasts/limit=$NUM_LOADED/json"
-                val url = "https://itunes.apple.com/%s/rss/toppodcasts/limit=$NUM_LOADED/genre=%d/json"
-                val reqStr = if (curGenre > 0) String.format(url, loadCountry, curGenre) else String.format(url0, loadCountry)
+                val reqStr = if (curGenre > 0) "https://itunes.apple.com/$loadCountry/rss/toppodcasts/limit=$NUM_LOADED/genre=$curGenre/json" else "https://itunes.apple.com/$loadCountry/rss/toppodcasts/limit=$NUM_LOADED/json"
                 Logd(TAG, "getTopListFeed reqStr: $reqStr")
-                val httpReq: Request.Builder = Request.Builder().cacheControl(CacheControl.Builder().maxStale(1, TimeUnit.DAYS).build()).url(reqStr)
-                val feedString: String
-                client.newCall(httpReq.build()).execute().use { response ->
-                    if (response.isSuccessful) feedString = response.body.string()
-                    else {
-                        if (response.code == 400) throw IOException("iTunes does not have data for the selected country.")
-                        throw IOException(getAppContext().getString(R.string.error_msg_prefix) + response)
+
+                val feedString = try {
+                    val response = getKtorClient().get(reqStr) { header(HttpHeaders.CacheControl, "max-stale=86400") }
+                    when {
+                        response.status.isSuccess() -> response.bodyAsText()
+                        response.status == HttpStatusCode.BadRequest -> throw IOException("iTunes does not have data for the selected country.")
+                        else -> throw IOException("${getAppContext().getString(R.string.error_msg_prefix)} ${response.status}")
                     }
+                } catch (e: Exception) {
+                    Logs(TAG, e, "get feedString error")
+                    ""
                 }
                 @Throws(JSONException::class)
                 fun parseFeed(jsonString: String): List<PodcastSearchResult> {
@@ -210,7 +212,7 @@ class DiscoveryVM: ViewModel() {
         for (code in Locale.getISOCountries()) {
             val locale = Locale("", code)
             val countryName = locale.displayCountry
-            Logd(TAG, "code: $code countryName: $countryName")
+//            Logd(TAG, "code: $code countryName: $countryName")
             countryCodeNameMap[code] = countryName
             countryNameCodeMap[countryName] = code
         }
@@ -228,7 +230,6 @@ class DiscoveryVM: ViewModel() {
 @Composable
 fun TopChartScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current

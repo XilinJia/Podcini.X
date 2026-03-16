@@ -2,6 +2,7 @@ package ac.mdiq.podcini.storage.model
 
 import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.download.DownloadError.Companion.fromCode
+import ac.mdiq.podcini.net.download.RequestTye
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.annotations.Ignore
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
@@ -65,7 +66,7 @@ class DownloadResult : RealmObject {
      * Constructor for creating new completed downloads.
      */
     constructor(feedId: Long, title: String, reason: DownloadError, successful: Boolean, reasonDetailed: String)
-            : this(title, feedId, Episode.FEEDFILETYPE_FEEDMEDIA, successful, reason, nowInMillis(), reasonDetailed)
+            : this(title, feedId, RequestTye.FEEDMEDIA.ordinal, successful, reason, nowInMillis(), reasonDetailed)
 
     constructor() : this(0L, "", DownloadError.ERROR_NOT_FOUND, false, "") {}
 

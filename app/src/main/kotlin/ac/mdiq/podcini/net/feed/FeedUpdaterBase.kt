@@ -7,9 +7,9 @@ import ac.mdiq.podcini.automation.autodownload
 import ac.mdiq.podcini.automation.autoenqueue
 import ac.mdiq.podcini.config.CHANNEL_ID
 import ac.mdiq.podcini.net.download.DownloadError
-import ac.mdiq.podcini.net.download.service.DefaultDownloaderFactory
-import ac.mdiq.podcini.net.download.service.DownloadRequest
-import ac.mdiq.podcini.net.download.service.DownloadRequestCreator.create
+import ac.mdiq.podcini.net.download.DownloadRequest
+import ac.mdiq.podcini.net.download.DownloadRequest.Companion.requestFor
+import ac.mdiq.podcini.net.download.Downloader.Companion.downloaderFor
 import ac.mdiq.podcini.net.feed.FeedHandler.FeedHandlerResult
 import ac.mdiq.podcini.net.utils.NetworkUtils.isFeedRefreshAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
@@ -30,6 +30,7 @@ import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
+import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.utils.EventFlow
@@ -46,17 +47,14 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import io.github.xilinjia.krdb.ext.toRealmSet
-import java.io.File
-import java.io.IOException
-
-import javax.xml.parsers.ParserConfigurationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.io.IOException
 import org.xml.sax.SAXException
-import ac.mdiq.podcini.storage.utils.nowInMillis
+import javax.xml.parsers.ParserConfigurationException
 
 open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = false, val doItAnyway: Boolean = false) {
     private val TAG = "FeedUpdaterBase"
@@ -159,11 +157,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
         }
         notificationManager.cancel(R.id.notification_updating_feeds)
         withContext(Dispatchers.Main) { feedOperationText = context.getString(R.string.post_refreshing) }
-        postWork()
-        return true
-    }
 
-    private suspend fun postWork() {
         if (feedsToOnlyEnqueue.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyEnqueue)
         if (feedsToOnlyDownload.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyDownload)
         autoenqueue(feedsToUpdate.toList())
@@ -172,83 +166,38 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
         feedsToOnlyEnqueue.clear()
         feedsToOnlyDownload.clear()
         withContext(Dispatchers.Main) { feedOperationText = "" }
+
+        return true
     }
 
-    @Throws(Exception::class)
     open suspend fun refreshFeed(feed: Feed) {
         // TODO
         val nextPage = false
-//        val nextPage = (inputData.getBoolean(EXTRA_NEXT_PAGE, false) && feed.nextPageLink != null)
+        //        val nextPage = (inputData.getBoolean(EXTRA_NEXT_PAGE, false) && feed.nextPageLink != null)
         if (nextPage) feed.pageNr += 1
-        val builder = create(feed)
-        builder.setForce(force || feed.lastUpdateFailed)
+        val builder = requestFor(feed)
+        if (force || feed.lastUpdateFailed) builder.lastModified = null
         if (nextPage) builder.source = feed.nextPageLink
         val request = builder.build()
-        val downloader = DefaultDownloaderFactory().create(request) ?: throw Exception("Unable to create downloader")
-        downloader.run()
-        if (!downloader.result.isSuccessful) {
-            if (downloader.cancelled || downloader.result.reason == DownloadError.ERROR_DOWNLOAD_CANCELLED) {
-                Logd(TAG, "refreshFeed: feed refresh cancelled, likely due to feed not changed: ${feed.title}")
-                return
-            }
-            Logt(TAG, "refreshFeed: feed update failed: unsuccessful. cancelled? ${feed.title}")
-            persistFeedLastUpdateFailed(feed, true)
-            addDownloadStatus(downloader.result)
-            return
-        }
-        val feedUpdateTask = FeedUpdateTask(request)
-        val success = if (fullUpdate) feedUpdateTask.run() else feedUpdateTask.runSimple()
-        if (!success) {
-            Logt(TAG, "refreshFeed: feed update failed: unsuccessful: ${feed.title}")
-            persistFeedLastUpdateFailed(feed, true)
-            addDownloadStatus(feedUpdateTask.downloadStatus)
-            return
-        }
-        // we create a 'successful' download log if the feed's last refresh failed
-        val log = getFeedDownloadLog(request.feedfileId)
-        if (log.isNotEmpty() && !log[0].isSuccessful) addDownloadStatus(feedUpdateTask.downloadStatus)
-        if (!request.source.isNullOrEmpty()) {
-            fun updateFeedDownloadURL(original: String, updated: String) {
-                Logd(TAG, "updateFeedDownloadURL(original: $original, updated: $updated)")
-                val feed = realm.query(Feed::class).query("downloadUrl == $0", original).first().find()
-                if (feed != null) upsertBlk(feed) { it.downloadUrl = updated }
-            }
-            when {
-                !downloader.permanentRedirectUrl.isNullOrEmpty() -> updateFeedDownloadURL(request.source, downloader.permanentRedirectUrl!!)
-                feedUpdateTask.redirectUrl.isNotEmpty() && feedUpdateTask.redirectUrl != request.source ->
-                    updateFeedDownloadURL(request.source, feedUpdateTask.redirectUrl)
-            }
-        }
-    }
-
-    class FeedParserTask(private val request: DownloadRequest) {
-        val TAG = "FeedParserTask"
-
-        var downloadStatus: DownloadResult
-            private set
-        var isSuccessful: Boolean = true
-            private set
-
-        init {
-            downloadStatus = DownloadResult(request.title?:"", 0L, request.feedfileType, false, DownloadError.ERROR_REQUEST_ERROR, nowInMillis(), "Unknown error: Status not set")
-        }
-        suspend fun run(): FeedHandlerResult? {
-            Logd(TAG, "in FeedParserTask call(), lastModified=${request.lastModified}")
-            val feed = Feed(request.source, request.lastModified)
-            feed.fileUrl = request.destination
-            feed.id = request.feedfileId
-            feed.fillPreferences(false, Feed.AutoDeleteAction.GLOBAL, VolumeAdaptionSetting.OFF, request.username, request.password)
-            if (request.arguments != null) feed.pageNr = request.arguments.getInt(DownloadRequest.REQUEST_ARG_PAGE_NR, 0)
+        val downloader = downloaderFor(request) ?: throw Exception("Unable to create downloader")
+        downloader.download { source ->
+            val feedToParse = Feed(request.source, request.lastModified)
+            feedToParse.fileUrl = request.destination
+            feedToParse.id = request.feedfileId
+            feedToParse.fillPreferences(false, Feed.AutoDeleteAction.GLOBAL, VolumeAdaptionSetting.OFF, request.username, request.password)
+            if (request.arguments != null) feedToParse.pageNr = request.arguments.getInt(DownloadRequest.REQUEST_ARG_PAGE_NR, 0)
             var reason: DownloadError? = null
             var reasonDetailed: String? = null
-            val feedHandler = FeedHandler()
-            var result: FeedHandlerResult? = null
+
+            var feedHandlerResult: FeedHandlerResult? = null
+
+            var isSuccessful = true
             try {
-                result = feedHandler.parseFeed(feed)
-                Logd(TAG,  "Parsed ${feed.title}")
-                checkFeedData(feed)
-//            TODO: what the shit is this??
-                if (feed.imageUrl.isNullOrEmpty()) feed.imageUrl = Feed.PREFIX_GENERATIVE_COVER + feed.downloadUrl
+                feedHandlerResult = FeedHandler().parseFeed(source, feedToParse)
+                Logd(TAG,  "Parsed ${feedToParse.title}")
+                if (feedToParse.title == null) throw InvalidFeedException("Feed has no title")
+                for (item in feedToParse.episodes) if (item.title == null) throw InvalidFeedException("Item has no title: $item")
+                if (feedToParse.imageUrl.isNullOrEmpty()) feedToParse.imageUrl = Feed.PREFIX_GENERATIVE_COVER + feedToParse.downloadUrl
             } catch (e: SAXException) {
                 isSuccessful = false
                 Logs(TAG, e, "SAXException")
@@ -276,53 +225,57 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
                 reason = DownloadError.ERROR_PARSER_EXCEPTION
                 reasonDetailed = e.message
             } finally {
-                val feedFile = File(request.destination?:"junk")
+                val feedFile = (request.destination).toUF()
                 if (feedFile.exists()) {
-                    val deleted = feedFile.delete()
-                    Logd(TAG, "Deletion of file '" + feedFile.absolutePath + "' " + (if (deleted) "successful" else "FAILED"))
+                    feedFile.delete()
+                    Logd(TAG, "Deletion of file '" + feedFile.absPath + "' ")
                 }
             }
+
+            var downloadStatus: DownloadResult
             if (isSuccessful) {
-                downloadStatus = DownloadResult(feed.id, feed.getTextIdentifier()?:"", DownloadError.SUCCESS, isSuccessful, reasonDetailed?:"")
-                return result
+                downloadStatus = DownloadResult(feedToParse.id, feedToParse.getTextIdentifier()?:"", DownloadError.SUCCESS, isSuccessful, reasonDetailed?:"")
+            } else {
+                downloadStatus = DownloadResult(feedToParse.id, feedToParse.getTextIdentifier() ?: "", reason ?: DownloadError.ERROR_NOT_FOUND, isSuccessful, reasonDetailed ?: "")
+                Logt(TAG, "refreshFeed: feed update failed: unsuccessful: ${feed.title}")
+                persistFeedLastUpdateFailed(feed, true)
+                addDownloadStatus(downloadStatus)
+                return@download
             }
-            downloadStatus = DownloadResult(feed.id, feed.getTextIdentifier()?:"", reason?: DownloadError.ERROR_NOT_FOUND, isSuccessful, reasonDetailed?:"")
-            return null
-        }
-        /**
-         * Checks if the feed was parsed correctly.
-         */
-        @Throws(InvalidFeedException::class)
-        private fun checkFeedData(feed: Feed) {
-            if (feed.title == null) throw InvalidFeedException("Feed has no title")
-            for (item in feed.episodes) if (item.title == null) throw InvalidFeedException("Item has no title: $item")
-        }
 
-        class InvalidFeedException(message: String?) : Exception(message)
-    }
+            if (fullUpdate) updateFeedFull(feedHandlerResult!!.feed, removeUnlistedItems = false)
+            else updateFeedSimple(feedHandlerResult!!.feed)
 
-    class FeedUpdateTask(request: DownloadRequest) {
-        private val task = FeedParserTask(request)
-        private var feedHandlerResult: FeedHandlerResult? = null
-        val downloadStatus: DownloadResult
-            get() = task.downloadStatus
-        val redirectUrl: String
-            get() = feedHandlerResult?.redirectUrl?:""
-
-        suspend fun run(): Boolean {
-            feedHandlerResult = task.run()
-            if (!task.isSuccessful) return false
-            updateFeedFull(feedHandlerResult!!.feed, removeUnlistedItems = false)
-            return true
+            // we create a 'successful' download log if the feed's last refresh failed
+            val log = getFeedDownloadLog(request.feedfileId)
+            if (log.isNotEmpty() && !log[0].isSuccessful) addDownloadStatus(downloadStatus)
+            if (!request.source.isNullOrEmpty()) {
+                fun updateFeedDownloadURL(original: String, updated: String) {
+                    Logd(TAG, "updateFeedDownloadURL(original: $original, updated: $updated)")
+                    val feed = realm.query(Feed::class).query("downloadUrl == $0", original).first().find()
+                    if (feed != null) upsertBlk(feed) { it.downloadUrl = updated }
+                }
+                val redirectUrl: String = feedHandlerResult.redirectUrl
+                when {
+                    !downloader.permanentRedirectUrl.isNullOrEmpty() -> updateFeedDownloadURL(request.source, downloader.permanentRedirectUrl!!)
+                    redirectUrl.isNotEmpty() && redirectUrl != request.source -> updateFeedDownloadURL(request.source, redirectUrl)
+                }
+            }
         }
 
-        suspend fun runSimple(): Boolean {
-            feedHandlerResult = task.run()
-            if (!task.isSuccessful) return false
-            updateFeedSimple(feedHandlerResult!!.feed)
-            return true
+        if (!downloader.result.isSuccessful) {
+            if (downloader.cancelled || downloader.result.reason == DownloadError.ERROR_DOWNLOAD_CANCELLED) {
+                Logd(TAG, "refreshFeed: feed refresh cancelled, likely due to feed not changed: ${feed.title}")
+                return
+            }
+            Logt(TAG, "refreshFeed: feed update failed: unsuccessful. cancelled? ${feed.title}")
+            persistFeedLastUpdateFailed(feed, true)
+            addDownloadStatus(downloader.result)
+            return
         }
     }
+
+    class InvalidFeedException(message: String?) : Exception(message)
 
     companion object {
         fun createNotification(titles: List<String>?): Notification {

@@ -15,11 +15,10 @@ import ac.mdiq.podcini.storage.database.unsubscribeEpisode
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState
-import ac.mdiq.podcini.storage.model.CurrentState.Companion.NO_MEDIA_PLAYING
-import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_OTHER
+import ac.mdiq.podcini.storage.model.CurrentState.Companion.LONG_MINUS_1
+import ac.mdiq.podcini.storage.model.CurrentState.Companion.LONG_PLUS_1
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.Episode.Companion.PLAYABLE_TYPE_FEEDMEDIA
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.specs.MediaType
@@ -71,7 +70,7 @@ object InTheatre {
     private var curStateMonitor: Job? = null
     var curState: CurrentState = CurrentState()
 
-    var playerStat by mutableIntStateOf(PLAYER_STATUS_OTHER)
+    var playerStat by mutableIntStateOf(PlayerStatusInt.OTHER.code)
 
     var bitrate by mutableIntStateOf(0)
 
@@ -172,10 +171,10 @@ object InTheatre {
         runOnIOScope {
             if (playerStatus != null) upsert(curState) { it.curPlayerStatus = playerStatus.getAsInt() }
             else upsert(curState) {
-                it.curMediaType = NO_MEDIA_PLAYING
-                it.curFeedId = NO_MEDIA_PLAYING
-                it.curMediaId = NO_MEDIA_PLAYING
-                it.curPlayerStatus = PLAYER_STATUS_OTHER
+                it.curMediaType = LONG_MINUS_1
+                it.curFeedId = LONG_MINUS_1
+                it.curMediaId = LONG_MINUS_1
+                it.curPlayerStatus = PlayerStatusInt.OTHER.code
             }
         }
     }
@@ -186,7 +185,7 @@ object InTheatre {
         else runOnIOScope {
             upsert(curState) {
                 it.curPlayerStatus = playerStatus.getAsInt()
-                it.curMediaType = PLAYABLE_TYPE_FEEDMEDIA.toLong()
+                it.curMediaType = LONG_PLUS_1
                 it.curIsVideo = episode.getMediaType() == MediaType.VIDEO
                 val feedId = episode.feed?.id
                 if (feedId != null) it.curFeedId = feedId
@@ -203,9 +202,8 @@ object InTheatre {
      */
     fun restoreMediaFromPreferences() {
         Logd(TAG, "loadPlayableFromPreferences currentlyPlayingType: $curState.curMediaType")
-        if (curState.curMediaType != NO_MEDIA_PLAYING) {
-            val type = curState.curMediaType.toInt()
-            if (type == PLAYABLE_TYPE_FEEDMEDIA) {
+        if (curState.curMediaType != LONG_MINUS_1) {
+            if (curState.curMediaType == LONG_PLUS_1) {
                 if (curState.curMediaId != 0L) setAsCurEpisode(episodeById(curState.curMediaId))
             } else Loge(TAG, "Could not restore EpisodeMedia object from preferences")
         }

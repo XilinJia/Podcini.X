@@ -45,7 +45,7 @@ class SubscriptionLog: RealmObject {
     }
 
     companion object {
-        val TAG: String = SubscriptionLog::class.simpleName ?: "Anonymous"
+        private val TAG: String = SubscriptionLog::class.simpleName ?: "Anonymous"
 
         var feedLogsMap: Map<String, SubscriptionLog>? = null
             get() {

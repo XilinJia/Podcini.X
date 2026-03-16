@@ -48,6 +48,32 @@ class Volume : RealmObject {
             }
             return afs.toList()
         }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Volume
+
+        if (id != other.id) return false
+        if (parentId != other.parentId) return false
+        if (isLocal != other.isLocal) return false
+        if (name != other.name) return false
+        if (originId != other.originId) return false
+        if (uriString != other.uriString) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = id.hashCode()
+        result = 31 * result + parentId.hashCode()
+        result = 31 * result + isLocal.hashCode()
+        result = 31 * result + name.hashCode()
+        result = 31 * result + originId.hashCode()
+        result = 31 * result + uriString.hashCode()
+        return result
+    }
 }
 
 const val CATALOG_VOLUME_ID_START = -20L

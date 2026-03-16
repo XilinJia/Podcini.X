@@ -2,7 +2,7 @@ package ac.mdiq.podcini.receiver
 
 import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.automation.autodownload
-import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
+import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.config.ClientConfigurator
@@ -30,7 +30,7 @@ class ConnectivityActionReceiver : BroadcastReceiver() {
             // otherwise cancel all downloads
             if (getApp().networkMonitor.isNetworkRestricted) {
                 Logt(TAG, "Device is no longer connected to Wi-Fi. Cancelling ongoing downloads")
-                DownloadServiceInterface.impl?.cancelAll()
+                EpisodeAdrDLManager.manager?.cancelAll()
             }
         }
     }

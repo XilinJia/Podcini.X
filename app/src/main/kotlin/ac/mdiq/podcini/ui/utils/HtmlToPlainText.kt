@@ -1,12 +1,12 @@
 package ac.mdiq.podcini.ui.utils
 
-import org.jsoup.Jsoup
-import org.jsoup.internal.StringUtil
-import org.jsoup.nodes.Element
-import org.jsoup.nodes.Node
-import org.jsoup.nodes.TextNode
-import org.jsoup.select.NodeTraversor
-import org.jsoup.select.NodeVisitor
+import com.fleeksoft.ksoup.Ksoup
+import com.fleeksoft.ksoup.internal.StringUtil
+import com.fleeksoft.ksoup.nodes.Element
+import com.fleeksoft.ksoup.nodes.Node
+import com.fleeksoft.ksoup.nodes.TextNode
+import com.fleeksoft.ksoup.select.NodeTraversor
+import com.fleeksoft.ksoup.select.NodeVisitor 
 import java.util.regex.Pattern
 
 /**
@@ -49,7 +49,7 @@ class HtmlToPlainText {
                 node is TextNode -> append(node.text()) // TextNodes carry all user-readable text in the DOM.
                 name == "li" -> append("\n * ")
                 name == "dt" -> append("  ")
-                StringUtil.`in`(name, "p", "h1", "h2", "h3", "h4", "h5", "tr") -> append("\n")
+                StringUtil.isIn(name, "p", "h1", "h2", "h3", "h4", "h5", "tr") -> append("\n")
             }
         }
 
@@ -57,15 +57,15 @@ class HtmlToPlainText {
         override fun tail(node: Node, depth: Int) {
             val name = node.nodeName()
             when {
-                StringUtil.`in`(name, "br", "dd", "dt", "p", "h1", "h2", "h3", "h4", "h5") -> append("\n")
-                name == "a" -> append(String.format(" <%s>", node.absUrl("href")))
+                StringUtil.isIn(name, "br", "dd", "dt", "p", "h1", "h2", "h3", "h4", "h5") -> append("\n")
+                name == "a" -> append(" <${node.absUrl("href")}>")
             }
         }
 
         // appends text to the string builder with a simple word wrap method
         private fun append(text: String) {
             // don't accumulate long runs of empty spaces
-            if (text == " " && (accum.isEmpty() || StringUtil.`in`(accum.substring(accum.length - 1), " ", "\n"))) return
+            if (text == " " && (accum.isEmpty() || StringUtil.isIn(accum.substring(accum.length - 1), " ", "\n"))) return
             accum.append(text)
         }
 
@@ -83,11 +83,7 @@ class HtmlToPlainText {
         fun getPlainText(str_: String): String {
             var str = str_
             when {
-                str.isNotEmpty() && isHtml(str) -> {
-                    val formatter = HtmlToPlainText()
-                    val feedDescription = Jsoup.parse(str)
-                    str = formatter.getPlainText(feedDescription).trim()
-                }
+                str.isNotEmpty() && isHtml(str) -> str = Ksoup.parse(str).text().trim()
                 str.isEmpty() -> str = ""
             }
             return str

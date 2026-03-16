@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.activity.MainActivity.Companion.findActivity
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
@@ -10,17 +11,18 @@ import ac.mdiq.podcini.playback.base.InTheatre.ensureAController
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
 import ac.mdiq.podcini.playback.base.InTheatre.playVideo
 import ac.mdiq.podcini.playback.base.InTheatre.playerStat
-import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
+import ac.mdiq.podcini.playback.base.Media3Player.Companion.exoPlayer
+import ac.mdiq.podcini.playback.base.Media3Player.Companion.getCache
+import ac.mdiq.podcini.playback.base.Media3Player.Companion.simpleCache
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curPBSpeed
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.getCache
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isFallbackSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPaused
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isSpeedForward
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.normalSpeed
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.simpleCache
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
+import ac.mdiq.podcini.playback.base.PlayerStatusInt
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.isSleepTimerActive
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.playback.saveClipInOriginalFormat
@@ -35,7 +37,6 @@ import ac.mdiq.podcini.storage.database.skipforwardSpeed
 import ac.mdiq.podcini.storage.database.speedforwardSpeed
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
-import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EmbeddedChapterImage
 import ac.mdiq.podcini.storage.specs.MediaType
@@ -45,7 +46,6 @@ import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.storage.utils.durationStringAdapt
 import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.ui.actions.Combo
-import ac.mdiq.podcini.activity.MainActivity.Companion.findActivity
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.EpisodeDetails
@@ -58,7 +58,6 @@ import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.FlowEvent.BufferUpdateEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
-import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.formatLargeInteger
@@ -178,7 +177,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
-import java.net.URL
+import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.max
@@ -293,7 +292,7 @@ class AVPlayerVM: ViewModel() {
             txtvPlaybackSpeed = formatNumberKmp(curPBSpeed.toDouble())
             curPlaybackSpeed = curPBSpeed
         } }
-        viewModelScope.launch { snapshotFlow { playerStat }.distinctUntilChanged().collect { showPlayButton = playerStat != PLAYER_STATUS_PLAYING } }
+        viewModelScope.launch { snapshotFlow { playerStat }.distinctUntilChanged().collect { showPlayButton = playerStat != PlayerStatusInt.PLAYING.code } }
 
         timeIt("$TAG end of vm init")
     }
@@ -351,7 +350,8 @@ fun ControlUI(vm: AVPlayerVM, navController: AppNavigator) {
     val context = LocalContext.current
 
     val textColor = MaterialTheme.colorScheme.onSurface
-    val buttonColor = Color(0xDDFFD700)
+//    val buttonColor = Color(0xDDFFD700)
+    val buttonColor = MaterialTheme.colorScheme.tertiary
     val buttonColor1 = Color(0xEEAA7700)
 
     DisposableEffect(Unit) {
@@ -466,13 +466,14 @@ fun ControlUI(vm: AVPlayerVM, navController: AppNavigator) {
                     } else Loge(TAG, "Marking position only works during playback.") },
                 onLongClick = {
                     if (curEpisode != null && exoPlayer != null && isPlaying) {
-                        if (recordingStartTime == null) {
-                            recordingStartTime = exoPlayer!!.currentPosition
-                            saveClipInOriginalFormat(recordingStartTime!!)
-                        }
-                        else {
-                            saveClipInOriginalFormat(recordingStartTime!!, exoPlayer!!.currentPosition)
-                            recordingStartTime = null
+                        scope.launch(Dispatchers.IO) {
+                            if (recordingStartTime == null) {
+                                recordingStartTime = exoPlayer!!.currentPosition
+                                saveClipInOriginalFormat(recordingStartTime!!)
+                            } else {
+                                saveClipInOriginalFormat(recordingStartTime!!, exoPlayer!!.currentPosition)
+                                recordingStartTime = null
+                            }
                         }
                     } else Loge(TAG, "Recording only works during playback.")
                 }))
@@ -500,8 +501,10 @@ fun ControlUI(vm: AVPlayerVM, navController: AppNavigator) {
                 if (curEpisode != null) {
                     vm.showPlayButton = !vm.showPlayButton
                     if (vm.showPlayButton && recordingStartTime != null) {
-                        saveClipInOriginalFormat(recordingStartTime!!, exoPlayer!!.currentPosition)
-                        recordingStartTime = null
+                        scope.launch(Dispatchers.IO) {
+                            saveClipInOriginalFormat(recordingStartTime!!, exoPlayer!!.currentPosition)
+                            recordingStartTime = null
+                        }
                     }
                     Logd(TAG, "Play button clicked: status: $status is ready: ${playbackService?.isServiceReady()}")
                     PlaybackStarter(curEpisode!!).shouldStreamThisTime(null).start()
@@ -619,7 +622,6 @@ fun AVPlayerScreen() {
     val buttonColor = Color(0xDDFFD700)
 
     var showHomeText by remember { mutableStateOf(false) }
-    var chapertsLoaded by remember { mutableStateOf(false) }
 
     // TODO: somehow, these 2 are not used?
     //     var homeText: String? = remember { null }
@@ -655,8 +657,6 @@ fun AVPlayerScreen() {
     LaunchedEffect(key1 = curEpisode?.id) {
         Logd(TAG, "LaunchedEffect curMediaId: ${curEpisode?.title}")
         showHomeText = false
-        //            homeText = null
-        chapertsLoaded = false
         displayedChapterIndex = -1
         vm.episodeFeed = curEpisode?.feed
         if (psState == PSState.Hidden) psState = PSState.PartiallyExpanded
@@ -669,15 +669,9 @@ fun AVPlayerScreen() {
 
     LaunchedEffect(psState, curEpisode?.id) {
         Logd(TAG, "LaunchedEffect(isBSExpanded, curItem?.id) isBSExpanded: $psState")
-        if (psState == PSState.Expanded) {
+        if (psState == PSState.Expanded && curEpisode != null) {
             Logd(TAG, "LaunchedEffect loading details ${curEpisode?.id}")
-            if (curEpisode != null && !chapertsLoaded) {
-                scope.launch(Dispatchers.IO) {
-                    gearbox.loadChapters(curEpisode!!)
-                    vm.sleepTimerActive = isSleepTimerActive()
-                    chapertsLoaded = true
-                }.invokeOnCompletion { throwable -> if (throwable != null) Logs(TAG, throwable) }
-            }
+            withContext(Dispatchers.IO) { vm.sleepTimerActive = isSleepTimerActive() }
         }
     }
 
@@ -762,7 +756,7 @@ fun AVPlayerScreen() {
                 Text(text = curEpisode?.title?:"", fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(text = curEpisode?.feed?.title?:"", fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             } else {
-                if (!vm.episodeFeed?.downloadUrl.isNullOrBlank() && gearbox.isGearFeed(URL(vm.episodeFeed!!.downloadUrl!!))) IconButton(onClick = {
+                if (!vm.episodeFeed?.downloadUrl.isNullOrBlank() && gearbox.isGearFeed(vm.episodeFeed!!.downloadUrl!!)) IconButton(onClick = {
                     vm.switchToAudioOnly = true
                     if (curEpisode != null) {
                         upsertBlk(curEpisode!!) { it.forceVideo = false }
@@ -821,7 +815,7 @@ fun AVPlayerScreen() {
         val mediaType = remember(curEpisode?.id) { curEpisode?.getMediaType() }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable { psState = PSState.PartiallyExpanded })
-            if (mediaType == MediaType.VIDEO && !vm.episodeFeed?.downloadUrl.isNullOrBlank() && gearbox.isGearFeed(URL(vm.episodeFeed!!.downloadUrl!!))) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fullscreen_24), tint = textColor, contentDescription = "Play video",
+            if (mediaType == MediaType.VIDEO && !vm.episodeFeed?.downloadUrl.isNullOrBlank() && gearbox.isGearFeed(vm.episodeFeed!!.downloadUrl!!)) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fullscreen_24), tint = textColor, contentDescription = "Play video",
                 modifier = Modifier.clickable {
                     upsertBlk(curEpisode!!) { it.forceVideo = true }
                     mPlayer?.pause(reinit = true)
@@ -920,7 +914,7 @@ fun AVPlayerScreen() {
             }
             SelectionContainer { Text((vm.episodeFeed?.title?:"").trim(), textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
 
-            if (curEpisode != null) EpisodeDetails(curEpisode!!, psState == PSState.Expanded)
+            if (curEpisode != null) EpisodeDetails(curEpisode!!, psState == PSState.Expanded, true)
 
             if (curEpisode != null) {
                 val imgLarge = remember(curEpisode!!.id, displayedChapterIndex) {

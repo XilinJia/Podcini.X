@@ -43,8 +43,18 @@ fun Loge(t: String, m: String) {
     }
 }
 
+fun Logs(t: String, m: String) {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m)
+    showStackTrace()
+    LogScope.launch {
+        trimToasts()
+        if (appPrefs.showErrorToasts) toastMassege = "$t: Error: $m "
+        toastMessages.add("${fullDateTimeString()} $t: Error: $m ")
+    }
+}
+
 fun Logs(t: String, e: Throwable, m: String = "") {
-    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m + "\n" + Log.getStackTraceString(e))
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m + ": "+ e.message + "\n" + Log.getStackTraceString(e))
     val me = e.message
     LogScope.launch {
         trimToasts()
@@ -65,7 +75,7 @@ fun Logt(t: String, m: String) {
 fun showStackTrace() {
     if (BuildConfig.DEBUG || appPrefs.printDebugLogs) {
         val stackTraceElements = Thread.currentThread().stackTrace
-        stackTraceElements.forEach { element -> Log.d("showStackTrace", element.toString()) }
+        stackTraceElements.forEach { element -> Log.w("showStackTrace", element.toString()) }
     }
 }
 

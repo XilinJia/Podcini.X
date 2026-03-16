@@ -3,9 +3,12 @@ package ac.mdiq.podcini.config.settings
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.utils.UnifiedFile
+import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.formatRfc822Date
 import android.Manifest
@@ -14,20 +17,18 @@ import android.net.Uri
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
-import android.util.Xml
 import androidx.core.app.ActivityCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.apache.commons.io.input.BOMInputStream
-import org.xmlpull.v1.XmlPullParser
-import org.xmlpull.v1.XmlPullParserException
-import org.xmlpull.v1.XmlPullParserFactory
-import java.io.IOException
-import java.io.InputStreamReader
-import java.io.Reader
-import java.io.Writer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import nl.adaptivity.xmlutil.XmlDeclMode
+import nl.adaptivity.xmlutil.serialization.XML
+import nl.adaptivity.xmlutil.serialization.XmlElement
+import nl.adaptivity.xmlutil.serialization.XmlSerialName
+import okio.buffer
 
 
 class OpmlTransporter {
@@ -57,44 +58,54 @@ class OpmlTransporter {
         const val XML_FEATURE_INDENT_OUTPUT: String = "http://xmlpull.org/v1/doc/features.html#indent-output"
     }
 
+    @Serializable
+    @XmlSerialName("opml", "", "")
+    data class Opml(
+        @XmlElement(false) val version: String,
+        val head: Head,
+        val body: Body
+    )
+
+    @Serializable
+    data class Head(
+        val title: String,
+        @XmlSerialName("dateCreated", "", "")
+        val dateCreated: String
+    )
+
+    @Serializable
+    data class Body(
+        @XmlElement(true)
+        val outlines: List<Outline>
+    )
+
+    @Serializable
+    @XmlSerialName("outline", "", "")
+    data class Outline(
+        @XmlElement(false) val text: String,
+        @XmlElement(false) val title: String,
+        @XmlElement(false) val type: String? = null,
+        @XmlSerialName("xmlUrl", "", "")
+        @XmlElement(false) val xmlUrl: String? = null,
+        @XmlSerialName("htmlUrl", "", "")
+        @XmlElement(false) val htmlUrl: String? = null
+    )
+
     class OpmlWriter : ExportWriter {
         /**
          * Takes a list of feeds and a writer and writes those into an OPML document.
          */
-        @Throws(IllegalArgumentException::class, IllegalStateException::class, IOException::class)
-        override fun writeDocument(feeds: List<Feed>, writer: Writer) {
-            val xs = Xml.newSerializer()
-            xs.setFeature(OpmlSymbols.XML_FEATURE_INDENT_OUTPUT, true)
-            xs.setOutput(writer)
+        override suspend fun writeDocument(feeds: List<Feed>, unifiedFile: UnifiedFile) {
+            val outlines = feeds.asSequence().filterNot { it.isSynthetic() }
+                .map { feed -> Outline(text = feed.title?:"", title = feed.title?:"", type = feed.type, xmlUrl = feed.downloadUrl, htmlUrl = feed.link) }.toList()
+            val opml = Opml(version = OPML_VERSION, head = Head(title = OPML_TITLE, dateCreated = formatRfc822Date(null)), body = Body(outlines = outlines))
 
-            xs.startDocument(ENCODING, false)
-            xs.startTag(null, OpmlSymbols.OPML)
-            xs.attribute(null, OpmlSymbols.VERSION, OPML_VERSION)
-
-            xs.startTag(null, OpmlSymbols.HEAD)
-            xs.startTag(null, OpmlSymbols.TITLE)
-            xs.text(OPML_TITLE)
-            xs.endTag(null, OpmlSymbols.TITLE)
-            xs.startTag(null, OpmlSymbols.DATE_CREATED)
-            xs.text(formatRfc822Date(null))
-            xs.endTag(null, OpmlSymbols.DATE_CREATED)
-            xs.endTag(null, OpmlSymbols.HEAD)
-
-            xs.startTag(null, OpmlSymbols.BODY)
-            for (feed in feeds) {
-                if (feed.isSynthetic()) continue
-                Logd(TAG, "writeDocument ${feed.title}")
-                xs.startTag(null, OpmlSymbols.OUTLINE)
-                xs.attribute(null, OpmlSymbols.TEXT, feed.title)
-                xs.attribute(null, OpmlSymbols.TITLE, feed.title)
-                if (feed.type != null) xs.attribute(null, OpmlSymbols.TYPE, feed.type)
-                if (feed.downloadUrl != null) xs.attribute(null, OpmlSymbols.XMLURL, feed.downloadUrl)
-                if (feed.link != null) xs.attribute(null, OpmlSymbols.HTMLURL, feed.link)
-                xs.endTag(null, OpmlSymbols.OUTLINE)
+            val xml = XML {
+                indentString = "  "
+                xmlDeclMode = XmlDeclMode.Charset
             }
-            xs.endTag(null, OpmlSymbols.BODY)
-            xs.endTag(null, OpmlSymbols.OPML)
-            xs.endDocument()
+            val outputString = xml.encodeToString(opml)
+            unifiedFile.writeString(outputString)
         }
 
         override fun fileExtension(): String {
@@ -112,52 +123,29 @@ class OpmlTransporter {
     class OpmlReader {
         // ATTRIBUTES
         private var isInOpml = false
-        private var elementList: MutableList<OpmlElement>? = null
+        private val elementList: MutableList<OpmlElement> = mutableListOf()
 
         /**
          * Reads an Opml document and returns a list of all OPML elements it can find
-         * @throws IOException
-         * @throws XmlPullParserException
          */
-        @Throws(XmlPullParserException::class, IOException::class)
-        fun readDocument(reader: Reader?): MutableList<OpmlElement> {
-            elementList = mutableListOf()
-            val factory = XmlPullParserFactory.newInstance()
-            factory.isNamespaceAware = true
-            val xpp = factory.newPullParser()
-            xpp.setInput(reader)
-            var eventType = xpp.eventType
+        suspend fun readDocument(reader: UnifiedFile): MutableList<OpmlElement> {
+            val xmlString = reader.source().buffer().use { it.readString(Charsets.UTF_8) }
+            val xml = XML { defaultPolicy { ignoreUnknownChildren() } }
 
-            while (eventType != XmlPullParser.END_DOCUMENT) {
-                when (eventType) {
-                    XmlPullParser.START_DOCUMENT -> Logd(TAG, "Reached beginning of document")
-                    XmlPullParser.START_TAG -> when {
-                        xpp.name == OpmlSymbols.OPML -> {
-                            isInOpml = true
-                            Logd(TAG, "Reached beginning of OPML tree.")
-                        }
-                        isInOpml && xpp.name == OpmlSymbols.OUTLINE -> {
-//                        TODO: check more about this, java.io.IOException: Underlying input stream returned zero bytes
-                            val element = OpmlElement()
-                            element.text = xpp.getAttributeValue(null, OpmlSymbols.TITLE) ?: xpp.getAttributeValue(null, OpmlSymbols.TEXT)
-                            element.xmlUrl = xpp.getAttributeValue(null, OpmlSymbols.XMLURL)
-                            element.htmlUrl = xpp.getAttributeValue(null, OpmlSymbols.HTMLURL)
-                            element.type = xpp.getAttributeValue(null, OpmlSymbols.TYPE)
-                            if (element.xmlUrl != null) {
-                                if (element.text == null) element.text = element.xmlUrl
-                                elementList!!.add(element)
-                            } else Logd(TAG, "Skipping element because of missing xml url")
-                        }
+            try {
+                val opmlData: Opml = xml.decodeFromString(Opml.serializer(), xmlString)
+                val elements = opmlData.body.outlines.map { outline ->
+                    OpmlElement().apply {
+                        text = outline.title
+                        xmlUrl = outline.xmlUrl
+                        htmlUrl = outline.htmlUrl
+                        type = outline.type
                     }
                 }
-//           TODO: on first install app: java.io.IOException: Underlying input stream returned zero bytes
-                try { eventType = xpp.next()
-                } catch(e: Exception) {
-                    Logs(TAG, e, "xpp.next() invalid:")
-                    break
-                }
-            }
-            return elementList!!
+                Logd(TAG, "readDocument elements: ${elements.size}")
+                elementList.addAll(elements)
+            } catch (e: Exception) { Logs(TAG, e, "Failed to parse OPML") }
+            return elementList
         }
 
         companion object {
@@ -170,15 +158,11 @@ class OpmlTransporter {
             val TAG = "OpmlTransporter"
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val opmlFileStream = getAppContext().contentResolver.openInputStream(uri)
-                    val bomInputStream = BOMInputStream(opmlFileStream)
-                    val bom = bomInputStream.bom
-                    val charsetName = if (bom == null) "UTF-8" else bom.charsetName
-                    val reader: Reader = InputStreamReader(bomInputStream, charsetName)
-                    val opmlReader = OpmlReader()
-                    val result = opmlReader.readDocument(reader)
-                    reader.close()
-                    withContext(Dispatchers.Main) { CB(result) }
+                    val docFile = uri.toUF()
+                    if (docFile.exists()) {
+                        val opmlElements = OpmlReader().readDocument(docFile)
+                        withContext(Dispatchers.Main) { CB(opmlElements) }
+                    } else Loge(TAG, "OPML file doesn't exist: $uri")
                 } catch (e: Throwable) {
                     withContext(Dispatchers.Main) {
                         Logs(TAG, e)

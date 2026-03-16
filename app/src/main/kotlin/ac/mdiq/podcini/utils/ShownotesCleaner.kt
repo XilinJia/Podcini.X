@@ -8,11 +8,8 @@ import ac.mdiq.podcini.ui.compose.isLightTheme
 import android.util.TypedValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import org.apache.commons.io.IOUtils
-import org.jsoup.Jsoup
-import org.jsoup.nodes.Document
-import java.io.IOException
-import java.util.Locale
+import com.fleeksoft.ksoup.Ksoup
+import com.fleeksoft.ksoup.nodes.Document
 import java.util.regex.Pattern
 
 /**
@@ -31,14 +28,43 @@ class ShownotesCleaner {
         val colorPrimary = (if (isLightMode) Color(0xFF000000) else Color(0xFFFFFFFF) ).toHtmlRgba()
         val colorAccent = (if (isLightMode) Color(0xFF6200EE) else Color(0xFFBB86FC) ).toHtmlRgba()
         val margin = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8f, getAppContext().resources.displayMetrics).toInt()
-        var styleString: String? = ""
-        try {
-            val templateStream = getAppContext().assets.open("shownotes-style.css")
-            styleString = IOUtils.toString(templateStream, "UTF-8")
-            templateStream.close()
-        } catch (e: IOException) { Logs(TAG, e) }
-        webviewStyle = String.format(Locale.US, styleString!!, colorPrimary, colorAccent, margin, margin, margin, margin)
+        webviewStyle = getHtmlStyle(colorPrimary, colorAccent, margin)
         timeIt("$TAG end of init")
+    }
+
+    fun getHtmlStyle(colorText: String, colorLink: String, padding: Int): String {
+        return """
+            * {
+                 color: $colorText;
+                 overflow-wrap: break-word;
+            }
+            a {
+                 font-style: normal;
+                 text-decoration: none;
+                 font-weight: normal;
+                 color: $colorLink;
+            }
+            a.timecode {
+                 color: #669900;
+            }
+            img, iframe {
+                 display: block;
+                 margin: 10 auto;
+                 max-width: 100%;
+                 height: auto;
+            }
+            body {
+                 padding: ${padding}px ${padding}px ${padding}px ${padding}px;
+            }
+            p#apNoShownotes {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+                -webkit-text-size-adjust: none;
+            }
+        """.trimIndent()
     }
 
     fun Color.toHtmlRgba(): String {
@@ -68,7 +94,7 @@ class ShownotesCleaner {
 
         // replace ASCII line breaks with HTML ones if shownotes don't contain HTML line breaks already
         if (!LINE_BREAK_REGEX.matcher(shownotes).find() && !shownotes.contains("<p>")) shownotes = shownotes.replace("\n", "<br />")
-        val document = Jsoup.parse(shownotes)   // TODO: this is time consuming
+        val document = Ksoup.parse(shownotes)   // TODO: this is time consuming
         cleanCss(document)
         document.head().appendElement("style").attr("type", "text/css").text(webviewStyle)
         addTimecodes(document, playableDuration)
@@ -76,7 +102,7 @@ class ShownotesCleaner {
     }
 
     private fun addTimecodes(document: Document, playableDuration: Int) {
-        val elementsWithTimeCodes = document.body().getElementsMatchingOwnText(TIMECODE_REGEX)
+        val elementsWithTimeCodes = document.body().getElementsMatchingOwnText(TIMECODE_REGEX.toRegex())
         Logd(TAG, "Recognized " + elementsWithTimeCodes.size + " timecodes")
         if (elementsWithTimeCodes.isEmpty()) return  // No elements with timecodes
 
@@ -113,7 +139,7 @@ class ShownotesCleaner {
                 val time = if (matcherForElement.group(1) != null) durationStringLongToMs(group)
                 else durationStringShortToMs(group, useHourFormat)
                 var replacementText = group
-                if (time < playableDuration) replacementText = String.format(Locale.US, TIMECODE_LINK, time, group)
+                if (time < playableDuration) replacementText = "<a class=\"timecode\" href=\"podcini://timecode/$time\">$group</a>"
                 matcherForElement.appendReplacement(buffer, replacementText)
             }
 
@@ -123,8 +149,8 @@ class ShownotesCleaner {
     }
 
     private fun cleanCss(document: Document) {
-        Logd(TAG, "cleanCss number of elements: ${document.allElements.size}")
-        for (element in document.allElements) {
+        Logd(TAG, "cleanCss number of elements: ${document.getAllElements().size}")
+        for (element in document.getAllElements()) {
             when {
                 element.hasAttr("style") -> element.attr("style", element.attr("style").replace(CSS_COLOR.toRegex(), ""))
                 element.tagName() == "style" -> element.html(cleanStyleTag(element.html()))

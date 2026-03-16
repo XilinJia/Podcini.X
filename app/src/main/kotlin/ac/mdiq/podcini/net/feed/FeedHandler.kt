@@ -11,24 +11,16 @@ import ac.mdiq.podcini.storage.utils.parseDate
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
-import ac.mdiq.podcini.utils.Logt
 import androidx.core.text.HtmlCompat
-import org.apache.commons.io.input.XmlStreamReader
-import org.jsoup.Jsoup
+import io.ktor.utils.io.streams.inputStream
+import kotlinx.io.Source
+import nl.adaptivity.xmlutil.EventType
+import nl.adaptivity.xmlutil.XmlReader
+import nl.adaptivity.xmlutil.newGenericReader
+import nl.adaptivity.xmlutil.xmlStreaming
 import org.xml.sax.Attributes
-import org.xml.sax.InputSource
 import org.xml.sax.SAXException
 import org.xml.sax.helpers.DefaultHandler
-import org.xmlpull.v1.XmlPullParser
-import org.xmlpull.v1.XmlPullParserException
-import org.xmlpull.v1.XmlPullParserFactory
-import java.io.File
-import java.io.FileNotFoundException
-import java.io.IOException
-import java.io.Reader
-import java.util.Stack
-import javax.xml.parsers.ParserConfigurationException
-import javax.xml.parsers.SAXParserFactory
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
@@ -36,114 +28,91 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 class FeedHandler {
-    @Throws(SAXException::class, IOException::class, ParserConfigurationException::class, UnsupportedFeedtypeException::class)
-    fun parseFeed(feed: Feed): FeedHandlerResult {
-//        val tg = TypeGetter()
-        val type = getType(feed)
-        val handler = SyndHandler(feed, type)
-        if (feed.fileUrl != null) {
-            val factory = SAXParserFactory.newInstance()
-            factory.isNamespaceAware = true
-            val saxParser = factory.newSAXParser()
-//            saxParser.parse(File(feed.file_url!!), handler)
-
-            val inputStreamReader: Reader = XmlStreamReader(File(feed.fileUrl!!))
-            val inputSource = InputSource(inputStreamReader)
-            Logd("FeedHandler", "parseFeed starting saxParser.parse")
-            saxParser.parse(inputSource, handler)
-            inputStreamReader.close()
-        }
-        return FeedHandlerResult(handler.state.feed, handler.state.alternateUrls, handler.state.redirectUrl ?: "")
+    class KmpAttributes(private val reader: XmlReader) : Attributes {
+        override fun getLength(): Int = reader.attributeCount
+        override fun getLocalName(index: Int): String = reader.getAttributeLocalName(index)
+        override fun getValue(index: Int): String = reader.getAttributeValue(index)
+        // Implement other required methods with empty returns or simple logic...
+        override fun getURI(index: Int): String = reader.getAttributeNamespace(index)
+        override fun getQName(index: Int): String = reader.getAttributeLocalName(index)
+        override fun getType(index: Int): String = "CDATA"
+        override fun getType(qName: String?): String = "CDATA"
+        override fun getType(uri: String?, localName: String?): String = "CDATA"
+        override fun getValue(qName: String?): String? = reader.getAttributeValue("", qName ?: "")
+        override fun getValue(uri: String?, localName: String?): String? = reader.getAttributeValue(uri ?: "", localName ?: "")
+        override fun getIndex(qName: String?): Int = -1
+        override fun getIndex(uri: String?, localName: String?): Int = -1
     }
 
-    @Throws(UnsupportedFeedtypeException::class)
-    fun getType(feed: Feed): Type {
-        if (feed.type != null) return Type.fromName(feed.type!!)
-
-        val factory: XmlPullParserFactory
-        if (feed.fileUrl != null) {
-            var reader: Reader? = null
+    suspend fun parseFeed(source: Source, feed: Feed): FeedHandlerResult? {
+        var handler: SyndHandler? = null
+        source.use { bufferedSource ->
+            val reader = xmlStreaming.newGenericReader(bufferedSource.inputStream())
             try {
-                factory = XmlPullParserFactory.newInstance()
-                factory.isNamespaceAware = true
-                val xpp = factory.newPullParser()
-                reader = createReader(feed)
-                xpp.setInput(reader)
-                var eventType = xpp.eventType
-                while (eventType != XmlPullParser.END_DOCUMENT) {
-                    if (eventType == XmlPullParser.START_TAG) {
-                        when (val tag = xpp.name) {
+                handler = handleEvent(reader, feed)
+                return FeedHandlerResult(handler.state.feed, handler.state.alternateUrls, handler.state.redirectUrl ?: "")
+            } catch (e: Exception) { Logs(TAG, e, "Streaming Parse Failed")
+            } finally { reader.close() }
+        }
+        return null
+    }
+
+    fun handleEvent(reader:  XmlReader, feed: Feed): SyndHandler {
+        var handler: SyndHandler? = null
+        while (reader.hasNext()) {
+            when (val event = reader.next()) {
+                EventType.START_DOCUMENT -> {}
+                EventType.START_ELEMENT -> {
+                    if (handler == null) {
+                        val type = when (val tag = reader.localName) {
                             ATOM_ROOT -> {
                                 feed.type = Feed.FeedType.ATOM1.name
                                 Logd(TAG, "getType Recognized type Atom")
-                                val strLang = xpp.getAttributeValue("http://www.w3.org/XML/1998/namespace", "lang")
+                                val strLang = reader.getAttributeValue("http://www.w3.org/XML/1998/namespace", "lang")
                                 if (strLang != null) feed.langSet.add(strLang)
-                                return Type.ATOM
+                                Type.ATOM
                             }
                             RSS_ROOT -> {
-                                val strVersion = xpp.getAttributeValue(null, "version")
-//                                Logd(TAG, "getType strVersion $strVersion")
-                                when (strVersion) {
-                                    null -> {
+                                when (val strVersion = reader.getAttributeValue("", "version")) {
+                                    null, "2.0" -> {
                                         feed.type = Feed.FeedType.RSS.name
-                                        return Type.RSS20
+                                        Type.RSS20
                                     }
-                                    "2.0" -> {
-                                        feed.type = Feed.FeedType.RSS.name
-                                        return Type.RSS20
-                                    }
-                                    "0.91", "0.92" -> return Type.RSS091
+                                    "0.91", "0.92" -> Type.RSS091
                                     else -> {
-                                        Loge(TAG, "getType Unsupported rss version")
+                                        Loge(TAG, "getType Unsupported rss version: $strVersion")
                                         throw UnsupportedFeedtypeException("Unsupported rss version")
                                     }
                                 }
                             }
                             else -> {
-                                Loge(TAG, "getType Type is invalid")
+                                Loge(TAG, "getType Type is invalid: $tag")
                                 throw UnsupportedFeedtypeException(Type.INVALID, tag)
                             }
                         }
-                    } else {
-                        // Apparently exception happens on some devices...
-                        try { eventType = xpp.next() } catch (e: RuntimeException) {
-                            Logs(TAG, e, "Unable to get type")
-                            throw UnsupportedFeedtypeException("Unable to get type")
-                        }
+                        Logd(TAG, "getType Type is: $type")
+                        handler = SyndHandler(feed, type)
+                        handler.startDocument()
                     }
+                    reader.namespaceContext.forEach { (prefix, uri) -> handler.startPrefixMapping(prefix, uri) }
+                    handler.startElement(reader.namespaceURI, reader.localName, reader.localName, KmpAttributes(reader))
                 }
-            } catch (e: XmlPullParserException) {
-                Logs(TAG, e, "getType for feed failed")
-                // XML document might actually be a HTML document -> try to parse as HTML
-                var rootElement: String? = null
-                try {
-                    Jsoup.parse(File(feed.fileUrl!!))
-                    rootElement = "html"
-                } catch (e1: IOException) {
-                    Logs(TAG, e1, "IOException: " + feed.fileUrl)
+                EventType.TEXT, EventType.CDSECT -> {
+                    val text = reader.text.toCharArray()
+                    handler?.characters(text, 0, text.size)
                 }
-                throw UnsupportedFeedtypeException(Type.INVALID, rootElement)
-            } catch (e: IOException) {
-                Logs(TAG, e, "IOException: " + feed.fileUrl)
-            } finally { if (reader != null) try { reader.close() } catch (e: IOException) {
-                Logs(TAG, e, "IOException: $reader")
-            } }
+                EventType.END_ELEMENT -> {
+//                    Logd(TAG, "EventType.END_ELEMENT ${reader.localName}")
+                    handler?.endElement(reader.namespaceURI, reader.localName, reader.localName)
+                    reader.namespaceContext.forEach { (prefix, _) -> handler?.endPrefixMapping(prefix) }
+                }
+                EventType.END_DOCUMENT -> handler?.endDocument()
+                else -> {
+                    //                            Logd(TAG, "parseFeed event else: $event")
+                }
+            }
         }
-        Logd(TAG, "getType Type is invalid")
-        throw UnsupportedFeedtypeException(Type.INVALID)
-    }
-
-    private fun createReader(feed: Feed): Reader? {
-        if (feed.fileUrl.isNullOrBlank()) return null
-        try {
-            val reader: Reader = XmlStreamReader(File(feed.fileUrl!!))
-            return reader
-        } catch (e: FileNotFoundException) {
-            Logs(TAG, e, "FileNotFoundException: " + feed.fileUrl)
-        } catch (e: IOException) {
-            Logs(TAG, e, "IOException: " + feed.fileUrl)
-        }
-        return null
+        return handler!!
     }
 
     enum class Type {
@@ -176,13 +145,11 @@ class FeedHandler {
 
         var currentFunding: FeedFunding? = null
 
-        val tagstack: Stack<SyndElement> = Stack()
-        /**
-         * Namespaces that have been defined so far.
-         */
+        val tagstack = ArrayDeque<SyndElement>()
+
         val namespaces: MutableMap<String, Namespace> = mutableMapOf()
 
-        val defaultNamespaces: Stack<Namespace> = Stack()
+        val defaultNamespaces = ArrayDeque<Namespace>()
         /**
          * Buffer for saving characters.
          */
@@ -196,19 +163,19 @@ class FeedHandler {
          */
         val secondTag: SyndElement
             get() {
-                val top = tagstack.pop()
-                val second = tagstack.peek()
-                tagstack.push(top)
+                val top = tagstack.removeLast()
+                val second = tagstack.last()
+                tagstack.addLast(top)
                 return second
             }
 
         val thirdTag: SyndElement
             get() {
-                val top = tagstack.pop()
-                val second = tagstack.pop()
-                val third = tagstack.peek()
-                tagstack.push(second)
-                tagstack.push(top)
+                val top = tagstack.removeLast()
+                val second = tagstack.removeLast()
+                val third = tagstack.last()
+                tagstack.addLast(second)
+                tagstack.addLast(top)
                 return third
             }
 
@@ -222,17 +189,16 @@ class FeedHandler {
         val state: HandlerState = HandlerState(feed)
 
         init {
-            if (type == Type.RSS20 || type == Type.RSS091) state.defaultNamespaces.push(Rss20())
+            if (type == Type.RSS20 || type == Type.RSS091) state.defaultNamespaces.addLast(Rss20())
         }
 
         @Throws(SAXException::class)
         override fun startElement(uri: String, localName: String, qualifiedName: String, attributes: Attributes) {
             state.contentBuf = StringBuilder()
-            val handler = getHandlingNamespace(uri, qualifiedName)
-            if (handler != null) {
-                val element = handler.handleElementStart(localName, state, attributes)
-                state.tagstack.push(element)
-            }
+            val namespace = getHandlingNamespace(uri, qualifiedName)
+//            Logd(TAG, "startElement: localName: $localName qualifiedName: $qualifiedName uri: $uri")
+            val element = namespace.handleElementStart(localName, state, attributes)
+            state.tagstack.addLast(element)
         }
         @Throws(SAXException::class)
         override fun characters(ch: CharArray, start: Int, length: Int) {
@@ -240,26 +206,26 @@ class FeedHandler {
         }
         @Throws(SAXException::class)
         override fun endElement(uri: String, localName: String, qualifiedName: String) {
-            val handler = getHandlingNamespace(uri, qualifiedName)
-            if (handler != null) {
-                handler.handleElementEnd(localName, state)
-                state.tagstack.pop()
-            }
+            val namespace = getHandlingNamespace(uri, qualifiedName)
+//            Logd(TAG, "endElement: localName: $localName qualifiedName: $qualifiedName uri: $uri")
+            namespace.handleElementEnd(localName, state)
+            state.tagstack.removeLast()
             state.contentBuf = null
         }
         @Throws(SAXException::class)
         override fun endPrefixMapping(prefix: String) {
-            if (state.defaultNamespaces.size > 1 && prefix == DEFAULT_PREFIX) state.defaultNamespaces.pop()
+            if (state.defaultNamespaces.size > 1 && prefix == DEFAULT_PREFIX) state.defaultNamespaces.removeLast()
         }
         @Throws(SAXException::class)
         override fun startPrefixMapping(prefix: String, uri: String) {
             // Find the right namespace
             if (!state.namespaces.containsKey(uri)) {
-//                Logd(TAG, "startPrefixMapping prefix: $prefix uri: $uri")
+//                Logd(TAG, "startPrefixMapping prefix: $prefix uri: [$uri]")
                 when {
+                    uri == "" -> state.namespaces[uri] = Rss20()
                     uri == Atom.NSURI -> {
                         when (prefix) {
-                            DEFAULT_PREFIX -> state.defaultNamespaces.push(Atom())
+                            DEFAULT_PREFIX -> state.defaultNamespaces.addLast(Atom())
                             Atom.NSTAG -> state.namespaces[uri] = Atom()
                         }
                     }
@@ -269,14 +235,14 @@ class FeedHandler {
                     uri == Media.NSURI && prefix == Media.NSTAG -> state.namespaces[uri] = Media()
                     uri == DublinCore.NSURI && prefix == DublinCore.NSTAG -> state.namespaces[uri] = DublinCore()
                     uri == PodcastIndex.NSURI || uri == PodcastIndex.NSURI2 && prefix == PodcastIndex.NSTAG -> state.namespaces[uri] = PodcastIndex()
-                    else -> Logt(TAG, "startPrefixMapping can not handle uri: $uri")
+                    else -> Logd(TAG, "startPrefixMapping can not handle prefix: $prefix uri: $uri")
                 }
             }
         }
-        private fun getHandlingNamespace(uri: String, qualifiedName: String): Namespace? {
-            var handler = state.namespaces[uri]
-            if (handler == null && !state.defaultNamespaces.empty() && !qualifiedName.contains(":")) handler = state.defaultNamespaces.peek()
-            return handler
+        private fun getHandlingNamespace(uri: String, qualifiedName: String): Namespace {
+            var namespace = state.namespaces[uri]
+            if (namespace == null && !qualifiedName.contains(":")) namespace = state.defaultNamespaces.lastOrNull()
+            return namespace ?: Rss20()
         }
         @Throws(SAXException::class)
         override fun endDocument() {
@@ -332,11 +298,6 @@ class FeedHandler {
 
         /** Called by a Feedhandler when in endElement and it detects a namespace element */
         abstract fun handleElementEnd(localName: String, state: HandlerState)
-
-        /** Trims all whitespace from beginning and ending of a String. {[String.trim]} only trims spaces. */
-        fun trimAllWhitespace(string: String): String {
-            return string.replace("(^\\s*)|(\\s*$)".toRegex(), "")
-        }
     }
 
     /** Defines a XML Element that is pushed on the tagstack  */
@@ -386,7 +347,7 @@ class FeedHandler {
                 LINK == localName -> {
                     val href: String? = attributes.getValue(LINK_HREF)
                     val rel: String? = attributes.getValue(LINK_REL)
-                    val parent = state.tagstack.peek()
+                    val parent = state.tagstack.last()
                     when {
                         parent.name.matches(isFeedItem.toRegex()) -> {
                             when (rel) {
@@ -447,13 +408,14 @@ class FeedHandler {
         }
 
         override fun handleElementEnd(localName: String, state: HandlerState) {
-//        Logd(TAG, "handleElementEnd $localName")
+//            Logd(TAG, "Atom handleElementEnd $localName")
             if (ENTRY == localName) {
                 if (state.currentItem != null && state.tempObjects.containsKey(Itunes.DURATION)) {
                     val currentItem = state.currentItem
                     if (currentItem != null) {
                         val duration = state.tempObjects[Itunes.DURATION] as Int?
                         if (duration != null) currentItem.duration = (duration)
+//                        Logd(TAG, "Atom handleElementEnd duration: $duration")
                     }
                     state.tempObjects.remove(Itunes.DURATION)
                 }
@@ -463,8 +425,8 @@ class FeedHandler {
             if (state.tagstack.size >= 2) {
                 var textElement: AtomText? = null
                 val contentRaw = if (state.contentBuf != null) state.contentBuf.toString() else ""
-                val content = trimAllWhitespace(contentRaw)
-                val topElement = state.tagstack.peek()
+                val content = contentRaw.trim { it.isWhitespace() }
+                val topElement = state.tagstack.last()
                 val top = topElement.name
                 val secondElement = state.secondTag
                 val second = secondElement.name
@@ -524,21 +486,18 @@ class FeedHandler {
 
             private const val TEXT_TYPE = "type"
 
-            // Link
             private const val LINK_HREF = "href"
             private const val LINK_REL = "rel"
             private const val LINK_TYPE = "type"
             private const val LINK_TITLE = "title"
             private const val LINK_LENGTH = "length"
 
-            // rel-values
             private const val LINK_REL_ALTERNATE = "alternate"
             private const val LINK_REL_ARCHIVES = "archives"
             private const val LINK_REL_ENCLOSURE = "enclosure"
             private const val LINK_REL_PAYMENT = "payment"
             private const val LINK_REL_NEXT = "next"
 
-            // type-values
             private const val LINK_TYPE_ATOM = "application/atom+xml"
             private const val LINK_TYPE_HTML = "text/html"
             private const val LINK_TYPE_XHTML = "application/xml+xhtml"
@@ -577,23 +536,22 @@ class FeedHandler {
             if (IMAGE == localName) {
                 val url: String? = attributes.getValue(IMAGE_HREF)
                 if (state.currentItem != null) state.currentItem!!.imageUrl = url
-                // this is the feed image
-                // prefer to all other images
+                // this is the feed image, prefer to all other images
                 else if (!url.isNullOrEmpty()) state.feed.imageUrl = url
             }
             return SyndElement(localName, this)
         }
 
         override fun handleElementEnd(localName: String, state: HandlerState) {
+//            Logd(TAG, "Itunes handleElementEnd $localName")
             if (state.contentBuf == null) return
             val content = state.contentBuf.toString()
             if (content.isEmpty()) return
 
+//            Logd(TAG, "Itunes handleElementEnd localName: $localName content $content")
             when (localName) {
                 AUTHOR if state.tagstack.size <= 3 -> state.feed.author = HtmlCompat.fromHtml(content, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
-                DURATION -> try { state.tempObjects[DURATION] = inMillis(content).toInt() } catch (e: NumberFormatException) {
-                    Logs(NSTAG, e, String.format("Duration '%s' could not be parsed", content))
-                }
+                DURATION -> try { state.tempObjects[DURATION] = inMillis(content).toInt() } catch (e: NumberFormatException) { Logs(NSTAG, e, "Duration $content could not be parsed") }
                 SUBTITLE -> {
                     when {
                         state.currentItem != null && state.currentItem?.description.isNullOrEmpty() -> state.currentItem!!.setDescriptionIfLonger(content)
@@ -713,16 +671,13 @@ class FeedHandler {
                         state.currentItem != null && isDefault && url != null && validTypeMedia -> {
                             var size: Long = 0
                             val sizeStr: String? = attributes.getValue(SIZE)
-                            if (!sizeStr.isNullOrEmpty()) {
-                                try { size = sizeStr.toLong() } catch (e: NumberFormatException) {
-                                    Logs(TAG, e, "Size \"$sizeStr\" could not be parsed.")
-                                }
-                            }
+                            if (!sizeStr.isNullOrEmpty())
+                                try { size = sizeStr.toLong() } catch (e: NumberFormatException) { Logs(TAG, e, "Size \"$sizeStr\" could not be parsed.") }
                             var durationMs = 0
                             val durationStr: String? = attributes.getValue(DURATION)
                             if (!durationStr.isNullOrEmpty())
                                 try { durationMs = durationStr.toLong().seconds.inWholeMilliseconds.toInt() } catch (e: NumberFormatException) { Logs(TAG, e, "Duration string $durationStr could not be parsed") }
-                            Logd(TAG, "handleElementStart creating media: ${state.currentItem?.title} $url $size $mimeType")
+//                            Logd(TAG, "handleElementStart creating media: ${state.currentItem?.title} $url $size $mimeType durationMs: $durationMs")
                             state.currentItem?.fillMedia(url, size, mimeType)
                             if (durationMs > 0) state.currentItem?.duration = ( durationMs)
                         }
@@ -747,7 +702,7 @@ class FeedHandler {
         }
 
         override fun handleElementEnd(localName: String, state: HandlerState) {
-//        Logd(TAG, "handleElementEnd $localName")
+//            Logd(TAG, "Media handleElementEnd $localName")
             if (DESCRIPTION == localName) {
                 val content = state.contentBuf.toString()
                 state.currentItem?.setDescriptionIfLonger(content)
@@ -813,18 +768,15 @@ class FeedHandler {
         }
     }
 
-    /**
-     * SAX-Parser for reading RSS-
-     */
     class Rss20 : Namespace() {
         override fun handleElementStart(localName: String, state: HandlerState, attributes: Attributes): SyndElement {
 //        Logd(TAG, "handleElementStart $localName")
             when (localName) {
-                ITEM if CHANNEL == state.tagstack.lastElement()?.name -> {
+                ITEM if CHANNEL == state.tagstack.lastOrNull()?.name -> {
                     state.currentItem = Episode()
                     state.items.add(state.currentItem!!) //                state.currentItem!!.feed = state.feed
                 }
-                ENCLOSURE if ITEM == state.tagstack.peek()?.name -> {
+                ENCLOSURE if ITEM == state.tagstack.lastOrNull()?.name -> {
                     val url: String? = attributes.getValue(ENC_URL)
                     val mimeType: String? = getMimeType(attributes.getValue(ENC_TYPE), url)
                     val validUrl = !url.isNullOrBlank()
@@ -839,16 +791,21 @@ class FeedHandler {
                         state.currentItem?.fillMedia(url, size, mimeType)
                     }
                 }
+                else -> {
+//                    Logd(TAG, "handleElementStart unhandled localName: $localName")
+                }
             }
             return SyndElement(localName, this)
         }
 
         override fun handleElementEnd(localName: String, state: HandlerState) {
-//        Logd(TAG, "handleElementEnd $localName")
+//            Logd(TAG, "Rss20 handleElementEnd $localName")
             when {
                 ITEM == localName -> {
+//                    Logd(TAG, "Rss20 handleElementEnd state.currentItem: ${state.currentItem?.title}")
                     if (state.currentItem != null) {
                         val currentItem = state.currentItem!!
+//                        Logd(TAG, "Rss20 handleElementEnd currentItem ${currentItem.title}")
                         // the title tag is optional in RSS 2.0. The description is used
                         // as a title if the item has no title-tag.
                         if (currentItem.title == null) currentItem.title = currentItem.description
@@ -856,6 +813,7 @@ class FeedHandler {
                         if (state.tempObjects.containsKey(Itunes.DURATION)) {
                             val duration = state.tempObjects[Itunes.DURATION] as? Int
                             if (duration != null) currentItem.duration = duration
+//                            Logd(TAG, "Rss20 handleElementEnd duration: $duration")
                             state.tempObjects.remove(Itunes.DURATION)
                         }
                     }
@@ -863,8 +821,8 @@ class FeedHandler {
                 }
                 state.tagstack.size >= 2 && state.contentBuf != null -> {
                     val contentRaw = state.contentBuf.toString()
-                    val content = trimAllWhitespace(contentRaw)
-                    val topElement = state.tagstack.peek()
+                    val content = contentRaw.trim { it.isWhitespace() }
+                    val topElement = state.tagstack.last()
                     val top = topElement.name
                     val secondElement = state.secondTag
                     val second = secondElement.name
@@ -900,6 +858,7 @@ class FeedHandler {
                         LANGUAGE == localName -> state.feed.langSet.add(content.lowercase())
                     }
                 }
+                else -> { Logd(TAG, "handleElementEnd unhandled localName: $localName")}
             }
         }
 
@@ -972,7 +931,7 @@ class FeedHandler {
         override fun handleElementEnd(localName: String, state: HandlerState) {
             if (state.currentItem != null && state.contentBuf != null && state.tagstack.size >= 2) {
                 val currentItem = state.currentItem
-                val top = state.tagstack.peek().name
+                val top = state.tagstack.last().name
                 val second = state.secondTag.name
                 if (DATE == top && ITEM == second) {
                     val content = state.contentBuf.toString()
@@ -1006,9 +965,7 @@ class FeedHandler {
         }
 
         /**
-         * Takes a string of the form [HH:]MM:SS[.mmm] and converts it to
-         * milliseconds.
-         *
+         * Takes a string of the form [HH:]MM:SS[.mmm] and converts it to milliseconds.
          * @throws java.lang.NumberFormatException if the number segments contain invalid numbers.
          */
         fun parseTimeString(time: String): Long {

@@ -354,7 +354,7 @@ fun FeedsSettingsScreen() {
                             showIcon =  true
                         },
                         trailingIcon = {
-                            if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(
+                            if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).clickable(
                                 onClick = {
                                     runOnIOScope {
                                         realm.write { for (f in feedsToSet) { findLatest(f)?.let { att ->
@@ -1134,7 +1134,7 @@ fun FeedsSettingsScreen() {
                                     TextField(value = text, onValueChange = { newTerm -> text = newTerm },
                                         placeholder = { Text(stringResource(R.string.add_term_hint)) }, keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                                         keyboardActions = KeyboardActions(onDone = { setText() }),
-                                        trailingIcon = { Icon(imageVector = Icons.Filled.Add, contentDescription = "Add term", modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
+                                        trailingIcon = { Icon(imageVector = Icons.Filled.Add, contentDescription = "Add term", modifier = Modifier.size(30.dp).clickable(onClick = {
                                             setText()
                                         })) },
                                         textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth()

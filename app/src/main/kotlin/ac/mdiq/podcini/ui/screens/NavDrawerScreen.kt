@@ -76,8 +76,6 @@ val LocalDrawerState = staticCompositionLocalOf<DrawerState> { error("DrawerStat
 @Composable
 fun NavDrawerScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
-    val context by rememberUpdatedState(LocalContext.current)
     val navigator = LocalNavController.current
     val drawerCtrl = LocalDrawerController.current
     val drawerState = LocalDrawerState.current
@@ -106,7 +104,7 @@ fun NavDrawerScreen() {
 
     LaunchedEffect(drawerState.isOpen) {
         Logd(TAG, "LaunchedEffect(drawerState.currentValue): ${drawerState.isOpen}")
-        if (drawerState.isOpen) scope.launch(Dispatchers.IO) {
+        if (drawerState.isOpen) withContext(Dispatchers.IO) {
             navMap[Screens.Queues.name]?.count = queuesLive.sumOf { it.size()}
             navMap[Screens.Library.name]?.count = feedCount
             navMap[Screens.Facets.name]?.count = getEpisodesCount(unfiltered())
