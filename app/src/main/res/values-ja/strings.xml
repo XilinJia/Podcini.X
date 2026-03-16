@@ -26,6 +26,7 @@
     <string name="current_episode">現在</string>
     <string name="current_podcast">ポッドキャスト</string>
     <string name="no_more_screens_back">No more screens back</string>
+    <string name="custum_folder_warning">The custom media folder can not be accessed. Something might be wrong with the file system of the device. Try reset it. Currently using internal media folder.</string>
     <!-- Google Assistant -->
     <string name="app_action_not_found">\"%1$s\" が見つかりません</string>
     <!-- SwipeActions -->
@@ -108,6 +109,7 @@
     <string name="receive_contents">Receive contents</string>
     <string name="chapter_duration0">期間: </string>
     <string name="by">By</string>
+    <string name="archived_feed">Feed is archived</string>
     <string name="description_label">説明</string>
     <string name="transcript">Transcript</string>
     <string name="show_all_feeds">Show all feeds</string>
@@ -381,6 +383,8 @@
     <string name="pref_auto_backup_folder">バックアップフォルダをSpicify</string>
     <string name="pref_auto_backup_folder_sum">指定されていません</string>
     <string name="pref_auto_backup_limit">保存するバックアップの数</string>
+    <string name="auto_backup_folder_not_specified">The auto-backup folder is not specified</string>
+    <string name="auto_backup_folder_not_available">The chosen folder for auto-backup is not accessible</string>
     <string name="appearance">外観</string>
     <string name="external_elements">外部要素</string>
     <string name="create_YT_syndicates">YTシンジケートを作成</string>
@@ -419,7 +423,7 @@
     <string name="pref_keeps_important_episodes_title">重要なエピソードを保持</string>
     <string name="playback_pref">再生</string>
     <string name="playback_pref_sum">ヘッドフォンコントロール、間隔をスキップ、キュー</string>
-    <string name="network_pref">ネットワーク</string>
+    <string name="network_storage_pref">Network and Storage</string>
     <string name="downloads_pref_sum">更新間隔、モバイルデータ、自動ダウンロード、自動削除</string>
     <string name="identifier">Identifier</string>
     <string name="network_identifier_sum">A unique identifier is useful when sending data to Podcini on other devices.</string>
@@ -458,12 +462,16 @@
     <string name="user_interface_sum">外観、サブスクリプション、ロック画面</string>
     <string name="pref_black_theme_title">フルブラック</string>
     <string name="pref_black_theme_message">ダークテーマにフルブラックを使用する</string>
+    <string name="pref_dynamic_theme_title">Use dynamic themes</string>
+    <string name="pref_dynamic_theme_message">Themes will adapt to wallpaper colors.</string>
     <string name="pref_automatic_download_title">自動ダウンロード</string>
     <string name="pref_automatic_download_sum">エピソードの自動ダウンロードを構成する</string>
     <string name="pref_automatic_download_on_battery_title">充電していないときにダウンロードする</string>
     <string name="pref_automatic_download_on_battery_sum">バッテリーが充電されていないときに自動的にダウンロードを許可する</string>
     <string name="pref_disable_wifilock_title">WifiLock の使用を無効にする</string>
     <string name="pref_disable_wifilock_sum">WifiLock ルーチンは非推奨であり、モダンな Android では機能しません。無効にしてみてください。</string>
+    <string name="pref_watch_storage_title">Watch available space</string>
+    <string name="pref_watch_storage_sum">Specifies if available space is ensured at download time. If you don\'t have a tight storage, this is better set to false.</string>
     <string name="pref_autodl_queue_empty_title">キューが空になったときに起動</string>
     <string name="pref_autodl_queue_empty_sum">キューが空になると、ポリシー以外の関連フィードの自動ダウンロードが開始されます。</string>
     <string name="pref_auto_sort_queue">Auto sort queue on add</string>
