@@ -26,6 +26,7 @@
     <string name="current_episode">الحالي</string>
     <string name="current_podcast">Podcast</string>
     <string name="no_more_screens_back">No more screens back</string>
+    <string name="custum_folder_warning">The custom media folder can not be accessed. Something might be wrong with the file system of the device. Try reset it. Currently using internal media folder.</string>
     <!-- Google Assistant -->
     <string name="app_action_not_found">\"%1$s\" غير موجود</string>
     <!-- SwipeActions -->
@@ -108,6 +109,7 @@
     <string name="receive_contents">Receive contents</string>
     <string name="chapter_duration0">المدة: </string>
     <string name="by">By</string>
+    <string name="archived_feed">Feed is archived</string>
     <string name="description_label">الوصف</string>
     <string name="transcript">Transcript</string>
     <string name="show_all_feeds">Show all feeds</string>
@@ -391,6 +393,8 @@
     <string name="pref_auto_backup_folder">اختصار مجلد النسخ الاحتياطي</string>
     <string name="pref_auto_backup_folder_sum">غير محدد.</string>
     <string name="pref_auto_backup_limit">عدد النسخ الاحتياطية المراد الاحتفاظ بها</string>
+    <string name="auto_backup_folder_not_specified">The auto-backup folder is not specified</string>
+    <string name="auto_backup_folder_not_available">The chosen folder for auto-backup is not accessible</string>
     <string name="appearance">المظهر</string>
     <string name="external_elements">عناصر خارجية</string>
     <string name="create_YT_syndicates">إنشاء مجموعات YT</string>
@@ -429,7 +433,7 @@
     <string name="pref_keeps_important_episodes_title">الحفاظ على الحلقات المهمة</string>
     <string name="playback_pref">تشغيل</string>
     <string name="playback_pref_sum">تحكم سماعة الرأس ، تخطي الفواصل ، قائمة الانتظار</string>
-    <string name="network_pref">الشبكة</string>
+    <string name="network_storage_pref">Network and Storage</string>
     <string name="downloads_pref_sum">تحديث الفاصل الزمني، بيانات الجوال، التحميل التلقائي، الحذف التلقائي</string>
     <string name="identifier">Identifier</string>
     <string name="network_identifier_sum">A unique identifier is useful when sending data to Podcini on other devices.</string>
@@ -468,12 +472,16 @@
     <string name="user_interface_sum">المظهر، الاشتراكات، قفل الشاشة</string>
     <string name="pref_black_theme_title">أسود كامل</string>
     <string name="pref_black_theme_message">استخدام السمة السوداء الكاملة للظلام</string>
+    <string name="pref_dynamic_theme_title">Use dynamic themes</string>
+    <string name="pref_dynamic_theme_message">Themes will adapt to wallpaper colors.</string>
     <string name="pref_automatic_download_title">تنزيل تلقائي</string>
     <string name="pref_automatic_download_sum">تكوين التحميل التلقائي للحلقات</string>
     <string name="pref_automatic_download_on_battery_title">تحميل عند عدم الشحن</string>
     <string name="pref_automatic_download_on_battery_sum">السماح بالتحميل التلقائي عند عدم شحن البطارية</string>
     <string name="pref_disable_wifilock_title">تعطيل استخدام WifiLock</string>
     <string name="pref_disable_wifilock_sum">روبوتات WifiLock مهملة وغير عاملة على أندرويد الحديثة. حاول تعطيلها.</string>
+    <string name="pref_watch_storage_title">Watch available space</string>
+    <string name="pref_watch_storage_sum">Specifies if available space is ensured at download time. If you don\'t have a tight storage, this is better set to false.</string>
     <string name="pref_autodl_queue_empty_title">تشغيل عندما يصبح قائمة الانتظار فارغاً</string>
     <string name="pref_autodl_queue_empty_sum">عندما يصبح قائمة الانتظار فارغاً، يبدأ التحميل التلقائي للتغذية المرتبطة حيث تكون السياسة غير \"العناصر الجديدة فقط\"</string>
     <string name="pref_auto_sort_queue">Auto sort queue on add</string>
