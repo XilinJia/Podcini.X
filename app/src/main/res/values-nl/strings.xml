@@ -26,6 +26,7 @@
     <string name="current_episode">Current</string>
     <string name="current_podcast">Podcast</string>
     <string name="no_more_screens_back">No more screens back</string>
+    <string name="custum_folder_warning">The custom media folder can not be accessed. Something might be wrong with the file system of the device. Try reset it. Currently using internal media folder.</string>
     <!-- Google Assistant -->
     <string name="app_action_not_found">\"%1$s\" not found</string>
     <!-- SwipeActions -->
@@ -108,6 +109,7 @@
     <string name="receive_contents">Receive contents</string>
     <string name="chapter_duration0">Duration: </string>
     <string name="by">By</string>
+    <string name="archived_feed">Feed is archived</string>
     <string name="description_label">Description</string>
     <string name="transcript">Transcript</string>
     <string name="show_all_feeds">Show all feeds</string>
@@ -383,6 +385,8 @@
     <string name="pref_auto_backup_folder">Spicify a backup folder</string>
     <string name="pref_auto_backup_folder_sum">Not specified.</string>
     <string name="pref_auto_backup_limit">Number of backups to keep</string>
+    <string name="auto_backup_folder_not_specified">The auto-backup folder is not specified</string>
+    <string name="auto_backup_folder_not_available">The chosen folder for auto-backup is not accessible</string>
     <string name="appearance">Appearance</string>
     <string name="external_elements">External elements</string>
     <string name="create_YT_syndicates">Create YT syndicates</string>
@@ -421,7 +425,7 @@
     <string name="pref_keeps_important_episodes_title">Keep important episodes</string>
     <string name="playback_pref">Playback</string>
     <string name="playback_pref_sum">Headphone controls, Skip intervals, Queue</string>
-    <string name="network_pref">Network</string>
+    <string name="network_storage_pref">Network and Storage</string>
     <string name="downloads_pref_sum">Update interval, Mobile data, Automatic download, Automatic deletion</string>
     <string name="identifier">Identifier</string>
     <string name="network_identifier_sum">A unique identifier is useful when sending data to Podcini on other devices.</string>
@@ -460,12 +464,16 @@
     <string name="user_interface_sum">Appearance, subscriptions, lockscreen</string>
     <string name="pref_black_theme_title">Full black</string>
     <string name="pref_black_theme_message">Use full black for the dark theme</string>
+    <string name="pref_dynamic_theme_title">Use dynamic themes</string>
+    <string name="pref_dynamic_theme_message">Themes will adapt to wallpaper colors.</string>
     <string name="pref_automatic_download_title">Automatic download</string>
     <string name="pref_automatic_download_sum">Configure the automatic download of episodes</string>
     <string name="pref_automatic_download_on_battery_title">Download when not charging</string>
     <string name="pref_automatic_download_on_battery_sum">Allow automatic download when the battery is not charging</string>
     <string name="pref_disable_wifilock_title">Disable using WifiLock</string>
     <string name="pref_disable_wifilock_sum">WifiLock routines are deprecated and not functional on modern Android. Try disable it.</string>
+    <string name="pref_watch_storage_title">Watch available space</string>
+    <string name="pref_watch_storage_sum">Specifies if available space is ensured at download time. If you don\'t have a tight storage, this is better set to false.</string>
     <string name="pref_autodl_queue_empty_title">Launch when queue gets empty</string>
     <string name="pref_autodl_queue_empty_sum">When a queue becomes empty, automatic download starts for associated feeds where the policy is other than \"Only new items\"</string>
     <string name="pref_auto_sort_queue">Auto sort queue on add</string>
