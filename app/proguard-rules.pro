@@ -5,14 +5,18 @@
 # -optimizations !code/allocation/variable
 # -optimizationpasses 5
 
--keep class org.mozilla.javascript.** { *; }
--keep class org.mozilla.classfile.ClassFileWriter
--dontwarn org.mozilla.javascript.tools.**
--keep class java.beans.**
--dontwarn java.beans.**
+# -keep class org.mozilla.javascript.** { *; }
+# -keep class org.mozilla.classfile.ClassFileWriter
+# -dontwarn org.mozilla.javascript.tools.**
+# -keep class java.beans.**
+# -dontwarn java.beans.**
 
--dontwarn com.google.re2j.Matcher
--dontwarn com.google.re2j.Pattern
+-dontwarn com.google.re2j.**
+-dontwarn java.beans.**
+-dontwarn org.mozilla.javascript.**
+
+# -dontwarn com.google.re2j.Matcher
+# -dontwarn com.google.re2j.Pattern
 
 -allowaccessmodification
 -dontskipnonpubliclibraryclassmembers
@@ -28,34 +32,34 @@
 #-keepclassmembers class androidx.appcompat.app.ActionBar {
 #    public ** getTitle();
 #}
--keepclassmembers class org.apache.commons.io.IOUtils {
-    public static void write(...);
-}
-
--keep public class org.jsoup.** {
-    public *;
-}
+# -keepclassmembers class org.apache.commons.io.IOUtils {
+#     public static void write(...);
+# }
+#
+# -keep public class org.jsoup.** {
+#     public *;
+# }
 
 # for okhttp
--dontwarn okhttp3.**
--dontwarn okio.**
+# -dontwarn okhttp3.**
+# -dontwarn okio.**
 
 #### Proguard rules for fyyd client
 # Retrofit 2.0
--dontwarn retrofit2.**
--keep class retrofit2.** { *; }
--keepattributes Signature
--keepattributes Exceptions
+# -dontwarn retrofit2.**
+# -keep class retrofit2.** { *; }
+# -keepattributes Signature
+# -keepattributes Exceptions
 
--dontwarn org.jspecify.annotations.NullMarked
+# -dontwarn org.jspecify.annotations.NullMarked
 
--keepclasseswithmembers class * {
-    @retrofit2.http.* <methods>;
-}
-
+# -keepclasseswithmembers class * {
+#     @retrofit2.http.* <methods>;
+# }
+#
 # Moshi
--keep class com.squareup.moshi.** { *; }
--keep interface com.squareup.moshi.** { *; }
+# -keep class com.squareup.moshi.** { *; }
+# -keep interface com.squareup.moshi.** { *; }
 ####
 
 # awaitility
@@ -63,8 +67,8 @@
 # -dontwarn java.beans.Introspector
 # -dontwarn java.beans.IntrospectionException
 # -dontwarn java.beans.PropertyDescriptor
--dontwarn java.lang.management.ManagementFactory
--dontwarn java.lang.management.ThreadInfo
--dontwarn java.lang.management.ThreadMXBean
+# -dontwarn java.lang.management.ManagementFactory
+# -dontwarn java.lang.management.ThreadInfo
+# -dontwarn java.lang.management.ThreadMXBean
 
--dontwarn org.slf4j.impl.StaticLoggerBinder
+# -dontwarn org.slf4j.impl.StaticLoggerBinder
