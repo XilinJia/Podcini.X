@@ -257,6 +257,7 @@
     <string name="forever">フォーエバー</string>
     <string name="ignored">無視</string>
     <string name="stop">Stop</string>
+    <string name="reset_player">Reset player</string>
     <string name="visit_website_label">ウェブサイトを開く</string>
     <string name="delete_local_feed_warning_body">警告：ローカルエピソードを削除しています。端末のストレージからメディアファイルを削除します。Podciniから再度ダウンロードすることはできません。続行しますか？</string>
     <string name="delete_repeat_warning_msg">繰り返しに設定されたエピソードを削除してもよろしいですか？</string>
