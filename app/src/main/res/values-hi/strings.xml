@@ -258,6 +258,7 @@
     <string name="forever">Forever</string>
     <string name="ignored">Ignored</string>
     <string name="stop">Stop</string>
+    <string name="reset_player">Reset player</string>
     <string name="visit_website_label">Visit website</string>
     <string name="delete_local_feed_warning_body">Warning: you are deleting local episodes. It will delete the media files from your device storage. It cannot be downloaded again through Podcini. Continue?</string>
     <string name="delete_repeat_warning_msg">Do you really want to delete episodes set for repeats?</string>
