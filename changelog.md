@@ -4,6 +4,7 @@
 * fixed auto-enqueue being called twice when queue get empty
 * fixed crash when importing db
 * amended tree root persistence
+* SharedPreference is fully removed
 
 # 10.12.0
 

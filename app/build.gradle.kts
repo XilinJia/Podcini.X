@@ -181,9 +181,7 @@ dependencies {
     implementation("androidx.documentfile:documentfile:1.1.0")
     implementation("androidx.core:core-splashscreen:1.2.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
-    implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("androidx.webkit:webkit:1.15.0")
-    implementation("androidx.window:window:1.5.1")
     implementation("androidx.work:work-runtime:2.11.1")
 
     implementation("androidx.media3:media3-exoplayer:1.9.3")

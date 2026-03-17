@@ -1,6 +1,5 @@
 package ac.mdiq.podcini.storage.database
 
-import ac.mdiq.podcini.config.settings.AppPreferences.migrateSharedPrefs
 import ac.mdiq.podcini.storage.model.AppAttribs
 import ac.mdiq.podcini.storage.model.AppPrefs
 import ac.mdiq.podcini.storage.model.SleepPrefs
@@ -61,8 +60,6 @@ fun initAppPrefs() {
             }
         }
     }
-
-    migrateSharedPrefs()
 
     if (appAttribsJob == null) appAttribsJob = CoroutineScope(Dispatchers.IO).launch {
         if (appAttribs.uniqueId.isEmpty()) appAttribs = upsert(appAttribs) { it.uniqueId = Uuid.random().toString() }

@@ -1,7 +1,6 @@
 package ac.mdiq.podcini.config
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.config.settings.AppPreferences
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.net.download.PodciniHttpClient.configProxy
@@ -44,7 +43,6 @@ object ClientConfigurator {
         Logd("ClientConfigurator", "initialize")
         timeIt("ClientConfigurator Init started ")
 
-        AppPreferences.init()
         createNoMediaFile()
 
         monitorFeeds()
