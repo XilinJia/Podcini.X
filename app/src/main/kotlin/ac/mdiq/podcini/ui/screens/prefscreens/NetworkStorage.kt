@@ -27,9 +27,11 @@ import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.specs.ProxyConfig
 import ac.mdiq.podcini.storage.utils.deleteDirectoryRecursively
+import ac.mdiq.podcini.storage.utils.findRootForUri
 import ac.mdiq.podcini.storage.utils.mediaDir
-import ac.mdiq.podcini.storage.utils.saveTreeRoot
+import ac.mdiq.podcini.storage.utils.persistedTrees
 import ac.mdiq.podcini.storage.utils.toAndroidUri
+import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
@@ -327,7 +329,7 @@ fun NetworkStorageScreen() {
                 showProgress = true
                 CoroutineScope(Dispatchers.IO).launch {
                     getAppContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                    saveTreeRoot(uri)
+                    persistedTrees.add(uri)
                     val dir = uri.toUF()
                     dir.listChildren().forEach {
                         Logd(TAG, "clearing destination: ${it.absPath}")
@@ -403,7 +405,6 @@ fun NetworkStorageScreen() {
                         showProgress = true
                         CoroutineScope(Dispatchers.IO).launch {
                             val uf = customMediaFolderUriString.toUF()
-                            customMediaFolderUriString = ""
                             useCustomMediaDir = false
                             upsert(appPrefs) {
                                 it.useCustomMediaFolder = false
@@ -412,7 +413,10 @@ fun NetworkStorageScreen() {
                             }
                             MediaFilesTransporter("").fromUriToMediaDir(uf, move = true, verify = false)
                             deleteDirectoryRecursively(uf)
-                            saveTreeRoot(null)
+                            findRootForUri(customMediaFolderUriString.toSafeUri())?.let {
+                                try { getAppContext().contentResolver.releasePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION) } catch (e: Exception) { Logd(TAG, "uri can not be released: $it")}
+                            }
+                            customMediaFolderUriString = ""
                             showProgress = false
                             showImporSuccessDialog.value = true
                             showResetCustomFolderDialog = false

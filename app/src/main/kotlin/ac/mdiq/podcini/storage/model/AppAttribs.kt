@@ -55,8 +55,6 @@ class AppAttribs: RealmObject {
 
     var topChartCountryCode: String = Locale.getDefault().country
 
-    var treeRoots: RealmSet<String> = realmSetOf()
-
     var transceivePort: Int = 21080
     var udpPort: Int = 21088
 

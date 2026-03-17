@@ -91,6 +91,8 @@ abstract class MediaPlayerBase {
 
     open fun createStaticPlayer() {}
 
+    open fun isCasting(): Boolean = false
+
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
     protected abstract fun setDataSource(media: Episode)
 
@@ -122,38 +124,6 @@ abstract class MediaPlayerBase {
      */
     abstract fun prepareMedia(playable: Episode, streaming: Boolean, startWhenPrepared: Boolean, prepareImmediately: Boolean, forceReset: Boolean = false, doPostPlayback: Boolean = false)
 
-    private fun positionUpdateInterval(duration: Int): Long {
-        return if (appPrefs.useAdaptiveProgressUpdate) max(MIN_POSITION_SAVER_INTERVAL, duration/50).toLong()
-        else MIN_POSITION_SAVER_INTERVAL.toLong()
-    }
-
-    private fun onPlaybackStart(playable: Episode, position: Int) {
-        val delayInterval = positionUpdateInterval(playable.duration)
-        Logd(TAG, "onPlaybackStart ${playable.title}")
-        Logd(TAG, "onPlaybackStart position: $position delayInterval: $delayInterval")
-        if (position != Episode.INVALID_TIME) {
-            upsertBlk(playable) {
-                it.position = position
-                it.setPlaybackStart()
-            }
-        } else {
-            // skip intro
-            val feed = playable.feed
-            val skipIntro = feed?.introSkip ?: 0
-            val skipIntroMS = skipIntro * 1000
-            if (skipIntro > 0 && playable.position < skipIntroMS) {
-                val duration = getDuration()
-                if (duration !in 1..skipIntroMS) {
-                    Logd(TAG, "onPlaybackStart skipIntro ${playable.getEpisodeTitle()}")
-                    seekTo(skipIntroMS)
-                    Logt(TAG, getAppContext().getString(R.string.pref_feed_skip_intro_toast, skipIntro))
-                }
-            }
-            upsertBlk(playable) { it.setPlaybackStart() }
-        }
-        positionSaver?.startPositionSaver(delayInterval)
-    }
-
     /**
      * Resumes playback if the PSMP object is in PREPARED or PAUSED state. If the PSMP object is in an invalid state.
      * nothing will happen.
@@ -167,14 +137,6 @@ abstract class MediaPlayerBase {
      * @param reinit is true if service should reinit after pausing if the media file is being streamed
      */
     abstract fun pause(reinit: Boolean)
-
-    fun onPlaybackPause(playable: Episode?, position: Int) {
-        Logd(TAG, "onPlaybackPause $position ${playable?.title}")
-        positionSaver?.cancelPositionSaver()
-        persistCurrentPosition(position == Episode.INVALID_TIME || playable == null, playable, position)
-        Logd(TAG, "onPlaybackPause start ${playable?.timeSpent}")
-        if (playable != null) SynchronizationQueueSink.enqueueEpisodePlayedIfSyncActive(playable, false)
-    }
 
     /**
      * Prepared media player for playback if the service is in the INITALIZED state.
@@ -214,46 +176,6 @@ abstract class MediaPlayerBase {
     abstract fun setVolume(volumeLeft: Float, volumeRight: Float, adaptionFactor: Float = 1.0f)
 
     /**
-     * Releases internally used resources. This method should only be called when the object is not used anymore.
-     */
-    abstract fun shutdown()
-
-//    open fun setVideoSurface(surface: SurfaceHolder?) {
-//        throw UnsupportedOperationException("Setting Video Surface unsupported in Remote Media Player")
-//    }
-
-    open fun resetVideoSurface() {
-        Loge(TAG, "Resetting Video Surface unsupported in Remote Media Player")
-    }
-
-    open fun setAudioTrack(track: Int) {}
-
-    fun skip() {
-//        in first second of playback, ignoring skip
-        if (getPosition() < 1000) return
-        endPlayback(hasEnded = false, wasSkipped = !shouldRepeat)
-    }
-
-    /**
-     * @param currentPosition  current position in a media file in ms
-     * @param lastPlayedTime  timestamp when was media paused
-     * @return  new rewinded position for playback in milliseconds
-     */
-    fun positionWithRewind(currentPosition: Int, lastPlayedTime: Long): Int {
-        if (currentPosition > 0 && lastPlayedTime > 0) {
-            val elapsedTime = nowInMillis() - lastPlayedTime
-            var rewindTime: Long = when {
-                elapsedTime > 1.days.inWholeMilliseconds ->  20.seconds.inWholeMilliseconds
-                elapsedTime > 1.hours.inWholeMilliseconds -> 10.seconds.inWholeMilliseconds
-                elapsedTime > 1.minutes.inWholeMilliseconds -> 3.seconds.inWholeMilliseconds
-                else -> 0L
-            }
-            val newPosition = currentPosition - rewindTime.toInt()
-            return max(newPosition, 0)
-        } else return currentPosition
-    }
-
-    /**
      * Internal method that handles end of playback.
      * Currently, it has 5 use cases:
      *  * Media playback has completed: call with (true, false, true, true)
@@ -272,13 +194,84 @@ abstract class MediaPlayerBase {
      */
     internal abstract fun endPlayback(hasEnded: Boolean, wasSkipped: Boolean, shouldContinue: Boolean = true)
 
-    internal fun onPlaybackEnded(stopPlaying: Boolean) {
+    /**
+     * Releases internally used resources. This method should only be called when the object is not used anymore.
+     */
+    abstract fun shutdown()
+
+//    open fun resetVideoSurface() {
+//        Loge(TAG, "Resetting Video Surface unsupported in Remote Media Player")
+//    }
+
+    open fun setAudioTrack(track: Int) {}
+
+    fun skip() {
+//        in first second of playback, ignoring skip
+        if (getPosition() < 1000) return
+        endPlayback(hasEnded = false, wasSkipped = !shouldRepeat)
+    }
+
+    /**
+     * @param currentPosition  current position in a media file in ms
+     * @param lastPlayedTime  timestamp when was media paused
+     * @return  new rewinded position for playback in milliseconds
+     */
+    protected fun positionWithRewind(currentPosition: Int, lastPlayedTime: Long): Int {
+        if (currentPosition > 0 && lastPlayedTime > 0) {
+            val elapsedTime = nowInMillis() - lastPlayedTime
+            var rewindTime: Long = when {
+                elapsedTime > 1.days.inWholeMilliseconds ->  20.seconds.inWholeMilliseconds
+                elapsedTime > 1.hours.inWholeMilliseconds -> 10.seconds.inWholeMilliseconds
+                elapsedTime > 1.minutes.inWholeMilliseconds -> 3.seconds.inWholeMilliseconds
+                else -> 0L
+            }
+            val newPosition = currentPosition - rewindTime.toInt()
+            return max(newPosition, 0)
+        } else return currentPosition
+    }
+
+    private fun onPlaybackStart(playable: Episode, position: Int) {
+        val delayInterval = if (appPrefs.useAdaptiveProgressUpdate) max(MIN_POSITION_SAVER_INTERVAL, playable.duration/50).toLong() else MIN_POSITION_SAVER_INTERVAL.toLong()
+        Logd(TAG, "onPlaybackStart ${playable.title}")
+        Logd(TAG, "onPlaybackStart position: $position delayInterval: $delayInterval")
+        if (position != Episode.INVALID_TIME) {
+            upsertBlk(playable) {
+                it.position = position
+                it.setPlaybackStart()
+            }
+        } else {
+            // skip intro
+            val feed = playable.feed
+            val skipIntro = feed?.introSkip ?: 0
+            val skipIntroMS = skipIntro * 1000
+            if (skipIntro > 0 && playable.position < skipIntroMS) {
+                val duration = getDuration()
+                if (duration !in 1..skipIntroMS) {
+                    Logd(TAG, "onPlaybackStart skipIntro ${playable.getEpisodeTitle()}")
+                    seekTo(skipIntroMS)
+                    Logt(TAG, getAppContext().getString(R.string.pref_feed_skip_intro_toast, skipIntro))
+                }
+            }
+            upsertBlk(playable) { it.setPlaybackStart() }
+        }
+        positionSaver?.startPositionSaver(delayInterval)
+    }
+
+    protected fun onPlaybackPause(playable: Episode?, position: Int) {
+        Logd(TAG, "onPlaybackPause $position ${playable?.title}")
+        positionSaver?.cancelPositionSaver()
+        persistCurrentPosition(position == Episode.INVALID_TIME || playable == null, playable, position)
+        Logd(TAG, "onPlaybackPause start ${playable?.timeSpent}")
+        if (playable != null) SynchronizationQueueSink.enqueueEpisodePlayedIfSyncActive(playable, false)
+    }
+
+    protected fun onPlaybackEnded(stopPlaying: Boolean) {
         Logd(TAG, "onPlaybackEnded stopPlaying: $stopPlaying")
         curTempSpeed = SPEED_USE_GLOBAL
         if (stopPlaying) positionSaver?.cancelPositionSaver()
     }
 
-    fun onPostPlayback(playable: Episode, ended: Boolean, skipped: Boolean, playingNext: Boolean) {
+    protected fun onPostPlayback(playable: Episode, ended: Boolean, skipped: Boolean, playingNext: Boolean) {
         Logd(TAG, "onPostPlayback(): ended=$ended skipped=$skipped playingNext=$playingNext media=${playable.getEpisodeTitle()} ")
         var item = playable
         val smartMarkAsPlayed = playable.hasAlmostEnded()
@@ -324,9 +317,7 @@ abstract class MediaPlayerBase {
         }
     }
 
-    open fun isCasting(): Boolean = false
-
-    fun persistCurrentPosition(fromMediaPlayer: Boolean, playable_: Episode?, position_: Int) {
+    internal fun persistCurrentPosition(fromMediaPlayer: Boolean, playable_: Episode?, position_: Int) {
         var playable = if (curEpisode != null && playable_?.id == curEpisode?.id) curEpisode else playable_
         var position = position_
         val duration_: Int

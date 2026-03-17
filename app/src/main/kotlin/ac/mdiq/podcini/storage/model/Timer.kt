@@ -14,7 +14,7 @@ import android.os.Build
 import io.github.xilinjia.krdb.types.EmbeddedRealmObject
 import io.github.xilinjia.krdb.types.annotations.Index
 
-const val TAG = "Timer"
+private const val TAG = "Timer"
 
 class Timer: EmbeddedRealmObject {
     @Index

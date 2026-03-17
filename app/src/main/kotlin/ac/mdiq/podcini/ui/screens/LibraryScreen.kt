@@ -2,6 +2,11 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.activity.MainActivity
+import ac.mdiq.podcini.config.settings.DocumentFileExportWorker
+import ac.mdiq.podcini.config.settings.ExportTypes
+import ac.mdiq.podcini.config.settings.ExportWorker
+import ac.mdiq.podcini.config.settings.OpmlTransporter.OpmlWriter
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.checkAndScheduleUpdateTaskOnce
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
@@ -14,13 +19,10 @@ import ac.mdiq.podcini.net.sync.transceive.Receiver
 import ac.mdiq.podcini.net.sync.transceive.broadcastPresence
 import ac.mdiq.podcini.net.sync.transceive.sendCatalog
 import ac.mdiq.podcini.net.utils.NetworkUtils.getLocalIpAddress
-import ac.mdiq.podcini.config.settings.DocumentFileExportWorker
-import ac.mdiq.podcini.config.settings.ExportTypes
-import ac.mdiq.podcini.config.settings.ExportWorker
-import ac.mdiq.podcini.config.settings.OpmlTransporter.OpmlWriter
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.feedOperationText
+import ac.mdiq.podcini.storage.database.getId
 import ac.mdiq.podcini.storage.database.queuesFlow
 import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
@@ -40,8 +42,7 @@ import ac.mdiq.podcini.storage.utils.AddLocalFolder
 import ac.mdiq.podcini.storage.utils.durationInHours
 import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
-import ac.mdiq.podcini.activity.MainActivity
-import ac.mdiq.podcini.storage.database.getId
+import ac.mdiq.podcini.storage.utils.persistedTrees
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -202,8 +203,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
-
-import ac.mdiq.podcini.storage.utils.nowInMillis
 import kotlin.time.Clock
 
 private const val TAG = "LibraryScreen"
@@ -574,6 +573,7 @@ fun LibraryScreen() {
 
     val connectLocalFolderLauncher: ActivityResultLauncher<Uri?> = rememberLauncherForActivityResult(contract = AddLocalFolder()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
+        persistedTrees.add(uri)
         getAppContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 

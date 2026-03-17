@@ -16,6 +16,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
+private const val TAG = "Volume"
+
 class Volume : RealmObject {
     @PrimaryKey
     var id: Long = 0L

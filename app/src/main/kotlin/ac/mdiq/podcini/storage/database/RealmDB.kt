@@ -30,6 +30,7 @@ import ac.mdiq.podcini.ui.screens.DefaultPages
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.showStackTrace
+import ac.mdiq.podcini.utils.stackTraceShort
 import android.util.Log
 import io.github.xilinjia.krdb.MutableRealm
 import io.github.xilinjia.krdb.Realm
@@ -39,7 +40,7 @@ import io.github.xilinjia.krdb.dynamic.DynamicMutableRealmObject
 import io.github.xilinjia.krdb.dynamic.DynamicRealmObject
 import io.github.xilinjia.krdb.dynamic.getNullableValue
 import io.github.xilinjia.krdb.dynamic.getValue
-import io.github.xilinjia.krdb.dynamic.getValueSet
+import io.github.xilinjia.krdb.dynamic.getValueDictionary
 import io.github.xilinjia.krdb.ext.isManaged
 import io.github.xilinjia.krdb.notifications.InitialObject
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
@@ -85,7 +86,7 @@ val config: RealmConfiguration by lazy {
         FacetsPrefs::class,
         SleepPrefs::class,
         SyncPrefs::class,
-    )).name("Podcini.realm").schemaVersion(124)
+    )).name("Podcini.realm").schemaVersion(126)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -187,30 +188,6 @@ val config: RealmConfiguration by lazy {
                     }
                 }
             }
-            if (oldRealm.schemaVersion() < 124) {
-                Log.d(TAG, "migrating DB from below 124")
-                val prefsNew = newRealm.query("AppPrefs").first().find()
-                if (prefsNew != null) {
-                    val rts = mutableSetOf<String>()
-                    val useCustDir = prefsNew.getValue<Boolean>("useCustomMediaFolder")
-                    if (useCustDir) {
-                        val custDir = prefsNew.getValue<String>("customMediaUri")
-                        if (custDir.isNotBlank()) findRootForUri(customMediaUriString.toSafeUri())?.let { rts.add(it.toString()) }
-                    }
-                    val autobk = prefsNew.getValue<Boolean>("autoBackup")
-                    if (autobk) {
-                        val backupDir = prefsNew.getNullableValue<String>("autoBackupFolder")
-                        if (!backupDir.isNullOrBlank()) rts.add(backupDir)
-                    }
-                    if (rts.isNotEmpty()) {
-                        val attribs = newRealm.query("AppAttribs").first().find()
-                        if (attribs != null) {
-                            val rootSet = attribs.getValueSet<String>("treeRoots")
-                            rootSet.addAll(rts)
-                        }
-                    }
-                }
-            }
         }).build()
 }
 
@@ -242,11 +219,7 @@ suspend fun <T : TypedRealmObject> update(entity: T, block: MutableRealm.(T) -> 
 }
 
 suspend fun <T : RealmObject> upsert(entity: T, block: MutableRealm.(T) -> Unit) : T {
-//    if (BuildConfig.DEBUG) {
-//        val stackTrace = Thread.currentThread().stackTrace
-//        val caller = if (stackTrace.size > 3) stackTrace[3] else null
-//        Logd(TAG, "${caller?.className}.${caller?.methodName} upsert: ${entity.javaClass.simpleName} ${entity.isManaged()}")
-//    }
+//    stackTraceShort()
     return realm.write {
         var result: T = entity
         if (entity.isManaged()) {
@@ -275,6 +248,7 @@ fun <T : RealmObject> upsertBlk(entity: T, block: MutableRealm.(T) -> Unit) : T 
 //        val caller = if (stackTrace.size > 3) stackTrace[3] else null
 //        Logd(TAG, "${caller?.className}.${caller?.methodName} upsertBlk: ${entity.javaClass.simpleName}")
 //    }
+//    stackTraceShort()
     return realm.writeBlocking {
         var result: T = entity
         if (entity.isManaged()) {
@@ -298,11 +272,7 @@ fun <T : RealmObject> upsertBlk(entity: T, block: MutableRealm.(T) -> Unit) : T 
 }
 
 fun <T : EmbeddedRealmObject> upsertBlkEmb(entity: T, block: MutableRealm.(T) -> Unit) : T {
-    //    if (BuildConfig.DEBUG) {
-    //        val stackTrace = Thread.currentThread().stackTrace
-    //        val caller = if (stackTrace.size > 3) stackTrace[3] else null
-    //        Logd(TAG, "${caller?.className}.${caller?.methodName} upsertBlk: ${entity.javaClass.simpleName}")
-    //    }
+//    stackTraceShort()
     return realm.writeBlocking {
         var result: T = entity
             result = findLatest(entity)?.let {

@@ -79,6 +79,14 @@ fun showStackTrace() {
     }
 }
 
+fun stackTraceShort() {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) {
+        val stackTrace = Thread.currentThread().stackTrace
+        val caller = if (stackTrace.size > 4) stackTrace[4] else null
+        Log.d("stackTraceShort", "${caller?.className}.${caller?.methodName}")
+    }
+}
+
 var startTime: Long = 0
 var nanoTime: Long = 0
 

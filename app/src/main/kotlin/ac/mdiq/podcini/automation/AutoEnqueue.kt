@@ -35,6 +35,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import ac.mdiq.podcini.storage.utils.nowInMillis
+import ac.mdiq.podcini.utils.showStackTrace
 
 private const val TAG = "AutoDownloads"
 
@@ -47,11 +48,13 @@ fun autoenqueue(feeds: List<Feed>? = null): Job {
 }
 
 fun autodownloadForQueue(queue: PlayQueue): Job {
+    Logd(TAG, "autodownloadForQueue ${queue.name}")
     val feeds = realm.query(Feed::class).query("queueId == ${queue.id}").find().filter { it.inNormalVolume }
     return CoroutineScope(Dispatchers.IO).launch { if (appPrefs.enableAutoDl) AutoDownloadAlgorithm().run(feeds, false, onlyExisting = true) }
 }
 
 fun autoenqueueForQueue(queue: PlayQueue): Job {
+    Logd(TAG, "autoenqueueForQueue ${queue.name}")
     val feeds = realm.query(Feed::class).query("queueId == ${queue.id}").find().filter { it.inNormalVolume }
     return CoroutineScope(Dispatchers.IO).launch { AutoEnqueueAlgorithm().run(feeds, true) }
 }
@@ -129,6 +132,7 @@ class AutoEnqueueAlgorithm {
     private val TAG = "AutoEnqueueAlgorithm"
     suspend fun run(feeds: List<Feed>?, onlyExisting: Boolean = false) {
         Logd(TAG, "Performing auto-enqueue of undownloaded episodes")
+        showStackTrace()
         val toReplace: MutableSet<Episode> = mutableSetOf()
         val candidates: MutableSet<Episode> = mutableSetOf()
 

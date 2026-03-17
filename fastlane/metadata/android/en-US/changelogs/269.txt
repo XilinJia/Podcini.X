@@ -1,0 +1,4 @@
+* fixed issue of having duplicate items in a queue
+* fixed auto-enqueue being called twice when queue get empty
+* fixed crash when importing db
+* amended tree root persistence

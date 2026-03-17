@@ -29,7 +29,7 @@ import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.utils.AddLocalFolder
 import ac.mdiq.podcini.storage.utils.UnifiedFile
-import ac.mdiq.podcini.storage.utils.saveTreeRoot
+import ac.mdiq.podcini.storage.utils.persistedTrees
 import ac.mdiq.podcini.storage.utils.toAndroidUri
 import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
@@ -164,13 +164,13 @@ class FindFeedsVM: ViewModel() {
         }.apply { invokeOnCompletion { searchJob = null } }
     }
 
-    fun addLocalFloder(uri: Uri) {
+    fun addLocalFolder(uri: Uri) {
         val context = getAppContext()
         context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
         runOnIOScope {
             try {
-                saveTreeRoot(uri)
-                val documentFile = uri.toUF()
+                persistedTrees.add(uri)
+                val file = uri.toUF()
                 val feeds = mutableListOf<Feed>()
                 val volumes = mutableListOf<Volume>()
 
@@ -183,7 +183,7 @@ class FindFeedsVM: ViewModel() {
                     if (filesInThisDir.isNotEmpty()) {
                         Logd(TAG,"Found files in folder: ${directory.toAndroidUri()}")
                         val uri = directory.toAndroidUri()
-                        val title = directory.name ?: context.getString(R.string.local_folder)
+                        val title = directory.name
                         val dirFeed = Feed(Feed.PREFIX_LOCAL_FOLDER + uri.toString(), null, title)
                         val fExist = feedByIdentityOrID(dirFeed)
                         if (fExist == null) {
@@ -217,7 +217,7 @@ class FindFeedsVM: ViewModel() {
                     }
                 }
 
-                traverseDirectory(documentFile)
+                traverseDirectory(file)
                 if (volumes.isNotEmpty()) realm.write { for (v in volumes) copyToRealm(v) }
                 if (feeds.isNotEmpty()) gearbox.feedUpdater(feeds, doItAnyway = true).startRefresh()
                 Logt(TAG, "Imported ${feeds.size} local feeds in ${volumes.size} volumes")
@@ -296,7 +296,7 @@ fun FindFeedsScreen() {
     }
     val addLocalFolderLauncher = rememberLauncherForActivityResult(AddLocalFolder()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
-        vm.addLocalFloder(uri)
+        vm.addLocalFolder(uri)
     }
 
     if (vm.showOpmlImportSelectionDialog) OpmlImportSelectionDialog(vm.readElements) { vm.showOpmlImportSelectionDialog = false }

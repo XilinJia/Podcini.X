@@ -27,6 +27,7 @@ import ac.mdiq.podcini.storage.specs.FeedFunding
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.AddLocalFolder
 import ac.mdiq.podcini.storage.utils.nowInMillis
+import ac.mdiq.podcini.storage.utils.persistedTrees
 import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
@@ -250,6 +251,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     val connectLocalFolderLauncher: ActivityResultLauncher<Uri?> = rememberLauncherForActivityResult(contract = AddLocalFolder()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
         val context = getAppContext()
+        persistedTrees.add(uri)
         context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         runOnIOScope {
             try {

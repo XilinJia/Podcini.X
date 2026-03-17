@@ -298,7 +298,6 @@
 
     <string name="remove_from_all_queues">Remove from all queues</string>
 
-
     <string name="media_type">Media type</string>
     <string name="unknown">Unknown</string>
     <string name="audio">Audio</string>
@@ -330,8 +329,9 @@
     <string name="again">Again</string>
     <string name="forever">Forever</string>
     <string name="ignored">Ignored</string>
-
     <string name="stop">Stop</string>
+
+    <string name="reset_player">Reset player</string>
 
     <string name="visit_website_label">Visit website</string>
 

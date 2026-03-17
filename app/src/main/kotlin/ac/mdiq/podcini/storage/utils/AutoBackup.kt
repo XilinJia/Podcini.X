@@ -42,8 +42,8 @@ fun autoBackup() {
     }
 
     val curTime = nowInMillis()
-//    if ((curTime - appPrefs.autoBackupTimeStamp) / 10000 > appPrefs.autoBackupIntervall)
-    if ((curTime - appPrefs.autoBackupTimeStamp) / 3600000 > appPrefs.autoBackupIntervall)
+    if ((curTime - appPrefs.autoBackupTimeStamp) / 10000 > appPrefs.autoBackupIntervall)
+//    if ((curTime - appPrefs.autoBackupTimeStamp) / 3600000 > appPrefs.autoBackupIntervall)
         CoroutineScope(Dispatchers.IO).launch {
             val uri = uriString.toSafeUri()
             val permissions = context.contentResolver.persistedUriPermissions.find { it.uri == uri }

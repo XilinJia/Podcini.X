@@ -1,3 +1,10 @@
+# 10.12.1
+
+* fixed issue of having duplicate items in a queue
+* fixed auto-enqueue being called twice when queue get empty
+* fixed crash when importing db
+* amended tree root persistence
+
 # 10.12.0
 
 * in FeedDetails screen, if the feed is archived or frozen, it's marked with text

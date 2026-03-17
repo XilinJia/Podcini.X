@@ -311,7 +311,6 @@ class Media3Player : MediaPlayerBase() {
             .build()
         Logd(TAG, "createStaticPlayer creating exoPlayer_")
 
-//        simpleCache = getCache()
         runOnIOScope { initCache() }
 
         // Initialize ExoPlayer
@@ -517,37 +516,6 @@ class Media3Player : MediaPlayerBase() {
                 Logs(TAG, e, "setDataSource error: [${e.localizedMessage}]")
             } finally { }
         }
-//        try {
-//            when {
-//                streaming -> {
-//                    val streamurl = curEpisode?.downloadUrl
-//                    Logd(TAG, "prepareMedia streamurl: $streamurl")
-//                    if (!streamurl.isNullOrBlank()) {
-//                        mediaItem = null
-//                        mediaSource = null
-//                        setDataSource(metadata, curEpisode!!)
-//                    } else throw IOException("episode downloadUrl is empty ${curEpisode?.title}")
-//                }
-//                else -> {   // TODO: playing video often gets here??
-//                    val localMediaurl = curEpisode?.fileUrl
-//                    Logd(TAG, "prepareMedia localMediaurl: $localMediaurl")
-//                    if (!localMediaurl.isNullOrBlank()) setDataSource(curEpisode!!, metadata, localMediaurl, null, null)
-//                    else throw IOException("Unable to read local file $localMediaurl")
-//                }
-//            }
-//            val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
-//            if (uiModeManager.currentModeType != Configuration.UI_MODE_TYPE_CAR) setPlayerStatus(PlayerStatus.INITIALIZED, curEpisode)
-//            if (prepareImmediately) prepare()
-//        } catch (e: IOException) {
-//            Logs(TAG, e, "prepareMedia failed ${e.localizedMessage ?: ""}")
-//            setPlayerStatus(PlayerStatus.ERROR, curEpisode)
-//        } catch (e: IllegalStateException) {
-//            Logs(TAG, e, "prepareMedia failed ${e.localizedMessage ?: ""}")
-//            setPlayerStatus(PlayerStatus.ERROR, curEpisode)
-//        } catch (e: Throwable) {
-//            setPlayerStatus(PlayerStatus.ERROR, curEpisode)
-//            Logs(TAG, e, "setDataSource error: [${e.localizedMessage}]")
-//        } finally { }
     }
     
     private fun setSource() {
@@ -748,13 +716,13 @@ class Media3Player : MediaPlayerBase() {
 //        exoPlayer?.setVideoSurfaceHolder(surface)
 //    }
 
-    override fun resetVideoSurface() {
-        if (mediaType == MediaType.VIDEO) {
-            Logd(TAG, "Resetting video surface")
-            exoPlayer?.setVideoSurfaceHolder(null)
-            reinit()
-        } else Logt(TAG, "Resetting video surface for media of Audio type")
-    }
+//    override fun resetVideoSurface() {
+//        if (mediaType == MediaType.VIDEO) {
+//            Logd(TAG, "Resetting video surface")
+//            exoPlayer?.setVideoSurfaceHolder(null)
+//            reinit()
+//        } else Logt(TAG, "Resetting video surface for media of Audio type")
+//    }
 
     /**
      * Return width and height of the currently playing video as a pair.
@@ -890,11 +858,6 @@ class Media3Player : MediaPlayerBase() {
             }
         }
     }
-
-    /**
-     * @return `true` if the WifiLock feature should be used, `false` otherwise.
-     */
-    fun shouldLockWifi(): Boolean = isStreaming && !appPrefs.disableWifiLock
 
     companion object {
         private val TAG: String = Media3Player::class.simpleName ?: "Anonymous"

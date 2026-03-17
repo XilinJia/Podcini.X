@@ -16,7 +16,10 @@ import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.annotations.Ignore
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 import ac.mdiq.podcini.storage.utils.nowInMillis
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.showStackTrace
 
+private const val TAG = "PlayQueue"
 
 const val VIRTUAL_QUEUE_ID = 100000L
 const val TMP_QUEUE_ID = -1L
@@ -110,6 +113,8 @@ class PlayQueue : RealmObject {
     }
 
     fun checkAndFill() {
+        Logd(TAG, "checkAndFill")
+        showStackTrace()
         if (size() == 0 && !isVirtual()) {
             autoenqueueForQueue(this)
             if(launchAutoEQDlWhenEmpty) autodownloadForQueue(this)

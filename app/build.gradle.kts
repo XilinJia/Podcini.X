@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 268
-        versionName = "10.12.0"
+        versionCode = 269
+        versionName = "10.12.1"
 
         ndkVersion = "29.0.14206865"
 
@@ -164,18 +164,20 @@ androidComponents {
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2026.02.00"))
+    implementation(platform("androidx.compose:compose-bom:2026.03.00"))
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
 
-    implementation("androidx.activity:activity-compose:1.12.4")
+    implementation("androidx.glance:glance-appwidget:1.1.1")
+
+    implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.constraintlayout:constraintlayout-compose:1.1.1")
     implementation("androidx.navigation:navigation-compose:2.9.7")
 
     implementation("androidx.annotation:annotation:1.9.1")
-    implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.core:core-ktx:1.18.0")
     implementation("androidx.documentfile:documentfile:1.1.0")
     implementation("androidx.core:core-splashscreen:1.2.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
@@ -184,14 +186,13 @@ dependencies {
     implementation("androidx.window:window:1.5.1")
     implementation("androidx.work:work-runtime:2.11.1")
 
-    implementation("androidx.media3:media3-exoplayer:1.9.2")
-    implementation("androidx.media3:media3-datasource-okhttp:1.9.2")
-    implementation("androidx.media3:media3-ui:1.9.2")
-    implementation("androidx.media3:media3-common:1.9.2")
-    implementation("androidx.media3:media3-session:1.9.2")
+    implementation("androidx.media3:media3-exoplayer:1.9.3")
+    implementation("androidx.media3:media3-datasource-okhttp:1.9.3")
+    implementation("androidx.media3:media3-ui:1.9.3")
+    implementation("androidx.media3:media3-common:1.9.3")
+    implementation("androidx.media3:media3-session:1.9.3")
 
     implementation("com.google.android.material:material:1.13.0")
-
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("org.jetbrains.kotlin:kotlin-reflect:${project.property("kotlin_version")}")
@@ -200,10 +201,10 @@ dependencies {
 
     implementation("io.github.xilinjia.krdb:library-base:${project.property("krdb_version")}")
 
-    implementation("io.coil-kt.coil3:coil-compose:3.3.0")
-    implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
+    implementation("io.coil-kt.coil3:coil-compose:3.4.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.4.0")
 
-    implementation("io.ktor:ktor-http:3.4.0")
+    implementation("io.ktor:ktor-http:3.4.1")
 
     implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
@@ -221,17 +222,16 @@ dependencies {
 
 
     implementation("com.squareup.okhttp3:okhttp:5.3.2")
-    implementation("com.squareup.okio:okio:3.16.4")
+    implementation("com.squareup.okio:okio:3.17.0")
     implementation("com.squareup.okhttp3:okhttp-urlconnection:5.3.2")
-    implementation("net.dankito.readability4j:readability4j:1.0.8")
 
-    implementation("androidx.glance:glance-appwidget:1.1.1")
+    implementation("net.dankito.readability4j:readability4j:1.0.8")
 
     compileOnly("com.google.android.wearable:wearable:2.9.0")
 
     "freeImplementation"("org.conscrypt:conscrypt-android:2.5.3")
-    debugImplementation("androidx.compose.ui:ui-tooling:1.10.3")
-    debugImplementation("androidx.compose.ui:ui-tooling-preview:1.10.3")
+    debugImplementation("androidx.compose.ui:ui-tooling:1.10.5")
+    debugImplementation("androidx.compose.ui:ui-tooling-preview:1.10.5")
 
     "playImplementation"("com.google.android.play:core-ktx:1.8.1")
     "playImplementation"("com.google.android.gms:play-services-base:18.9.0")

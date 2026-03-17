@@ -1,7 +1,6 @@
 package ac.mdiq.podcini.storage.utils
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -16,6 +15,9 @@ import android.os.storage.StorageManager
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import io.ktor.http.ContentType
@@ -60,20 +62,12 @@ val fs = FileSystem.SYSTEM
 val internalDir: UnifiedFile
     get() = PathFile(getAppContext().filesDir.absolutePath.toPath())
 
-fun saveTreeRoot(uri: Uri?) {
-    if (uri != null) upsertBlk(appAttribs) { it.treeRoots.add(uri.toString()) }
-}
-
 val mediaDir: UnifiedFile
     get() {
         if (customMediaUriString.isNotBlank()) {
             val d = customMediaUriString.toUF()
             if (d.isDirectory()) {
                 Logd(TAG, "mediaDir: $customMediaUriString")
-                if (appAttribs.treeRoots.isEmpty()) {
-                    val root = findRootForUri(customMediaUriString.toSafeUri())
-                    if (root != null) upsertBlk(appAttribs) { it.treeRoots.add(root.toString()) }
-                }
                 return d
             } else {
                 Loge(TAG, "The chosen custom media folder is not valid: ${appPrefs.customMediaUri}. Reset!")
@@ -121,22 +115,17 @@ suspend fun createCacheDir() {
     if (!cacheDir.exists()) internalDir.createDirectory("cache")
 }
 
-fun findSavedRoot(uri: Uri): Uri? {
-    Logd(TAG, "findSavedRoot uri: $uri")
-    appAttribs.treeRoots.forEach { Logd(TAG, "saved toor: $it") }
-    return appAttribs.treeRoots.find { uri.toString().startsWith(it) }?.toSafeUri()
-}
+var tempRoottree by mutableStateOf<Uri?>(null)
+
+val persistedTrees by lazy { getAppContext().contentResolver.persistedUriPermissions.filter { DocumentsContract.isTreeUri(it.uri) }.map { it.uri }.toMutableSet() }
 
 fun findRootForUri(uri: Uri): Uri? {
     try {
         val childId = DocumentsContract.getDocumentId(uri)
-        return getAppContext().contentResolver.persistedUriPermissions
-            .filter { it.uri.pathSegments.contains("tree") }
-            .map { it.uri }
-            .find { rootUri ->
-                val treeId = DocumentsContract.getTreeDocumentId(rootUri)
-                childId.startsWith(treeId) && rootUri.authority == uri.authority
-            }
+        return persistedTrees.find { rootUri ->
+            val treeId = DocumentsContract.getTreeDocumentId(rootUri)
+            childId.startsWith(treeId) && rootUri.authority == uri.authority
+        }
     } catch (e: Exception) { return null }
 }
 
@@ -281,13 +270,21 @@ class ContentUriFile(
         get() {
 //            Logd(TAG, "isTreeRoot contentRoot: $contentRoot")
 //            Logd(TAG, "isTreeRoot uri: $uri")
-            return uri.toString() in appAttribs.treeRoots
+            return uri in persistedTrees
 //            return try { DocumentsContract.getTreeDocumentId(uri) == DocumentsContract.getTreeDocumentId(mediaDir.toAndroidUri()) } catch (e: Exception) { false }
         }
 
     fun queryMimeType(): String? =
         context.contentResolver.query(uri, arrayOf(DocumentsContract.Document.COLUMN_MIME_TYPE), null, null, null)
             ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+
+    fun findSavedRoot(): Uri? {
+        Logd(TAG, "findSavedRoot uri: $uri")
+        if (tempRoottree != null && uri.toString().startsWith(tempRoottree.toString())) return tempRoottree
+
+        persistedTrees.forEach { Logd(TAG, "saved toor: $it") }
+        return persistedTrees.find { uri.toString().startsWith(it.toString()) }
+    }
 
     override val name: String
         get() = docFile?.name ?: "unknown"
@@ -329,7 +326,8 @@ class ContentUriFile(
     }
 
     override suspend fun listChildren(): List<UnifiedFile> {
-        val rootUri = findSavedRoot(uri) ?: uri
+        val rootUri = findSavedRoot() ?: uri
+        Logd(TAG, "listChildren rootUri: $rootUri")
         val result = mutableListOf<Uri>()
         val parentId = if (rootUri == uri) DocumentsContract.getTreeDocumentId(rootUri) else DocumentsContract.getDocumentId(uri)
         val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(rootUri, parentId)
@@ -366,7 +364,7 @@ class ContentUriFile(
 
     override suspend fun createFile(mimeType: String, name: String): UnifiedFile {
         Logd(TAG, "createFile")
-        val rootUri = findSavedRoot(uri) ?: uri
+        val rootUri = findSavedRoot() ?: uri
         Logd(TAG, "createFile rootUri: $rootUri")
         val newUri = try {
             val parentId = if (rootUri == uri) DocumentsContract.getTreeDocumentId(rootUri) else DocumentsContract.getDocumentId(uri)
@@ -387,7 +385,7 @@ class ContentUriFile(
 
     override suspend fun createDirectory(name: String): UnifiedFile {
         Logd(TAG, "createDirectory $name $uri")
-        val rootUri: Uri? = findSavedRoot(uri) ?: uri
+        val rootUri: Uri? = findSavedRoot() ?: uri
         val parentDocId: String = if (rootUri == uri) DocumentsContract.getTreeDocumentId(rootUri) else DocumentsContract.getDocumentId(uri)
         val parentUri: Uri = DocumentsContract.buildDocumentUriUsingTree(uri, parentDocId)
         val newUri = DocumentsContract.createDocument(context.contentResolver, parentUri, DocumentsContract.Document.MIME_TYPE_DIR, name) ?: throw IOException("error creating directory $name under $uri")

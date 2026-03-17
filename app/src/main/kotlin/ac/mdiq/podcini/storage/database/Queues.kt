@@ -136,9 +136,9 @@ suspend fun addToQueue(episodes: List<Episode>, queue: PlayQueue) {
         Loge(TAG, "Current queue is virtual, ignored")
         return
     }
-    var qes = queue.entries
     realm.write {
         for (e in episodes) {
+            var qes = queue.entries
             if (qes.indexOfFirst { it.episodeId == e.id } >= 0) continue
             val insertPosition = if (queue.autoSort) 0 else {
                 qes = queue.entries
@@ -220,7 +220,7 @@ suspend fun smartRemoveFromAllQueues(item_: Episode) {
     if (curEpisode != null) curIndexInActQueue = qes.indexOfFirst { it.episodeId == curEpisode!!.id }
     if (actQueue.size() > 0 && actQueue.contains(item)) removeFromQueue(actQueue, listOf(item))
     else upsertBlk(actQueue) { it.update() }
-    actQueue.checkAndFill()
+//    actQueue.checkAndFill()
 }
 
 fun removeFromAllQueues(episodes: Collection<Episode>, playState: EpisodeState? = null) {

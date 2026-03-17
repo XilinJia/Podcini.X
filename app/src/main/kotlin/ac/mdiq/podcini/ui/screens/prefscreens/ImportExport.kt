@@ -27,8 +27,10 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.autoBackupDirName
-import ac.mdiq.podcini.storage.utils.saveTreeRoot
+import ac.mdiq.podcini.storage.utils.persistedTrees
+import ac.mdiq.podcini.storage.utils.tempRoottree
 import ac.mdiq.podcini.storage.utils.toAndroidUri
+import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
@@ -75,6 +77,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -91,6 +94,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ShareCompat.IntentBuilder
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -226,7 +232,6 @@ fun ImportExportScreen() {
         showOpmlImportSelectionDialog = true
     }
 
-    var comboRootUri by remember { mutableStateOf<Uri?>(null) }
     val comboDic = remember { mutableStateMapOf<String, Boolean>() }
     var showComboImportDialog by remember { mutableStateOf(false) }
     if (showComboImportDialog) {
@@ -248,7 +253,7 @@ fun ImportExportScreen() {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val uri = comboRootUri!!
+                    val uri = tempRoottree!!
                     showProgress = true
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
@@ -295,7 +300,7 @@ fun ImportExportScreen() {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val uri = comboRootUri!!
+                    val uri = tempRoottree!!
                     showProgress = true
                     CoroutineScope(Dispatchers.IO).launch {
                         val chosenDir = uri.toUF()
@@ -306,7 +311,6 @@ fun ImportExportScreen() {
                             DatabaseTransporter().exportToUri(realmFile)
                         }
                         withContext(Dispatchers.Main) { showProgress = false }
-                        saveTreeRoot(null)
                     }
                     showComboExportDialog = false
                 }) { Text(text = "OK") }
@@ -320,7 +324,7 @@ fun ImportExportScreen() {
         if (it.resultCode == RESULT_OK) {
             val uri: Uri? = it.data?.data
             if (uri != null) {
-                saveTreeRoot(uri)
+                persistedTrees.add(uri)
                 getAppContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                 backupFolder = uri.toString()
                 upsertBlk(appPrefs) { p-> p.autoBackupFolder = uri.toString() }
@@ -332,8 +336,7 @@ fun ImportExportScreen() {
         if (result.resultCode != RESULT_OK || result.data?.data == null) return@rememberLauncherForActivityResult
         val uri = result.data!!.data!!
         if (isComboDir(uri)) {
-            comboRootUri = uri
-            saveTreeRoot(uri)
+            tempRoottree = uri
             val rootFile = uri.toUF()
             comboDic.clear()
             runBlocking {
@@ -360,8 +363,7 @@ fun ImportExportScreen() {
                 comboDic.clear()
                 comboDic["Database"] = true
                 comboDic["Media files"] = true
-                comboRootUri = uri
-                saveTreeRoot(uri)
+                tempRoottree = uri
                 showComboExportDialog = true
             }
         }
@@ -410,6 +412,24 @@ fun ImportExportScreen() {
             }
         }
     }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            Logd(TAG, "LifecycleEventObserver: $event")
+            when (event) {
+                Lifecycle.Event.ON_START -> {}
+                Lifecycle.Event.ON_STOP -> {}
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            tempRoottree = null
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
         TitleSummarySwitchRow(R.string.pref_backup_on_google_title, R.string.pref_backup_on_google_sum, appPrefs.OPMLBackup) {
             upsertBlk(appPrefs) { p -> p.OPMLBackup = it}
@@ -418,6 +438,9 @@ fun ImportExportScreen() {
         TitleSummarySwitchRow(R.string.pref_auto_backup_title, R.string.pref_auto_backup_sum, appPrefs.autoBackup) {
             isAutoBackup = it
             upsertBlk(appPrefs) { p -> p.autoBackup = it}
+            appPrefs.autoBackupFolder?.toSafeUri()?.let { uri->
+                try { getAppContext().contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION) } catch (e: Exception) { Logd(TAG, "uri can not be released: $uri")}
+            }
         }
         if (isAutoBackup) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {

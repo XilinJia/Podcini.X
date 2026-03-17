@@ -227,8 +227,9 @@ class QueuesVM(id_: Long): ViewModel() {
                 if (ids.isEmpty()) flowOf(emptyList()) else realm.query<Episode>("id IN $0", ids).asFlow().map { it.list }
             }
             return combine(orderedEpisodeIdsFlow, episodesFlow) { ids, episodes ->
+                Logd(TAG, "initQueueFlow ids: ${ids.size} episodes: ${episodes.size}")
                 val episodeMap = episodes.associateBy { it.id }
-                ids.mapNotNull { episodeMap[it] }
+                ids.mapNotNull { episodeMap[it] }.distinctBy { it.id }
             }
         }
         when (queuesMode) {

@@ -37,7 +37,6 @@ import ac.mdiq.podcini.storage.database.skipforwardSpeed
 import ac.mdiq.podcini.storage.database.speedforwardSpeed
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
-import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EmbeddedChapterImage
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
@@ -208,7 +207,7 @@ class AVPlayerVM: ViewModel() {
 
     var landscape by mutableStateOf(false)
 
-    var switchToAudioOnly = false
+//    var switchToAudioOnly = false
 
     var showActionBar by mutableStateOf(true)
 
@@ -230,23 +229,7 @@ class AVPlayerVM: ViewModel() {
             return tracks
         }
 
-    val selectedAudioTrack: Int
-        get() = mPlayer?.getSelectedAudioTrack() ?: -1
-
-    fun getWebsiteLinkWithFallback(media: Episode?): String? {
-        return when {
-            media == null -> null
-            !media.link.isNullOrBlank() -> media.link
-            else -> media.getLinkWithFallback()
-        }
-    }
-
     var eventSink by mutableStateOf<Job?>(null)
-    fun cancelFlowEvents() {
-        Logd(TAG, "cancelFlowEvents")
-        eventSink?.cancel()
-        eventSink = null
-    }
     fun procFlowEvents() {
         Logd(TAG, "procFlowEvents")
         if (eventSink == null) eventSink = viewModelScope.launch {
@@ -299,7 +282,8 @@ class AVPlayerVM: ViewModel() {
 
     override fun onCleared() {
         super.onCleared()
-        cancelFlowEvents()
+        eventSink?.cancel()
+        eventSink = null
     }
 }
 
@@ -424,15 +408,6 @@ fun ControlUI(vm: AVPlayerVM, navController: AppNavigator) {
                 Logd(TAG, "playerUi icon was clicked $psState")
                 if (psState == PSState.PartiallyExpanded) {
                     if (curEpisode != null) {
-                        val mediaType = curEpisode!!.getMediaType()
-//                        if (mediaType == MediaType.AUDIO || appPrefs.videoPlaybackMode == VideoMode.AUDIO_ONLY.code || curVideoMode == VideoMode.AUDIO_ONLY || (vm.episodeFeed?.videoModePolicy == VideoMode.AUDIO_ONLY)) {
-//                            Logd(TAG, "popping as audio episode")
-//                            if (playbackService == null) PlaybackStarter(curEpisode!!).start()
-//                        } else {
-//                            Logd(TAG, "popping video context")
-////                            val intent = getPlayerActivityIntent(context, mediaType)
-////                            context.startActivity(intent)
-//                        }
                         if (playbackService == null) PlaybackStarter(curEpisode!!).start()
                         psState = PSState.Expanded
                     }
@@ -712,7 +687,7 @@ fun AVPlayerScreen() {
                 LazyColumn {
                     items(vm.audioTracks) { track ->
                         Text(track, color = textColor, modifier = Modifier.clickable(onClick = {
-                            mPlayer?.setAudioTrack((vm.selectedAudioTrack + 1) % vm.audioTracks.size)
+                            mPlayer?.setAudioTrack(((mPlayer?.getSelectedAudioTrack() ?: -1) + 1) % vm.audioTracks.size)
                             //                            Handler(Looper.getMainLooper()).postDelayed({ setupAudioTracks() }, 500)
                         }))
                     }
@@ -757,7 +732,7 @@ fun AVPlayerScreen() {
                 Text(text = curEpisode?.feed?.title?:"", fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             } else {
                 if (!vm.episodeFeed?.downloadUrl.isNullOrBlank() && gearbox.isGearFeed(vm.episodeFeed!!.downloadUrl!!)) IconButton(onClick = {
-                    vm.switchToAudioOnly = true
+//                    vm.switchToAudioOnly = true
                     if (curEpisode != null) {
                         upsertBlk(curEpisode!!) { it.forceVideo = false }
                         mPlayer?.pause(reinit = true)
@@ -800,7 +775,11 @@ fun AVPlayerScreen() {
                         expanded = false
                     })
                     DropdownMenuItem(text = { Text(stringResource(R.string.visit_website_label)) }, onClick = {
-                        val url = vm.getWebsiteLinkWithFallback(curEpisode)
+                        val url = when {
+                            curEpisode == null -> null
+                            !curEpisode!!.link.isNullOrBlank() -> curEpisode!!.link
+                            else -> curEpisode!!.getLinkWithFallback()
+                        }
                         if (url != null) openInBrowser(url)
                         expanded = false
                     })
@@ -855,6 +834,10 @@ fun AVPlayerScreen() {
                         }
                         expanded = false
                     })
+//                    DropdownMenuItem(text = { Text(stringResource(R.string.reset_player)) }, onClick = {
+//                        playbackService?.recreateMediaPlayer()
+//                        expanded = false
+//                    })
                 }
             }
         }

@@ -34,7 +34,6 @@ import ac.mdiq.podcini.storage.database.episodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.fastForwardSecs
 import ac.mdiq.podcini.storage.database.rewindSecs
 import ac.mdiq.podcini.storage.database.upsertBlk
-import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.utils.EventFlow
@@ -102,12 +101,6 @@ class PlaybackService : MediaLibraryService() {
 
     private var clickCount = 0
     private val clickHandler = Handler(Looper.getMainLooper())
-
-    val isAudioChannelInUse: Boolean
-        get() {
-            val audioManager = getAppContext().getSystemService(AUDIO_SERVICE) as AudioManager
-            return (audioManager.mode != AudioManager.MODE_NORMAL || audioManager.isMusicActive)
-        }
 
     private val autoStateUpdated: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -177,7 +170,6 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private val audioBecomingNoisy: BroadcastReceiver = object : BroadcastReceiver() {
-        
         override fun onReceive(context: Context, intent: Intent) {
             // sound is about to change, eg. bluetooth -> speaker
             Logd(TAG, "audioBecomingNoisy onReceive called with action: ${intent.action}")
@@ -195,45 +187,15 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
-    private val screenStateReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            Logd(TAG, "screenStateReceiver onReceive called with action: ${intent.action}")
-            when (intent.action) {
-                Intent.ACTION_SCREEN_OFF -> episodeChangedWhenScreenOff = false
-                Intent.ACTION_SCREEN_ON  -> {}
-            }
-        }
-    }
-
-    val rootItem: MediaItem = MediaItem.Builder()
-        .setMediaId("ActQueue")
-        .setMediaMetadata(
-            MediaMetadata.Builder()
-                .setIsBrowsable(true)
-                .setIsPlayable(false)
-                .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
-                .setTitle(actQueue.name)
-                .build())
-        .build()
-
-    val mediaItemsInQueue: MutableList<MediaItem> by lazy {
-        val list = mutableListOf<MediaItem>()
-        actQueue.episodesSorted.forEach {
-            val item = buildMediaItem(it)
-            if (item != null) list += item
-        }
-        Logd(TAG, "mediaItemsInQueue: ${list.size}")
-        list
-    }
-
-    fun buildMediaItem(e: Episode): MediaItem? {
-        val url = e.downloadUrl ?: return null
-        val metadata = buildMetadata(e)
-        return MediaItem.Builder()
-            .setMediaId(url)
-            .setUri(url.toSafeUri())
-            .setMediaMetadata(metadata).build()
-    }
+//    private val screenStateReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+//        override fun onReceive(context: Context, intent: Intent) {
+//            Logd(TAG, "screenStateReceiver onReceive called with action: ${intent.action}")
+//            when (intent.action) {
+//                Intent.ACTION_SCREEN_OFF -> episodeChangedWhenScreenOff = false
+//                Intent.ACTION_SCREEN_ON  -> {}
+//            }
+//        }
+//    }
 
     inner class MediaLibrarySessionCK : MediaLibrarySession.Callback {
         override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
@@ -332,12 +294,26 @@ class PlaybackService : MediaLibraryService() {
         }
         override fun onGetLibraryRoot(session: MediaLibrarySession, browser: MediaSession.ControllerInfo, params: LibraryParams?): ListenableFuture<LibraryResult<MediaItem>> {
             Logd(TAG, "MyMediaSessionCallback onGetLibraryRoot called")
+            val rootItem: MediaItem = MediaItem.Builder().setMediaId("ActQueue")
+                .setMediaMetadata(MediaMetadata.Builder().setIsBrowsable(true).setIsPlayable(false).setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED).setTitle(actQueue.name).build())
+                .build()
             return Futures.immediateFuture(LibraryResult.ofItem(rootItem, params))
         }
         override fun onGetChildren(session: MediaLibrarySession, browser: MediaSession.ControllerInfo, parentId: String, page: Int, pageSize: Int,
                                    params: LibraryParams?): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
             Logd(TAG, "MyMediaSessionCallback onGetChildren called parentId:$parentId page:$page pageSize:$pageSize")
 //            return super.onGetChildren(session, browser, parentId, page, pageSize, params)
+            val mediaItemsInQueue: MutableList<MediaItem> by lazy {
+                val list = mutableListOf<MediaItem>()
+                actQueue.episodesSorted.forEach { e->
+                    e.downloadUrl?.let {
+                        val item = MediaItem.Builder().setMediaId(it).setUri(it.toSafeUri()).setMediaMetadata(buildMetadata(e)).build()
+                        if (item != null) list += item
+                    }
+                }
+                Logd(TAG, "mediaItemsInQueue: ${list.size}")
+                list
+            }
             return Futures.immediateFuture(LibraryResult.ofItemList(mediaItemsInQueue, params))
         }
         override fun onSubscribe(session: MediaLibrarySession, browser: MediaSession.ControllerInfo, parentId: String,
@@ -416,7 +392,7 @@ class PlaybackService : MediaLibraryService() {
         var wasPlaying = false
         if (mPlayer != null) {
             wasPlaying = isPlaying
-            mPlayer!!.pause(reinit = false)
+            if (wasPlaying) mPlayer!!.pause(reinit = false)
             mPlayer!!.shutdown()
         }
         mPlayer = CastMediaPlayer.getInstanceIfConnected(applicationContext)
@@ -427,7 +403,6 @@ class PlaybackService : MediaLibraryService() {
 //        val media = curEpisode
 //        if (media != null) mPlayer!!.prepareMedia(playable = media, streaming = !media.isDownloaded(), startWhenPrepared = wasPlaying, prepareImmediately = true, doPostPlayback = true)
         isCasting = mPlayer!!.isCasting()
-
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -658,12 +633,6 @@ class PlaybackService : MediaLibraryService() {
                     is FlowEvent.QueueEvent -> onQueueEvent(event)
                     is FlowEvent.BufferUpdateEvent -> onBufferUpdate(event)
                     is FlowEvent.SleepTimerUpdatedEvent -> onSleepTimerUpdate(event)
-//                    is FlowEvent.FeedChangeEvent -> {
-//                        if (curEpisode?.feedId == event.feed.id) {
-////                            curEpisode?.feed = null
-//                            curEpisode?.feedId = null
-//                        }
-//                    }
                     is FlowEvent.EpisodeMediaEvent -> onEpisodeMediaEvent(event)
                     else -> {}
                 }
@@ -725,9 +694,12 @@ class PlaybackService : MediaLibraryService() {
      */
     @RequiresPermission(Manifest.permission.VIBRATE)
     private fun unpauseIfPauseOnDisconnect(bluetooth: Boolean) {
-        if (mPlayer != null && isAudioChannelInUse) {
-            Logd(TAG, "unpauseIfPauseOnDisconnect() audio is in use")
-            return
+        if (mPlayer != null) {
+            val audioManager = getAppContext().getSystemService(AUDIO_SERVICE) as AudioManager
+            if (audioManager.mode != AudioManager.MODE_NORMAL || audioManager.isMusicActive) {
+                Logd(TAG, "unpauseIfPauseOnDisconnect() audio is in use")
+                return
+            }
         }
         if (transientPause) {
             transientPause = false
