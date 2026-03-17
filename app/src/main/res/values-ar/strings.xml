@@ -262,6 +262,7 @@
     <string name="forever">إلى الأبد</string>
     <string name="ignored">تجاهل</string>
     <string name="stop">Stop</string>
+    <string name="reset_player">Reset player</string>
     <string name="visit_website_label">زيارة الموقع</string>
     <string name="delete_local_feed_warning_body">تحذير: أنت تقوم بحذف الحلقات المحلية. سيتم حذف ملفات الوسائط من وحدة تخزين جهازك. لا يمكن تنزيلها مرة أخرى من خلال Podcini. هل تريد المتابعة؟</string>
     <string name="delete_repeat_warning_msg">هل تريد حقاً حذف الحلقات المحددة للتكرار؟</string>
