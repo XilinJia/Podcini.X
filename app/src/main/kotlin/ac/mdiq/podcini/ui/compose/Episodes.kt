@@ -497,10 +497,9 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                 }
             }
         }
-        Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp))
         if (logs.isNotEmpty()) {
             var showLogs by remember { mutableStateOf(false) }
-            Text(stringResource(R.string.logs), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp).clickable(onClick = { showLogs = !showLogs}))
+            Text(stringResource(R.string.logs), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 16.dp, bottom = 4.dp).clickable(onClick = { showLogs = !showLogs}))
             if (showLogs) Column(modifier = Modifier.padding(10.dp)) {
                 for (log in logs) {
                     val message = stringResource(if (!log.isSuccessful) R.string.failed else R.string.download_successful)
@@ -518,6 +517,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                 }
             }
         }
+        Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp))
         AndroidView(modifier = Modifier.fillMaxSize(),
             factory = { context ->
                 ShownotesWebView(context).apply {

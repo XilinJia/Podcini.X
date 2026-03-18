@@ -60,6 +60,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -127,7 +128,7 @@ class LogsVM: ViewModel() {
             if (result.isNotEmpty()) withContext(Dispatchers.Main) {
                 downloadLogs.addAll(result)
                 title = "Downloads"
-            }  else Logt(TAG, "Download log is empty")
+            } else Logt(TAG, "Download log is empty")
         }
     }
 }
@@ -199,8 +200,7 @@ fun LogsScreen() {
         var sharedUrl by remember { mutableStateOf("") }
         if (sharedUrl.isNotBlank()) gearbox.ConfirmAddEpisode(listOf(sharedUrl), onDismissRequest = { sharedUrl = "" })
 
-        LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(vm.shareLogs) { log ->
                 val textColor = MaterialTheme.colorScheme.onSurface
                 Row (modifier = Modifier.clickable {
@@ -238,10 +238,7 @@ fun LogsScreen() {
                             Text(formatDateTimeFlex(log.id), color = textColor)
                             Spacer(Modifier.weight(1f))
                             var showAction by remember { mutableStateOf(log.status < ShareLog.Status.SUCCESS.ordinal) }
-                            if (showAction) {
-                                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), tint = textColor, contentDescription = null,
-                                    modifier = Modifier.width(25.dp).height(25.dp).clickable {})
-                            }
+                            if (showAction) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), tint = textColor, contentDescription = null, modifier = Modifier.width(25.dp).height(25.dp).clickable {})
                         }
                         Text(log.title?:"unknown title", color = textColor)
                         Text(log.url?:"unknown url", color = textColor)
@@ -327,16 +324,19 @@ fun LogsScreen() {
     @Composable
     fun DownlaodDetailDialog(status: DownloadResult, onDismissRequest: () -> Unit) {
         var url by remember { mutableStateOf("unknown") }
-        var feed by remember { mutableStateOf<Feed?>(null) }
-        var media by remember { mutableStateOf<Episode?>(null) }
-        when (status.feedfileType) {
-            RequestTye.FEEDMEDIA.ordinal -> {
-                media = realm.query(Episode::class).query("id == $0", status.feedfileId).first().find()
-                if (media != null) url = media!!.downloadUrl?:""
-            }
-            RequestTye.FEED.ordinal -> {
-                feed = feedsMap[status.feedfileId]
-                if (feed != null) url = feed!!.downloadUrl?:""
+        var feed by remember(status.feedfileId) { mutableStateOf<Feed?>(null) }
+        var media by remember(status.feedfileId) { mutableStateOf<Episode?>(null) }
+        Logd(TAG, "DownlaodDetailDialog ${status.feedfileType} status.feedfileId: ${status.feedfileId}")
+        LaunchedEffect(status.feedfileId) {
+            when (status.feedfileType) {
+                RequestTye.FEEDMEDIA.ordinal -> {
+                    media = realm.query(Episode::class).query("id == $0", status.feedfileId).first().find()
+                    if (media != null) url = media!!.downloadUrl ?: ""
+                }
+                RequestTye.FEED.ordinal -> {
+                    feed = feedsMap[status.feedfileId]
+                    if (feed != null) url = feed!!.downloadUrl ?: ""
+                }
             }
         }
         val message = if (!status.isSuccessful) status.reasonDetailed else context.getString(R.string.download_successful)
@@ -370,8 +370,7 @@ fun LogsScreen() {
         val dialogParam = remember { mutableStateOf(DownloadResult()) }
         if (showDialog.value) DownlaodDetailDialog(status = dialogParam.value, onDismissRequest = { showDialog.value = false })
 
-        LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(vm.downloadLogs) { position, status ->
                 val textColor = MaterialTheme.colorScheme.onSurface
                 Row (modifier = Modifier.clickable {
@@ -407,9 +406,7 @@ fun LogsScreen() {
                     }
                     var showAction by remember { mutableStateOf(!status.isSuccessful && !newerWasSuccessful(position, status.feedfileType, status.feedfileId)) }
                     if (showAction) {
-                        Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_refresh),
-                            tint = textColor,
-                            contentDescription = null,
+                        Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_refresh), tint = textColor, contentDescription = null,
                             modifier = Modifier.width(28.dp).height(32.dp).clickable {
                                 when (status.feedfileType) {
                                     RequestTye.FEED.ordinal -> {
@@ -507,6 +504,5 @@ fun LogsScreen() {
 }
 
 private const val TAG: String = "LogsScreen"
-private const val KEY_UP_ARROW = "up_arrow"
 
 
