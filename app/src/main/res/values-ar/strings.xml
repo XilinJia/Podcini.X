@@ -182,6 +182,7 @@
     <string name="progressing_label">معالجة</string>
     <string name="open_podcast">فتح podcast</string>
     <string name="open">فتح</string>
+    <string name="content_not_exist">Content no longer exists.</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="zero">تم تحديث اشتراكات %d.</item>
         <item quantity="one">تم تحديث الاشتراك %d.</item>
@@ -271,6 +272,7 @@
     <string name="download_successful">نجح</string>
     <string name="download_pending">التنزيل معلق</string>
     <string name="download_running">تشغيل التحميل</string>
+    <string name="failed">failed</string>
     <string name="download_error_details">التفاصيل</string>
     <string name="download_log_details_message">%1$s \n\nالسبب التقني: \n%2$s \n\nرابط الملف:\n%3$s</string>
     <string name="download_error_retrying">فشل تحميل \"%1$s\". سيتم إعادة المحاولة لاحقاً.</string>
@@ -549,6 +551,7 @@
     <string name="remove_queue_sum">إزالة قائمة الإنتظار, الحلقات في قائمة الإنتظار سيتم تعيينها إلى عدم تشغيل, والتغذية المرتبطة بها سوف ترتبط بقائمة الإنتظار الافتراضية.</string>
     <string name="documentation_support">الوثائق &amp; الدعم</string>
     <string name="whats_new">What\'s new\?</string>
+    <string name="logs">Logs</string>
     <string name="bug_report_title">الإبلاغ عن خلل</string>
     <string name="email_developer">البريد الإلكتروني إلى المطور</string>
     <string name="need_email_client">تحتاج إلى بريد إلكتروني عميل مثبت على الهاتف.</string>
