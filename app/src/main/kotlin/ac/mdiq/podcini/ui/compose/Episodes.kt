@@ -4,6 +4,7 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.automation.playEpisodeAtTime
 import ac.mdiq.podcini.gears.gearbox
+import ac.mdiq.podcini.net.download.RequestTye
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.wifiSyncEnabledKey
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
@@ -35,6 +36,7 @@ import ac.mdiq.podcini.storage.database.shelveToFeed
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.database.upsertBlkEmb
+import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.Companion.DEFAULT_INTERVALS
@@ -63,6 +65,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.error.DownloadErrorLabel.from
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.shareFeedItemFile
@@ -146,6 +149,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
+import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -301,6 +305,7 @@ val webDataCache = LruCache<Long, String>(10)
 
 @Composable
 fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters: Boolean = false) {
+    val context = LocalContext.current
     val textColor = MaterialTheme.colorScheme.onSurface
     var webviewData by remember { mutableStateOf<String?>("") }
     var playerLocal: ExoPlayer? by remember { mutableStateOf(null) }
@@ -324,6 +329,8 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
         } }
     }
     if (showTodoDialog) TodoDialog(episode, onTodo) { showTodoDialog = false}
+
+    val logs = remember(episode.id) { realm.query(DownloadResult::class).query("feedfileId == ${episode.id} AND feedfileType == ${RequestTye.FEEDMEDIA.ordinal}").sort("completionTime",  Sort.DESCENDING).find() }
 
     LaunchedEffect(episode) {
         Logd(TAG, "LaunchedEffect(episode, episodeId)")
@@ -491,6 +498,26 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
             }
         }
         Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp))
+        if (logs.isNotEmpty()) {
+            var showLogs by remember { mutableStateOf(false) }
+            Text(stringResource(R.string.logs), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp).clickable(onClick = { showLogs = !showLogs}))
+            if (showLogs) Column(modifier = Modifier.padding(10.dp)) {
+                for (log in logs) {
+                    val message = stringResource(if (!log.isSuccessful) R.string.failed else R.string.download_successful)
+                    Row {
+                        Text(formatDateTimeFlex(log.completionTime))
+                        Text(": $message", color = textColor)
+                    }
+                    if (!log.isSuccessful) {
+                        Column(modifier = Modifier.padding(start = 10.dp)) {
+                            Text(log.reasonDetailed)
+                            Text(stringResource(from(log.reason)))
+                        }
+                    }
+                    Spacer(Modifier.width(4.dp))
+                }
+            }
+        }
         AndroidView(modifier = Modifier.fillMaxSize(),
             factory = { context ->
                 ShownotesWebView(context).apply {

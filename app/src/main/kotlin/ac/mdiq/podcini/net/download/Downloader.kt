@@ -56,7 +56,7 @@ abstract class Downloader(val request: DownloadRequest) {
     init {
         this.request.statusMsg = (R.string.download_pending)
         this.cancelled = false
-        this.result = DownloadResult(this.request.title?:"", this.request.feedfileId, this.request.feedfileType, false, null, nowInMillis(), "")
+        this.result = DownloadResult(this.request.feedfileId, this.request.title?:"", null, false, "", this.request.feedfileType, nowInMillis())
     }
 
     protected fun checkResults(isGzip: Boolean, response: HttpResponse): Boolean {

@@ -7,6 +7,8 @@ import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.storage.model.ARCHIVED_VOLUME_ID
 import ac.mdiq.podcini.storage.model.DownloadResult
+import ac.mdiq.podcini.storage.model.DownloadResult.Companion.addDownloadStatus
+import ac.mdiq.podcini.storage.model.DownloadResult.Companion.getFeedDownloadLog
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
@@ -830,12 +832,9 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
 
     fun mustReportDownloadSuccessful(feed: Feed): Boolean {
         val downloadResults = getFeedDownloadLog(feed.id).toMutableList()
-        // report success if never reported before
         if (downloadResults.isEmpty()) return true
         downloadResults.sortWith { ds1: DownloadResult, ds2: DownloadResult -> (ds1.completionTime - ds2.completionTime).toInt() }
         val lastDownloadResult = downloadResults[downloadResults.size - 1]
-        // report success if the last update was not successful
-        // (avoid logging success again if the last update was ok)
         return !lastDownloadResult.isSuccessful
     }
 

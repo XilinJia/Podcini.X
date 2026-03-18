@@ -1,3 +1,13 @@
+# 10.12.2
+
+* amended Logs screen
+	* session logs are in New->Old order
+	* other logs view will not activate if empty
+	* from popup in DownloadLog view, related FeedDetails or EpisodeInfo can be opened
+* feed download logs are shown in FeedDetails screen
+* episode download logs are shown in EpisodeInfo and PlayerDetailed screens
+* simplified episode sorting routines
+
 # 10.12.1
 
 * fixed issue of having duplicate items in a queue

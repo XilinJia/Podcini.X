@@ -3,6 +3,7 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
+import ac.mdiq.podcini.net.download.RequestTye
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.sync.transceive.sendFeed
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
@@ -19,6 +20,7 @@ import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
@@ -53,6 +55,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.error.DownloadErrorLabel.from
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.isCallable
@@ -142,6 +145,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import coil3.compose.AsyncImage
+import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -225,10 +229,13 @@ class FeedDetailsVM(feedId: Long = 0L, modeName: String = FeedScreenMode.List.na
 
     var feedEpisodesSize by mutableIntStateOf(0)
 
+    val logs: List<DownloadResult>
+
     init {
         Logd(TAG, "FeedDetailsVM init")
         timeIt("$TAG start of init")
         feedEpisodesSize = realm.query(Episode::class).query("feedId == $feedId").count().find().toInt()
+        logs = realm.query(DownloadResult::class).query("feedfileId == $feedId AND feedfileType == ${RequestTye.FEED.ordinal}").sort("completionTime",  Sort.DESCENDING).find()
         timeIt("$TAG end of init")
     }
 }
@@ -560,15 +567,34 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         navController.navigate(Screens.FindFeeds.name)
                     }))
                 Text(stringResource(R.string.last_full_update) + ": ${formatDateTimeFlex(feed?.lastFullUpdateTime?:0L)}", modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+                if (vm.logs.isNotEmpty()) {
+                    var showLogs by remember { mutableStateOf(false) }
+                    Text(stringResource(R.string.logs), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp).clickable(onClick = { showLogs = !showLogs}))
+                    if (showLogs) Column(modifier = Modifier.padding(10.dp)) {
+                        for (log in vm.logs) {
+                            val message = stringResource(if (!log.isSuccessful) R.string.failed else R.string.download_successful)
+                            Row {
+                                Text(formatDateTimeFlex(log.completionTime))
+                                Text(": $message", color = textColor)
+                            }
+                            if (!log.isSuccessful) {
+                                Column(modifier = Modifier.padding(start = 10.dp)) {
+                                    Text(log.reasonDetailed)
+                                    Text(stringResource(from(log.reason)))
+                                }
+                            }
+                            Spacer(Modifier.width(4.dp))
+                        }
+                    }
+                }
                 Text(stringResource(R.string.url_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
-                Text(text = feed?.downloadUrl ?: "", color = textColor, modifier = Modifier.padding(bottom = 15.dp).combinedClickable(
+                Text(text = feed?.downloadUrl ?: "", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 15.dp).combinedClickable(
                     onClick = { if (!feed?.downloadUrl.isNullOrBlank()) openInBrowser(feed!!.downloadUrl!!) },
                     onLongClick = {
                         if (!feed?.downloadUrl.isNullOrBlank()) {
                             val url: String = feed!!.downloadUrl!!
-                            val clipData: ClipData = ClipData.newPlainText(url, url)
                             val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            cm.setPrimaryClip(clipData)
+                            cm.setPrimaryClip(ClipData.newPlainText(url, url))
                             Logt(TAG, context.getString(R.string.copied_to_clipboard))
                         }
                     }

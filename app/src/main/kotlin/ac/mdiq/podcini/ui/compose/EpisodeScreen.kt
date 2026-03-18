@@ -106,7 +106,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -526,11 +525,8 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                     Text(episode.link ?: "", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 15.dp).clickable(onClick = {
                         if (!episode.link.isNullOrBlank()) openInBrowser(episode.link!!)
                     }))
-                    Row {
-                        Text("Time spent: " + getDurationStringShort(episode.timeSpent, true))
-                        Spacer(Modifier.width(50.dp))
-                        Text("Played duration: " + getDurationStringShort(episode.playedDuration.toLong(), true))
-                    }
+                    Text("Time spent: " + getDurationStringShort(episode.timeSpent, true))
+                    Text("Played duration: " + getDurationStringShort(episode.playedDuration.toLong(), true))
                 }
             }
         }

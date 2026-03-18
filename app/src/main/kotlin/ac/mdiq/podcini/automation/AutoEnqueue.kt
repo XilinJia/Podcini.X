@@ -22,11 +22,13 @@ import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.model.VIRTUAL_QUEUE_ID
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
-import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.reorderWith
 import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.showStackTrace
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
@@ -34,8 +36,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import ac.mdiq.podcini.storage.utils.nowInMillis
-import ac.mdiq.podcini.utils.showStackTrace
 
 private const val TAG = "AutoDownloads"
 
@@ -245,7 +245,7 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
                         if (es.isNotEmpty()) {
                             val sortOrder = f.episodesSortOrderADL ?: EpisodeSortOrder.DATE_DESC
                             Logd(TAG, "FILTER_SORT sortOrder: $sortOrder")
-                            getPermutor(sortOrder).reorder(es)
+                            es.reorderWith(sortOrder)
                             episodes.addAll(if (es.size > allowedDLCount) es.subList(0, allowedDLCount) else es)
                             Logd(TAG, "FILTER_SORT episodes: ${episodes.size}")
                         }

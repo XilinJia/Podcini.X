@@ -45,24 +45,22 @@ class SubscriptionLog: RealmObject {
     }
 
     companion object {
-        private val TAG: String = SubscriptionLog::class.simpleName ?: "Anonymous"
+        private const val TAG: String = "SubscriptionLog"
 
         var feedLogsMap: Map<String, SubscriptionLog>? = null
             get() {
-                if (field == null) field = getFeedLogMap()
+                if (field == null) {
+                    val logs = realm.query(SubscriptionLog::class).query("type == $0", "Feed").find()
+                    val map = mutableMapOf<String, SubscriptionLog>()
+                    for (l in logs) {
+                        //                Logd(TAG, "getFeedLogMap ${l.title} ${l.url}")
+                        map[l.title] = l
+                        if (!l.url.isNullOrEmpty()) map[l.url!!] = l
+                        if (!l.link.isNullOrEmpty()) map[l.link!!] = l
+                    }
+                    field = map.toMap()
+                }
                 return field
             }
-
-        private fun getFeedLogMap(): Map<String, SubscriptionLog> {
-            val logs = realm.query(SubscriptionLog::class).query("type == $0", "Feed").find()
-            val map = mutableMapOf<String, SubscriptionLog>()
-            for (l in logs) {
-//                Logd(TAG, "getFeedLogMap ${l.title} ${l.url}")
-                map[l.title] = l
-                if (!l.url.isNullOrEmpty()) map[l.url!!] = l
-                if (!l.link.isNullOrEmpty()) map[l.link!!] = l
-            }
-            return map.toMap()
-        }
     }
 }

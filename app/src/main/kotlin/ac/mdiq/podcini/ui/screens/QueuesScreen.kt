@@ -27,7 +27,7 @@ import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.model.VIRTUAL_QUEUE_ID
 import ac.mdiq.podcini.storage.specs.EnqueueLocation
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
-import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.reorderWith
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
@@ -427,7 +427,7 @@ fun QueuesScreen(id: Long = -1L) {
             upsertBlk(vm.curQueue) { it.sortOrder = order ?: EpisodeSortOrder.DATE_DESC }
             runOnIOScope {
                 val episodes_ = episodes.toMutableList()
-                getPermutor(order ?: EpisodeSortOrder.DATE_DESC).reorder(episodes_)
+                episodes_.reorderWith(order ?: EpisodeSortOrder.DATE_DESC)
                 persistOrdered(episodes_, queueEntries)
             }
         }

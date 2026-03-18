@@ -13,12 +13,10 @@ import ac.mdiq.podcini.net.download.Downloader.Companion.downloaderFor
 import ac.mdiq.podcini.net.feed.FeedHandler.FeedHandlerResult
 import ac.mdiq.podcini.net.utils.NetworkUtils.isFeedRefreshAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
-import ac.mdiq.podcini.storage.database.addDownloadStatus
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.compileLanguages
 import ac.mdiq.podcini.storage.database.compileTags
 import ac.mdiq.podcini.storage.database.feedOperationText
-import ac.mdiq.podcini.storage.database.getFeedDownloadLog
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.persistFeedLastUpdateFailed
 import ac.mdiq.podcini.storage.database.realm
@@ -28,6 +26,8 @@ import ac.mdiq.podcini.storage.database.updateFeedSimple
 import ac.mdiq.podcini.storage.database.updateLocalFeed
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
+import ac.mdiq.podcini.storage.model.DownloadResult.Companion.addDownloadStatus
+import ac.mdiq.podcini.storage.model.DownloadResult.Companion.getFeedDownloadLog
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.storage.utils.toUF

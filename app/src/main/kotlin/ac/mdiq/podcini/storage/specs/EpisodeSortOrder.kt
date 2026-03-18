@@ -3,8 +3,6 @@ package ac.mdiq.podcini.storage.specs
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.model.Episode
 import io.github.xilinjia.krdb.query.Sort
-
-import java.util.Locale
 import kotlin.collections.iterator
 import ac.mdiq.podcini.storage.utils.nowInMillis
 
@@ -55,15 +53,18 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
          * the given default value is returned.
          */
         fun parseWithDefault(value: String, defaultValue: EpisodeSortOrder): EpisodeSortOrder {
-            return try { valueOf(value) } catch (e: IllegalArgumentException) { defaultValue }
+            return try {
+                valueOf(value)
+            } catch (e: IllegalArgumentException) {
+                defaultValue
+            }
         }
 
         fun fromCodeString(codeStr: String?): EpisodeSortOrder {
             if (codeStr.isNullOrEmpty()) return EPISODE_TITLE_ASC
             val code = codeStr.toInt()
             for (sortOrder in entries) if (sortOrder.code == code) return sortOrder
-            return EPISODE_TITLE_ASC
-//            throw IllegalArgumentException("Unsupported code: $code")
+            return EPISODE_TITLE_ASC //            throw IllegalArgumentException("Unsupported code: $code")
         }
 
         fun fromCode(code: Int): EpisodeSortOrder = EpisodeSortOrder.entries.firstOrNull { it.code == code } ?: EPISODE_TITLE_ASC
@@ -76,114 +77,49 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
             return values
         }
 
-        /**
-         * Returns a Permutor that sorts a list appropriate to the given sort order.
-         * @return Permutor that sorts a list appropriate to the given sort order.
-         */
-
-        fun getPermutor(sortOrder: EpisodeSortOrder): Permutor<Episode> {
-            var comparator: java.util.Comparator<Episode>? = null
-            var permutor: Permutor<Episode>? = null
-
+        fun MutableList<Episode>.reorderWith(sortOrder: EpisodeSortOrder) {
             when (sortOrder) {
-                EPISODE_TITLE_ASC -> comparator = Comparator { f1: Episode?, f2: Episode? -> itemTitle(f1).compareTo(itemTitle(f2)) }
-                EPISODE_TITLE_DESC -> comparator = Comparator { f1: Episode?, f2: Episode? -> itemTitle(f2).compareTo(itemTitle(f1)) }
-                DATE_ASC -> comparator = Comparator { f1: Episode?, f2: Episode? -> pubDate(f1).compareTo(pubDate(f2)) }
-                DATE_DESC -> comparator = Comparator { f1: Episode?, f2: Episode? -> pubDate(f2).compareTo(pubDate(f1)) }
-                DURATION_ASC -> comparator = Comparator { f1: Episode?, f2: Episode? -> duration(f1).compareTo(duration(f2)) }
-                DURATION_DESC -> comparator = Comparator { f1: Episode?, f2: Episode? -> duration(f2).compareTo(duration(f1)) }
-                EPISODE_FILENAME_ASC -> comparator = Comparator { f1: Episode?, f2: Episode? -> itemLink(f1).compareTo(itemLink(f2)) }
-                EPISODE_FILENAME_DESC -> comparator = Comparator { f1: Episode?, f2: Episode? -> itemLink(f2).compareTo(itemLink(f1)) }
-                PLAYED_DATE_ASC -> comparator = Comparator { f1: Episode?, f2: Episode? -> playDate(f1).compareTo(playDate(f2)) }
-                PLAYED_DATE_DESC -> comparator = Comparator { f1: Episode?, f2: Episode? -> playDate(f2).compareTo(playDate(f1)) }
-                COMPLETED_DATE_ASC -> comparator = Comparator { f1: Episode?, f2: Episode? -> completeDate(f1).compareTo(completeDate(f2)) }
-                COMPLETED_DATE_DESC -> comparator = Comparator { f1: Episode?, f2: Episode? -> completeDate(f2).compareTo(completeDate(f1)) }
-                DOWNLOAD_DATE_ASC -> comparator = Comparator { f1: Episode?, f2: Episode? -> downloadDate(f1).compareTo(downloadDate(f2)) }
-                DOWNLOAD_DATE_DESC -> comparator = Comparator { f1: Episode?, f2: Episode? -> downloadDate(f2).compareTo(downloadDate(f1)) }
-                VIEWS_ASC -> comparator = Comparator { f1: Episode?, f2: Episode? -> viewCount(f1).compareTo(viewCount(f2)) }
-                VIEWS_DESC -> comparator = Comparator { f1: Episode?, f2: Episode? -> viewCount(f2).compareTo(viewCount(f1)) }
-                LIKES_ASC -> comparator = Comparator { f1: Episode?, f2: Episode? -> likeCount(f1).compareTo(likeCount(f2)) }
-                LIKES_DESC -> comparator = Comparator { f1: Episode?, f2: Episode? -> likeCount(f2).compareTo(likeCount(f1)) }
-                VIEWS_SPEED_ASC -> comparator = Comparator { f1: Episode?, f2: Episode? -> viewSpeed(f1).compareTo(viewSpeed(f2)) }
-                VIEWS_SPEED_DESC -> comparator = Comparator { f1: Episode?, f2: Episode? -> viewSpeed(f2).compareTo(viewSpeed(f1)) }
-                COMMENT_DATE_ASC -> comparator = Comparator { f1: Episode?, f2: Episode? -> commentDate(f1).compareTo(commentDate(f2)) }
-                COMMENT_DATE_DESC -> comparator = Comparator { f1: Episode?, f2: Episode? -> commentDate(f2).compareTo(commentDate(f1)) }
-
-                FEED_TITLE_ASC -> comparator = Comparator { f1: Episode?, f2: Episode? -> feedTitle(f1).compareTo(feedTitle(f2)) }
-                FEED_TITLE_DESC -> comparator = Comparator { f1: Episode?, f2: Episode? -> feedTitle(f2).compareTo(feedTitle(f1)) }
-                RANDOM, RANDOM1 -> permutor = object : Permutor<Episode> {
-                    override fun reorder(episodes: MutableList<Episode>?) {
-                        if (!episodes.isNullOrEmpty()) episodes.shuffle()
-                    }
+                RANDOM, RANDOM1 -> {
+                    this.shuffle()
+                    return
                 }
-                SMART_SHUFFLE_ASC -> permutor = object : Permutor<Episode> {
-                    override fun reorder(episodes: MutableList<Episode>?) {
-                        if (!episodes.isNullOrEmpty()) smartShuffle(episodes as MutableList<Episode?>, true)
-                    }
+                SMART_SHUFFLE_ASC, SMART_SHUFFLE_DESC -> {
+                    @Suppress("UNCHECKED_CAST") smartShuffle(this as MutableList<Episode?>, sortOrder == SMART_SHUFFLE_ASC)
+                    return
                 }
-                SMART_SHUFFLE_DESC -> permutor = object : Permutor<Episode> {
-                    override fun reorder(episodes: MutableList<Episode>?) {
-                        if (!episodes.isNullOrEmpty()) smartShuffle(episodes as MutableList<Episode?>, false)
-                    }
-                }
-                SIZE_ASC -> comparator = Comparator { f1: Episode?, f2: Episode? -> size(f1).compareTo(size(f2)) }
-                SIZE_DESC -> comparator = Comparator { f1: Episode?, f2: Episode? -> size(f2).compareTo(size(f1)) }
+                else -> {}
             }
-            if (comparator != null) {
-                val comparator2: java.util.Comparator<Episode> = comparator
-                permutor = object : Permutor<Episode> {
-                    override fun reorder(episodes: MutableList<Episode>?) {if (!episodes.isNullOrEmpty()) episodes.sortWith(comparator2)}
+            val comparator: Comparator<Episode> = Comparator { f1: Episode?, f2: Episode? ->
+                when (sortOrder) {
+                    EPISODE_TITLE_ASC -> itemTitle(f1).compareTo(itemTitle(f2))
+                    EPISODE_TITLE_DESC -> itemTitle(f2).compareTo(itemTitle(f1))
+                    DATE_ASC -> pubDate(f1).compareTo(pubDate(f2))
+                    DATE_DESC -> pubDate(f2).compareTo(pubDate(f1))
+                    DURATION_ASC -> duration(f1).compareTo(duration(f2))
+                    DURATION_DESC -> duration(f2).compareTo(duration(f1))
+                    EPISODE_FILENAME_ASC -> itemLink(f1).compareTo(itemLink(f2))
+                    EPISODE_FILENAME_DESC -> itemLink(f2).compareTo(itemLink(f1))
+                    PLAYED_DATE_ASC -> playDate(f1).compareTo(playDate(f2))
+                    PLAYED_DATE_DESC -> playDate(f2).compareTo(playDate(f1))
+                    COMPLETED_DATE_ASC -> completeDate(f1).compareTo(completeDate(f2))
+                    COMPLETED_DATE_DESC -> completeDate(f2).compareTo(completeDate(f1))
+                    DOWNLOAD_DATE_ASC -> downloadDate(f1).compareTo(downloadDate(f2))
+                    DOWNLOAD_DATE_DESC -> downloadDate(f2).compareTo(downloadDate(f1))
+                    VIEWS_ASC -> viewCount(f1).compareTo(viewCount(f2))
+                    VIEWS_DESC -> viewCount(f2).compareTo(viewCount(f1))
+                    LIKES_ASC -> likeCount(f1).compareTo(likeCount(f2))
+                    LIKES_DESC -> likeCount(f2).compareTo(likeCount(f1))
+                    VIEWS_SPEED_ASC -> viewSpeed(f1).compareTo(viewSpeed(f2))
+                    VIEWS_SPEED_DESC -> viewSpeed(f2).compareTo(viewSpeed(f1))
+                    COMMENT_DATE_ASC -> commentDate(f1).compareTo(commentDate(f2))
+                    COMMENT_DATE_DESC -> commentDate(f2).compareTo(commentDate(f1))
+                    FEED_TITLE_ASC -> feedTitle(f1).compareTo(feedTitle(f2))
+                    FEED_TITLE_DESC -> feedTitle(f2).compareTo(feedTitle(f1))
+                    SIZE_ASC -> size(f1).compareTo(size(f2))
+                    SIZE_DESC -> size(f2).compareTo(size(f1))
                 }
             }
-            return permutor!!
-        }
-
-        fun queryStringOf(sortOrder: EpisodeSortOrder?): String {
-            return when (sortOrder) {
-                EPISODE_TITLE_ASC -> "title ASC"
-                EPISODE_TITLE_DESC -> "title DESC"
-                DATE_ASC -> "pubDate ASC"
-                DATE_DESC -> "pubDate DESC"
-                DURATION_ASC -> "duration ASC"
-                DURATION_DESC -> "duration DESC"
-                EPISODE_FILENAME_ASC -> "link ASC"
-                EPISODE_FILENAME_DESC -> "link DESC"
-                PLAYED_DATE_ASC -> "lastPlayedTime ASC"
-                PLAYED_DATE_DESC -> "lastPlayedTime DESC"
-                COMPLETED_DATE_ASC -> "playbackCompletionTime ASC"
-                COMPLETED_DATE_DESC -> "playbackCompletionTime DESC"
-                DOWNLOAD_DATE_ASC -> "downloadTime ASC"
-                DOWNLOAD_DATE_DESC -> "downloadTime DESC"
-                VIEWS_ASC -> "viewCount ASC"
-                VIEWS_DESC -> "viewCount DESC"
-                LIKES_ASC -> "likeCount ASC"
-                LIKES_DESC -> "likeCount DESC"
-                COMMENT_DATE_ASC -> "commentTime ASC"
-                COMMENT_DATE_DESC -> "commentTime DESC"
-                FEED_TITLE_ASC -> "feed.title ASC"
-                FEED_TITLE_DESC -> "feed.title DESC"
-                SIZE_ASC -> "size ASC"
-                SIZE_DESC -> "size DESC"
-                else -> "pubDate DESC"
-
-//                VIEWS_SPEED_ASC -> ""
-//                VIEWS_SPEED_DESC -> ""
-//                RANDOM, RANDOM1 -> permutor = object : Permutor<Episode> {
-//                    override fun reorder(queue: MutableList<Episode>?) {
-//                        if (!queue.isNullOrEmpty()) queue.shuffle()
-//                    }
-//                }
-//                SMART_SHUFFLE_ASC -> permutor = object : Permutor<Episode> {
-//                    override fun reorder(queue: MutableList<Episode>?) {
-//                        if (!queue.isNullOrEmpty()) smartShuffle(queue as MutableList<Episode?>, true)
-//                    }
-//                }
-//                SMART_SHUFFLE_DESC -> permutor = object : Permutor<Episode> {
-//                    override fun reorder(queue: MutableList<Episode>?) {
-//                        if (!queue.isNullOrEmpty()) smartShuffle(queue as MutableList<Episode?>, false)
-//                    }
-//                }
-            }
+            this.sortWith(comparator)
         }
 
         fun sortPairOf(sortOrder: EpisodeSortOrder?): Pair<String, Sort> {
@@ -279,8 +215,7 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
          * @param ascending `true` to use ascending pubdate in the reordering;
          * `false` for descending.
          */
-        private fun smartShuffle(episodes: MutableList<Episode?>, ascending: Boolean) {
-            // Divide FeedItems into lists by feed
+        private fun smartShuffle(episodes: MutableList<Episode?>, ascending: Boolean) { // Divide FeedItems into lists by feed
             val map: MutableMap<Long, MutableList<Episode>> = mutableMapOf()
             for (item in episodes) {
                 if (item == null) continue
@@ -292,9 +227,8 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
             }
 
             // Sort each individual list by PubDate (ascending/descending)
-            val itemComparator: java.util.Comparator<Episode> =
-                if (ascending) Comparator { f1: Episode, f2: Episode -> f1.pubDate.compareTo(f2.pubDate) }
-                else Comparator { f1: Episode, f2: Episode -> f2.pubDate.compareTo(f1.pubDate) }
+            val itemComparator: java.util.Comparator<Episode> = if (ascending) Comparator { f1: Episode, f2: Episode -> f1.pubDate.compareTo(f2.pubDate) }
+            else Comparator { f1: Episode, f2: Episode -> f2.pubDate.compareTo(f1.pubDate) }
 
             val feeds: MutableList<List<Episode>> = mutableListOf()
             for ((_, value) in map) {
@@ -327,19 +261,6 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
                     }
                 }
             }
-        }
-
-        /**
-         * Interface for passing around list permutor method. This is used for cases where a simple comparator
-         * won't work (e.g. Random, Smart Shuffle, etc)
-         * @param <E> the type of elements in the list
-        </E> */
-        interface Permutor<E> {
-            /**
-             * Reorders the specified list.
-             * @param episodes A (modifiable) list of elements to be reordered
-             */
-            fun reorder(episodes: MutableList<E>?)
         }
     }
 }

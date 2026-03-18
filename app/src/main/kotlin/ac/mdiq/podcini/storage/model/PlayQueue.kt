@@ -7,17 +7,17 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.specs.EnqueueLocation
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.fromCode
-import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.reorderWith
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
+import ac.mdiq.podcini.storage.utils.nowInMillis
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.showStackTrace
 import io.github.xilinjia.krdb.ext.query
 import io.github.xilinjia.krdb.ext.realmListOf
 import io.github.xilinjia.krdb.types.RealmList
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.annotations.Ignore
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
-import ac.mdiq.podcini.storage.utils.nowInMillis
-import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.showStackTrace
 
 private const val TAG = "PlayQueue"
 
@@ -108,7 +108,7 @@ class PlayQueue : RealmObject {
     suspend fun sort() {
         val queueEntries = entries
         val episodes = realm.query(Episode::class).query("id IN $0", queueEntries.map { it.episodeId }).find().toMutableList()
-        getPermutor(sortOrder).reorder(episodes)
+        episodes.reorderWith(sortOrder)
         persistOrdered(episodes, queueEntries)
     }
 
