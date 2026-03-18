@@ -182,6 +182,7 @@
     <string name="progressing_label">Processing</string>
     <string name="open_podcast">Open podcast</string>
     <string name="open">Open</string>
+    <string name="content_not_exist">Content no longer exists.</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="one">%d subscription updated.</item>
         <item quantity="few">%d subscriptions updated.</item>
@@ -269,6 +270,7 @@
     <string name="download_successful">successful</string>
     <string name="download_pending">Download pending</string>
     <string name="download_running">Download running</string>
+    <string name="failed">failed</string>
     <string name="download_error_details">Details</string>
     <string name="download_log_details_message">%1$s \n\nTechnical reason: \n%2$s \n\nFile URL:\n%3$s</string>
     <string name="download_error_retrying">Download of \"%1$s\" failed. Will be retried later.</string>
@@ -545,6 +547,7 @@
     <string name="remove_queue_sum">Removes the queue, episodes in the queue will be set to Unplayed, and associated feeds will associate with the Default queue.</string>
     <string name="documentation_support">Documentation &amp; support</string>
     <string name="whats_new">What\'s new\?</string>
+    <string name="logs">Logs</string>
     <string name="bug_report_title">Report bug</string>
     <string name="email_developer">Email to developer</string>
     <string name="need_email_client">You need an email client installed on the phone.</string>
