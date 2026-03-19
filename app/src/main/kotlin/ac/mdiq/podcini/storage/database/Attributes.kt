@@ -122,21 +122,21 @@ var isSkipSilence: Boolean
     }
 
 var speedforwardSpeed: Float
-    get() = appPrefs.speedforwardSpeed.toFloat()
+    get() = appPrefs.speedforwardSpeed
     set(speed) {
-        upsertBlk(appPrefs) { it.speedforwardSpeed = speed.toString() }
+        upsertBlk(appPrefs) { it.speedforwardSpeed = speed }
     }
 
 var skipforwardSpeed: Float
-    get() = appPrefs.skipforwardSpeed.toFloat()
+    get() = appPrefs.skipforwardSpeed
     set(speed) {
-        upsertBlk(appPrefs) { it.skipforwardSpeed = speed.toString() }
+        upsertBlk(appPrefs) { it.skipforwardSpeed = speed }
     }
 
 var fallbackSpeed: Float
-    get() = appPrefs.fallbackSpeed.toFloat()
+    get() = appPrefs.fallbackSpeed
     set(speed) {
-        upsertBlk(appPrefs) { it.fallbackSpeed = speed.toString() }
+        upsertBlk(appPrefs) { it.fallbackSpeed = speed }
     }
 
 var fastForwardSecs: Int

@@ -696,8 +696,8 @@ fun LibraryScreen() {
                             })
                         }
                         DropdownMenuItem(text = { Text(stringResource(R.string.full_refresh_label)) }, onClick = {
-                            if (vm.curVolume == null) runOnceOrAsk(fullUpdate = true)
-                            else runOnceOrAsk(vm.curVolume!!.allFeeds, fullUpdate = true)
+                            if (vm.curVolume == null) runOnceOrAsk(fullUpdate = true, removeUnlisted=true)
+                            else runOnceOrAsk(vm.curVolume!!.allFeeds, fullUpdate=true, removeUnlisted=true)
                             expanded = false
                         })
                         fun toggleArchived() {
@@ -1095,7 +1095,7 @@ fun LibraryScreen() {
                             ConstraintLayout(Modifier.fillMaxSize()) {
                                 val (coverImage, episodeCount, rating, error) = createRefs()
                                 AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "coverImage",
-                                    colorFilter = if (feed?.inNormalVolume != true) ColorFilter.tint(color = Color.Gray.copy(alpha = 0.5f), blendMode = BlendMode.SrcAtop) else null,
+                                    colorFilter = if (!feed.inNormalVolume) ColorFilter.tint(color = Color.Gray.copy(alpha = 0.5f), blendMode = BlendMode.SrcAtop) else null,
                                     modifier = Modifier.fillMaxWidth().aspectRatio(1f).constrainAs(coverImage) {
                                         top.linkTo(parent.top)
                                         bottom.linkTo(parent.bottom)
@@ -1190,7 +1190,7 @@ fun LibraryScreen() {
                         Row(Modifier.height(imageSize.dp).background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)) {
                             Box(modifier = Modifier.size(imageSize.dp)) {
                                 AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover",
-                                    colorFilter = if (feed?.inNormalVolume != true) ColorFilter.tint(color = Color.Gray.copy(alpha = 0.5f), blendMode = BlendMode.SrcAtop) else null,
+                                    colorFilter = if (!feed.inNormalVolume) ColorFilter.tint(color = Color.Gray.copy(alpha = 0.5f), blendMode = BlendMode.SrcAtop) else null,
                                     modifier = Modifier.fillMaxSize().clickable(onClick = {
                                         Logd(TAG, "icon clicked!")
                                         if (!feed.isBuilding) {
@@ -1659,8 +1659,7 @@ fun LibraryScreen() {
             Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
                 val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
                 dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
-                Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor)) {
+                Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor)) {
                     Column(Modifier.fillMaxSize()) {
                         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                             Logd(TAG, "appAttribs.langSet: ${appAttribs.langSet.size}")
@@ -1975,7 +1974,7 @@ fun LibraryScreen() {
                         } else Text("Receiving at port $tcpPort")
                         if (receiveJob == null) Row {
                             Text(stringResource(R.string.content_type), modifier = Modifier.padding(end = 5.dp))
-                            Spinner(ContentType.values().map { it.name }, ContentType.Feed.name) { index -> contentType = ContentType.values()[index] }
+                            Spinner(ContentType.entries.map { it.name }, ContentType.Feed.name) { index -> contentType = ContentType.entries.toTypedArray()[index] }
                         } else Text("Receiving: ${contentType.name}")
                     }
                 },

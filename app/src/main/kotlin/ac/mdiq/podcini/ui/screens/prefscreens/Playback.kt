@@ -3,7 +3,6 @@ package ac.mdiq.podcini.ui.screens.prefscreens
 import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.prefPlaybackSpeed
 import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
@@ -158,7 +157,7 @@ fun PlaybackScreen() {
             Text(stringResource(R.string.pref_fast_forward_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
         }
         var showSpeedDialog by remember { mutableStateOf(false) }
-        if (showSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = prefPlaybackSpeed, maxSpeed = 3f, isGlobal = true, onDismiss = { showSpeedDialog = false }) { speed -> upsertBlk(appPrefs) { it.playbackSpeed = speed.toString()} }
+        if (showSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = appPrefs.playbackSpeed, maxSpeed = 3f, isGlobal = true, onDismiss = { showSpeedDialog = false }) { speed -> upsertBlk(appPrefs) { it.playbackSpeed = speed } }
         TitleSummaryActionColumn(R.string.playback_speed, R.string.pref_playback_speed_sum) { showSpeedDialog = true }
         var showFBSpeedDialog by remember { mutableStateOf(false) }
         if (showFBSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = fallbackSpeed, maxSpeed = 3f, isGlobal = true,

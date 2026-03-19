@@ -32,8 +32,8 @@ open class FeedBuilderBase(val showError: (String?, String)->Unit) {
     var selectedDownloadUrl: String? = null
     private var downloader: Downloader? = null
 
-    suspend fun buildPodcast1(url: String, username: String?, password: String?, handleFeed: (Feed, Map<String, String>)->Unit) {
-        Logd(TAG, "buildPodcast1: $url")
+    suspend fun buildPodcast(url: String, username: String?, password: String?, handleFeed: (Feed, Map<String, String>)->Unit) {
+        Logd(TAG, "buildPodcast: $url")
         when (val urlType = htmlOrXml(url)) {
             "HTML" -> {
                 try {
@@ -43,7 +43,7 @@ open class FeedBuilderBase(val showError: (String?, String)->Unit) {
                     for (element in linkElements) {
                         val rssUrl = element.attr("href")
                         Logd(TAG, "buildPodcast RSS URL: $rssUrl")
-                        buildPodcast1(rssUrl, username, password) { feed, map -> handleFeed(feed, map) }
+                        buildPodcast(rssUrl, username, password) { feed, map -> handleFeed(feed, map) }
                     }
                     return
                 } catch (e: Throwable) { Loge(TAG, "buildPodcast error: ${e.message}")}

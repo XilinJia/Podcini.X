@@ -18,16 +18,15 @@ import ac.mdiq.podcini.storage.database.compileLanguages
 import ac.mdiq.podcini.storage.database.compileTags
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.getFeedList
-import ac.mdiq.podcini.storage.database.persistFeedLastUpdateFailed
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.unmanaged
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.updateFeedSimple
 import ac.mdiq.podcini.storage.database.updateLocalFeed
+import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.DownloadResult.Companion.addDownloadStatus
-import ac.mdiq.podcini.storage.model.DownloadResult.Companion.getFeedDownloadLog
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.storage.utils.toUF
@@ -56,7 +55,7 @@ import kotlinx.io.IOException
 import org.xml.sax.SAXException
 import javax.xml.parsers.ParserConfigurationException
 
-open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = false, val doItAnyway: Boolean = false) {
+open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = false, val doItAnyway: Boolean = false, val removeUnlisted: Boolean = false) {
     private val TAG = "FeedUpdaterBase"
     protected val context = getAppContext()
     private val notificationManager = NotificationManagerCompat.from(context)
@@ -144,7 +143,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
                     }
                 } catch (e: Exception) {
                     Loge(TAG, "refreshFeeds: update failed ${feed.title} ${e.message}")
-                    persistFeedLastUpdateFailed(feed, true)
+                    upsert(feed) { it.lastUpdateFailed = true }
                     val status = DownloadResult(feed.id, feed.title ?: "", DownloadError.ERROR_IO_ERROR, false, e.message ?: "")
                     addDownloadStatus(status)
                 }
@@ -190,13 +189,12 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             var reasonDetailed: String? = null
 
             var feedHandlerResult: FeedHandlerResult? = null
-
             var isSuccessful = true
             try {
                 feedHandlerResult = FeedHandler().parseFeed(source, feedToParse)
                 Logd(TAG,  "Parsed ${feedToParse.title}")
-                if (feedToParse.title == null) throw InvalidFeedException("Feed has no title")
-                for (item in feedToParse.episodes) if (item.title == null) throw InvalidFeedException("Item has no title: $item")
+                if (feedToParse.title.isNullOrBlank()) throw InvalidFeedException("Feed has no title")
+                for (item in feedToParse.episodes) if (item.title.isNullOrBlank()) throw InvalidFeedException("Item has no title: $item")
                 if (feedToParse.imageUrl.isNullOrEmpty()) feedToParse.imageUrl = Feed.PREFIX_GENERATIVE_COVER + feedToParse.downloadUrl
             } catch (e: SAXException) {
                 isSuccessful = false
@@ -234,21 +232,20 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
 
             var downloadStatus: DownloadResult
             if (isSuccessful) {
-                downloadStatus = DownloadResult(feedToParse.id, feedToParse.getTextIdentifier()?:"", DownloadError.SUCCESS, isSuccessful, reasonDetailed?:"")
+                downloadStatus = DownloadResult(feedToParse.id, feedToParse.getTextIdentifier()?:"", DownloadError.SUCCESS, true, "")
             } else {
-                downloadStatus = DownloadResult(feedToParse.id, feedToParse.getTextIdentifier() ?: "", reason ?: DownloadError.ERROR_NOT_FOUND, isSuccessful, reasonDetailed ?: "")
+                downloadStatus = DownloadResult(feedToParse.id, feedToParse.getTextIdentifier() ?: "", reason ?: DownloadError.ERROR_NOT_FOUND, false, reasonDetailed ?: "")
                 Logt(TAG, "refreshFeed: feed update failed: unsuccessful: ${feed.title}")
-                persistFeedLastUpdateFailed(feed, true)
+                upsert(feed) { it.lastUpdateFailed = true }
                 addDownloadStatus(downloadStatus)
                 return@download
             }
 
-            if (fullUpdate) updateFeedFull(feedHandlerResult!!.feed, removeUnlistedItems = false)
-            else updateFeedSimple(feedHandlerResult!!.feed)
+            if (fullUpdate) updateFeedFull(feedHandlerResult!!.feed, removeUnlistedItems = removeUnlisted, downloadStatus = downloadStatus)
+            else updateFeedSimple(feedHandlerResult!!.feed, downloadStatus)
 
-            // we create a 'successful' download log if the feed's last refresh failed
-            val log = getFeedDownloadLog(request.feedfileId)
-            if (log.isNotEmpty() && !log[0].isSuccessful) addDownloadStatus(downloadStatus)
+            addDownloadStatus(downloadStatus)
+
             if (!request.source.isNullOrEmpty()) {
                 fun updateFeedDownloadURL(original: String, updated: String) {
                     Logd(TAG, "updateFeedDownloadURL(original: $original, updated: $updated)")
@@ -269,7 +266,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
                 return
             }
             Logt(TAG, "refreshFeed: feed update failed: unsuccessful. cancelled? ${feed.title}")
-            persistFeedLastUpdateFailed(feed, true)
+            upsert(feed) { it.lastUpdateFailed = true }
             addDownloadStatus(downloader.result)
             return
         }

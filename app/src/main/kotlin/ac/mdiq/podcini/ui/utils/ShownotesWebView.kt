@@ -50,8 +50,8 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
         setBackgroundColor(Color.TRANSPARENT)
         // Use cached resources, even if they have expired
 //        if (!NetworkUtils.networkAvailable()) getSettings().cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
-
 //        settings.cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
+
         settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         settings.useWideViewPort = false
         settings.loadWithOverviewMode = true

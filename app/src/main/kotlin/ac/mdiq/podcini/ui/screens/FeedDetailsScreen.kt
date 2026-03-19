@@ -497,7 +497,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 expanded = false
                             })
                             DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
-                                gearbox.feedUpdater(listOf(feed!!), fullUpdate = true, true).startRefresh()
+                                gearbox.feedUpdater(listOf(feed!!), fullUpdate = true, doItAnyway = true, removeUnlisted = true).startRefresh()
                                 expanded = false
                             })
                             DropdownMenuItem(text = { Text(stringResource(R.string.remove_feed_label)) }, onClick = {
@@ -577,11 +577,9 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 Text(formatDateTimeFlex(log.completionTime))
                                 Text(": $message", color = textColor)
                             }
-                            if (!log.isSuccessful) {
-                                Column(modifier = Modifier.padding(start = 10.dp)) {
-                                    Text(log.reasonDetailed)
-                                    Text(stringResource(from(log.reason)))
-                                }
+                            Column(modifier = Modifier.padding(start = 10.dp)) {
+                                if (log.reasonDetailed.isNotBlank()) Text(log.reasonDetailed)
+                                if (!log.isSuccessful) Text(stringResource(from(log.reason)))
                             }
                             Spacer(Modifier.width(4.dp))
                         }

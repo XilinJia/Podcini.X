@@ -1,3 +1,12 @@
+# 10.12.3
+
+* feed full updates from FeedDetailes or Library screens erase unlisted unworthy episodes
+* in feed updates (full or simple)
+	* extra info are added to download log
+	* episode count and total duration are computed after trim episodes , and erase unlisted
+* stripped unnecessary hashcode fields in Episode and Feed
+* removed the wrong toast "please allow feed refresh on mobile in Settings"
+
 # 10.12.2
 
 * amended Logs screen

@@ -334,7 +334,7 @@ private fun utcFieldsFromEpochMillis(ms: Long): DateTimeFields {
  */
 private fun ymdFromDaysSinceEpoch(daysSinceEpoch: Long): Triple<Int, Int, Int> {
     // days since 0000-03-01 proleptic Gregorian
-    var z = daysSinceEpoch + 719468L
+    val z = daysSinceEpoch + 719468L
     val era = floorDiv(z, 146097L).toInt()
     val doe = (z - era * 146097L).toInt() // [0, 146096]
     val yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365 // [0,399]

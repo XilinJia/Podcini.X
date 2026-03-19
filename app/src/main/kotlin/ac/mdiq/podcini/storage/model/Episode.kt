@@ -381,9 +381,7 @@ class Episode : RealmObject {
 //        Logd(TAG, "fillMedia downloadUrl: $downloadUrl")
     }
 
-    fun getMediaType(): MediaType {
-        return MediaType.fromMimeType(mimeType)
-    }
+    fun getMediaType(): MediaType = MediaType.fromMimeType(mimeType)
 
     suspend fun getMediaFileUriString(): String {
         val fileName = getMediafilename()
@@ -555,16 +553,16 @@ class Episode : RealmObject {
         if (repeatTime != other.repeatTime) return false
         if (identifier != other.identifier) return false
         if (title != other.title) return false
-        if (shortDescription != other.shortDescription) return false
-        if (description != other.description) return false
-        if (transcript != other.transcript) return false
-        if (link != other.link) return false
+//        if (shortDescription != other.shortDescription) return false
+//        if (description != other.description) return false
+//        if (transcript != other.transcript) return false
+//        if (link != other.link) return false
         if (parentTitle != other.parentTitle) return false
-        if (parentURL != other.parentURL) return false
+//        if (parentURL != other.parentURL) return false
         if (related.size != other.related.size) return false
-        if (podcastIndexChapterUrl != other.podcastIndexChapterUrl) return false
-        if (paymentLink != other.paymentLink) return false
-        if (imageUrl != other.imageUrl) return false
+//        if (podcastIndexChapterUrl != other.podcastIndexChapterUrl) return false
+//        if (paymentLink != other.paymentLink) return false
+//        if (imageUrl != other.imageUrl) return false
         if (tags.size != other.tags.size) return false
         if (clips.size != other.clips.size) return false
         if (marks.size != other.marks.size) return false
@@ -572,12 +570,12 @@ class Episode : RealmObject {
         if (comment != other.comment) return false
         if (todos.size != other.todos.size) return false
         if (fileUrl != other.fileUrl) return false
-        if (downloadUrl != other.downloadUrl) return false
+//        if (downloadUrl != other.downloadUrl) return false
         if (mimeType != other.mimeType) return false
         if (origFeedTitle != other.origFeedTitle) return false
-        if (origFeeddownloadUrl != other.origFeeddownloadUrl) return false
-        if (origFeedlink != other.origFeedlink) return false
-        if (effectUrl != other.effectUrl) return false
+//        if (origFeeddownloadUrl != other.origFeeddownloadUrl) return false
+//        if (origFeedlink != other.origFeedlink) return false
+//        if (effectUrl != other.effectUrl) return false
         if (effectMimeType != other.effectMimeType) return false
 
         return true
@@ -613,16 +611,16 @@ class Episode : RealmObject {
         result = 31 * result + repeatTime.hashCode()
         result = 31 * result + (identifier?.hashCode() ?: 0)
         result = 31 * result + (title?.hashCode() ?: 0)
-        result = 31 * result + (shortDescription?.hashCode() ?: 0)
-        result = 31 * result + (description?.hashCode() ?: 0)
-        result = 31 * result + (transcript?.hashCode() ?: 0)
-        result = 31 * result + (link?.hashCode() ?: 0)
+//        result = 31 * result + (shortDescription?.hashCode() ?: 0)
+//        result = 31 * result + (description?.hashCode() ?: 0)
+//        result = 31 * result + (transcript?.hashCode() ?: 0)
+//        result = 31 * result + (link?.hashCode() ?: 0)
         result = 31 * result + (parentTitle?.hashCode() ?: 0)
-        result = 31 * result + (parentURL?.hashCode() ?: 0)
+//        result = 31 * result + (parentURL?.hashCode() ?: 0)
         result = 31 * result + related.size
-        result = 31 * result + (podcastIndexChapterUrl?.hashCode() ?: 0)
-        result = 31 * result + (paymentLink?.hashCode() ?: 0)
-        result = 31 * result + (imageUrl?.hashCode() ?: 0)
+//        result = 31 * result + (podcastIndexChapterUrl?.hashCode() ?: 0)
+//        result = 31 * result + (paymentLink?.hashCode() ?: 0)
+//        result = 31 * result + (imageUrl?.hashCode() ?: 0)
         result = 31 * result + tags.size
         result = 31 * result + clips.size
         result = 31 * result + marks.size
@@ -630,12 +628,12 @@ class Episode : RealmObject {
         result = 31 * result + comment.hashCode()
         result = 31 * result + todos.size
         result = 31 * result + (fileUrl?.hashCode() ?: 0)
-        result = 31 * result + (downloadUrl?.hashCode() ?: 0)
+//        result = 31 * result + (downloadUrl?.hashCode() ?: 0)
         result = 31 * result + (mimeType?.hashCode() ?: 0)
         result = 31 * result + (origFeedTitle?.hashCode() ?: 0)
-        result = 31 * result + (origFeeddownloadUrl?.hashCode() ?: 0)
-        result = 31 * result + (origFeedlink?.hashCode() ?: 0)
-        result = 31 * result + effectUrl.hashCode()
+//        result = 31 * result + (origFeeddownloadUrl?.hashCode() ?: 0)
+//        result = 31 * result + (origFeedlink?.hashCode() ?: 0)
+//        result = 31 * result + effectUrl.hashCode()
         result = 31 * result + effectMimeType.hashCode()
         return result
     }

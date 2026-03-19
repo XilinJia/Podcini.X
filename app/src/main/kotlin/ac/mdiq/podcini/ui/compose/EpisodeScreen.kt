@@ -349,7 +349,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
             return "#$red$green$blue"
         }
 
-//        Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
+        //        Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth().padding(3.dp), border = BorderStroke(3.dp, MaterialTheme.colorScheme.tertiary)) {
             Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
                 MyTopAppBar()
@@ -357,22 +357,24 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                     val backgroundColor = MaterialTheme.colorScheme.background.toHex()
                     val textColor = MaterialTheme.colorScheme.onBackground.toHex()
                     val primaryColor = MaterialTheme.colorScheme.primary.toHex()
-                    AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
-                        WebView(context).apply {
-                            settings.javaScriptEnabled = jsEnabled
-                            settings.domStorageEnabled = true
-                            settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-                            webViewClient = object : WebViewClient() {
-                                override fun onPageFinished(view: WebView?, url: String?) {
-                                    val isEmpty = view?.title.isNullOrEmpty() && view?.contentDescription.isNullOrEmpty()
-                                    if (isEmpty) Logd(TAG, "content is empty")
-                                    view?.evaluateJavascript("document.querySelectorAll('[hidden]').forEach(el => el.removeAttribute('hidden'));", null)
+                    AndroidView(modifier = Modifier.fillMaxSize(),
+                        factory = { context ->
+                            WebView(context).apply {
+                                settings.javaScriptEnabled = jsEnabled
+                                settings.domStorageEnabled = true
+                                settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+                                webViewClient = object : WebViewClient() {
+                                    override fun onPageFinished(view: WebView?, url: String?) {
+                                        val isEmpty = view?.title.isNullOrEmpty() && view?.contentDescription.isNullOrEmpty()
+                                        if (isEmpty) Logd(TAG, "content is empty")
+                                        view?.evaluateJavascript("document.querySelectorAll('[hidden]').forEach(el => el.removeAttribute('hidden'));", null)
+                                    }
                                 }
                             }
-                        }
-                    }, update = { webView ->
-                        webView.settings.javaScriptEnabled = jsEnabled
-                        val htmlContent = """
+                        },
+                        update = { webView ->
+                            webView.settings.javaScriptEnabled = jsEnabled
+                            val htmlContent = """
                             <html>
                                 <style>
                                     body {
@@ -386,25 +388,27 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                                 <body>${cleanedNotes ?: "No notes"}</body>
                             </html>
                         """.trimIndent()
-                        webView.loadDataWithBaseURL("about:blank", htmlContent, "text/html", "utf-8", null)
-                    })
-                } else AndroidView(modifier = Modifier.fillMaxSize(), factory = {
-                    WebView(it).apply {
-                        settings.javaScriptEnabled = jsEnabled
-                        webViewClient = object : WebViewClient() {
-                            override fun onPageFinished(view: WebView?, url: String?) {
-                                val isEmpty = view?.title.isNullOrEmpty() && view?.contentDescription.isNullOrEmpty()
-                                if (isEmpty) Logd(TAG, "content is empty")
+                            webView.loadDataWithBaseURL("about:blank", htmlContent, "text/html", "utf-8", null)
+                        })
+                } else AndroidView(modifier = Modifier.fillMaxSize(),
+                    factory = {
+                        WebView(it).apply {
+                            settings.javaScriptEnabled = jsEnabled
+                            webViewClient = object : WebViewClient() {
+                                override fun onPageFinished(view: WebView?, url: String?) {
+                                    val isEmpty = view?.title.isNullOrEmpty() && view?.contentDescription.isNullOrEmpty()
+                                    if (isEmpty) Logd(TAG, "content is empty")
+                                }
                             }
+                            settings.loadWithOverviewMode = true
+                            settings.useWideViewPort = true
+                            settings.setSupportZoom(true)
                         }
-                        settings.loadWithOverviewMode = true
-                        settings.useWideViewPort = true
-                        settings.setSupportZoom(true)
-                    }
-                }, update = {
-                    it.settings.javaScriptEnabled = jsEnabled
-                    it.loadUrl(webUrl)
-                })
+                    },
+                    update = {
+                        it.settings.javaScriptEnabled = jsEnabled
+                        it.loadUrl(webUrl)
+                    })
             }
         }
     }

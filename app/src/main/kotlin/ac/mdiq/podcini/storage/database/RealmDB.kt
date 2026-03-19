@@ -22,15 +22,11 @@ import ac.mdiq.podcini.storage.model.Timer
 import ac.mdiq.podcini.storage.model.Todo
 import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.specs.EpisodeState
-import ac.mdiq.podcini.storage.utils.customMediaUriString
-import ac.mdiq.podcini.storage.utils.findRootForUri
 import ac.mdiq.podcini.storage.utils.nowInMillis
-import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.ui.screens.DefaultPages
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.showStackTrace
-import ac.mdiq.podcini.utils.stackTraceShort
 import android.util.Log
 import io.github.xilinjia.krdb.MutableRealm
 import io.github.xilinjia.krdb.Realm
@@ -38,9 +34,7 @@ import io.github.xilinjia.krdb.RealmConfiguration
 import io.github.xilinjia.krdb.UpdatePolicy
 import io.github.xilinjia.krdb.dynamic.DynamicMutableRealmObject
 import io.github.xilinjia.krdb.dynamic.DynamicRealmObject
-import io.github.xilinjia.krdb.dynamic.getNullableValue
 import io.github.xilinjia.krdb.dynamic.getValue
-import io.github.xilinjia.krdb.dynamic.getValueDictionary
 import io.github.xilinjia.krdb.ext.isManaged
 import io.github.xilinjia.krdb.notifications.InitialObject
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
@@ -86,7 +80,7 @@ val config: RealmConfiguration by lazy {
         FacetsPrefs::class,
         SleepPrefs::class,
         SyncPrefs::class,
-    )).name("Podcini.realm").schemaVersion(126)
+    )).name("Podcini.realm").schemaVersion(127)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -186,6 +180,25 @@ val config: RealmConfiguration by lazy {
                         val att = newRealm.query("AppAttribs").first().find()
                         att?.set("restoreLastScreen", true)
                     }
+                }
+            }
+            if (oldRealm.schemaVersion() < 127) {
+                Log.d(TAG, "migrating DB from below 127")
+                val prefsOld = oldRealm.query("AppPrefs").first().find()
+                val prefsNew = newRealm.query("AppPrefs").first().find()
+                if (prefsOld != null && prefsNew != null) {
+                    val speedStr = try { prefsOld.getValue<String>("playbackSpeed") } catch (e: Exception) { "1.0" }
+                    val speed = try { speedStr.toFloat() } catch (e: NumberFormatException) { 1.0 }
+                    prefsNew.set("playbackSpeed", speed)
+                    val speedFBStr = try { prefsOld.getValue<String>("fallbackSpeed") } catch (e: Exception) { "0.0" }
+                    val speedFB = try { speedFBStr.toFloat() } catch (e: NumberFormatException) { 0.0 }
+                    prefsNew.set("fallbackSpeed", speedFB)
+                    val speedFWStr = try { prefsOld.getValue<String>("speedforwardSpeed") } catch (e: Exception) { "0.0" }
+                    val speedFW = try { speedFWStr.toFloat() } catch (e: NumberFormatException) { 0.0 }
+                    prefsNew.set("speedforwardSpeed", speedFW)
+                    val speedSFStr = try { prefsOld.getValue<String>("skipforwardSpeed") } catch (e: Exception) { "0.0" }
+                    val speedSF = try { speedSFStr.toFloat() } catch (e: NumberFormatException) { 0.0 }
+                    prefsNew.set("skipforwardSpeed", speedSF)
                 }
             }
         }).build()

@@ -475,7 +475,7 @@ class Media3Player : MediaPlayerBase() {
         resetMediaPlayer()
 
         this.startWhenPrepared.set(startWhenPrepared)
-        setPlaybackParams(currentPlaybackSpeed(curEpisode))
+        setPlaybackParams(prefSpeedOf(curEpisode))
         setRepeat(shouldRepeat)
         setSkipSilence()
         CoroutineScope(Dispatchers.IO).launch {
@@ -542,7 +542,7 @@ class Media3Player : MediaPlayerBase() {
         if (isPaused || isPrepared) {
             Logd(TAG, "Resuming/Starting playback")
             acquireWifiLockIfNecessary()
-            setPlaybackParams(currentPlaybackSpeed(curEpisode))
+            setPlaybackParams(prefSpeedOf(curEpisode))
             setRepeat(shouldRepeat)
             setSkipSilence()
             val volAdpFac = if (curEpisode != null) curEpisode!!.feed?.volumeAdaptionSetting?.adaptionFactor ?: 1f else 1f
@@ -573,7 +573,7 @@ class Media3Player : MediaPlayerBase() {
         if (isInitialized) {
             Logd(TAG, "prepare Preparing media player: status: $status")
             setPlayerStatus(PlayerStatus.PREPARING, curEpisode)
-            setPlaybackParams(currentPlaybackSpeed(curEpisode))
+            setPlaybackParams(prefSpeedOf(curEpisode))
             setSkipSilence()
             setSource()
 

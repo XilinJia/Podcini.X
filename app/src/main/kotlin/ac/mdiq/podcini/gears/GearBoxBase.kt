@@ -70,14 +70,14 @@ open class GearBoxBase {
 
     open fun getSearcher(): PodcastSearcher = CombinedSearcher()
 
-    open fun feedUpdater(feeds: List<Feed>, fullUpdate: Boolean = false, doItAnyway: Boolean = false) : FeedUpdaterBase = FeedUpdaterBase(feeds, fullUpdate, doItAnyway)
+    open fun feedUpdater(feeds: List<Feed>, fullUpdate: Boolean = false, doItAnyway: Boolean = false, removeUnlisted: Boolean = false) : FeedUpdaterBase = FeedUpdaterBase(feeds, fullUpdate, doItAnyway, removeUnlisted)
 
     open fun formFeedBuilder(url: String, feedSource: String, showError: (String?, String) -> Unit): FeedBuilderBase {
         return FeedBuilderBase(showError)
     }
 
     open suspend fun buildFeed(url: String, username: String, password: String, fbb: FeedBuilderBase, handleFeed: (Feed, Map<String, String>)->Unit, showDialog: ()->Unit) {
-        fbb.buildPodcast1(getFinalRedirectedUrl(url), username, password) { feed_, map -> handleFeed(feed_, map) }
+        fbb.buildPodcast(getFinalRedirectedUrl(url), username, password) { feed_, map -> handleFeed(feed_, map) }
     }
 
     @Composable
@@ -89,7 +89,7 @@ open class GearBoxBase {
         if (feed.feedUrl == null) return
         runOnIOScope {
             val fbb = FeedBuilderBase { message, details -> Loge("OnineFeedItem", "Subscribe error: $message \n $details") }
-            fbb.buildPodcast1(feed.feedUrl, "", "") { feed, _ -> runOnIOScope { fbb.subscribe(feed) } }
+            fbb.buildPodcast(feed.feedUrl, "", "") { feed, _ -> runOnIOScope { fbb.subscribe(feed) } }
         }
     }
 }

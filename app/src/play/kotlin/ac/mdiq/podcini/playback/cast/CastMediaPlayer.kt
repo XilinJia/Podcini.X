@@ -239,7 +239,7 @@ class CastMediaPlayer : MediaPlayerBase() {
         this.startWhenPrepared.set(startWhenPrepared)
 
         try {
-            setPlaybackParams(currentPlaybackSpeed(curEpisode))
+            setPlaybackParams(prefSpeedOf(curEpisode))
             when {
                 streaming -> {
                     val streamurl = curEpisode!!.downloadUrl

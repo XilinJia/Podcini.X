@@ -9,7 +9,7 @@ import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.currentPlaybackSpeed
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.prefSpeedOf
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.ACTION_SHUTDOWN_PLAYBACK_SERVICE
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.SubscriptionLog
@@ -165,10 +165,8 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
     }
 }
 
-suspend fun eraseEpisodes(episodes: List<Episode>, msg: String, saveLog: Boolean = true) {
-//    val time = nowInMillis()
-    if (saveLog) realm.write {
-        var i = 0
+suspend fun eraseEpisodes(episodes: List<Episode>, msg: String = "") {
+    if (msg.isNotEmpty()) realm.write {
         for (e in episodes) {
             val sLog = SubscriptionLog(e.id, e.title ?: "", e.downloadUrl ?: "", e.link ?: "", SubscriptionLog.Type.Media.name)
             sLog.id = getId()
@@ -190,7 +188,6 @@ suspend fun eraseEpisodes(episodes: List<Episode>, msg: String, saveLog: Boolean
 suspend fun deleteMedia(episode: Episode): Episode {
     val context = getAppContext()
     Logd(TAG, "deleteMedia [id=${episode.id}, title=${episode.getEpisodeTitle()}, downloaded=${episode.downloaded}")
-    var localDelete = false
     val url = episode.fileUrl
     Logd(TAG, "deleteMedia $url")
     var episode = episode
@@ -228,7 +225,6 @@ suspend fun deleteMedia(episode: Episode): Episode {
  * Remove the listed episodes and their EpisodeMedia entries.
  * Deleting media also removes the download log entries.
  */
-
 suspend fun deleteMedias(episodes: List<Episode>)  {
     val removedFromQueue: MutableList<Episode> = mutableListOf()
     val queueItems = actQueue.episodes.toMutableList()
@@ -305,10 +301,10 @@ suspend fun setPlayState(state: EpisodeState, episodes: List<Episode>, resetMedi
 fun buildListInfo(episodes: List<Episode>, total: Int = 0): String {
     Logd(TAG, "buildListInfo")
     var infoText = episodes.size.toString()
-    if (total > 0) infoText += "/" + total.toString()
+    if (total > 0) infoText += "/$total"
     if (episodes.isNotEmpty()) {
         var timeLeft: Long = 0
-        for (item in episodes) timeLeft += ((item.duration - item.position) / (currentPlaybackSpeed(item).takeIf { it > 0 } ?: 1f)).toLong()
+        for (item in episodes) timeLeft += ((item.duration - item.position) / (prefSpeedOf(item).takeIf { it > 0 } ?: 1f)).toLong()
         infoText += " * " + getDurationStringShort(timeLeft, true)
     }
     return infoText

@@ -4,7 +4,6 @@ import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.download.DownloadError.Companion.fromCode
 import ac.mdiq.podcini.net.download.RequestTye
 import ac.mdiq.podcini.storage.database.realm
-import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.Logd
@@ -13,6 +12,10 @@ import io.github.xilinjia.krdb.types.annotations.Ignore
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 
 class DownloadResult : RealmObject {
+    @PrimaryKey
+    var id: Long = 0L
+        private set
+
     /**
      * A human-readable string which is shown to the user so that he can
      * identify the download. Should be the title of the item/feed/media or the
@@ -43,9 +46,6 @@ class DownloadResult : RealmObject {
      */
     var reasonDetailed: String
 
-    @PrimaryKey
-    var id: Long = 0L
-        private set
 
     constructor(feedId: Long, title: String, reason: DownloadError?, successful: Boolean, reasonDetailed: String, feedfileType: Int = RequestTye.FEED.ordinal, completionDate: Long = nowInMillis()) {
         this.title = title
@@ -76,12 +76,17 @@ class DownloadResult : RealmObject {
     fun setFailed(reason: DownloadError, reasonDetailed: String) {
         this.isSuccessful = false
         this.reason = reason
-        this.reasonDetailed = reasonDetailed
+        addDetail(reasonDetailed)
     }
 
     fun setCancelled() {
         this.isSuccessful = false
         this.reason = DownloadError.ERROR_DOWNLOAD_CANCELLED
+    }
+
+    fun addDetail(detail: String) {
+        if (reasonDetailed.isNotBlank()) reasonDetailed += "\n"
+        reasonDetailed += detail
     }
 
     companion object {
@@ -100,12 +105,10 @@ class DownloadResult : RealmObject {
             return realm.copyFromRealm(dlog)
         }
 
-        fun addDownloadStatus(status: DownloadResult) {
+        suspend fun addDownloadStatus(status: DownloadResult) {
             Logd(TAG, "addDownloadStatus called")
-            runOnIOScope {
-                if (status.id == 0L) status.setId()
-                upsert(status) {}
-            }
+            if (status.id == 0L) status.setId()
+            upsert(status) {}
         }
     }
 }

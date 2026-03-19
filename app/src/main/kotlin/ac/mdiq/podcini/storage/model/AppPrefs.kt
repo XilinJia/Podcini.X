@@ -49,10 +49,10 @@ class AppPrefs: RealmObject {
     var favoriteKeepsEpisode: Boolean = true
 
     var autoBackup: Boolean = false
-    var autoBackupIntervall: Int = (24)
+    var autoBackupIntervall: Int = 24
     var autoBackupFolder: String? = null
-    var autoBackupLimit: Int = (2)
-    var autoBackupTimeStamp: Long = (0L)
+    var autoBackupLimit: Int = 2
+    var autoBackupTimeStamp: Long = 0L
 
     var useCustomMediaFolder: Boolean = false
     var customMediaUri: String = ""
@@ -62,11 +62,11 @@ class AppPrefs: RealmObject {
     var autoDelete: Boolean = false
     var autoDeleteLocal: Boolean = false
     var playbackSpeedArray: String? = null
-    var fallbackSpeed: String = ("0.00")
+    var fallbackSpeed: Float = 0.0f
     var streamOverDownload: Boolean = false
     var lowQualityOnMobile: Boolean = false
-    var speedforwardSpeed: String = ("0.00")
-    var skipforwardSpeed: String = ("0.00")
+    var speedforwardSpeed: Float = 0.0f
+    var skipforwardSpeed: Float = 0.0f
     var useAdaptiveProgressUpdate: Boolean = true
 
     // Network
@@ -87,24 +87,24 @@ class AppPrefs: RealmObject {
 
     var proxyType: String = (Proxy.Type.DIRECT.name)
     var proxyHost: String? = null
-    var proxyPort: Int = (0)
+    var proxyPort: Int = 0
     var proxyUser: String? = null
     var proxyPassword: String? = null
 
     // Services
     var gpodnet_notifications: Boolean = true
-    var nextcloud_server_address: String = ("")
+    var nextcloud_server_address: String = ""
 
     // Other
     var deleteRemovesFromQueue: Boolean = true
 
     // Mediaplayer
-    var playbackSpeed: String = ("1.00")
+    var playbackSpeed: Float = 1.0f
     var skipSilence: Boolean = false
-    var fastForwardSecs: Int = (30)
-    var rewindSecs: Int = (10)
-    var streamingCacheSizeMB: Int = (100)
-    var videoPlaybackMode: Int = (1)
+    var fastForwardSecs: Int = 30
+    var rewindSecs: Int = 10
+    var streamingCacheSizeMB: Int = 100
+    var videoPlaybackMode: Int = 1
 
     var recaptcha_cookies: String = ""
     var content_country: String? = null

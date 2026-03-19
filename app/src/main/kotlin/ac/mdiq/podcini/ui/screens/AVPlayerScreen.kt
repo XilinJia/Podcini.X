@@ -552,10 +552,7 @@ fun ProgressBar(vm: AVPlayerVM) {
         Text(durationStringFull(curEpisode?.duration?:0), color = distColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
     }
     Row {
-        val pastText = remember(curEpisode?.position) { run {
-            if (curEpisode == null) return@run ""
-            durationStringAdapt(curEpisode!!.position) + " *" + durationStringAdapt(curEpisode!!.timeSpent.toInt())
-        }  }
+        val pastText = remember(curEpisode?.position) { if (curEpisode == null) "" else durationStringAdapt(curEpisode!!.position) + " *" + durationStringAdapt(curEpisode!!.timeSpent.toInt()) }
         Text(pastText, color = textColor, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.weight(1f))
         if (bitrate > 0) Text(formatLargeInteger(bitrate) + "bits", color = textColor, style = MaterialTheme.typography.bodySmall)

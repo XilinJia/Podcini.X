@@ -6,6 +6,7 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.ClientConfigurator
 import ac.mdiq.podcini.gears.gearbox
+import ac.mdiq.podcini.net.feed.FeedUpdateManager.EXTRA_ERASE_UNLISTED
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.EXTRA_FEED_IDS
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.EXTRA_FULL_UPDATE
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.KEY_IS_PERIODIC
@@ -76,6 +77,7 @@ class FeedUpdateWorkerBase(context: Context, private val params: WorkerParameter
         }
         try {
             val fullUpdate = inputData.getBoolean(EXTRA_FULL_UPDATE, false)
+            val eraseUnlisted = inputData.getBoolean(EXTRA_ERASE_UNLISTED, false)
 
             val feedIds = inputData.getLongArray(EXTRA_FEED_IDS) ?: longArrayOf()
             val feeds = if (feedIds.isNotEmpty()) realm.query(Feed::class).query("id IN $0", feedIds.toList()).find() else listOf()
@@ -85,7 +87,7 @@ class FeedUpdateWorkerBase(context: Context, private val params: WorkerParameter
                 if (isPeriodic) rescheduleUpdateTaskOnce()
                 return Result.success()
             }
-            val updater = gearbox.feedUpdater(feeds, fullUpdate)
+            val updater = gearbox.feedUpdater(feeds, fullUpdate, removeUnlisted = eraseUnlisted)
             if (!updater.prepare()) {
                 Loge(TAG, "updater prepare failed")
                 if (isPeriodic) rescheduleUpdateTaskOnce()
@@ -132,6 +134,7 @@ object FeedUpdateManager {
 
     const val EXTRA_NEXT_PAGE: String = "next_page"
     const val EXTRA_FULL_UPDATE: String = "full_update"
+    const val EXTRA_ERASE_UNLISTED: String = "erase_unlisted"
 
     const val KEY_IS_PERIODIC = "is_periodic"
 
@@ -182,7 +185,7 @@ object FeedUpdateManager {
             if (!mobileAllowFeedRefresh && !force) {
                 Logt(TAG, context.getString(R.string.mobile_feed_refresh_message))
                 doItNow = false
-            } else Logt(TAG, "Please allow feed refresh on mobile in Settings")
+            }
             val initialDelay = getInitialDelay(doItNow)
             Logd(TAG, "initialDelay: $initialDelay")
             val oneTimeRequest = oneRequest(initialDelay)
@@ -230,7 +233,7 @@ object FeedUpdateManager {
         }
     }
 
-    fun runOnce(feeds: List<Feed> = listOf(), nextPage: Boolean = false, fullUpdate: Boolean = false) {
+    fun runOnce(feeds: List<Feed> = listOf(), nextPage: Boolean = false, fullUpdate: Boolean = false, removeUnlisted: Boolean = false) {
         Logd(TAG, "runOnce feeds: ${feeds.size}")
         val workRequest: OneTimeWorkRequest.Builder = OneTimeWorkRequest.Builder(FeedUpdateWorkerBase::class.java)
             .setInitialDelay(0L, TimeUnit.MILLISECONDS)
@@ -241,6 +244,7 @@ object FeedUpdateManager {
 
         val builder = Data.Builder()
         builder.putBoolean(EXTRA_FULL_UPDATE, fullUpdate)
+        builder.putBoolean(EXTRA_ERASE_UNLISTED, removeUnlisted)
         if (feeds.isNotEmpty()) {
             builder.putLongArray(EXTRA_FEED_IDS, feeds.map { it.id }.toLongArray())
             builder.putBoolean(EXTRA_NEXT_PAGE, nextPage)
@@ -249,7 +253,7 @@ object FeedUpdateManager {
         WorkManager.getInstance(getAppContext()).enqueueUniqueWork(WORK_ID_FEED_UPDATE_MANUAL, ExistingWorkPolicy.REPLACE, workRequest.build())
     }
 
-    fun runOnceOrAsk(feeds: List<Feed> = listOf(), fullUpdate: Boolean = false) {
+    fun runOnceOrAsk(feeds: List<Feed> = listOf(), fullUpdate: Boolean = false, removeUnlisted: Boolean = false) {
         val context = getAppContext()
         Logd(TAG, "Run auto update immediately in background.")
         when {
@@ -263,10 +267,10 @@ object FeedUpdateManager {
                     confirmRes = R.string.confirm_mobile_streaming_button_once,
                     cancelRes = R.string.no,
                     neutralRes = R.string.confirm_mobile_streaming_button_always,
-                    onConfirm = { runOnce(feeds, fullUpdate = fullUpdate)  },
+                    onConfirm = { runOnce(feeds, fullUpdate = fullUpdate, removeUnlisted = removeUnlisted)  },
                     onNeutral = {
                         mobileAllowFeedRefresh = true
-                        runOnce(feeds, fullUpdate = fullUpdate)
+                        runOnce(feeds, fullUpdate = fullUpdate, removeUnlisted = removeUnlisted)
                     })
             }
         }

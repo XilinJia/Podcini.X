@@ -11,7 +11,6 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curPBSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isFallbackSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isSpeedForward
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.prefPlaybackSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.shouldRepeat
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.service.PlaybackService
@@ -165,7 +164,7 @@ fun PlaybackSpeedDialog(feeds: List<Feed>, initSpeed: Float, maxSpeed: Float, is
                         speed = when {
                             useGlobal -> SPEED_USE_GLOBAL
                             feeds.size == 1 -> {
-                                if (feeds[0].playSpeed == SPEED_USE_GLOBAL) prefPlaybackSpeed
+                                if (feeds[0].playSpeed == SPEED_USE_GLOBAL) appPrefs.playbackSpeed
                                 else feeds[0].playSpeed
                             }
                             else -> 1f
@@ -283,7 +282,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                                 isFallbackSpeed = false
                                 if (settingCode.size == 3) {
                                     Logd(TAG, "setSpeed codeArray: ${settingCode[0]} ${settingCode[1]} ${settingCode[2]}")
-                                    if (settingCode[2]) upsertBlk(appPrefs) { it.playbackSpeed = chipSpeed.toString() }
+                                    if (settingCode[2]) upsertBlk(appPrefs) { it.playbackSpeed = chipSpeed }
                                     if (settingCode[1] && curEpisode?.feed != null) upsertBlk(curEpisode!!.feed!!) { it.playSpeed = chipSpeed }
                                     if (settingCode[0]) {
                                         curTempSpeed = chipSpeed
@@ -295,7 +294,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                                 }
                             }
                             else {
-                                upsertBlk(appPrefs) { it.playbackSpeed = chipSpeed.toString() }
+                                upsertBlk(appPrefs) { it.playbackSpeed = chipSpeed }
                                 EventFlow.postEvent(FlowEvent.SpeedChangedEvent(chipSpeed))
                             }
                             onDismiss()

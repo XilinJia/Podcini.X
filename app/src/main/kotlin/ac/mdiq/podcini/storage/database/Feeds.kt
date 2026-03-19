@@ -54,7 +54,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.io.IOException
-import kotlin.math.abs
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -163,194 +162,6 @@ fun feedByIdentityOrID(feed: Feed, copy: Boolean = false): Feed? {
     return null
 }
 
-/**
- * Adds new Feeds to the database or updates the old versions if they already exists. If another Feed with the same
- * identifying value already exists, this method will add new FeedItems from the new Feed to the existing Feed.
- * These FeedItems will be marked as unread with the exception of the most recent FeedItem.
- * This method can update multiple feeds at once. Submitting a feed twice in the same method call can result in undefined behavior.
- * This method should NOT be executed on the GUI thread.
- * @param newFeed The new Feed object.
- * @param removeUnlistedItems The episode list in the new Feed object is considered to be exhaustive.
- * I.e. episodes are removed from the database if they are not in this episode list.
- * @return The updated Feed from the database if it already existed, or the new Feed from the parameters otherwise.
- */
-suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwriteStates: Boolean = false) {
-    Logd(TAG, "updateFeedFull called")
-    //        showStackTrace()
-
-    Logd(TAG, "updateFeedFull newFeed id: ${newFeed.id} episodes: ${newFeed.episodes.size}")
-    // Look up feed in the feedslist
-    val savedFeed = feedByIdentityOrID(newFeed, true)
-    if (savedFeed == null) {
-        Logd(TAG, "")
-        addNewFeed(newFeed)
-        return
-    }
-
-    Logd(TAG, "updateFeedFull Feed with title " + newFeed.title + " already exists. Syncing new with existing one.")
-    newFeed.episodes.sortedByDescending { it.pubDate }
-    if (newFeed.pageNr == savedFeed.pageNr) {
-        if (overwriteStates) savedFeed.updateFromOther(newFeed, true)
-        else if (savedFeed.differentFrom(newFeed)) {
-            Logd(TAG, "updateFeedFull Feed has updated attribute values. Updating old feed's attributes")
-            savedFeed.updateFromOther(newFeed)
-        }
-    } else {
-        Logd(TAG, "updateFeedFull New feed has a higher page number: ${newFeed.nextPageLink}")
-        savedFeed.nextPageLink = newFeed.nextPageLink
-    }
-    Logd(TAG, "updateFeedFull savedFeed.isLocalFeed: ${savedFeed.isLocalFeed} savedFeed.prefStreamOverDownload: ${savedFeed.prefStreamOverDownload}")
-    val priorMostRecent = savedFeed.mostRecentItem
-    val priorMostRecentDate = priorMostRecent?.pubDate
-    var idLong = getId()
-    Logd(TAG, "updateFeedFull building savedFeedAssistant")
-    val savedFeedAssistant = FeedAssistant(savedFeed)
-    val oldestDate = savedFeed.oldestItem?.pubDate ?: 0L
-    for (idx in newFeed.episodes.indices) {
-        var episode = newFeed.episodes[idx]
-        if (savedFeed.limitEpisodesCount > 0 && episode.pubDate < oldestDate) continue
-
-        val oldItems = savedFeedAssistant.guessDuplicate(episode)
-        if (!oldItems.isNullOrEmpty()) {
-            if (oldItems.size > 1) {
-                Loge(TAG, "found duplicate episodes in feed: ${savedFeed.title}")
-                for (e in oldItems) Loge(TAG, "duplicate episode: ${e.title}")
-            }
-            if (!newFeed.isLocalFeed) {
-//            Logd(TAG, "updateFeedFull Update existing episode: ${episode.title}")
-                oldItems[0].identifier = episode.identifier
-                // queue for syncing with server
-                if (isProviderConnected && oldItems[0].isPlayed()) {
-                    val durs = oldItems[0].duration / 1000
-                    val action = EpisodeAction.Builder(oldItems[0], EpisodeAction.PLAY)
-                        .currentTimestamp()
-                        .started(durs)
-                        .position(durs)
-                        .total(durs)
-                        .build()
-                    SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(action)
-                }
-            }
-            upsertBlk(oldItems[0]) { it.updateFromOther(episode, overwriteStates) }
-        } else {
-            Logd(TAG, "updateFeedFull Found new episode: ${episode.pubDate} ${episode.title}")
-//            episode.feed = savedFeed
-            episode.id = idLong++
-            episode.feedId = savedFeed.id
-            if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(false)
-
-            if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
-
-            savedFeedAssistant.addidvToMap(episode)
-
-            val pubDate = (episode.pubDate)
-            if (priorMostRecentDate == null || priorMostRecentDate < (pubDate) || priorMostRecentDate == pubDate) {
-                Logd(TAG, "updateFeedFull Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
-                episode = upsertBlk(episode) { it.setPlayState(EpisodeState.NEW) }
-                if (savedFeed.autoAddNewToQueue && savedFeed.queue != null) runOnIOScope { addToAssQueue(listOf(episode)) }
-            } else upsertBlk(episode) {}
-        }
-        if (idx % 50 == 0) Logd(TAG, "updateFeedFull processing item $idx / ${newFeed.episodes.size} ")
-    }
-    savedFeedAssistant.clear()
-
-    val unlistedItems: MutableList<Episode> = mutableListOf()
-    // identify episodes to be removed
-    if (removeUnlistedItems) {
-        Logd(TAG, "updateFeedFull building newFeedAssistant")
-        val newFeedAssistant = FeedAssistant(newFeed, savedFeed.id, isNew = true)
-
-        val it = getEpisodes(null, null, feedId=savedFeed.id, copy = true).toMutableList().iterator()
-        while (it.hasNext()) {
-            val feedItem = it.next()
-            if (newFeedAssistant.getEpisodeByIdentifyingValue(feedItem) == null) {
-                unlistedItems.add(feedItem)
-                it.remove()
-            }
-        }
-        newFeedAssistant.clear()
-    }
-
-    // update attributes
-    savedFeed.lastUpdate = newFeed.lastUpdate
-    savedFeed.lastUpdateTime = nowInMillis()
-    savedFeed.lastFullUpdateTime = nowInMillis()
-    savedFeed.type = newFeed.type
-    savedFeed.lastUpdateFailed = false
-    savedFeed.totleDuration = 0
-    Logd(TAG, "updateFeedFull savedFeed lastFullUpdateTime: ${savedFeed.lastFullUpdateTime}")
-
-    val episodes = getEpisodes(null, null, feedId=savedFeed.id, copy = false)
-    Logd(TAG, "updateFeedFull ")
-    savedFeed.episodesCount = episodes.size
-    for (e in episodes) savedFeed.totleDuration += e.duration
-    Logd(TAG, "updateFeedFull episodesCount: ${savedFeed.episodesCount} ${savedFeed.totleDuration}")
-
-    upsert(savedFeed) {}
-    if (removeUnlistedItems && unlistedItems.isNotEmpty()) deleteMedias(unlistedItems)
-
-    runOnIOScope {
-        trimEpisodes(savedFeed)
-        computeScores(savedFeed)
-    }
-}
-
-suspend fun updateFeedSimple(newFeed: Feed) {
-    Logd(TAG, "updateFeedSimple called")
-    val savedFeed = feedByIdentityOrID(newFeed, true) ?: return
-
-    Logd(TAG, "Feed with title " + newFeed.title + " already exists. Syncing new with existing one.")
-    newFeed.episodes.sortedByDescending { it.pubDate }
-    if (newFeed.pageNr == savedFeed.pageNr) {
-        if (savedFeed.differentFrom(newFeed)) {
-            Logd(TAG, "Feed has updated attribute values. Updating old feed's attributes")
-            savedFeed.updateFromOther(newFeed)
-        }
-    } else {
-        Logd(TAG, "New feed has a higher page number: ${newFeed.nextPageLink}")
-        savedFeed.nextPageLink = newFeed.nextPageLink
-    }
-    val priorMostRecents = savedFeed.mostRecentItems
-    val priorMostRecentDate = savedFeed.lastUpdateTime
-    var idLong = getId()
-    Logd(TAG, "updateFeedSimple building savedFeedAssistant")
-
-    // Look for new or updated Items
-    for (idx in newFeed.episodes.indices) {
-        var episode = newFeed.episodes[idx]
-        if (episode.duration < 1000) continue
-        val pubDate = episode.pubDate
-        if (pubDate <= priorMostRecentDate || episode.downloadUrl in priorMostRecents.map { it.downloadUrl} || episode.title in priorMostRecents.map { it.title }) continue
-
-        Logd(TAG, "Found new episode: ${episode.title}")
-        episode.id = idLong++
-        episode.feedId = savedFeed.id
-        if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(persist = false)
-        if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
-
-        if (priorMostRecentDate < pubDate) {
-            Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
-            episode = upsert(episode) { it.setPlayState(EpisodeState.NEW) }
-            if (savedFeed.autoAddNewToQueue && savedFeed.queue != null) runOnIOScope { addToAssQueue(listOf(episode)) }
-        } else upsert(episode) {}
-    }
-
-    // update attributes
-    savedFeed.lastUpdate = newFeed.lastUpdate
-    savedFeed.lastUpdateTime = nowInMillis()
-    savedFeed.type = newFeed.type
-    savedFeed.lastUpdateFailed = false
-    savedFeed.totleDuration = 0
-    val episodes = getEpisodes(null, null, feedId=savedFeed.id, copy = false)
-    savedFeed.episodesCount = episodes.size
-    for (e in episodes) savedFeed.totleDuration += e.duration
-
-    upsert(savedFeed) {}
-
-    trimEpisodes(savedFeed)
-    computeScores(savedFeed)
-}
-
 suspend fun computeScores(f: Feed) {
     val cTime = nowInMillis()
     if (cTime - f.scoreUpdated < DAY_MIL) return
@@ -376,40 +187,12 @@ suspend fun computeScores(f: Feed) {
     }
 }
 
-private suspend fun trimEpisodes(feed_: Feed) {
-    if (feed_.limitEpisodesCount > 0) {
-        val n = realm.query(Episode::class).query("feedId == ${feed_.id} AND !(${feed_.isWorthyQuerryStr})").count().find().toInt()
-        if (n > feed_.limitEpisodesCount + 5) {
-            val f = feedByIdentityOrID(feed_, true) ?: return
-            val dc = n - f.limitEpisodesCount
-            val episodes = realm.query(Episode::class).query("feedId == ${feed_.id} SORT (pubDate ASC)").find()
-            realm.write {
-                var n = 1
-                for (e_ in episodes) {
-                    val qes = query(QueueEntry::class).query("episodeId == ${e_.id}").find()
-                    if (qes.isNotEmpty()) delete(qes)
-                    val e = findLatest(e_)
-                    if (e != null && !e.isWorthy) {
-                        delete(e)
-                        if (n++ >= dc) break
-                    }
-                }
-            }
-        }
-    }
-}
-
-fun persistFeedLastUpdateFailed(feed: Feed, lastUpdateFailed: Boolean) : Job {
-    Logd(TAG, "persistFeedLastUpdateFailed called")
-    return runOnIOScope { upsert(feed) { it.lastUpdateFailed = lastUpdateFailed } }
-}
-
 fun addNewFeed(feed: Feed) {
     Logd(TAG, "addNewFeeds called")
     feed.lastUpdateTime = nowInMillis()
     feed.lastFullUpdateTime = nowInMillis()
     realm.writeBlocking {
-        var idLong = getId()
+        val idLong = getId()
         feed.id = idLong
         feed.totleDuration = 0
         Logd(TAG, "feed.episodes count: ${feed.episodes.size}")
@@ -432,7 +215,7 @@ suspend fun deleteFeed(feedId: Long, preserve: Boolean = false) {
     val feed = feedsMap[feedId]
     val episodes = if (preserve && feed != null) feed.getUnworthyEpisodes() else getEpisodes(null, null, feedId=feedId, copy = false)
     removeFromAllQueuesQuiet(episodes.map { it.id }, false)
-    eraseEpisodes(episodes, "", false)
+    eraseEpisodes(episodes)
 
     if (feed != null) {
         realm.write {
@@ -452,10 +235,7 @@ suspend fun deleteFeed(feedId: Long, preserve: Boolean = false) {
     }
 }
 
-fun allowForAutoDelete(feed: Feed): Boolean {
-    if (!appPrefs.autoDelete) return false
-    return !feed.isLocalFeed || appPrefs.autoDeleteLocal
-}
+fun allowForAutoDelete(feed: Feed): Boolean = appPrefs.autoDelete && (!feed.isLocalFeed || appPrefs.autoDeleteLocal)
 
 suspend fun shelveToFeed(episodes: List<Episode>, toFeed: Feed, removeChecked: Boolean = false) {
     val toFeedEpisodes = getEpisodes(null, null, feedId=toFeed.id, copy = false)
@@ -534,33 +314,275 @@ fun addRemoteToMiscSyndicate(episode: Episode) {
     EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
 }
 
+/**
+ * Publishers sometimes mess up their feed by adding episodes twice or by changing the ID of existing episodes.
+ * This class tries to guess if publishers actually meant another episode,
+ * even if their feed explicitly says that the episodes are different.
+ */
+internal fun canonicalizeTitle(title: String?): String {
+    if (title == null) return ""
+    return title.trim { it <= ' ' }.replace('“', '"').replace('”', '"').replace('„', '"').replace('—', '-')
+}
+//internal fun datesLookSimilar(item1: Episode, item2: Episode): Boolean {
+//    //            if (item1.getPubDate() == null || item2.getPubDate() == null) return false
+//    val dateFormat = DateFormat.getDateInstance(DateFormat.SHORT, Locale.US) // MM/DD/YY
+//    val dateOriginal = dateFormat.format(item2.pubDate)
+//    val dateNew = dateFormat.format(item1.pubDate)
+//    return dateOriginal == dateNew // Same date; time is ignored.
+//}
+//internal fun durationsLookSimilar(media1: Episode, media2: Episode): Boolean {
+//    return abs((media1.duration - media2.duration).toDouble()) < 10 * 60L * 1000L
+//}
+//internal fun mimeTypeLooksSimilar(media1: Episode, media2: Episode): Boolean {
+//    var mimeType1 = media1.mimeType
+//    var mimeType2 = media2.mimeType
+//    if (mimeType1 == null || mimeType2 == null) return true
+//    if (mimeType1.contains("/") && mimeType2.contains("/")) {
+//        mimeType1 = mimeType1.substringBefore("/")
+//        mimeType2 = mimeType2.substringBefore("/")
+//    }
+//    return (mimeType1 == mimeType2)
+//}
+//private fun sameAndNotEmpty(string1: String?, string2: String?): Boolean {
+//    if (string1.isNullOrEmpty() || string2.isNullOrEmpty()) return false
+//    return string1 == string2
+//}
+//private fun titlesLookSimilar(item1: Episode, item2: Episode): Boolean {
+//    return sameAndNotEmpty(canonicalizeTitle(item1.title), canonicalizeTitle(item2.title))
+//}
+
+private suspend fun trimEpisodes(feed_: Feed): Int {
+    var n = 0
+    if (feed_.limitEpisodesCount > 0) {
+        val count = realm.query(Episode::class).query("feedId == ${feed_.id} AND !(${feed_.isWorthyQuerryStr})").count().find().toInt()
+        if (count > feed_.limitEpisodesCount + 5) {
+            val f = feedByIdentityOrID(feed_, true) ?: return n
+            val dc = count - f.limitEpisodesCount
+            val episodes = realm.query(Episode::class).query("feedId == ${feed_.id} SORT (pubDate ASC)").find()
+            realm.write {
+                for (e_ in episodes) {
+                    val qes = query(QueueEntry::class).query("episodeId == ${e_.id}").find()
+                    if (qes.isNotEmpty()) delete(qes)
+                    val e = findLatest(e_)
+                    if (e != null && !e.isWorthy) {
+                        delete(e)
+                        if (n++ >= dc) break
+                    }
+                }
+            }
+        }
+    }
+    return n
+}
+
+/**
+ * Adds new Feeds to the database or updates the old versions if they already exists. If another Feed with the same
+ * identifying value already exists, this method will add new FeedItems from the new Feed to the existing Feed.
+ * These FeedItems will be marked as unread with the exception of the most recent FeedItem.
+ * This method can update multiple feeds at once. Submitting a feed twice in the same method call can result in undefined behavior.
+ * This method should NOT be executed on the GUI thread.
+ * @param newFeed The new Feed object.
+ * @param removeUnlistedItems The episode list in the new Feed object is considered to be exhaustive.
+ * I.e. episodes are removed from the database if they are not in this episode list.
+ * @return The updated Feed from the database if it already existed, or the new Feed from the parameters otherwise.
+ */
+suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwriteStates: Boolean = false, downloadStatus: DownloadResult? = null) {
+    Logd(TAG, "updateFeedFull called")
+    //        showStackTrace()
+
+    Logd(TAG, "updateFeedFull newFeed id: ${newFeed.id} episodes: ${newFeed.episodes.size}")
+    // Look up feed in the feedslist
+    val savedFeed = feedByIdentityOrID(newFeed, true)
+    if (savedFeed == null) {
+        Logd(TAG, "")
+        addNewFeed(newFeed)
+        return
+    }
+
+    Logd(TAG, "updateFeedFull Feed with title " + newFeed.title + " already exists. Syncing new with existing one.")
+    newFeed.episodes.sortedByDescending { it.pubDate }
+    if (newFeed.pageNr == savedFeed.pageNr) {
+        if (overwriteStates) savedFeed.updateFromOther(newFeed, true)
+        else if (savedFeed.differentFrom(newFeed)) {
+            Logd(TAG, "updateFeedFull Feed has updated attribute values. Updating old feed's attributes")
+            savedFeed.updateFromOther(newFeed)
+        }
+    } else {
+        Logd(TAG, "updateFeedFull New feed has a higher page number: ${newFeed.nextPageLink}")
+        savedFeed.nextPageLink = newFeed.nextPageLink
+    }
+    Logd(TAG, "updateFeedFull savedFeed.isLocalFeed: ${savedFeed.isLocalFeed} savedFeed.prefStreamOverDownload: ${savedFeed.prefStreamOverDownload}")
+    val priorMostRecent = savedFeed.mostRecentItem
+    val priorMostRecentDate = priorMostRecent?.pubDate
+    var idLong = getId()
+    Logd(TAG, "updateFeedFull building savedFeedAssistant")
+    val savedFeedAssistant = FeedAssistant(savedFeed)
+    val oldestDate = savedFeed.oldestItem?.pubDate ?: 0L
+    var nNew = 0
+    var nUpdated = 0
+    for (idx in newFeed.episodes.indices) {
+        var episode = newFeed.episodes[idx]
+        if (savedFeed.limitEpisodesCount > 0 && episode.pubDate < oldestDate) continue
+        val oldItems = savedFeedAssistant.guessDuplicate(episode)
+        if (!oldItems.isNullOrEmpty()) {
+            if (oldItems.size > 1) {
+                Loge(TAG, "found duplicate episodes in feed: ${savedFeed.title}")
+                for (e in oldItems) Loge(TAG, "duplicate episode: ${e.title}")
+            }
+            if (!newFeed.isLocalFeed) {
+                //            Logd(TAG, "updateFeedFull Update existing episode: ${episode.title}")
+                oldItems[0].identifier = episode.identifier
+                // queue for syncing with server
+                if (isProviderConnected && oldItems[0].isPlayed()) {
+                    val durs = oldItems[0].duration / 1000
+                    val action = EpisodeAction.Builder(oldItems[0], EpisodeAction.PLAY)
+                        .currentTimestamp()
+                        .started(durs)
+                        .position(durs)
+                        .total(durs)
+                        .build()
+                    SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(action)
+                }
+            }
+            nUpdated++
+            upsertBlk(oldItems[0]) { it.updateFromOther(episode, overwriteStates) }
+        } else {
+            Logd(TAG, "updateFeedFull Found new episode: ${episode.pubDate} ${episode.title}")
+            nNew++
+            episode.id = idLong++
+            episode.feedId = savedFeed.id
+            if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(false)
+            if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
+            savedFeedAssistant.addidvToMap(episode)
+            val pubDate = (episode.pubDate)
+            if (priorMostRecentDate == null || priorMostRecentDate < (pubDate) || priorMostRecentDate == pubDate) {
+                Logd(TAG, "updateFeedFull Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
+                episode = upsertBlk(episode) { it.setPlayState(EpisodeState.NEW) }
+                if (savedFeed.autoAddNewToQueue && savedFeed.queue != null) runOnIOScope { addToAssQueue(listOf(episode)) }
+            } else upsertBlk(episode) {}
+        }
+        if (idx % 50 == 0) Logd(TAG, "updateFeedFull processing item $idx / ${newFeed.episodes.size} ")
+    }
+    savedFeedAssistant.clear()
+    downloadStatus?.addDetail("Added new episodes: $nNew")
+    downloadStatus?.addDetail("Updated existing episodes: $nUpdated")
+
+    val unlistedUnworthyItems: MutableList<Episode> = mutableListOf()
+    // identify episodes to be removed
+    if (removeUnlistedItems) {
+        Logd(TAG, "updateFeedFull building newFeedAssistant")
+        val newFeedAssistant = FeedAssistant(newFeed, savedFeed.id, isNew = true)
+
+        val iterator = getEpisodes(null, null, feedId=savedFeed.id, copy = false).toMutableList().iterator()
+        while (iterator.hasNext()) {
+            val feedItem = iterator.next()
+            if (newFeedAssistant.getEpisodeByIdentifyingValue(feedItem) == null) {
+                if (!feedItem.isWorthy) unlistedUnworthyItems.add(feedItem)
+                iterator.remove()
+            }
+        }
+        newFeedAssistant.clear()
+        if (unlistedUnworthyItems.isNotEmpty()) {
+            eraseEpisodes(unlistedUnworthyItems)
+            downloadStatus?.addDetail("Erased unlisted episodes: ${unlistedUnworthyItems.size}")
+        }
+    }
+
+    val nTrimmed = trimEpisodes(savedFeed)
+    downloadStatus?.addDetail("Trimmed episodes: $nTrimmed")
+
+    // update attributes
+    savedFeed.lastUpdate = newFeed.lastUpdate
+    savedFeed.lastUpdateTime = nowInMillis()
+    savedFeed.lastFullUpdateTime = nowInMillis()
+    savedFeed.type = newFeed.type
+    savedFeed.lastUpdateFailed = false
+    savedFeed.totleDuration = 0
+    Logd(TAG, "updateFeedFull savedFeed lastFullUpdateTime: ${savedFeed.lastFullUpdateTime}")
+
+    val episodes = getEpisodes(null, null, feedId=savedFeed.id, copy = false)
+    Logd(TAG, "updateFeedFull ")
+    savedFeed.episodesCount = episodes.size
+    for (e in episodes) savedFeed.totleDuration += e.duration
+    Logd(TAG, "updateFeedFull episodesCount: ${savedFeed.episodesCount} ${savedFeed.totleDuration}")
+
+    upsert(savedFeed) {}
+    computeScores(savedFeed)
+}
+
+suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = null) {
+    Logd(TAG, "updateFeedSimple called")
+    val savedFeed = feedByIdentityOrID(newFeed, true) ?: return
+
+    Logd(TAG, "Feed with title " + newFeed.title + " already exists. Syncing new with existing one.")
+    newFeed.episodes.sortedByDescending { it.pubDate }
+    if (newFeed.pageNr == savedFeed.pageNr) {
+        if (savedFeed.differentFrom(newFeed)) {
+            Logd(TAG, "Feed has updated attribute values. Updating old feed's attributes")
+            savedFeed.updateFromOther(newFeed)
+        }
+    } else {
+        Logd(TAG, "New feed has a higher page number: ${newFeed.nextPageLink}")
+        savedFeed.nextPageLink = newFeed.nextPageLink
+    }
+    val priorMostRecents = savedFeed.mostRecentItems
+    val priorMostRecentDate = savedFeed.lastUpdateTime
+    var idLong = getId()
+    Logd(TAG, "updateFeedSimple building savedFeedAssistant")
+
+    var nNew = 0
+    // Look for new or updated Items
+    for (idx in newFeed.episodes.indices) {
+        var episode = newFeed.episodes[idx]
+        if (episode.duration < 1000) continue
+        val pubDate = episode.pubDate
+        if (pubDate <= priorMostRecentDate || episode.downloadUrl in priorMostRecents.map { it.downloadUrl} || episode.title in priorMostRecents.map { it.title }) continue
+        nNew++
+
+        Logd(TAG, "Found new episode: ${episode.title}")
+        episode.id = idLong++
+        episode.feedId = savedFeed.id
+        if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(persist = false)
+        if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
+
+        if (priorMostRecentDate < pubDate) {
+            Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
+            episode = upsert(episode) { it.setPlayState(EpisodeState.NEW) }
+            if (savedFeed.autoAddNewToQueue && savedFeed.queue != null) runOnIOScope { addToAssQueue(listOf(episode)) }
+        } else upsert(episode) {}
+    }
+    downloadStatus?.addDetail("Added new episodes: $nNew")
+
+    val nTrimmed = trimEpisodes(savedFeed)
+    downloadStatus?.addDetail("trimmed episodes: $nTrimmed")
+
+    // update attributes
+    savedFeed.lastUpdate = newFeed.lastUpdate
+    savedFeed.lastUpdateTime = nowInMillis()
+    savedFeed.type = newFeed.type
+    savedFeed.lastUpdateFailed = false
+    savedFeed.totleDuration = 0
+
+    val episodes = getEpisodes(null, null, feedId=savedFeed.id, copy = false)
+    savedFeed.episodesCount = episodes.size
+    for (e in episodes) savedFeed.totleDuration += e.duration
+
+    upsert(savedFeed) {}
+    computeScores(savedFeed)
+}
+
 // savedFeedId == 0L means saved feed
 class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L, private val isNew: Boolean = false) {
     val map = mutableMapOf<String, MutableList<Episode>>()
     val tag: String = if (savedFeedId == 0L) "Saved feed" else "New feed"
 
     init {
-//        if (savedFeedId == 0L) {
-//            val ids = feed.episodes.map { it.id }
-//            val elLoose = realm.query(Episode::class).query("feedId == ${feed.id} AND (NOT (id IN $0))", ids).find()
-//            if (elLoose.isNotEmpty()) {
-//                Logt(TAG, "Found ${elLoose.size} loose episodes")
-//                elLoose.forEach {
-//                    feed.episodes.add(realm.copyFromRealm(it))
-//                }
-//                //                    feed.episodes.addAll(elLoose)
-//            }
-//        }
         val iterator = if (isNew) feed.episodes.iterator() else getEpisodes(null, null, feedId=feed.id, copy = true).iterator()
         while (iterator.hasNext()) {
             val e = iterator.next()
             if (!e.identifier.isNullOrEmpty()) {
                 if (map.containsKey(e.identifier!!)) {
                     Logd(TAG, "FeedAssistant init $tag identifier duplicate: ${e.identifier} ${e.title}")
-//                    if (savedFeedId > 0L) {
-//                        //                             addDownloadStatus(e, map[e.identifier!!]!!)
-//                        iterator.remove()
-//                    }
                     map[e.identifier!!]!!.add(e)
                 } else map[e.identifier!!] = mutableListOf(e)
             }
@@ -568,10 +590,6 @@ class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L, private 
             if (idv != e.identifier && !idv.isNullOrEmpty()) {
                 if (map.containsKey(idv)) {
                     Logd(TAG, "FeedAssistant init $tag identifyingValue duplicate: $idv ${e.title}")
-//                    if (savedFeedId > 0L) {
-//                        //                             addDownloadStatus(e, map[idv]!!)
-//                        iterator.remove()
-//                    }
                     map[idv]!!.add(e)
                 } else map[idv] = mutableListOf(e)
             }
@@ -579,10 +597,6 @@ class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L, private 
             if (url != idv && !url.isNullOrEmpty()) {
                 if (map.containsKey(url)) {
                     Logd(TAG, "FeedAssistant init $tag url duplicate: $url ${e.title}")
-//                    if (savedFeedId > 0L) {
-//                        //                             addDownloadStatus(e, map[url]!!)
-//                        iterator.remove()
-//                    }
                     map[url]!!.add(e)
                 } else map[url] = mutableListOf(e)
             }
@@ -590,10 +604,6 @@ class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L, private 
             if (title != idv && title.isNotEmpty()) {
                 if (map.containsKey(title)) {
                     Logd(TAG, "FeedAssistant init $tag title duplicate: $title ${e.title}")
-//                    if (savedFeedId > 0L) {
-//                        //                             addDownloadStatus(e, map[url]!!)
-//                        iterator.remove()
-//                    }
                 } else map[title] = mutableListOf(e)
             }
         }
@@ -647,27 +657,27 @@ class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L, private 
             else map[idv] = mutableListOf(episode)
         }
     }
-    private fun addDownloadStatus(episode: Episode, possibleDuplicate: Episode) {
-        fun duplicateEpisodeDetails(episode: Episode): String {
-            return ("""
-                Title: ${episode.title}
-                ID: ${episode.identifier}
-                """.trimIndent() + """
-                 
-                URL: ${episode.downloadUrl}
-                """.trimIndent())
-        }
-        addDownloadStatus(DownloadResult(savedFeedId, episode.title ?: "", DownloadError.ERROR_PARSER_EXCEPTION_DUPLICATE, false,
-            """
-                The podcast host appears to have added the same episode twice. Podcini still refreshed the feed and attempted to repair it.
-
-                Original episode:
-                ${duplicateEpisodeDetails(episode)}
-
-                Second episode that is also in the feed:
-                ${duplicateEpisodeDetails(possibleDuplicate)}
-                """.trimIndent()))
-    }
+//    private fun addDownloadStatus(episode: Episode, possibleDuplicate: Episode) {
+//        fun duplicateEpisodeDetails(episode: Episode): String {
+//            return ("""
+//                Title: ${episode.title}
+//                ID: ${episode.identifier}
+//                """.trimIndent() + """
+//
+//                URL: ${episode.downloadUrl}
+//                """.trimIndent())
+//        }
+//        addDownloadStatus(DownloadResult(savedFeedId, episode.title ?: "", DownloadError.ERROR_PARSER_EXCEPTION_DUPLICATE, false,
+//            """
+//                The podcast host appears to have added the same episode twice. Podcini still refreshed the feed and attempted to repair it.
+//
+//                Original episode:
+//                ${duplicateEpisodeDetails(episode)}
+//
+//                Second episode that is also in the feed:
+//                ${duplicateEpisodeDetails(possibleDuplicate)}
+//                """.trimIndent()))
+//    }
     fun getEpisodeByIdentifyingValue(item: Episode): List<Episode>? = map[item.identifyingValue]
     fun guessDuplicate(item: Episode): List<Episode>? {
         var episodes = map[item.identifier]
@@ -841,44 +851,7 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
     if (mustReportDownloadSuccessful(feed)) {
         val status = DownloadResult(feed.id, feed.title?:"", DownloadError.SUCCESS, true, "")
         addDownloadStatus(status)
-        persistFeedLastUpdateFailed(feed, false)
+        upsert(feed) { it.lastUpdateFailed = false }
     }
-}
-
-/**
- * Publishers sometimes mess up their feed by adding episodes twice or by changing the ID of existing episodes.
- * This class tries to guess if publishers actually meant another episode,
- * even if their feed explicitly says that the episodes are different.
- */
-internal fun canonicalizeTitle(title: String?): String {
-    if (title == null) return ""
-    return title.trim { it <= ' ' }.replace('“', '"').replace('”', '"').replace('„', '"').replace('—', '-')
-}
-//internal fun datesLookSimilar(item1: Episode, item2: Episode): Boolean {
-//    //            if (item1.getPubDate() == null || item2.getPubDate() == null) return false
-//    val dateFormat = DateFormat.getDateInstance(DateFormat.SHORT, Locale.US) // MM/DD/YY
-//    val dateOriginal = dateFormat.format(item2.pubDate)
-//    val dateNew = dateFormat.format(item1.pubDate)
-//    return dateOriginal == dateNew // Same date; time is ignored.
-//}
-internal fun durationsLookSimilar(media1: Episode, media2: Episode): Boolean {
-    return abs((media1.duration - media2.duration).toDouble()) < 10 * 60L * 1000L
-}
-internal fun mimeTypeLooksSimilar(media1: Episode, media2: Episode): Boolean {
-    var mimeType1 = media1.mimeType
-    var mimeType2 = media2.mimeType
-    if (mimeType1 == null || mimeType2 == null) return true
-    if (mimeType1.contains("/") && mimeType2.contains("/")) {
-        mimeType1 = mimeType1.substringBefore("/")
-        mimeType2 = mimeType2.substringBefore("/")
-    }
-    return (mimeType1 == mimeType2)
-}
-private fun sameAndNotEmpty(string1: String?, string2: String?): Boolean {
-    if (string1.isNullOrEmpty() || string2.isNullOrEmpty()) return false
-    return string1 == string2
-}
-private fun titlesLookSimilar(item1: Episode, item2: Episode): Boolean {
-    return sameAndNotEmpty(canonicalizeTitle(item1.title), canonicalizeTitle(item2.title))
 }
 

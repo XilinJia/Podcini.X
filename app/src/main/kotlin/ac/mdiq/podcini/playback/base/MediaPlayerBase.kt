@@ -219,7 +219,7 @@ abstract class MediaPlayerBase {
     protected fun positionWithRewind(currentPosition: Int, lastPlayedTime: Long): Int {
         if (currentPosition > 0 && lastPlayedTime > 0) {
             val elapsedTime = nowInMillis() - lastPlayedTime
-            var rewindTime: Long = when {
+            val rewindTime: Long = when {
                 elapsedTime > 1.days.inWholeMilliseconds ->  20.seconds.inWholeMilliseconds
                 elapsedTime > 1.hours.inWholeMilliseconds -> 10.seconds.inWholeMilliseconds
                 elapsedTime > 1.minutes.inWholeMilliseconds -> 3.seconds.inWholeMilliseconds
@@ -478,22 +478,12 @@ abstract class MediaPlayerBase {
 
         const val ACTION_PLAYER_STATUS_CHANGED: String = "action.ac.mdiq.podcini.service.playerStatusChanged"
 
-        val prefPlaybackSpeed: Float
-            get() {
-                try { return appPrefs.playbackSpeed.toFloat()
-                } catch (e: NumberFormatException) {
-                    Logs(TAG, e)
-                    upsertBlk(appPrefs) { it.playbackSpeed = "1.0"}
-                    return 1.0f
-                }
-            }
-
         internal var normalSpeed = 1.0f
         internal var isSpeedForward = false
         internal var isFallbackSpeed = false
 
         val curPBSpeed: Float
-            get() = mPlayer?.getPlaybackSpeed() ?: currentPlaybackSpeed(curEpisode)
+            get() = mPlayer?.getPlaybackSpeed() ?: prefSpeedOf(curEpisode)
 
         private var isStartWhenPrepared: Boolean
             get() = mPlayer?.startWhenPrepared?.get() == true
@@ -501,13 +491,13 @@ abstract class MediaPlayerBase {
                 mPlayer?.startWhenPrepared?.set(s)
             }
 
-        fun currentPlaybackSpeed(media: Episode?): Float {
+        fun prefSpeedOf(media: Episode?): Float {
             var playbackSpeed = SPEED_USE_GLOBAL
             if (media != null) {
                 playbackSpeed = curTempSpeed
                 if (playbackSpeed == SPEED_USE_GLOBAL && media.feedId != null && feedsMap.containsKey(media.feedId!!)) playbackSpeed = feedsMap[media.feedId!!]!!.playSpeed
             }
-            if (playbackSpeed == SPEED_USE_GLOBAL) playbackSpeed = prefPlaybackSpeed
+            if (playbackSpeed == SPEED_USE_GLOBAL) playbackSpeed = appPrefs.playbackSpeed
             return playbackSpeed
         }
 
