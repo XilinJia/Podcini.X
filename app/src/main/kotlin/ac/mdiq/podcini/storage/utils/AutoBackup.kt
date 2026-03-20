@@ -2,11 +2,13 @@ package ac.mdiq.podcini.storage.utils
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.config.settings.ClipsTransporter
 import ac.mdiq.podcini.config.settings.DatabaseTransporter
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.dateStampFilename
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,8 +44,8 @@ fun autoBackup() {
     }
 
     val curTime = nowInMillis()
-    if ((curTime - appPrefs.autoBackupTimeStamp) / 10000 > appPrefs.autoBackupIntervall)
-//    if ((curTime - appPrefs.autoBackupTimeStamp) / 3600000 > appPrefs.autoBackupIntervall)
+//    if ((curTime - appPrefs.autoBackupTimeStamp) / 10000 > appPrefs.autoBackupIntervall)
+    if ((curTime - appPrefs.autoBackupTimeStamp) / 3600000 > appPrefs.autoBackupIntervall)
         CoroutineScope(Dispatchers.IO).launch {
             val uri = uriString.toSafeUri()
             val permissions = context.contentResolver.persistedUriPermissions.find { it.uri == uri }
@@ -66,8 +68,9 @@ fun autoBackup() {
                         val exportSubDir = chosenDir.createDirectory(dirName)
                         val realmFile = exportSubDir.createFile("application/octet-stream", "backup.realm")
                         DatabaseTransporter().exportToUri(realmFile)
+                        ClipsTransporter("Podcini-Clips").fromMediaDirToUF(exportSubDir)
                         upsertBlk(appPrefs) { it.autoBackupTimeStamp = curTime }
-                    } catch (e: Exception) { Loge("autoBackup", "Error backing up ${e.message}") }
+                    } catch (e: Exception) { Logs("autoBackup", e, "Error backing up") }
                 } else Loge("autoBackup", context.getString(R.string.auto_backup_folder_not_available))
             } else Loge("autoBackup", "Uri permissions are no longer valid")
         }

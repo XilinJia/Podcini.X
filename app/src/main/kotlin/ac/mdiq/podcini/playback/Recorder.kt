@@ -6,14 +6,16 @@ import ac.mdiq.podcini.playback.base.Media3Player.Companion.exoPlayer
 import ac.mdiq.podcini.playback.base.Media3Player.Companion.getCache
 import ac.mdiq.podcini.playback.base.Media3Player.Companion.simpleCache
 import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.utils.UnifiedFile
 import ac.mdiq.podcini.storage.utils.cacheDir
 import ac.mdiq.podcini.storage.utils.clipsDir
 import ac.mdiq.podcini.storage.utils.div
 import ac.mdiq.podcini.storage.utils.fs
-import ac.mdiq.podcini.storage.utils.getDurationStringShort
+import ac.mdiq.podcini.storage.utils.durationStringShort
 import ac.mdiq.podcini.storage.utils.internalDir
 import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.storage.utils.parent
@@ -183,8 +185,8 @@ suspend fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long?
     val startBytePlayer = exoPlayer?.contentPositionToByte(startPositionMs)
     val endBytePlayer = exoPlayer?.contentPositionToByte(endPositionMs)
 
-    val clipname = "${getDurationStringShort(startPositionMs, false)}-${getDurationStringShort(endPositionMs, false)}.$ext"
-    val outputFile = curEpisode!!.getClipFile1(clipname)
+    val clipname = "${durationStringShort(startPositionMs, false, "m")}-${durationStringShort(endPositionMs, false, "m")}.$ext"
+    val outputFile = curEpisode!!.getClipFile(clipname)
     when {
         uri.scheme == "file" || uri.scheme == "content" -> {
             val bytesPerSecond = bitrate / 8.0
@@ -210,11 +212,8 @@ suspend fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long?
                     upsert(curEpisode!!) { it.clips.add(clipname) }
                     Logd(TAG, "Saved local clip to: ${outputFile.absPath}")
                 } else Loge(TAG, "Failed to extract segment from local media")
-            } catch (e: Exception) {
-                Logs(TAG, e, "FileKit operation failed")
-            } finally {
-                tempFile.delete()
-            }
+            } catch (e: Exception) { Logs(TAG, e, "FileKit operation failed")
+            } finally { tempFile.delete() }
         }
         else -> {   // streaming
             val tempFileDS = curDataSource?.stopRecording(endPositionMs)
@@ -383,23 +382,44 @@ private fun getFileExtensionFromMimeType(mimeType: String?): String? {
     }
 }
 
+// This is only for migration
 fun moveClips() {
-    runOnIOScope {
-        val appDir = internalDir
-        val mediaDir = appDir / "media"
-        if (!mediaDir.exists()) return@runOnIOScope
-
-        val newClipsDir = clipsDir
-        val files = mediaDir.listChildren()
+    suspend fun move(source: UnifiedFile): Int {
+        if (!source.exists()) return 0
+        val files = source.listChildren()
         Logt(TAG, "number of clips to move: ${files.size}")
         for (f in files) {
             val fileName = f.absPath.substringAfterLast('/')
-            val newPath = "${newClipsDir.absPath}/$fileName"
-            val destinationFile = newPath.toUF()
-            f.source().buffer().use { input -> destinationFile.sink().buffer().use { output -> output.write(input.readByteArray()) } }
-            f.delete()
+            val newPath = "${clipsDir.absPath}/$fileName"
+            val destFile = newPath.toUF()
+            f.moveTo(destFile)
         }
-        Logt(TAG, "number of clips moved: ${files.size} to ${newClipsDir.absPath}")
+        return files.size
+    }
+    runOnIOScope {
+        val mediaDir = internalDir / "media"
+        var num = move(mediaDir)
+        val clipsDir_ = internalDir / "clips"
+        num += move(clipsDir_)
+        Logt(TAG, "number of clips moved: $num to ${clipsDir_.absPath}")
         upsert(appPrefs) { it.clipsMoved = true }
+
+        val files = clipsDir.listChildren()
+        for (f in files) {
+            val path = f.absPath
+            if (path.contains(":")) {
+                val fNew = path.replace(":", "m").toUF()
+                f.moveTo(fNew)
+            }
+        }
+        realm.write {
+            val episodes = query(Episode::class).query("clips.@count > 0").find()
+            for (e in episodes) {
+                val s = mutableSetOf<String>()
+                for (c in e.clips) s.add(c.replace(":", "m"))
+                e.clips.clear()
+                e.clips.addAll(s)
+            }
+        }
     }
 }

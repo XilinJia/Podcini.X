@@ -1,9 +1,6 @@
 package ac.mdiq.podcini.net.utils
 
-import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.config.ClientConfig
-import ac.mdiq.podcini.net.download.Downloader
 import ac.mdiq.podcini.net.download.PodciniHttpClient.getKtorClient
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -16,7 +13,6 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
-import android.net.wifi.WifiManager
 import io.github.xilinjia.krdb.ext.toRealmSet
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
@@ -64,13 +60,13 @@ object NetworkUtils {
         get() = isAllowedOnMobile(MobileUpdateOptions.episode_download.name)
 
     val isImageDownloadAllowed: Boolean
-        get() = isAllowedOnMobile(MobileUpdateOptions.images.name) || !getApp().networkMonitor.isNetworkRestricted
+        get() = isAllowedOnMobile(MobileUpdateOptions.images.name) || !networkMonitor.isNetworkRestricted
 
     val isStreamingAllowed: Boolean
-        get() = mobileAllowStreaming || !getApp().networkMonitor.isNetworkRestricted
+        get() = mobileAllowStreaming || !networkMonitor.isNetworkRestricted
 
     val isFeedRefreshAllowed: Boolean
-        get() = mobileAllowFeedRefresh || !getApp().networkMonitor.isNetworkRestricted
+        get() = mobileAllowFeedRefresh || !networkMonitor.isNetworkRestricted
 
     fun isNetworkUrl(source: String?): Boolean {
         if (source.isNullOrBlank()) return false
@@ -119,18 +115,6 @@ object NetworkUtils {
             return@withContext ""
         }
         getKtorClient().get(url).bodyAsText()
-
-//        val connection = url.openConnection()
-//        val inputStream = connection.getInputStream()
-//        val bufferedReader = BufferedReader(InputStreamReader(inputStream))
-//
-//        val stringBuilder = StringBuilder()
-//        var line = ""
-//        while (bufferedReader.readLine()?.also { line = it } != null) stringBuilder.append(line)
-//
-//        bufferedReader.close()
-//        inputStream.close()
-//        stringBuilder.toString()
     }
 
     fun getURIFromRequestUrl(source: String): URI {
@@ -155,20 +139,6 @@ object NetworkUtils {
         } catch (e: Exception) { url }
     }
 
-    var wifiLock: WifiManager.WifiLock? = null
-    fun getWifiLock() {
-        if (!appPrefs.disableWifiLock) {
-            val wifiManager = getAppContext().getSystemService(Context.WIFI_SERVICE) as? WifiManager
-            if (wifiManager != null) {
-                wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL, TAG)
-                wifiLock?.acquire()
-            }
-        }
-    }
-    fun releaseWifiLock() {
-        wifiLock?.release()
-        wifiLock = null
-    }
     private const val AP_SUBSCRIBE = "podcini-subscribe://"
 //    private const val AP_SUBSCRIBE_DEEPLINK = "podcini.org/deeplink/subscribe"
 
@@ -263,7 +233,25 @@ object NetworkUtils {
         return result
     }
 
-    class NetworkMonitor() {
+    fun networkChangedDetected(isConnected: Boolean) {
+//        if (networkMonitor.networkAllowAutoDownload) {
+//            Logd(TAG, "auto-dl network available, starting auto-download")
+//            if (appAttribs.dlCanceledWhenDisconnected) {
+//                upsertBlk(appAttribs) { it.dlCanceledWhenDisconnected = false }
+//                autodownload()
+//            }
+//        } else {
+//            if (networkMonitor.isNetworkRestricted) {
+//                Logt(TAG, "Device is no longer connected to Wi-Fi. Cancelling ongoing downloads")
+//                upsertBlk(appAttribs) { it.dlCanceledWhenDisconnected = true }
+//                EpisodeAdrDLManager.manager?.cancelAll()
+//            }
+//        }
+    }
+
+    val networkMonitor: NetworkMonitor by lazy { NetworkMonitor() }
+
+    class NetworkMonitor {
         private val connectivityManager = getAppContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
         var isConnected: Boolean = true
@@ -277,19 +265,6 @@ object NetworkUtils {
 
         var isVpnOverWifi: Boolean = false
             private set
-
-        fun updateDownloadPolicy(caps: NetworkCapabilities?) {
-            val nc = caps ?: connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
-            networkAllowAutoDownload = when {
-                nc == null -> false
-                nc.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> {
-                    if (nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) true
-                    else mobileAllowAutoDownload
-                }
-                nc.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
-                else -> mobileAllowAutoDownload || nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
-            }
-        }
 
         val networkFlow: Flow<Boolean> = callbackFlow {
             val callback = object : ConnectivityManager.NetworkCallback() {
@@ -307,13 +282,22 @@ object NetworkUtils {
                     val isMetered = connectivityManager.isActiveNetworkMetered
                     val isCellular = nc.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
                     isNetworkRestricted = isMetered || isCellular
-                    updateDownloadPolicy(nc)
+                    networkAllowAutoDownload = when {
+                        nc == null -> false
+                        nc.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> {
+                            if (nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) true
+                            else mobileAllowAutoDownload
+                        }
+                        nc.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+                        else -> mobileAllowAutoDownload || nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
+                    }
                     isVpnOverWifi = (nc.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) && nc.hasTransport(NetworkCapabilities.TRANSPORT_VPN))
                     trySend(connected)
                 }
             }
             connectivityManager.registerDefaultNetworkCallback(callback)
-            trySend(false)
+//            trySend(false)
+            trySend(connectivityManager.activeNetwork != null)
             awaitClose { connectivityManager.unregisterNetworkCallback(callback) }
         }.distinctUntilChanged()
     }

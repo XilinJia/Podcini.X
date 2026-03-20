@@ -9,6 +9,7 @@ import ac.mdiq.podcini.playback.SleepTimer.isInTimeRange
 import ac.mdiq.podcini.playback.SleepTimer.lastTimerValue
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkUrl
+import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
@@ -530,7 +531,7 @@ abstract class MediaPlayerBase {
                 Loge(TAG, "streaming media without a remote downloadUrl: ${media.downloadUrl}. Abort")
                 return false
             }
-            if (!getApp().networkMonitor.isConnected) {
+            if (!networkMonitor.isConnected) {
                 Loge(TAG, "streaming media but network is not available, abort")
                 return false
             }

@@ -103,6 +103,13 @@ object InTheatre {
         }
     }
 
+    fun releaseAController() {
+        aCtrlFuture?.let { future ->
+            aController = null
+            MediaController.releaseFuture(future)
+            aCtrlFuture = null
+        }
+    }
     fun monitorState() {
         if (curStateMonitor == null) curStateMonitor = CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
 //            curState = realm.query(CurrentState::class).query("id == 0").first().find() ?: upsertBlk(CurrentState()) {}

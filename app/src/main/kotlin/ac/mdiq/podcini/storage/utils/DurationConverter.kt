@@ -43,12 +43,12 @@ fun durationStringAdapt(ms: Int): String {
 /**
  * Converts milliseconds to a string containing hours and minutes or minutes and seconds.
  */
-fun getDurationStringShort(duration: Long, inHours: Boolean): String {
+fun durationStringShort(duration: Long, inHours: Boolean, delim: String = ":"): String {
     val firstPartBase = if (inHours) HOURS_MIL else MINUTES_MIL
     val firstPart = duration / firstPartBase
     val leftoverFromFirstPart = duration - firstPart * firstPartBase
     val secondPart = leftoverFromFirstPart / (if (inHours) MINUTES_MIL else SECONDS_MIL)
-    return firstPart.toString().padStart(2, '0') + ":" + secondPart.toString().padStart(2, '0')
+    return firstPart.toString().padStart(2, '0') + delim + secondPart.toString().padStart(2, '0')
 }
 
 /**
@@ -57,7 +57,6 @@ fun getDurationStringShort(duration: Long, inHours: Boolean): String {
 fun durationStringLongToMs(input: String): Int {
     val parts = input.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
     if (parts.size != 3) return 0
-
     return parts[0].toInt() * 3600 * 1000 + parts[1].toInt() * 60 * 1000 + parts[2].toInt() * 1000
 }
 

@@ -451,7 +451,7 @@ class Episode : RealmObject {
         }
     }
 
-    fun getClipFile1(clipname: String): UnifiedFile {
+    fun getClipFile(clipname: String): UnifiedFile {
         return clipsDir / "recorded_${id}_$clipname"
     }
 

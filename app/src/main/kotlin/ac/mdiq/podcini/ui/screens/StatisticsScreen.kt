@@ -9,14 +9,13 @@ import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeState
-import ac.mdiq.podcini.storage.utils.getDurationStringShort
+import ac.mdiq.podcini.storage.utils.durationStringShort
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
-import android.annotation.SuppressLint
 import android.text.format.Formatter
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -67,7 +66,6 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -114,7 +112,6 @@ import kotlinx.datetime.toLocalDateTime
 import java.time.YearMonth
 import java.time.ZoneOffset
 import java.util.Calendar
-import java.util.Locale
 import kotlin.math.max
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.memberProperties
@@ -329,19 +326,19 @@ fun StatisticsScreen() {
         val textColor = MaterialTheme.colorScheme.onSurface
         Row {
             if (center) Spacer(Modifier.weight(0.3f))
-            Text( stringResource(R.string.spent) + ": " + getDurationStringShort(stats.timeSpent*1000/nd, true), color = textColor)
+            Text( stringResource(R.string.spent) + ": " + durationStringShort(stats.timeSpent*1000/nd, true), color = textColor)
             Spacer(Modifier.weight(0.3f))
         }
         Row {
             if (center) Spacer(Modifier.weight(0.3f))
             Text(stringResource(R.string.total) + ": " + formatEpisodes(stats.episodesTotal), color = textColor)
             Spacer(Modifier.weight(0.1f))
-            Text(getDurationStringShort(stats.durationTotal*1000/nd, true), color = textColor)
+            Text(durationStringShort(stats.durationTotal*1000/nd, true), color = textColor)
             Spacer(Modifier.weight(0.2f))
             if (stats.episodesPlayed > 0) {
                 Text(stringResource(R.string.played) + ": " + formatEpisodes(stats.episodesPlayed), color = textColor)
                 Spacer(Modifier.weight(0.1f))
-                Text(getDurationStringShort(stats.durationPlayed*1000/nd, true), color = textColor)
+                Text(durationStringShort(stats.durationPlayed*1000/nd, true), color = textColor)
             }
             Spacer(Modifier.weight(0.3f))
         }
@@ -350,15 +347,15 @@ fun StatisticsScreen() {
             if (stats.episodesStarted > 0) {
                 Text(stringResource(R.string.started) + ": " + formatEpisodes(stats.episodesStarted), color = textColor)
                 Spacer(Modifier.weight(0.1f))
-                Text(getDurationStringShort(stats.timePlayed*1000/nd, true), color = textColor)
+                Text(durationStringShort(stats.timePlayed*1000/nd, true), color = textColor)
                 Spacer(Modifier.weight(0.1f))
-                Text(getDurationStringShort(stats.durationStarted*1000/nd, true), color = textColor)
+                Text(durationStringShort(stats.durationStarted*1000/nd, true), color = textColor)
             }
             Spacer(Modifier.weight(0.2f))
             if (stats.episodesSkipped > 0) {
                 Text( stringResource(R.string.skipped) + ": " + formatEpisodes(stats.episodesSkipped), color = textColor)
                 Spacer(Modifier.weight(0.1f))
-                Text(getDurationStringShort(stats.durationSkipped*1000/nd, true), color = textColor)
+                Text(durationStringShort(stats.durationSkipped*1000/nd, true), color = textColor)
             }
             Spacer(Modifier.weight(0.3f))
         }
@@ -367,13 +364,13 @@ fun StatisticsScreen() {
             if (stats.episodesPassed > 0) {
                 Text(stringResource(R.string.passed) + ": " + formatEpisodes(stats.episodesPassed), color = textColor)
                 Spacer(Modifier.weight(0.1f))
-                Text(getDurationStringShort(stats.durationPassed*1000/nd, true), color = textColor)
+                Text(durationStringShort(stats.durationPassed*1000/nd, true), color = textColor)
             }
             Spacer(Modifier.weight(0.2f))
             if (stats.episodesIgnored > 0) {
                 Text( stringResource(R.string.ignored) + ": " + formatEpisodes(stats.episodesIgnored), color = textColor)
                 Spacer(Modifier.weight(0.1f))
-                Text(getDurationStringShort(stats.durationIgnored*1000/nd, true), color = textColor)
+                Text(durationStringShort(stats.durationIgnored*1000/nd, true), color = textColor)
             }
             Spacer(Modifier.weight(0.3f))
         }
@@ -857,19 +854,19 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
                 }
                 Row {
                     Text(stringResource(R.string.statistics_length_played), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(getDurationStringShort((fStat?.item?.durationStarted ?: 0)*1000, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
+                    Text(durationStringShort((fStat?.item?.durationStarted ?: 0)*1000, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
                 Row {
                     Text(stringResource(R.string.statistics_time_played), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(getDurationStringShort((fStat?.item?.timePlayed ?: 0)*1000, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
+                    Text(durationStringShort((fStat?.item?.timePlayed ?: 0)*1000, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
                 Row {
                     Text(stringResource(R.string.statistics_time_spent), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(getDurationStringShort((fStat?.item?.timeSpent ?: 0)*1000, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
+                    Text(durationStringShort((fStat?.item?.timeSpent ?: 0)*1000, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
                 Row {
                     Text(stringResource(R.string.statistics_total_duration), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(getDurationStringShort(duration = (fStat?.item?.durationTotal ?: 0)*1000, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
+                    Text(durationStringShort(duration = (fStat?.item?.durationTotal ?: 0)*1000, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
                 Row {
                     Text(stringResource(R.string.statistics_episodes_on_device), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))

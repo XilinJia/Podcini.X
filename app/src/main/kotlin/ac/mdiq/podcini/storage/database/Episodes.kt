@@ -18,7 +18,7 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.EpisodeState.Companion.fromCode
-import ac.mdiq.podcini.storage.utils.getDurationStringShort
+import ac.mdiq.podcini.storage.utils.durationStringShort
 import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
@@ -305,7 +305,7 @@ fun buildListInfo(episodes: List<Episode>, total: Int = 0): String {
     if (episodes.isNotEmpty()) {
         var timeLeft: Long = 0
         for (item in episodes) timeLeft += ((item.duration - item.position) / (prefSpeedOf(item).takeIf { it > 0 } ?: 1f)).toLong()
-        infoText += " * " + getDurationStringShort(timeLeft, true)
+        infoText += " * " + durationStringShort(timeLeft, true)
     }
     return infoText
 }

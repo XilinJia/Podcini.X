@@ -47,6 +47,7 @@ class Feed : RealmObject {
 
     var identifier: String? = null
 
+    // TODO: this appears not needed
     var fileUrl: String? = null
 
     var downloadUrl: String? = null

@@ -2,7 +2,7 @@ package ac.mdiq.podcini.receiver
 
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
-import ac.mdiq.podcini.config.ClientConfigurator
+import ac.mdiq.podcini.config.ClientConfig
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -31,7 +31,7 @@ class MediaButtonReceiver : BroadcastReceiver() {
         Logd(TAG, "onReceive keyEvent = $keyEvent" )
 
         if (keyEvent != null && keyEvent.action == KeyEvent.ACTION_DOWN && keyEvent.repeatCount == 0) {
-            ClientConfigurator.initialize()
+            ClientConfig.initialize()
             val serviceIntent = Intent(PLAYBACK_SERVICE_INTENT)
             serviceIntent.setPackage(context.packageName)
             serviceIntent.putExtra(EXTRA_KEYCODE, keyEvent.keyCode)

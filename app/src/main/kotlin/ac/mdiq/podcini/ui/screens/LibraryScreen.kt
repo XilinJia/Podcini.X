@@ -41,7 +41,7 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.AddLocalFolder
 import ac.mdiq.podcini.storage.utils.durationInHours
 import ac.mdiq.podcini.storage.utils.durationStringFull
-import ac.mdiq.podcini.storage.utils.getDurationStringShort
+import ac.mdiq.podcini.storage.utils.durationStringShort
 import ac.mdiq.podcini.storage.utils.persistedTrees
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
@@ -247,7 +247,7 @@ class LibraryVM : ViewModel() {
                         FeedPropertySortIndex.ScoreCount -> "${f.score}(${f.scoreCount})"
                         FeedPropertySortIndex.Updated -> formatDateTimeFlex(f.lastUpdateTime)
                         FeedPropertySortIndex.FullUpdate -> formatDateTimeFlex(f.lastFullUpdateTime)
-                        FeedPropertySortIndex.TotleDuration -> getDurationStringShort(f.totleDuration, true)
+                        FeedPropertySortIndex.TotleDuration -> durationStringShort(f.totleDuration, true)
                         FeedPropertySortIndex.Commented -> formatDateTimeFlex(f.commentTime)
                         else -> formatDateTimeFlex(f.lastUpdateTime)
                     }
@@ -364,7 +364,7 @@ class LibraryVM : ViewModel() {
                         for (f_ in feeds) {
                             val f = findLatest(f_) ?: continue
                             f.sortValue = f.totleDuration
-                            f.sortInfo = "Total D: ${getDurationStringShort(f.totleDuration, true)}"
+                            f.sortInfo = "Total D: ${durationStringShort(f.totleDuration, true)}"
                         }
                     }
                     persistTimeSort()
@@ -389,7 +389,7 @@ class LibraryVM : ViewModel() {
                             val f = findLatest(f_) ?: continue
                             val d = query(Episode::class).query(queryString, f.id).first().find()?.duration?.toLong() ?: 0L
                             f.sortValue = d
-                            f.sortInfo = "Max D: ${getDurationStringShort(d, true)}"
+                            f.sortInfo = "Max D: ${durationStringShort(d, true)}"
                         }
                     }
                     Logd(TAG, "prepareSort queryString: $queryString")
@@ -402,7 +402,7 @@ class LibraryVM : ViewModel() {
                             val ln = f.episodesCount
                             val aveDur = if (ln > 0) f.totleDuration/ln else 0
                             f.sortValue = aveDur
-                            f.sortInfo = "Ave D: ${getDurationStringShort(aveDur, true)}"
+                            f.sortInfo = "Ave D: ${durationStringShort(aveDur, true)}"
                         }
                     }
                     persistTimeSort()

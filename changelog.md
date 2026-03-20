@@ -1,3 +1,16 @@
+# 10.13.0
+
+* fixed crash when recording
+* fixed recorded clip not playing
+* auto-download is set with constraints of power and connection
+* on charging, no longer start blind auto-download
+* old connection, power and feed update receivers are removed
+* wifi lock is removed
+* corrected recording dir to the previously set external/media/clips, and performs a migration
+* a recorded clip name is now changed to the form of "MMmSS-MMmSS" from "MM:SS-MM:SS" (not allowed by Android's SAF)
+* clips can be imported/exported, and are included in Auto-backup
+* amended proguard rules for proper crash report and else
+
 # 10.12.3
 
 * feed full updates from FeedDetailes or Library screens erase unlisted unworthy episodes

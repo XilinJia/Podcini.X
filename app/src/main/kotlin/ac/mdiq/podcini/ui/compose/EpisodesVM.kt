@@ -7,6 +7,7 @@ import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.net.download.Downloader.Companion.downloadStates
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
+import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.playerStat
@@ -636,11 +637,11 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                             Text(stringResource(id = R.string.add_comments)) } },
                         { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                             onSelected()
-                            if (mobileAllowEpisodeDownload || !getApp().networkMonitor.isNetworkRestricted) EpisodeAdrDLManager.manager?.downloadNow(selected, true)
+                            if (mobileAllowEpisodeDownload || !networkMonitor.isNetworkRestricted) EpisodeAdrDLManager.manager?.downloadNow(selected, true)
                             else {
                                 commonConfirm = CommonConfirmAttrib(
                                     title = context.getString(R.string.confirm_mobile_download_dialog_title),
-                                    message = context.getString(if (getApp().networkMonitor.isNetworkRestricted && getApp().networkMonitor.isVpnOverWifi) R.string.confirm_mobile_download_dialog_message_vpn else R.string.confirm_mobile_download_dialog_message),
+                                    message = context.getString(if (networkMonitor.isNetworkRestricted && networkMonitor.isVpnOverWifi) R.string.confirm_mobile_download_dialog_message_vpn else R.string.confirm_mobile_download_dialog_message),
                                     confirmRes = R.string.confirm_mobile_download_dialog_download_later,
                                     cancelRes = R.string.cancel_label,
                                     neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,

@@ -336,7 +336,7 @@ fun NetworkStorageScreen() {
                         deleteDirectoryRecursively(it)
                     }
                     val mediaDir_ = uri.toUF().createDirectory("Podcini.media")
-                    MediaFilesTransporter("Podcini.media").fromMediaDirToUri(mediaDir_, move = true, useSubDir = false)
+                    MediaFilesTransporter("Podcini.media").fromMediaDirToUF(mediaDir_, move = true, useSubDir = false)
                     deleteDirectoryRecursively(mediaDir)
                     customMediaFolderUriString = mediaDir_.toAndroidUri().toString()
                     Logd(TAG, "selectCustomMediaDirLauncher uri string: $customMediaFolderUriString")
@@ -411,7 +411,7 @@ fun NetworkStorageScreen() {
                                 it.customMediaUri = ""
                                 it.customFolderUnavailable = false
                             }
-                            MediaFilesTransporter("").fromUriToMediaDir(uf, move = true, verify = false)
+                            MediaFilesTransporter("").fromUFToMediaDir(uf, move = true, verify = false)
                             deleteDirectoryRecursively(uf)
                             findRootForUri(customMediaFolderUriString.toSafeUri())?.let {
                                 try { getAppContext().contentResolver.releasePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION) } catch (e: Exception) { Logd(TAG, "uri can not be released: $it")}

@@ -441,7 +441,7 @@ fun ControlUI(vm: AVPlayerVM, navController: AppNavigator) {
                     } else Loge(TAG, "Marking position only works during playback.") },
                 onLongClick = {
                     if (curEpisode != null && exoPlayer != null && isPlaying) {
-                        scope.launch(Dispatchers.IO) {
+                        scope.launch {
                             if (recordingStartTime == null) {
                                 recordingStartTime = exoPlayer!!.currentPosition
                                 saveClipInOriginalFormat(recordingStartTime!!)

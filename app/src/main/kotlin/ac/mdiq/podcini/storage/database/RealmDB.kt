@@ -80,7 +80,7 @@ val config: RealmConfiguration by lazy {
         FacetsPrefs::class,
         SleepPrefs::class,
         SyncPrefs::class,
-    )).name("Podcini.realm").schemaVersion(127)
+    )).name("Podcini.realm").schemaVersion(129)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -200,6 +200,11 @@ val config: RealmConfiguration by lazy {
                     val speedSF = try { speedSFStr.toFloat() } catch (e: NumberFormatException) { 0.0 }
                     prefsNew.set("skipforwardSpeed", speedSF)
                 }
+            }
+            if (oldRealm.schemaVersion() < 129) {
+                Log.d(TAG, "migrating DB from below 129")
+                val prefsNew = newRealm.query("AppPrefs").first().find()
+                prefsNew?.set("clipsMoved", false)
             }
         }).build()
 }

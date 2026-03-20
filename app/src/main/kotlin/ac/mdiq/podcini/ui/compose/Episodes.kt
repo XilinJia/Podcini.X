@@ -51,7 +51,7 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.fromCode
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationStringFull
-import ac.mdiq.podcini.storage.utils.getDurationStringShort
+import ac.mdiq.podcini.storage.utils.durationStringShort
 import ac.mdiq.podcini.storage.utils.loadChapters
 import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.storage.utils.toAndroidUri
@@ -424,7 +424,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                             if (!isPlaying) playPause()
                             mPlayer?.seekTo(mark.toInt())
                         } else Logt(TAG, context.getString(R.string.play_mark_msg))
-                    }, label = { Text(getDurationStringShort(mark, false)) }, selected = false, trailingIcon = {
+                    }, label = { Text(durationStringShort(mark, false)) }, selected = false, trailingIcon = {
                         Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete", modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { markToRemove = mark }))
                     })
                 }
@@ -437,7 +437,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                 AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { cliptToRemove = "" }, text = { Text(stringResource(R.string.ask_remove_clip, cliptToRemove.substringBefore("."))) }, confirmButton = {
                     TextButton(onClick = {
                         runOnIOScope {
-                            val file = episode.getClipFile1(cliptToRemove)
+                            val file = episode.getClipFile(cliptToRemove)
                             file.delete()
                             upsert(episode) { it.clips.remove(cliptToRemove) }
                             withContext(Dispatchers.Main) { cliptToRemove = "" }
@@ -449,8 +449,9 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
             FlowRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
                 episode.clips.forEach { clip ->
                     FilterChip(onClick = {
-                        val file = episode.getClipFile1(clip)
+                        val file = episode.getClipFile(clip)
                         val uri = file.toAndroidUri()
+                        Logd(TAG, "clip file: ${file.absPath} uri: $uri")
                         if (playerLocal != null && uri != null && runBlocking { file.exists() }) {
                             playerLocal!!.setMediaItem(MediaItem.fromUri(uri))
                             playerLocal!!.prepare()

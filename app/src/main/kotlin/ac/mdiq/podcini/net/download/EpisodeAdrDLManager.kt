@@ -3,7 +3,7 @@ package ac.mdiq.podcini.net.download
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.CHANNEL_ID
-import ac.mdiq.podcini.config.ClientConfigurator
+import ac.mdiq.podcini.config.ClientConfig
 import ac.mdiq.podcini.net.download.DownloadRequest.Companion.requestFor
 import ac.mdiq.podcini.net.download.EpisodeAdrDLManager.Companion.WORK_DATA_PROGRESS
 import ac.mdiq.podcini.net.download.EpisodeDLManager.Companion.updateDB
@@ -59,7 +59,9 @@ import kotlin.coroutines.cancellation.CancellationException
 
 class EpisodeAdrDLManager: EpisodeDLManager() {
     private val constraints: Constraints
-        get() = Builder().setRequiredNetworkType(if (mobileAllowEpisodeDownload) NetworkType.CONNECTED else NetworkType.UNMETERED).build()
+        get() = Builder()
+            .setRequiresCharging(!appPrefs.enableAutoDownloadOnBattery)
+            .setRequiredNetworkType(if (mobileAllowEpisodeDownload) NetworkType.CONNECTED else NetworkType.UNMETERED).build()
 
     override fun downloadNow(episodes: List<Episode>, ignoreConstraints: Boolean) {
         Logd(TAG, "starting downloadNow")
@@ -142,7 +144,7 @@ class EpisodesDownloadWorker(context: Context, params: WorkerParameters) : Corou
         getForegroundInfo()
 
         Logd(TAG, "starting doWork")
-        ClientConfigurator.initialize()
+        ClientConfig.initialize()
         val ids = appAttribs.episodeIdsToDownload
         if (ids.isEmpty()) return@coroutineScope Result.Success()
 
@@ -178,7 +180,7 @@ class EpisodesDownloadWorker(context: Context, params: WorkerParameters) : Corou
                 Logs(TAG, e)
                 return@coroutineScope Result.failure()
             } finally {
-                if (result == Result.failure() && downloader?.request?.destination != null) quietlyDeleteFile(downloader!!.request.destination!!.toSafeUri())
+                if (result == Result.failure() && downloader?.request?.destination != null) quietlyDeleteFile(downloader!!.request.destination.toSafeUri())
                 downloader?.cancel()
             }
             progressUpdaterJob.cancel()
@@ -202,7 +204,7 @@ class EpisodesDownloadWorker(context: Context, params: WorkerParameters) : Corou
 
     private suspend fun performTasks(request: DownloadRequest): Result {
         Logd(TAG, "starting performDownload: ${request.destination}")
-        if (request.destination.isNullOrBlank()) {
+        if (request.destination.isBlank()) {
             Loge(TAG, "performDownload request.destination is null or blank")
             return Result.failure()
         }
@@ -267,7 +269,7 @@ class EpisodesDownloadWorker(context: Context, params: WorkerParameters) : Corou
         if (status.reason == DownloadError.ERROR_HTTP_DATA_ERROR && status.reasonDetailed.toInt() == 416) {
             Logd(TAG, "Requested invalid range, restarting download from the beginning")
             Logd(TAG, "${downloader?.request?.destination}")
-            if (downloader?.request?.destination != null) quietlyDeleteFile(downloader!!.request.destination!!.toSafeUri())
+            if (downloader?.request?.destination != null) quietlyDeleteFile(downloader!!.request.destination.toSafeUri())
             sendMessage(request.title?:"", false)
             return retry3times()
         }

@@ -3,6 +3,7 @@ package ac.mdiq.podcini.ui.screens.prefscreens
 import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.config.settings.ClipsTransporter
 import ac.mdiq.podcini.config.settings.DatabaseTransporter
 import ac.mdiq.podcini.config.settings.DocumentFileExportWorker
 import ac.mdiq.podcini.config.settings.EpisodesProgressWriter
@@ -106,12 +107,18 @@ import okio.BufferedSource
 import okio.buffer
 import org.json.JSONArray
 
+enum class ComboIEOptions {
+    MeidaFiles,
+    Database,
+    Clips
+}
 @Composable
 fun ImportExportScreen() {
     val context by rememberUpdatedState(LocalContext.current)
     val TAG = "ImportExportScreen"
     val backupDirName = "Podcini-Backups"
     val mediaFilesDirName = "Podcini-MediaFiles"
+    val clipsDirName = "Podcini-Clips"
 
     var showProgress by remember { mutableStateOf(false) }
     fun isJsonFile(uri: Uri): Boolean {
@@ -240,15 +247,18 @@ fun ImportExportScreen() {
             text = {
                 Column {
                     comboDic.keys.forEach { option ->
-                        if (option != "Media files" || comboDic["Database"] != true) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                             Checkbox(checked = comboDic[option] == true, onCheckedChange = {
                                 comboDic[option] = it
-                                if (option == "Database" && it) comboDic["Media files"] = false
+                                if (option == ComboIEOptions.Database.name && it) {
+                                    comboDic[ComboIEOptions.Clips.name] = false
+                                    comboDic[ComboIEOptions.MeidaFiles.name] = false
+                                }
                             })
                             Text(option, modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodyMedium)
                         }
                     }
-                    if (comboDic["Media files"] != null && comboDic["Database"] == true) Text(stringResource(R.string.pref_import_media_files_later), modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodySmall)
+                    if ((comboDic[ComboIEOptions.MeidaFiles.name] != null || comboDic[ComboIEOptions.Clips.name] != null) && comboDic[ComboIEOptions.Database.name] == true) Text(stringResource(R.string.pref_import_media_files_later), modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodySmall)
                 }
             },
             confirmButton = {
@@ -259,12 +269,14 @@ fun ImportExportScreen() {
                         try {
                             withContext(Dispatchers.IO) {
                                 val rootFile = uri.toUF()
-                                Logd(TAG, "comboDic[\"Media files\"] ${comboDic["Media files"]}")
-                                Logd(TAG, "comboDic[\"Database\"] ${comboDic["Database"]}")
+                                Logd(TAG, "comboDic[ComboIEOptions.Clips.name] ${comboDic[ComboIEOptions.Clips.name]}")
+                                Logd(TAG, "comboDic[ComboIEOptions.MeidaFiles.name] ${comboDic[ComboIEOptions.MeidaFiles.name]}")
+                                Logd(TAG, "comboDic[ComboIEOptions.Database.name] ${comboDic[ComboIEOptions.Database.name]}")
                                 for (file in rootFile.listChildren()) {
                                     if (file.isDirectory()) {
-                                        if (file.name == mediaFilesDirName && comboDic["Media files"] == true) MediaFilesTransporter(mediaFilesDirName).fromUriToMediaDir(file)
-                                    } else if (isRealmFile(file.toAndroidUri()!!) && comboDic["Database"] == true) DatabaseTransporter().importBackup(file)
+                                        if (file.name == mediaFilesDirName && comboDic[ComboIEOptions.MeidaFiles.name] == true) MediaFilesTransporter(mediaFilesDirName).fromUFToMediaDir(file)
+                                        if (file.name == clipsDirName && comboDic[ComboIEOptions.Clips.name] == true) ClipsTransporter(clipsDirName).fromUFToMediaDir(file)
+                                    } else if (isRealmFile(file.toAndroidUri()!!) && comboDic[ComboIEOptions.Database.name] == true) DatabaseTransporter().importBackup(file)
                                 }
                             }
                             withContext(Dispatchers.Main) {
@@ -305,8 +317,9 @@ fun ImportExportScreen() {
                     CoroutineScope(Dispatchers.IO).launch {
                         val chosenDir = uri.toUF()
                         val exportSubDir = chosenDir.createDirectory(dateStampFilename("$backupDirName-%s"))
-                        if (comboDic["Media files"] == true) MediaFilesTransporter(mediaFilesDirName).fromMediaDirToUri(exportSubDir)
-                        if (comboDic["Database"] == true) {
+                        if (comboDic[ComboIEOptions.MeidaFiles.name] == true) MediaFilesTransporter(mediaFilesDirName).fromMediaDirToUF(exportSubDir)
+                        if (comboDic[ComboIEOptions.Clips.name] == true) ClipsTransporter(clipsDirName).fromMediaDirToUF(exportSubDir)
+                        if (comboDic[ComboIEOptions.Database.name] == true) {
                             val realmFile = exportSubDir.createFile("application/octet-stream", "backup.realm")
                             DatabaseTransporter().exportToUri(realmFile)
                         }
@@ -343,8 +356,9 @@ fun ImportExportScreen() {
                 for (child in rootFile.listChildren()) {
                     Logd(TAG, "restoreComboLauncher child: ${child.isDirectory()} ${child.name} ${child.toAndroidUri()} ")
                     if (child.isDirectory()) {
-                        if (child.name == mediaFilesDirName) comboDic["Media files"] = false
-                    } else if (isRealmFile(child.toAndroidUri()!!)) comboDic["Database"] = true
+                        if (child.name == clipsDirName) comboDic[ComboIEOptions.Clips.name] = true
+                        if (child.name == mediaFilesDirName) comboDic[ComboIEOptions.MeidaFiles.name] = false
+                    } else if (isRealmFile(child.toAndroidUri()!!)) comboDic[ComboIEOptions.Database.name] = true
                 }
             }
             showComboImportDialog = true
@@ -361,8 +375,9 @@ fun ImportExportScreen() {
             val uri: Uri? = it.data?.data
             if (uri != null) {
                 comboDic.clear()
-                comboDic["Database"] = true
-                comboDic["Media files"] = true
+                comboDic[ComboIEOptions.Database.name] = true
+                comboDic[ComboIEOptions.Clips.name] = true
+                comboDic[ComboIEOptions.MeidaFiles.name] = true
                 tempRoottree = uri
                 showComboExportDialog = true
             }

@@ -9,6 +9,7 @@ import ac.mdiq.podcini.net.download.EpisodeDLManager.Companion.updateDB
 import ac.mdiq.podcini.net.download.Downloader.Companion.downloaderFor
 import ac.mdiq.podcini.net.utils.NetworkUtils
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
+import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
@@ -221,7 +222,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                     return isDownloading || item.downloaded
                 }
                 if (shouldNotDownload()) return
-                if (mobileAllowEpisodeDownload || !getApp().networkMonitor.isNetworkRestricted) {
+                if (mobileAllowEpisodeDownload || !networkMonitor.isNetworkRestricted) {
                     downloadNow()
                     Logd(TAG, "downloading ${item.title}")
                     typeToCancel = ButtonTypes.DOWNLOAD
@@ -230,7 +231,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 }
                 commonConfirm = CommonConfirmAttrib(
                     title = context.getString(R.string.confirm_mobile_download_dialog_title),
-                    message = context.getString(if (getApp().networkMonitor.isNetworkRestricted && getApp().networkMonitor.isVpnOverWifi) R.string.confirm_mobile_download_dialog_message_vpn else R.string.confirm_mobile_download_dialog_message),
+                    message = context.getString(if (networkMonitor.isNetworkRestricted && networkMonitor.isVpnOverWifi) R.string.confirm_mobile_download_dialog_message_vpn else R.string.confirm_mobile_download_dialog_message),
                     confirmRes = R.string.confirm_mobile_download_dialog_download_later,
                     cancelRes = R.string.cancel_label,
                     neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,

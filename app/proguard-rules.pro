@@ -1,9 +1,13 @@
 -dontobfuscate
 
-#-renamesourcefileattribute SourceFile
+-renamesourcefileattribute SourceFile
 -keepattributes Exceptions, SourceFile,LineNumberTable
-# -optimizations !code/allocation/variable
-# -optimizationpasses 5
+-keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
+
+-keepattributes Signature, InnerClasses, EnclosingMethod
+
+-keep class ac.mdiq.podcini**
+-keepclassmembers class ac.mdiq.podcini** {*;}
 
 # -keep class org.mozilla.javascript.** { *; }
 # -keep class org.mozilla.classfile.ClassFileWriter
@@ -11,45 +15,18 @@
 # -keep class java.beans.**
 # -dontwarn java.beans.**
 
--dontwarn com.google.re2j.**
+-dontwarn com.google.re2j.Matcher
+-dontwarn com.google.re2j.Pattern
 -dontwarn java.beans.**
 -dontwarn org.mozilla.javascript.**
-
-# -dontwarn com.google.re2j.Matcher
-# -dontwarn com.google.re2j.Pattern
 
 -allowaccessmodification
 -dontskipnonpubliclibraryclassmembers
 
-# Keep our own classes and members. They are all used.
-# Without this, methods only used in tests are removed and break tests.
--keep class ac.mdiq.podcini**
--keepclassmembers class ac.mdiq.podcini** {*;}
-
-# Keep methods used in tests.
-# This is only needed when running tests with proguard enabled.
-# -keepclassmembers class org.apache.commons.lang3.StringUtils {*;}
-#-keepclassmembers class androidx.appcompat.app.ActionBar {
-#    public ** getTitle();
-#}
-# -keepclassmembers class org.apache.commons.io.IOUtils {
-#     public static void write(...);
-# }
-#
-# -keep public class org.jsoup.** {
-#     public *;
-# }
 
 # for okhttp
 # -dontwarn okhttp3.**
 # -dontwarn okio.**
-
-#### Proguard rules for fyyd client
-# Retrofit 2.0
-# -dontwarn retrofit2.**
-# -keep class retrofit2.** { *; }
-# -keepattributes Signature
-# -keepattributes Exceptions
 
 # -dontwarn org.jspecify.annotations.NullMarked
 
@@ -61,14 +38,5 @@
 # -keep class com.squareup.moshi.** { *; }
 # -keep interface com.squareup.moshi.** { *; }
 ####
-
-# awaitility
-# -dontwarn java.beans.BeanInfo
-# -dontwarn java.beans.Introspector
-# -dontwarn java.beans.IntrospectionException
-# -dontwarn java.beans.PropertyDescriptor
-# -dontwarn java.lang.management.ManagementFactory
-# -dontwarn java.lang.management.ThreadInfo
-# -dontwarn java.lang.management.ThreadMXBean
 
 # -dontwarn org.slf4j.impl.StaticLoggerBinder

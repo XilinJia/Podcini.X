@@ -2,9 +2,7 @@ package ac.mdiq.podcini.net.download
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.utils.NetworkUtils.getURIFromRequestUrl
-import ac.mdiq.podcini.net.utils.NetworkUtils.getWifiLock
 import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkUrl
-import ac.mdiq.podcini.net.utils.NetworkUtils.releaseWifiLock
 import ac.mdiq.podcini.net.utils.NetworkUtils.wasDownloadBlocked
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.model.DownloadResult
@@ -119,9 +117,9 @@ abstract class Downloader(val request: DownloadRequest) {
     open suspend fun download(cb: suspend (Source)->Unit) { Loge(TAG, "download(cb) method is not implemented") }
 
     suspend fun run(): Downloader {
-        getWifiLock()
+//        getWifiLock()
         download()
-        releaseWifiLock()
+//        releaseWifiLock()
         return this
     }
 

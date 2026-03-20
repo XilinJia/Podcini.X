@@ -83,11 +83,10 @@ val mediaDir: UnifiedFile
         return mediaDir_.toUF()
     }
 
-
 val clipsDir: UnifiedFile
     get() {
-        var dir = internalDir / "clips"
-        runBlocking { if (!dir.exists()) dir = internalDir.createDirectory("clips") }
+        var dir = mediaDir / "clips"
+        runBlocking { if (!dir.exists()) dir = mediaDir.createDirectory("clips") }
         return dir
     }
 
@@ -201,6 +200,7 @@ interface UnifiedFile {
     }
 
     suspend fun copyTo(target: UnifiedFile) {
+        if (!target.exists()) target.createFile()
         source().buffer().use { src -> target.sink().buffer().use { dst -> dst.writeAll(src) } }
     }
 
@@ -412,7 +412,7 @@ fun UnifiedFile.parent(): UnifiedFile? = when (this) {
 }
 
 fun UnifiedFile.toAndroidUri(): Uri? = when (this) {
-    is PathFile -> absPath.toUri()
+    is PathFile -> absPath.toSafeUri()
     is ContentUriFile -> uri
     else -> null
 }

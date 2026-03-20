@@ -13,7 +13,6 @@ import ac.mdiq.podcini.playback.base.InTheatre.setAsCurEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.tempSkipSilence
 import ac.mdiq.podcini.playback.base.OKHTTP.getOKHttpClient
 import ac.mdiq.podcini.receiver.PodciniWidget
-import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.fastForwardSecs
 import ac.mdiq.podcini.storage.database.getNextInQueue
 import ac.mdiq.podcini.storage.database.isSkipSilence
@@ -37,7 +36,6 @@ import android.app.UiModeManager
 import android.content.Context
 import android.content.res.Configuration
 import android.media.audiofx.LoudnessEnhancer
-import android.net.wifi.WifiManager
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.media3.common.AudioAttributes
@@ -126,27 +124,6 @@ class Media3Player : MediaPlayerBase() {
 
     private val videoHeight: Int
         get() = exoPlayer?.videoFormat?.height ?: 0
-
-    /**
-     * A wifi-lock that is acquired if the media file is being streamed.
-     */
-    private var wifiLock: WifiManager.WifiLock? = null
-
-    @Synchronized
-    private fun acquireWifiLockIfNecessary() {
-        if (isStreaming && !appPrefs.disableWifiLock) {
-            if (wifiLock == null) {
-                wifiLock = (context.getSystemService(Context.WIFI_SERVICE) as WifiManager).createWifiLock(WifiManager.WIFI_MODE_FULL, TAG)
-                wifiLock?.setReferenceCounted(false)
-            }
-            wifiLock?.acquire()
-        }
-    }
-
-    @Synchronized
-    private fun releaseWifiLockIfNecessary() {
-        if (wifiLock?.isHeld == true) wifiLock!!.release()
-    }
 
     private val cacheMutex = Mutex()
     suspend fun initCache() = withContext(Dispatchers.IO) {
@@ -541,7 +518,7 @@ class Media3Player : MediaPlayerBase() {
         Logd(TAG, "play(): status: $status exoPlayer?.playbackState: ${exoPlayer?.playbackState}")
         if (isPaused || isPrepared) {
             Logd(TAG, "Resuming/Starting playback")
-            acquireWifiLockIfNecessary()
+//            acquireWifiLockIfNecessary()
             setPlaybackParams(prefSpeedOf(curEpisode))
             setRepeat(shouldRepeat)
             setSkipSilence()
@@ -560,7 +537,7 @@ class Media3Player : MediaPlayerBase() {
     }
 
     override fun pause(reinit: Boolean) {
-        releaseWifiLockIfNecessary()
+//        releaseWifiLockIfNecessary()
         if (isPlaying || isError) {
             Logd(TAG, "Pausing playback $reinit")
             exoPlayer?.pause()
@@ -596,7 +573,7 @@ class Media3Player : MediaPlayerBase() {
 
     override fun reinit() {
         Logd(TAG, "reinit() called")
-        releaseWifiLockIfNecessary()
+//        releaseWifiLockIfNecessary()
         when {
             curEpisode != null -> prepareMedia(playable = curEpisode!!, streaming = isStreaming, startWhenPrepared = startWhenPrepared.get(), prepareImmediately = false, forceReset = true, doPostPlayback = true)
             else -> Logd(TAG, "Call to reinit: media and mediaPlayer were null, ignored")
@@ -709,7 +686,7 @@ class Media3Player : MediaPlayerBase() {
         } catch (e: Exception) { Logs(TAG, e) }
         release()
         status = PlayerStatus.STOPPED
-        releaseWifiLockIfNecessary()
+//        releaseWifiLockIfNecessary()
     }
 
 //    override fun setVideoSurface(surface: SurfaceHolder?) {
@@ -792,7 +769,7 @@ class Media3Player : MediaPlayerBase() {
     override fun endPlayback(hasEnded: Boolean, wasSkipped: Boolean, shouldContinue: Boolean) {
         if (curEpisode == null) {
             Logd(TAG, "endPlayback curEpisode is null, return")
-            releaseWifiLockIfNecessary()
+//            releaseWifiLockIfNecessary()
             return
         }
 
@@ -805,7 +782,7 @@ class Media3Player : MediaPlayerBase() {
         fun stopPlayer() {
             Logd(TAG, "endPlayback stopPlayer is called")
             onPlaybackEnded(true)
-            releaseWifiLockIfNecessary()
+//            releaseWifiLockIfNecessary()
             setAsCurEpisode(null)
             exoPlayer?.stop()
             if (isUnknown) setPlayerStatus(PlayerStatus.STOPPED, null)
@@ -829,8 +806,8 @@ class Media3Player : MediaPlayerBase() {
                         if (!isStreamingCapable(nextMedia)) {
                             if (currentMedia != null) onPostPlayback(currentMedia, hasEnded, wasSkipped, false)
                             return
-                        } else acquireWifiLockIfNecessary()
-                    } else releaseWifiLockIfNecessary()
+                        }
+                    }
                     prepareMedia(playable = nextMedia, streaming = needStreaming, startWhenPrepared = isPlaying, prepareImmediately = isPlaying)
                     if (widgetId.isNotEmpty()) {
                         CoroutineScope(Dispatchers.IO).launch {
@@ -849,7 +826,7 @@ class Media3Player : MediaPlayerBase() {
             }
             isPlaying -> {
                 Logd(TAG, "endPlayback isPlaying")
-                releaseWifiLockIfNecessary()
+//                releaseWifiLockIfNecessary()
                 onPlaybackPause(currentMedia, currentMedia?.position?: 0)
             }
             else -> {

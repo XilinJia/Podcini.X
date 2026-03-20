@@ -112,9 +112,6 @@ class AppPrefs: RealmObject {
     var restrictedModeEnabled: Boolean = false
 
 //    =====================
-    var migrationDone: Boolean = false
-    var sharedPrefsDeleted: Boolean = false
-
     var clipsMoved: Boolean = false
 
     override fun equals(other: Any?): Boolean {
@@ -170,8 +167,6 @@ class AppPrefs: RealmObject {
         if (streamingCacheSizeMB != other.streamingCacheSizeMB) return false
         if (videoPlaybackMode != other.videoPlaybackMode) return false
         if (restrictedModeEnabled != other.restrictedModeEnabled) return false
-        if (migrationDone != other.migrationDone) return false
-        if (sharedPrefsDeleted != other.sharedPrefsDeleted) return false
         if (clipsMoved != other.clipsMoved) return false
         if (lastVersion != other.lastVersion) return false
         if (theme != other.theme) return false
@@ -246,8 +241,6 @@ class AppPrefs: RealmObject {
         result = 31 * result + streamingCacheSizeMB
         result = 31 * result + videoPlaybackMode
         result = 31 * result + restrictedModeEnabled.hashCode()
-        result = 31 * result + migrationDone.hashCode()
-        result = 31 * result + sharedPrefsDeleted.hashCode()
         result = 31 * result + clipsMoved.hashCode()
         result = 31 * result + lastVersion.hashCode()
         result = 31 * result + theme.hashCode()
