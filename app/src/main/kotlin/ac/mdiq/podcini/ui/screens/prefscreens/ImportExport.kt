@@ -481,18 +481,18 @@ fun ImportExportScreen() {
                     },
                     trailingIcon = {
                         if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
-                            modifier = Modifier.size(30.dp).clickable(onClick = {
+                            modifier = Modifier.size(30.dp).clickable {
                                 if (count.isEmpty()) count = "0"
                                 upsertBlk(appPrefs) { p-> p.autoBackupLimit = count.toIntOrNull()?:0 }
                                 showIcon = false
-                            }))
+                            })
                     })
             }
-            Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp).clickable(onClick = {
+            Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp).clickable {
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
                 selectAutoBackupDirLauncher.launch(intent)
-            })) {
+            }) {
                 Text(stringResource(R.string.pref_auto_backup_folder), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                 Text(backupFolder, color = textColor, style = MaterialTheme.typography.bodySmall)
             }

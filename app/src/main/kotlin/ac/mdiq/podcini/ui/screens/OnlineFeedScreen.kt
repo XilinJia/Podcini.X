@@ -207,7 +207,6 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                         urlToLog = url
                         Logd(TAG, "Successfully retrieve feed url")
                         isFeedFoundBySearch = true
-                        //                feeds = getFeedList()
                         gearbox.buildFeed(url, username?:"", password?:"", feedBuilder, handleFeed = { feed_, map -> handleFeed(feed_, map) }) { showTabsDialog = true }
                     } else {
                         withContext(Dispatchers.Main) { showNoPodcastFoundDialog = true }
@@ -378,12 +377,12 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     @Composable
     fun MyTopAppBar() {
         Box {
-            TopAppBar(title = { Text(text = "Online feed") }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer",  modifier = Modifier.padding(7.dp).clickable(onClick = {
+            TopAppBar(title = { Text(text = "Online feed") }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer",  modifier = Modifier.padding(7.dp).clickable {
                 if (navController.previousBackStackEntry != null) {
                     navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
                     navController.popBackStack()
                 } else drawerController?.open()
-            })) } )
+            }) } )
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
@@ -495,15 +494,15 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 }
 
                 Text(stringResource(R.string.feeds_related_to_author), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 10.dp).clickable(onClick = {
+                    modifier = Modifier.padding(top = 10.dp).clickable {
                         setOnlineSearchTerms(query = "${vm.feed?.author} podcasts")
                         navController.navigate(Screens.FindFeeds.name)
-                    }))
+                    })
                 LazyRow(state = rememberLazyListState(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     items(vm.relatedFeeds) { feed ->
-                        AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable(onClick = {
+                        AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable {
                             navController.navigate("${Screens.OnlineFeed.name}?url=${feed.feedUrl?.encodeURLParameter()}&source=${feed.source}")
-                        }))
+                        })
                     }
                 }
                 val info = remember(vm.feed) {

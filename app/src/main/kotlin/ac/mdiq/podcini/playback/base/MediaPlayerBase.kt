@@ -1,15 +1,14 @@
 package ac.mdiq.podcini.playback.base
 
-import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
+import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkUrl
+import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.SleepTimer.autoEnableFrom
 import ac.mdiq.podcini.playback.SleepTimer.autoEnableTo
 import ac.mdiq.podcini.playback.SleepTimer.isInTimeRange
 import ac.mdiq.podcini.playback.SleepTimer.lastTimerValue
-import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
-import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkUrl
-import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus

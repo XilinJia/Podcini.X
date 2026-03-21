@@ -74,7 +74,7 @@ class ShortcutsActivity : ComponentActivity() {
                                 var checkedIndex by remember { mutableIntStateOf(-1) }
                                 LazyColumn(state = lazyListState, modifier = Modifier.weight(1f).fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     itemsIndexed(feedItems) { index, item ->
-                                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = { checkedIndex = index })) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { checkedIndex = index }) {
                                             var checked by remember { mutableStateOf(false) }
                                             Checkbox(checked = checkedIndex == index, onCheckedChange = {
                                                 checkedIndex = index
@@ -91,7 +91,7 @@ class ShortcutsActivity : ComponentActivity() {
                                 var checkedIndex by remember { mutableIntStateOf(-1) }
                                 LazyColumn(state = lazyListState, modifier = Modifier.weight(1f).fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     itemsIndexed(queueList) { index, item ->
-                                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = { checkedIndex = index })) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { checkedIndex = index }) {
                                             var checked by remember { mutableStateOf(false) }
                                             Checkbox(checked = checkedIndex == index, onCheckedChange = {
                                                 checkedIndex = index
@@ -108,7 +108,7 @@ class ShortcutsActivity : ComponentActivity() {
                                 var checkedName by remember { mutableStateOf("") }
                                 LazyColumn(state = lazyListState, modifier = Modifier.weight(1f).fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     itemsIndexed(QuickAccess.entries) { index, item ->
-                                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = { checkedName = item.name })) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { checkedName = item.name }) {
                                             var checked by remember { mutableStateOf(false) }
                                             Checkbox(checked = checkedName == item.name, onCheckedChange = {
                                                 checkedName = item.name

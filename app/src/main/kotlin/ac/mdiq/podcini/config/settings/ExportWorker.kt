@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.config.settings
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.UnifiedFile
@@ -29,7 +30,7 @@ class ExportWorker private constructor(private val exportWriter: ExportWriter, p
                 output.delete()
                 Logd(TAG, "Overwriting previously exported file")
             }
-            val feeds_ = feeds ?: getFeedList()
+            val feeds_ = feeds ?: allFeeds
             Logd(TAG, "feeds_: ${feeds_.size}")
             exportWriter.writeDocument(feeds_, output)
             output
@@ -47,7 +48,7 @@ class DocumentFileExportWorker(private val exportWriter: ExportWriter, private v
         return withContext(Dispatchers.IO) {
             val output = outputFileUri.toUF()
             try {
-                val feeds_ = feeds ?: getFeedList()
+                val feeds_ = feeds ?: allFeeds
                 Logd("DocumentFileExportWorker", "feeds_: ${feeds_.size}")
                 exportWriter.writeDocument(feeds_, output)
                 output

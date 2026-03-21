@@ -20,7 +20,6 @@ class PodciniApp : Application() {
         Log.d("PodciniApp", "PodciniApp onCreate")
 
         ClientConfig.USER_AGENT = "Podcini/" + BuildConfig.VERSION_NAME
-//        ClientConfig.applicationCallbacks = ApplicationCallbacksImpl()
         Thread.setDefaultUncaughtExceptionHandler(CrashReportWriter())
         if (BuildConfig.DEBUG) {
             val builder: StrictMode.VmPolicy.Builder = StrictMode.VmPolicy.Builder().detectAll().penaltyLog().penaltyDropBox()
@@ -34,25 +33,17 @@ class PodciniApp : Application() {
         super.onTerminate()
     }
 
-//    class ApplicationCallbacksImpl : ApplicationCallbacks {
-//        override fun getApplicationInstance(): Application {
-//            return getApp()
-//        }
-//    }
-
     companion object {
         private lateinit var podciniApp: PodciniApp
-
-        fun getApp(): PodciniApp = podciniApp
 
         fun getAppContext(): Context = podciniApp.applicationContext
 
         fun forceRestart() {
-            val intent = Intent(getApp(), MainActivity::class.java)
+            val intent = Intent(podciniApp, MainActivity::class.java)
             val mainIntent = Intent.makeRestartActivityTask(intent.component)
             ClientConfig.destroy()
             realm.close()
-            getApp().startActivity(mainIntent)
+            podciniApp.startActivity(mainIntent)
             Runtime.getRuntime().exit(0)
         }
     }

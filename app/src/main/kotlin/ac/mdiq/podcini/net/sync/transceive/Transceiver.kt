@@ -19,6 +19,7 @@ import ac.mdiq.podcini.storage.model.toDTO
 import ac.mdiq.podcini.storage.model.toRealm
 import ac.mdiq.podcini.storage.model.volumes
 import ac.mdiq.podcini.storage.utils.nowInMillis
+import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
@@ -33,15 +34,22 @@ import io.ktor.network.sockets.aSocket
 import io.ktor.network.sockets.isClosed
 import io.ktor.network.sockets.openReadChannel
 import io.ktor.network.sockets.openWriteChannel
+import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.CancellationException
 import io.ktor.utils.io.core.buildPacket
 import io.ktor.utils.io.core.writeText
+import io.ktor.utils.io.readAvailable
 import io.ktor.utils.io.readFully
 import io.ktor.utils.io.readInt
+import io.ktor.utils.io.readLong
 import io.ktor.utils.io.writeByteArray
+import io.ktor.utils.io.writeFully
 import io.ktor.utils.io.writeInt
+import io.ktor.utils.io.writeLong
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
@@ -49,6 +57,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.io.readString
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import okio.buffer
 
 private const val TAG = "Transceiver"
 val socketSelector = SelectorManager(Dispatchers.IO)
@@ -71,13 +80,44 @@ abstract class Receiver(private val port: Int) {
     fun stop() {
         serverSocket?.close()
     }
+
+    suspend fun receiveClips(channel: ByteReadChannel) {
+        val fileCount = channel.readInt()
+        repeat(fileCount) {
+            val metaSize = channel.readInt()
+            val metaBytes = ByteArray(metaSize)
+            channel.readFully(metaBytes)
+
+            val media = Json.decodeFromString<ClipInfo>(metaBytes.decodeToString())
+            val fileSize = channel.readLong()
+            val file = media.fileName.toUF()
+            file.sink().buffer().use { output ->
+                val buffer = ByteArray(8192)
+                var remaining = fileSize
+                while (remaining > 0) {
+                    val read = channel.readAvailable(buffer, 0, minOf(buffer.size.toLong(), remaining).toInt())
+                    if (read == -1) break
+                    output.write(buffer, 0, read)
+                    remaining -= read
+                }
+            }
+            Logd(TAG, "Saved clip: ${file.absPath}")
+        }
+    }
 }
 
 
 @Serializable
+data class ClipInfo(
+    val fileName: String,
+    val size: Long
+)
+
+@Serializable
 data class FeedPackage(
     val feed: FeedDTO,
-    val episodes: List<EpisodeDTO>
+    val episodes: List<EpisodeDTO>,
+    val clips: List<ClipInfo>
 )
 
 class FeedReceiver(port: Int): Receiver(port) {
@@ -92,27 +132,27 @@ class FeedReceiver(port: Int): Receiver(port) {
                 Logd(TAG, "Client connected: ${clientSocket.remoteAddress}")
 
                 try {
-                    val input = clientSocket.openReadChannel()
-                    val size = input.readInt()
+                    val channel = clientSocket.openReadChannel()
+                    val size = channel.readInt()
                     val bytes = ByteArray(size)
-                    input.readFully(bytes)
+                    channel.readFully(bytes)
 
                     val json = bytes.decodeToString()
                     val pkg = Json.decodeFromString<FeedPackage>(json)
-
-                    Logd(TAG, "Received ${pkg.feed.eigenTitle} with ${pkg.episodes.size} episodes")
-
                     val f = pkg.feed.toRealm()
                     upsertBlk(f) { it.freezeFeed(false) }
-
                     Logd(TAG, "Saved feed: ${f.title}")
+
                     pkg.episodes.forEach {
                         val e = it.toRealm()
                         Logd(TAG, "Saved episode: ${e.title}")
                     }
-                    Logt(TAG, "Received ${pkg.feed.eigenTitle} with ${pkg.episodes.size} episodes")
+
+                    receiveClips(channel)
+
+                    Logt(TAG, "Received ${pkg.feed.eigenTitle} with ${pkg.episodes.size} episodes and ${pkg.clips.size} clips")
                 } catch (e: Exception) { Logt(TAG, "Receiving feed terminated: ${e.message}")
-                } finally { clientSocket.close() }
+                } finally { withContext(NonCancellable) { withContext(Dispatchers.IO) { clientSocket.close() } } }
             } catch (e: Throwable) { }
         }
     }
@@ -122,12 +162,20 @@ fun sendFeed(host: String, port: Int, feedId: Long, onEnd: ()->Unit): Job? {
     Logd(TAG, "sendFeed host: $host port: $port")
     val feed = getFeed(feedId) ?: return null
     val feedDTO = feed.toDTO()
-    val episodesDTO = getEpisodes(null, null, feedId = feedId, copy = false).map { it.toDTO() }
-    val pkg = FeedPackage(feedDTO, episodesDTO)
-    Logd(TAG, "built package: feed: ${pkg.feed.eigenTitle} ${pkg.episodes.size} episodes")
+    val episodesDTO = mutableListOf<EpisodeDTO>()
+    val clipsInfo = mutableListOf<ClipInfo>()
 
     var socket: Socket? = null
     return runOnIOScope {
+        getEpisodes(null, null, feedId = feedId, copy = false).forEach {
+            episodesDTO.add(it.toDTO())
+            it.clips.forEach { clip->
+                val file = it.getClipFile(clip)
+                clipsInfo.add(ClipInfo(file.absPath, file.size()?:0L))
+            }
+        }
+        val pkg = FeedPackage(feedDTO, episodesDTO, clipsInfo)
+        Logd(TAG, "built package: feed: ${pkg.feed.eigenTitle} ${pkg.episodes.size} episodes")
         try {
             socket = aSocket(socketSelector).tcp().connect(host, port)
             Logd(TAG, "got socket")
@@ -137,10 +185,12 @@ fun sendFeed(host: String, port: Int, feedId: Long, onEnd: ()->Unit): Job? {
             val bytes = json.toByteArray()
             Logd(TAG, "(${bytes.size} bytes)")
 
-            val output = socket.openWriteChannel()
-            output.writeInt(bytes.size)
-            output.writeByteArray(bytes)
-            output.flush()
+            val channel = socket.openWriteChannel()
+            channel.writeInt(bytes.size)
+            channel.writeByteArray(bytes)
+
+            sendClips(channel, pkg.clips)
+            channel.flush()
 
             upsert(feed) { it.freezeFeed(true) }
             Logt(TAG, "Sent feed: ${pkg.feed.eigenTitle} ${pkg.episodes.size} episodes (${bytes.size} bytes)")
@@ -155,7 +205,8 @@ fun sendFeed(host: String, port: Int, feedId: Long, onEnd: ()->Unit): Job? {
 @Serializable
 data class EpisodesPackage(
     val syntheticName: String,
-    val episodes: List<EpisodeDTO>
+    val episodes: List<EpisodeDTO>,
+    val clips: List<ClipInfo>
 )
 
 class EpisodesReceiver(port: Int, val onEnd: ()->Unit): Receiver(port) {
@@ -170,10 +221,10 @@ class EpisodesReceiver(port: Int, val onEnd: ()->Unit): Receiver(port) {
                 Logd(TAG, "Client connected: ${clientSocket.remoteAddress}")
 
                 try {
-                    val input = clientSocket.openReadChannel()
-                    val size = input.readInt()
+                    val channel = clientSocket.openReadChannel()
+                    val size = channel.readInt()
                     val bytes = ByteArray(size)
-                    input.readFully(bytes)
+                    channel.readFully(bytes)
 
                     val json = bytes.decodeToString()
                     val pkg = Json.decodeFromString<EpisodesPackage>(json)
@@ -191,10 +242,13 @@ class EpisodesReceiver(port: Int, val onEnd: ()->Unit): Receiver(port) {
                         upsertBlk(e) { e_ -> e_.feedId = f.id}
                         Logd(TAG, "Saved episode: ${e.title}")
                     }
+
+                    receiveClips(channel)
+
                     Logt(TAG, "Received ${pkg.episodes.size} episodes for ${pkg.syntheticName}")
                 } catch (e: Exception) { Logt(TAG, "Receiving feed terminated: ${e.message}")
                 } finally {
-                    clientSocket.close()
+                    withContext(NonCancellable) { withContext(Dispatchers.IO) { clientSocket.close() } }
                     onEnd()
                 }
             } catch (e: Throwable) { onEnd() }
@@ -202,13 +256,42 @@ class EpisodesReceiver(port: Int, val onEnd: ()->Unit): Receiver(port) {
     }
 }
 
-fun sendEpisodes(host: String, port: Int, syntheticName: String, episodes: List<Episode>, onEnd: ()->Unit): Job? {
-    val episodesDTO = episodes.map { it.toBasicDTO() }
-    val pkg = EpisodesPackage(syntheticName, episodesDTO)
-    Logd(TAG, "built package: feed: $syntheticName ${pkg.episodes.size} episodes")
+suspend fun sendClips(channel: ByteWriteChannel, clips: List<ClipInfo>) {
+    channel.writeInt(clips.size)
+    for (info in clips) {
+        val file = info.fileName.toUF()
+
+        val metaBytes = Json.encodeToString(info).encodeToByteArray()
+        channel.writeInt(metaBytes.size)
+        channel.writeFully(metaBytes)
+        channel.writeLong(info.size)
+
+        file.source().buffer().use { input ->
+            val buffer = ByteArray(8192)
+            while (true) {
+                val read = input.read(buffer)
+                if (read == -1) break
+                channel.writeFully(buffer, 0, read)
+            }
+        }
+    }
+}
+
+fun sendEpisodes(host: String, port: Int, syntheticName: String, episodes: List<Episode>, onEnd: ()->Unit): Job {
+    val episodesDTO = mutableListOf<EpisodeDTO>()
+    val clipsInfo = mutableListOf<ClipInfo>()
 
     var socket: Socket? = null
     return runOnIOScope {
+        episodes.forEach {
+            episodesDTO.add(it.toBasicDTO())
+            it.clips.forEach { clip->
+                val file = it.getClipFile(clip)
+                clipsInfo.add(ClipInfo(file.absPath, file.size()?:0L))
+            }
+        }
+        val pkg = EpisodesPackage(syntheticName, episodesDTO, clipsInfo)
+        Logd(TAG, "built package: feed: $syntheticName ${pkg.episodes.size} episodes")
         try {
             socket = aSocket(socketSelector).tcp().connect(host, port)
             Logd(TAG, "got socket")
@@ -218,10 +301,13 @@ fun sendEpisodes(host: String, port: Int, syntheticName: String, episodes: List<
             val bytes = json.toByteArray()
             Logd(TAG, "(${bytes.size} bytes)")
 
-            val output = socket.openWriteChannel()
-            output.writeInt(bytes.size)
-            output.writeByteArray(bytes)
-            output.flush()
+            val channel = socket.openWriteChannel()
+            channel.writeInt(bytes.size)
+            channel.writeByteArray(bytes)
+
+            sendClips(channel, pkg.clips)
+
+            channel.flush()
 
             Logt(TAG, "Sent feed: $syntheticName ${pkg.episodes.size} episodes (${bytes.size} bytes)")
         } catch (e: Throwable) { Logt(TAG, "Sending feed terminated: ${e.message}")
@@ -287,7 +373,7 @@ class CatalogReceiver(port: Int, val onEnd: ()->Unit): Receiver(port) {
                     Logt(TAG, "CatalogReceiver Received from ${pkg.senderName} ${pkg.feedDTOs.size} feeds in catalog")
                 } catch (e: Exception) { Logt(TAG, "Receiving catalog terminated: ${e.message}")
                 } finally {
-                    clientSocket.close()
+                    withContext(NonCancellable) { withContext(Dispatchers.IO) { clientSocket.close() } }
                     onEnd()
                 }
             } catch (e: Throwable) { onEnd() }
@@ -329,6 +415,7 @@ fun sendCatalog(host: String, port: Int, onEnd: ()->Unit): Job {
     }
 }
 
+private const val Version = "1"
 suspend fun broadcastPresence(udpPort: Int, tcpPort: Int) = withContext(Dispatchers.IO) {
     val socket = aSocket(socketSelector).udp().bind { broadcast = true }
 
@@ -351,7 +438,7 @@ suspend fun broadcastPresence(udpPort: Int, tcpPort: Int) = withContext(Dispatch
     val myIp = getLocalIpAddress() ?: return@withContext
     val mask = computeBroadcast(myIp, 24)
 
-    val message = "PodciniReceiver:$myIp:$tcpPort:${appAttribs.name}:${appAttribs.uniqueId}"
+    val message = "PodciniReceiver:$myIp:$tcpPort:${appAttribs.name}:${appAttribs.uniqueId}:$Version"
 
     try {
         while (isActive) {
@@ -389,7 +476,7 @@ suspend fun listenForUDPBroadcasts(udpPort: Int, onReceiversUpdated: (List<Disco
                 if (!message.startsWith("PodciniReceiver:")) continue
 
                 val parts = message.trim().split(":")
-                if (parts.size < 5) {
+                if (parts.size != 6) {
                     Loge(TAG, "listenForBroadcasts Invalid message format: $message")
                     continue
                 }
@@ -398,6 +485,12 @@ suspend fun listenForUDPBroadcasts(udpPort: Int, onReceiversUpdated: (List<Disco
                 val port = parts[2].toIntOrNull()
                 val name = parts[3]
                 val uid = parts[4]
+                val version = parts[5]
+                if (version != Version) {
+                    Loge(TAG, "listenForBroadcasts The receiver is in an incompetible version: $message")
+                    continue
+                }
+
                 Logd(TAG, "listenForBroadcasts 9")
 
                 if (port == null) {

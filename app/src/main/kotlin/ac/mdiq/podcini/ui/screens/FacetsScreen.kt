@@ -558,8 +558,8 @@ fun FacetsScreen(modeName: String = "") {
         val textColor = MaterialTheme.colorScheme.onSurface
         val buttonColor = Color(0xDDFFD700)
         Box {
-            TopAppBar(title = { Text(facetsMode.name, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).clickable(onClick = { showChooseMode = true })) },
-                navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable(onClick = { drawerController?.open() })) },
+            TopAppBar(title = { Text(facetsMode.name, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).clickable { showChooseMode = true }) },
+                navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) },
                 actions = {
                     Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
                         val feedsIconRes = remember(vm.showFeeds) { if (vm.showFeeds) R.drawable.baseline_list_alt_24 else R.drawable.baseline_dynamic_feed_24 }

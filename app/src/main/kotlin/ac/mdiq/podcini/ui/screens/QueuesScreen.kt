@@ -1,14 +1,15 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.automation.autodownloadForQueue
-import ac.mdiq.podcini.automation.autoenqueueForQueue
+import ac.mdiq.podcini.automation.AutoDownloadAlgorithm
+import ac.mdiq.podcini.automation.AutoEnqueueAlgorithm
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.mediaBrowser
 import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.persistOrdered
@@ -149,6 +150,7 @@ import coil3.request.ImageRequest
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import io.github.xilinjia.krdb.ext.query
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -481,7 +483,7 @@ fun QueuesScreen(id: Long = -1L) {
                     } }
                     Text(title)
                 } },
-                navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable(onClick = { drawerController?.open() })) },
+                navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) },
                 actions = {
                     val binIconRes = remember(vm.queuesMode) { if (vm.queuesMode != QueuesScreenMode.Queue) R.drawable.playlist_play else R.drawable.ic_history }
                     val feedsIconRes = remember(vm.queuesMode) {  if (vm.queuesMode == QueuesScreenMode.Feed) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 }
@@ -786,8 +788,11 @@ fun QueuesScreen(id: Long = -1L) {
                                     cancelRes = R.string.cancel_label,
                                     confirmRes = R.string.enqueue,
                                     onConfirm = {
-                                        autoenqueueForQueue(vm.curQueue)
-                                        if (vm.curQueue.launchAutoEQDlWhenEmpty) autodownloadForQueue(vm.curQueue)
+                                        CoroutineScope(Dispatchers.IO).launch {
+                                            val feeds = vm.curQueue.normalFeeds
+                                            AutoEnqueueAlgorithm().run(feeds, true)
+                                            if (vm.curQueue.launchAutoEQDlWhenEmpty && appPrefs.enableAutoDl) AutoDownloadAlgorithm().run(feeds, false, noRefreshing = true)
+                                        }
                                     },
                                     neutralRes = R.string.refresh_label,
                                     onNeutral = { runOnceOrAsk(feeds = vm.feedsAssociated)  }

@@ -387,7 +387,7 @@ fun moveClips() {
     suspend fun move(source: UnifiedFile): Int {
         if (!source.exists()) return 0
         val files = source.listChildren()
-        Logt(TAG, "number of clips to move: ${files.size}")
+        if (files.isNotEmpty()) Logt(TAG, "number of clips to move: ${files.size}")
         for (f in files) {
             val fileName = f.absPath.substringAfterLast('/')
             val newPath = "${clipsDir.absPath}/$fileName"
@@ -401,7 +401,7 @@ fun moveClips() {
         var num = move(mediaDir)
         val clipsDir_ = internalDir / "clips"
         num += move(clipsDir_)
-        Logt(TAG, "number of clips moved: $num to ${clipsDir_.absPath}")
+        if (num > 0) Logt(TAG, "number of clips moved: $num to ${clipsDir_.absPath}")
         upsert(appPrefs) { it.clipsMoved = true }
 
         val files = clipsDir.listChildren()

@@ -1,11 +1,10 @@
 package ac.mdiq.podcini.ui.compose
 
-import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.DownloadStatus
-import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.net.download.Downloader.Companion.downloadStates
+import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
@@ -131,14 +130,14 @@ fun InforBar(swipeActions: SwipeActions, content: @Composable (RowScope.()->Unit
 //    Logd("InforBar", "textState: ${text.value}")
     Row {
         Icon(imageVector = ImageVector.vectorResource(leftAction.iconRes), tint = buttonColor, contentDescription = "left_action_icon",
-            modifier = Modifier.width(24.dp).height(24.dp).clickable(onClick = {  showSwipeActionsDialog = true }))
+            modifier = Modifier.width(24.dp).height(24.dp).clickable { showSwipeActionsDialog = true })
         Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_left_alt_24), tint = textColor, contentDescription = "left_arrow", modifier = Modifier.width(24.dp).height(24.dp))
         Spacer(modifier = Modifier.weight(1f))
         content()
         Spacer(modifier = Modifier.weight(1f))
         Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_right_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier.width(24.dp).height(24.dp))
         Icon(imageVector = ImageVector.vectorResource(rightAction.iconRes), tint = buttonColor, contentDescription = "right_action_icon",
-            modifier = Modifier.width(24.dp).height(24.dp).clickable(onClick = {  showSwipeActionsDialog = true }))
+            modifier = Modifier.width(24.dp).height(24.dp).clickable {  showSwipeActionsDialog = true })
     }
 }
 
@@ -488,14 +487,14 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                         }
                         Row(Modifier.background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)) {
                             if (showCoverImage && (feed == null || !useFeedImage)) {
-                                Box(modifier = Modifier.width(imageWidth).height(imageHeight).clickable(onClick = {
+                                Box(modifier = Modifier.width(imageWidth).height(imageHeight).clickable {
                                     Logd(TAG, "icon clicked!")
                                     when {
                                         selectMode -> toggleSelected(episode)
                                         feed == null && episode.feed?.isSynthetic() != true -> navController.navigate("${Screens.FeedDetails.name}?feedId=${episode.feed!!.id}&modeName=${FeedScreenMode.Info.name}")
                                         else -> episodeForInfo = episode
                                     }
-                                })) {
+                                }) {
                                     AsyncImage(model = ImageRequest.Builder(context).data(episode.imageLocation(forceFeedImage)).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
                                     if (episode.feed != null && episode.feed!!.useFeedImage() && episode.feed!!.rating != Rating.UNRATED.code)
                                         Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.feed!!.rating).res), tint = buttonColor, contentDescription = "rating", modifier = Modifier.width(imageWidth/4).height(imageHeight/4).align(Alignment.BottomStart).background(MaterialTheme.colorScheme.tertiaryContainer) )
@@ -566,26 +565,26 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
         if (selectMode) {
             Row(modifier = Modifier.align(Alignment.TopEnd).background(MaterialTheme.colorScheme.tertiaryContainer), horizontalArrangement = Arrangement.spacedBy(15.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_upward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).padding(start = 10.dp)
-                    .clickable(onClick = {
+                    .clickable {
                         selected.clear()
                         val eList = multiSelectCB(longPressIndex, -1)
                         if (eList.isEmpty()) for (i in 0..longPressIndex) selected.add(episodes[i])
                         else selected.addAll(eList)
                         selectedSize = selected.size
                         Logd(TAG, "selectedIds: ${selected.size}")
-                    }))
+                    })
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_downward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp)
-                    .clickable(onClick = {
+                    .clickable {
                         selected.clear()
                         val eList = multiSelectCB(longPressIndex, 1)
                         if (eList.isEmpty()) for (i in longPressIndex..<episodes.size) selected.add(episodes[i])
                         else selected.addAll(eList)
                         selectedSize = selected.size
                         Logd(TAG, "selectedIds: ${selected.size}")
-                    }))
+                    })
                 var selectAllRes by remember { mutableIntStateOf(R.drawable.ic_select_all) }
                 Icon(imageVector = ImageVector.vectorResource(selectAllRes), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp)
-                    .clickable(onClick = {
+                    .clickable {
                         if (selectedSize != episodes.size) {
                             selected.clear()
                             val eList = multiSelectCB(longPressIndex, 0)
@@ -599,7 +598,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                         }
                         selectedSize = selected.size
                         Logd(TAG, "selectedIds: ${selected.size}")
-                    }))
+                    })
                 @Composable
                 fun EpisodeSpeedDial(modifier: Modifier = Modifier) {
                     var isExpanded by remember { mutableStateOf(false) }

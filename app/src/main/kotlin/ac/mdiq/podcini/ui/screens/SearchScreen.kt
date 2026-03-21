@@ -211,10 +211,10 @@ fun SearchScreen() {
                         }
                         vm.queryText = str
                     }
-                    if (vm.selectedTabIndex.intValue == 0) Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort", modifier = Modifier.padding(start = 7.dp).clickable(onClick = { showSortDialog = true }))
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "Advanced", modifier = Modifier.padding(start = 7.dp).clickable(onClick = { vm.showAdvanced = !vm.showAdvanced}))
+                    if (vm.selectedTabIndex.intValue == 0) Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort", modifier = Modifier.padding(start = 7.dp).clickable { showSortDialog = true })
+                    Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "Advanced", modifier = Modifier.padding(start = 7.dp).clickable { vm.showAdvanced = !vm.showAdvanced})
                 }
-            }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.padding(horizontal = 7.dp).clickable(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() else drawerController?.open()  })) } )
+            }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.padding(horizontal = 7.dp).clickable { if (navController.previousBackStackEntry != null) navController.popBackStack() else drawerController?.open()  }) } )
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
@@ -232,9 +232,9 @@ fun SearchScreen() {
             if (vm.showAdvanced) {
                 var showSearchBy by remember { mutableStateOf(false) }
                 Row {
-                    Text(stringResource(R.string.show_criteria), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = { showSearchBy = !showSearchBy }))
+                    Text(stringResource(R.string.show_criteria), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { showSearchBy = !showSearchBy })
                     Spacer(Modifier.weight(1f))
-                    Text(stringResource(R.string.search_online), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = {
+                    Text(stringResource(R.string.search_online), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable {
                         val query = vm.queryText
                         if (query.matches("http[s]?://.*".toRegex())) {
                             navController.navigate("${Screens.OnlineFeed.name}?url=${query.encodeURLParameter()}")
@@ -242,7 +242,7 @@ fun SearchScreen() {
                         }
                         setOnlineSearchTerms(query = query)
                         navController.navigate(Screens.FindFeeds.name)
-                    }))
+                    })
                 }
                 if (showSearchBy) vm.algo.SearchByGrid()
             }
@@ -262,16 +262,15 @@ fun SearchScreen() {
                 fun FeedRow(feed: Feed) {
                     Row(Modifier.background(MaterialTheme.colorScheme.surface)) {
                         AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover",
-                            modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = {
+                            modifier = Modifier.width(80.dp).height(80.dp).clickable {
                                 Logd(TAG, "icon clicked!")
                                 if (!feed.isBuilding) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}&modeName=${FeedScreenMode.Info.name}")
                             })
-                        )
                         val textColor = MaterialTheme.colorScheme.onSurface
-                        Column(Modifier.weight(1f).padding(start = 10.dp).clickable(onClick = {
+                        Column(Modifier.weight(1f).padding(start = 10.dp).clickable {
                             Logd(TAG, "clicked: ${feed.title}")
                             if (!feed.isBuilding) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
-                        })) {
+                        }) {
                             Row {
                                 if (feed.rating != Rating.UNRATED.code)
                                     Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.width(20.dp).height(20.dp).background(MaterialTheme.colorScheme.tertiaryContainer))
@@ -314,16 +313,15 @@ fun SearchScreen() {
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover",
-                                modifier = Modifier.width(60.dp).height(60.dp).clickable(onClick = {
+                                modifier = Modifier.width(60.dp).height(60.dp).clickable {
                                     Logd(TAG, "feedUrl: ${feed.name} [${feed.feedUrl}] [$]")
                                     navToOnlineFeed()
                                 })
-                            )
                             val textColor = MaterialTheme.colorScheme.onSurface
-                            Column(Modifier.weight(1f).padding(start = 10.dp).clickable(onClick = {
+                            Column(Modifier.weight(1f).padding(start = 10.dp).clickable {
                                 Logd(TAG, "feedUrl: ${feed.name} [${feed.feedUrl}]")
                                 navToOnlineFeed()
-                            })) {
+                            }) {
                                 Text(feed.name, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
                                 Text(feed.author, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
                                 Text(feed.category.joinToString(","), color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)

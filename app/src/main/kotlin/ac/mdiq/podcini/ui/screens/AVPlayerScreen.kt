@@ -374,7 +374,7 @@ fun ControlUI(vm: AVPlayerVM, navController: AppNavigator) {
     val offsetX = remember(curEpisode?.id) { Animatable(0f) }
     val swipeVelocityThreshold = 1500f
     val swipeDistanceThreshold = with(LocalDensity.current) { 100.dp.toPx() }
-    Row(Modifier.pointerInput(Unit) {
+    Row(Modifier.background(MaterialTheme.colorScheme.surface).pointerInput(Unit) {
         detectHorizontalDragGestures(
             onDragStart = {
                 Logd(TAG, "detectHorizontalDragGestures onDragStart")
@@ -683,10 +683,10 @@ fun AVPlayerScreen() {
             text = {
                 LazyColumn {
                     items(vm.audioTracks) { track ->
-                        Text(track, color = textColor, modifier = Modifier.clickable(onClick = {
+                        Text(track, color = textColor, modifier = Modifier.clickable {
                             mPlayer?.setAudioTrack(((mPlayer?.getSelectedAudioTrack() ?: -1) + 1) % vm.audioTracks.size)
                             //                            Handler(Looper.getMainLooper()).postDelayed({ setupAudioTracks() }, 500)
-                        }))
+                        })
                     }
                 }
             },
@@ -722,7 +722,7 @@ fun AVPlayerScreen() {
     fun VideoToolBar(modifier: Modifier = Modifier) {
         var expanded by remember { mutableStateOf(false) }
         val buttonColor = Color(0xDDFFD700)
-        if (vm.showActionBar) Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        if (vm.showActionBar) Row(modifier = modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable { psState = PSState.PartiallyExpanded })
             if (vm.landscape) Column {
                 Text(text = curEpisode?.title?:"", fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -789,7 +789,7 @@ fun AVPlayerScreen() {
     fun Toolbar() {
         var expanded by remember { mutableStateOf(false) }
         val mediaType = remember(curEpisode?.id) { curEpisode?.getMediaType() }
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable { psState = PSState.PartiallyExpanded })
             if (mediaType == MediaType.VIDEO && !vm.episodeFeed?.downloadUrl.isNullOrBlank() && gearbox.isGearFeed(vm.episodeFeed!!.downloadUrl!!)) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fullscreen_24), tint = textColor, contentDescription = "Play video",
                 modifier = Modifier.clickable {
@@ -884,12 +884,12 @@ fun AVPlayerScreen() {
             Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                 Spacer(modifier = Modifier.weight(0.2f))
                 val ratingIconRes by remember(curEpisode?.rating) { mutableIntStateOf( Rating.fromCode(curEpisode?.rating ?: Rating.UNRATED.code).res) }
-                Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable(onClick = { showChooseRatingDialog = true }))
+                Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable { showChooseRatingDialog = true })
                 Spacer(modifier = Modifier.weight(0.4f))
                 val episodeDate = remember(curEpisode?.pubDate) { if (curEpisode == null) "" else formatDateTimeFlex(curEpisode!!.pubDate).trim() }
                 Text(episodeDate, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.weight(0.4f))
-                if (curEpisode != null) Icon(imageVector = ImageVector.vectorResource(comboAction.iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Combo", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).clickable(onClick = {  comboAction.performAction(curEpisode!!) }))
+                if (curEpisode != null) Icon(imageVector = ImageVector.vectorResource(comboAction.iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Combo", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).clickable {  comboAction.performAction(curEpisode!!) })
                 Spacer(modifier = Modifier.weight(0.2f))
             }
             SelectionContainer { Text((vm.episodeFeed?.title?:"").trim(), textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
@@ -902,7 +902,7 @@ fun AVPlayerScreen() {
                     else EmbeddedChapterImage.getModelFor(curEpisode!!, displayedChapterIndex)?.toString()
                 }
                 if (imgLarge != null) {
-                    AsyncImage( ImageRequest.Builder(context).data(imgLarge).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(10.dp).clickable(onClick = {}))
+                    AsyncImage( ImageRequest.Builder(context).data(imgLarge).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(10.dp))
                 }
             }
         }
@@ -924,7 +924,7 @@ fun AVPlayerScreen() {
             }
             onDispose {
                 insetsController.show(WindowInsetsCompat.Type.systemBars())
-                if (!isRotationEnabled) activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                if (!isRotationEnabled) activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             }
         }
 
@@ -977,7 +977,7 @@ fun AVPlayerScreen() {
                     VideoToolBar()
                     VideoPlayer()
                 } else Toolbar()
-                Row {
+                Row(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.playlist_play), tint = buttonColor, contentDescription = "queues icon", modifier = Modifier.width(24.dp).height(24.dp))
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_left_alt_24), tint = textColor, contentDescription = "left_arrow", modifier = Modifier.width(24.dp).height(24.dp))
                     Spacer(modifier = Modifier.weight(1f))

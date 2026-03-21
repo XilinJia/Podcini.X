@@ -297,18 +297,16 @@ class ContentUriFile(
             val df = if (DocumentsContract.isDocumentUri(context, uri)) DocumentFile.fromSingleUri(context, uri) else DocumentFile.fromTreeUri(context, uri)
             df?.exists() == true
         } catch (e: FileNotFoundException) { false } catch (e: IllegalArgumentException) { false }
-        return false
     }
 
     override suspend fun size(): Long? {
         return try {
-            context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)
-                ?.use { cursor ->
-                    if (cursor.moveToFirst()) {
-                        val index = cursor.getColumnIndex(OpenableColumns.SIZE)
-                        if (index != -1) cursor.getLong(index) else null
-                    } else null
-                }
+            context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val index = cursor.getColumnIndex(OpenableColumns.SIZE)
+                    if (index != -1) cursor.getLong(index) else null
+                } else null
+            }
         } catch (_: Exception) { null }
     }
 
@@ -342,16 +340,14 @@ class ContentUriFile(
         return result.map { ContentUriFile(it, context) }
     }
 
-    override fun source(): okio.Source {
+    override fun source(): Source {
         Logd(TAG, "source")
-//        val uri: Uri = docFile?.uri ?: throw IllegalStateException("Cannot open input stream for $uri")
         val inputStream = context.contentResolver.openInputStream(uri) ?: throw IllegalStateException("Cannot open input stream for $uri")
         return inputStream.source()
     }
 
-    override fun sink(append: Boolean): okio.Sink {
+    override fun sink(append: Boolean): Sink {
         Logd(TAG, "sink")
-//        val uri: Uri = docFile?.uri ?: throw IllegalStateException("Cannot open input stream for $uri")
         val mode = if (append) "wa" else "w"
         val outputStream = context.contentResolver.openOutputStream(uri, mode) ?: throw IllegalStateException("Cannot open output stream for $uri")
         return outputStream.sink()

@@ -57,6 +57,14 @@ abstract class Downloader(val request: DownloadRequest) {
         this.result = DownloadResult(this.request.feedfileId, this.request.title?:"", null, false, "", this.request.feedfileType, nowInMillis())
     }
 
+    open suspend fun download() { Loge(TAG, "download() method is not implemented") }
+
+    open suspend fun download(cb: suspend (Source)->Unit) { Loge(TAG, "download(cb) method is not implemented") }
+
+    fun cancel() {
+        cancelled = true
+    }
+
     protected fun checkResults(isGzip: Boolean, response: HttpResponse): Boolean {
         if (cancelled) onCancelled()
         else {
@@ -110,21 +118,6 @@ abstract class Downloader(val request: DownloadRequest) {
                 permanentRedirectUrl = location
             }
         }
-    }
-
-    protected open suspend fun download() { Loge(TAG, "download() method is not implemented") }
-
-    open suspend fun download(cb: suspend (Source)->Unit) { Loge(TAG, "download(cb) method is not implemented") }
-
-    suspend fun run(): Downloader {
-//        getWifiLock()
-        download()
-//        releaseWifiLock()
-        return this
-    }
-
-    fun cancel() {
-        cancelled = true
     }
 
     protected fun onFail(reason: DownloadError, reasonDetailed: String?) {

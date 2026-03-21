@@ -245,7 +245,7 @@ fun StatisticsScreen() {
         val buttonColor = Color(0xDDFFD700)
         val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
         Box {
-            TopAppBar(title = { Text("") }, navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chart_box), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable(onClick = { drawerController?.open() })) },
+            TopAppBar(title = { Text("") }, navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chart_box), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) },
                 actions = {
                 if (vm.selectedTabIndex.intValue <= 2) {
                     IconButton(onClick = { vm.showFilter = true }) {
@@ -293,15 +293,14 @@ fun StatisticsScreen() {
             itemsIndexed(statisticsData.feedStats, key = { _, item -> item.feed.id }) { index, feedStats ->
                 Row(Modifier.background(MaterialTheme.colorScheme.surface).fillMaxWidth()) {
                     AsyncImage(model = ImageRequest.Builder(context).data(feedStats.feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), contentDescription = "imgvCover", placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentScale = ContentScale.FillBounds,
-                        modifier = Modifier.width(40.dp).height(90.dp).padding(end = 5.dp).clickable(onClick = {
+                        modifier = Modifier.width(40.dp).height(90.dp).padding(end = 5.dp).clickable {
                             navController.navigate("${Screens.FeedDetails.name}?feedId=${feedStats.feed.id}&modeName=${FeedScreenMode.Info.name}")
                         })
-                    )
-                    Column(modifier = Modifier.clickable(onClick = {
+                    Column(modifier = Modifier.clickable {
                         feedId = feedStats.feed.id
                         feedTitle = feedStats.feed.title ?: "No title"
                         showFeedStats = true
-                    })) {
+                    }) {
                         val chipColor = lineChartData.getComposeColorOfItem(index)
                         Text("⬤" + (feedStats.feed.title?:"No title"), maxLines = 1, color = chipColor, style = MaterialTheme.typography.bodyMedium.merge())
                         infoCB(feedStats)
@@ -540,7 +539,7 @@ fun StatisticsScreen() {
             LazyColumn(state = lazyListState, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 30.dp, bottom = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 itemsIndexed(vm.monthStats) { index, item ->
-                    Row(Modifier.background(MaterialTheme.colorScheme.surface).clickable(onClick = { onMonthClicked(index) })) {
+                    Row(Modifier.background(MaterialTheme.colorScheme.surface).clickable { onMonthClicked(index) }) {
                         Column {
                             Text("${item.year}-${item.month}", color = textColor, style = MaterialTheme.typography.headlineSmall.merge())
                             OverviewNumbers(item.stats.statTotal, center = false)

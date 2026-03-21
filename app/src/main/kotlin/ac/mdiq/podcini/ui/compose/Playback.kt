@@ -119,14 +119,14 @@ private fun SpeedSetter(initSpeed: Float, maxSpeed: Float, speedCB: (Float) -> U
         var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == SPEED_USE_GLOBAL) 1f else speed, maxSpeed)) }
         val stepSize = 0.05f
         Text("-", fontSize = MaterialTheme.typography.headlineLarge.fontSize, fontWeight = FontWeight.Bold,
-            modifier = Modifier.clickable(onClick = {
+            modifier = Modifier.clickable {
                 val speed_ = round(speed / stepSize) * stepSize - stepSize
                 if (speed_ >= 0.1f) {
                     speed = speed_
                     sliderPosition = speed2Slider(speed, maxSpeed)
                     speedCB(speed)
                 }
-            }))
+            })
         Slider(value = sliderPosition, modifier = Modifier.weight(1f).height(5.dp).padding(start = 20.dp, end = 20.dp),
             onValueChange = {
                 sliderPosition = it
@@ -134,14 +134,14 @@ private fun SpeedSetter(initSpeed: Float, maxSpeed: Float, speedCB: (Float) -> U
                 speedCB(speed)
             })
         Text("+", fontSize = MaterialTheme.typography.headlineLarge.fontSize, fontWeight = FontWeight.Bold,
-            modifier = Modifier.clickable(onClick = {
+            modifier = Modifier.clickable {
                 val speed_ = round(speed / stepSize) * stepSize + stepSize
                 if (speed_ <= maxSpeed) {
                     speed = speed_
                     sliderPosition = speed2Slider(speed, maxSpeed)
                     speedCB(speed)
                 }
-            }))
+            })
         Spacer(Modifier.width(40.dp))
         Text(text = speed.format(2)+"x")
     }
@@ -232,13 +232,13 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                     var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == SPEED_USE_GLOBAL) 1f else speed, maxSpeed)) }
                     val stepSize = 0.05f
                     Text("-", fontSize = MaterialTheme.typography.headlineLarge.fontSize, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable(onClick = {
+                        modifier = Modifier.clickable {
                             val speed_ = round(speed / stepSize) * stepSize - stepSize
                             if (speed_ >= 0.1f) {
                                 speed = speed_
                                 sliderPosition = speed2Slider(speed, maxSpeed)
                             }
-                        }))
+                        })
                     Slider(value = sliderPosition, modifier = Modifier.weight(1f).height(10.dp).padding(start = 20.dp, end = 20.dp),
                         onValueChange = {
                             sliderPosition = it
@@ -246,13 +246,13 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                             Logd("PlaybackSpeedDialog", "slider value: $it $speed}")
                         })
                     Text("+", fontSize = MaterialTheme.typography.headlineLarge.fontSize, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable(onClick = {
+                        modifier = Modifier.clickable {
                             val speed_ = round(speed / stepSize) * stepSize + stepSize
                             if (speed_ <= maxSpeed) {
                                 speed = speed_
                                 sliderPosition = speed2Slider(speed, maxSpeed)
                             }
-                        }))
+                        })
                 }
                 var forCurrent by remember { mutableStateOf(indexDefault == 0) }
                 var forPodcast by remember { mutableStateOf(indexDefault == 1) }
@@ -299,11 +299,10 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                             }
                             onDismiss()
                         }, label = { Text(chipSpeed.format(2)) }, selected = false,
-                            trailingIcon = { Icon(imageVector = Icons.Filled.Close, contentDescription = "Close icon",
-                                modifier = Modifier.size(30.dp).clickable(onClick = {
+                            trailingIcon = { Icon(imageVector = Icons.Filled.Close, contentDescription = "Close icon", modifier = Modifier.size(30.dp).padding(start = 3.dp).clickable {
                                     speeds.remove(chipSpeed)
                                     setPlaybackSpeedArray(speeds)
-                                })) })
+                                }) })
                     }
                 }
                 var showMore by remember { mutableStateOf(false) }

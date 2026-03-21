@@ -402,7 +402,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             }
             if (feed != null) {
                 val ratingIconRes = remember(feed?.rating) {  Rating.fromCode(feed?.rating?:0).res }
-                Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.padding(end = 10.dp, bottom = 5.dp).background(MaterialTheme.colorScheme.tertiaryContainer).clickable(onClick = { showChooseRatingDialog = true }).constrainAs(rating) {
+                Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.padding(end = 10.dp, bottom = 5.dp).background(MaterialTheme.colorScheme.tertiaryContainer).clickable { showChooseRatingDialog = true }.constrainAs(rating) {
                         end.linkTo(parent.end)
                         bottom.linkTo(parent.bottom)
                     })
@@ -417,12 +417,12 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         val buttonColor = Color(0xDDFFD700)
         val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
         Box {
-            TopAppBar(title = { Text("") }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable(onClick = {
+            TopAppBar(title = { Text("") }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable {
                 if (navController.previousBackStackEntry != null) {
                     navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
                     navController.popBackStack()
                 } else drawerController?.open()
-            } ))  },
+            } )  },
                 actions = {
                     if (screenMode == FeedScreenMode.List) {
                         val isFiltered = remember(feed?.filterString, feed?.episodeFilter?.propertySet) { !feed?.filterString.isNullOrBlank() && !feed?.episodeFilter?.propertySet.isNullOrEmpty() }
@@ -493,11 +493,11 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 expanded = false
                             })
                             DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
-                                gearbox.feedUpdater(listOf(feed!!), doItAnyway = true).startRefresh()
+                                runOnIOScope { gearbox.feedUpdater(listOf(feed!!), doItAnyway = true).startRefresh() }
                                 expanded = false
                             })
                             DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
-                                gearbox.feedUpdater(listOf(feed!!), fullUpdate = true, doItAnyway = true, removeUnlisted = true).startRefresh()
+                                runOnIOScope { gearbox.feedUpdater(listOf(feed!!), fullUpdate = true, doItAnyway = true, removeUnlisted = true).startRefresh() }
                                 expanded = false
                             })
                             DropdownMenuItem(text = { Text(stringResource(R.string.remove_feed_label)) }, onClick = {
@@ -562,14 +562,14 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             }
             if (feed?.isSynthetic() == false) {
                 Text(stringResource(R.string.feeds_related_to_author), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 10.dp).clickable(onClick = {
+                    modifier = Modifier.padding(top = 10.dp).clickable {
                         setOnlineSearchTerms(query = "${feed?.author} podcasts")
                         navController.navigate(Screens.FindFeeds.name)
-                    }))
+                    })
                 Text(stringResource(R.string.last_full_update) + ": ${formatDateTimeFlex(feed?.lastFullUpdateTime?:0L)}", modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                 if (vm.logs.isNotEmpty()) {
                     var showLogs by remember { mutableStateOf(false) }
-                    Text(stringResource(R.string.logs), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp).clickable(onClick = { showLogs = !showLogs}))
+                    Text(stringResource(R.string.logs), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp).clickable { showLogs = !showLogs})
                     if (showLogs) Column(modifier = Modifier.padding(10.dp)) {
                         for (log in vm.logs) {
                             val message = stringResource(if (!log.isSuccessful) R.string.failed else R.string.download_successful)

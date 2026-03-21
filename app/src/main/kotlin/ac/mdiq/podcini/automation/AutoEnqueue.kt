@@ -1,17 +1,14 @@
 package ac.mdiq.podcini.automation
 
-import ac.mdiq.podcini.PodciniApp.Companion.getApp
-import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
-import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.InTheatre.isCurMedia
 import ac.mdiq.podcini.storage.database.EPISODE_CACHE_SIZE_UNLIMITED
 import ac.mdiq.podcini.storage.database.addToAssQueue
+import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.deleteMedias
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesCount
-import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -29,35 +26,8 @@ import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
-import android.content.Intent
-import android.content.IntentFilter
-import android.os.BatteryManager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 
 private const val TAG = "AutoDownloads"
-
-fun autodownload(feeds: List<Feed>? = null): Job {
-    return CoroutineScope(Dispatchers.IO).launch { if (appPrefs.enableAutoDl) AutoDownloadAlgorithm().run(feeds) }
-}
-
-fun autoenqueue(feeds: List<Feed>? = null): Job {
-    return CoroutineScope(Dispatchers.IO).launch { AutoEnqueueAlgorithm().run(feeds) }
-}
-
-fun autodownloadForQueue(queue: PlayQueue): Job {
-    Logd(TAG, "autodownloadForQueue ${queue.name}")
-    val feeds = realm.query(Feed::class).query("queueId == ${queue.id}").find().filter { it.inNormalVolume }
-    return CoroutineScope(Dispatchers.IO).launch { if (appPrefs.enableAutoDl) AutoDownloadAlgorithm().run(feeds, false, noRefreshing = true) }
-}
-
-fun autoenqueueForQueue(queue: PlayQueue): Job {
-    Logd(TAG, "autoenqueueForQueue ${queue.name}")
-    val feeds = realm.query(Feed::class).query("queueId == ${queue.id}").find().filter { it.inNormalVolume }
-    return CoroutineScope(Dispatchers.IO).launch { AutoEnqueueAlgorithm().run(feeds, true) }
-}
 
 /**
  * Implements the automatic download algorithm used by Podcini. This class assumes that
@@ -111,14 +81,6 @@ class AutoDownloadAlgorithm {
             candidates.clear()
         }
     }
-
-    private fun deviceCharging(): Boolean {
-        // from http://developer.android.com/training/monitoring-device-state/battery-monitoring.html
-        val iFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-        val batteryStatus = getAppContext().registerReceiver(null, iFilter)
-        val status = batteryStatus!!.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
-        return (status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL)
-    }
 }
 
 class AutoEnqueueAlgorithm {
@@ -143,7 +105,7 @@ class AutoEnqueueAlgorithm {
 
 private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<Episode>, toReplace: MutableSet<Episode>, dl: Boolean = true, noRefreshing: Boolean = false) {
     val NM = 3
-    val feeds = feeds_ ?: getFeedList()
+    val feeds = feeds_ ?: allFeeds.filter { it.inNormalVolume }
     val eIdsAllQueues = realm.query(QueueEntry::class).query("queueId != $VIRTUAL_QUEUE_ID").find().map { it.episodeId }.toSet()
     feeds.forEach { f ->
         Logd(TAG, "assembleFeedsCandidates: autoDL: ${f.autoDownload} autoEQ: ${f.autoEnqueue} isLocal: ${f.isLocalFeed} ${f.title}")

@@ -327,12 +327,12 @@ fun TopChartScreen() {
         Box {
             TopAppBar(title = {
                 Row {
-                    Text(vm.spinnerTexts[vm.curIndex], maxLines=1, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.clickable(onClick = { showChooseGenre = true }))
+                    Text(vm.spinnerTexts[vm.curIndex], maxLines=1, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.clickable { showChooseGenre = true })
                     Spacer(Modifier.weight(1f))
-                    Text(vm.countryCode, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end=20.dp).clickable(onClick = { showSelectCounrty = true }))
+                    Text(vm.countryCode, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end=20.dp).clickable { showSelectCounrty = true })
                 } },
-                navigationIcon = { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "", modifier = Modifier.padding(7.dp).clickable(onClick = {
-                    if (navController.previousBackStackEntry != null) navController.popBackStack() else drawerController?.open() })) })
+                navigationIcon = { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "", modifier = Modifier.padding(7.dp).clickable {
+                    if (navController.previousBackStackEntry != null) navController.popBackStack() else drawerController?.open() }) })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }

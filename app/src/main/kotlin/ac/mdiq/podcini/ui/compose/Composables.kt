@@ -302,7 +302,7 @@ fun IconTitleSummaryActionRow(vecRes: Int, titleRes: Int, summaryRes: Int, callb
     val textColor = MaterialTheme.colorScheme.onSurface
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {
         Icon(imageVector = ImageVector.vectorResource(vecRes), contentDescription = "", tint = textColor, modifier = Modifier.size(40.dp).padding(end = 15.dp))
-        Column(modifier = Modifier.weight(1f).clickable(onClick = { callback() })) {
+        Column(modifier = Modifier.weight(1f).clickable { callback() }) {
             Text(stringResource(titleRes), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
             Text(stringResource(summaryRes), color = textColor, style = MaterialTheme.typography.bodySmall)
         }
@@ -312,7 +312,7 @@ fun IconTitleSummaryActionRow(vecRes: Int, titleRes: Int, summaryRes: Int, callb
 @Composable
 fun TitleSummaryActionColumn(titleRes: Int, summaryRes: Int, callback: ()-> Unit) {
     val textColor = MaterialTheme.colorScheme.onSurface
-    Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp).clickable(onClick = { callback() })) {
+    Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp).clickable { callback() }) {
         if (titleRes != 0) Text(stringResource(titleRes), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
         if (summaryRes != 0) Text(stringResource(summaryRes), color = textColor, style = MaterialTheme.typography.bodySmall)
     }
@@ -435,9 +435,9 @@ fun SearchBarRow(hintTextRes: Int, defaultText: String, modifier: Modifier = Mod
             textStyle = TextStyle(fontSize = 14.sp), label = { Text(stringResource(hintTextRes), style = MaterialTheme.typography.bodySmall) },
             keyboardActions = KeyboardActions(onDone = { performSearch(queryText) }), modifier = Modifier.weight(1f),
             leadingIcon = if (history.isNotEmpty()) { { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), tint = buttonColor, contentDescription = "history",
-                modifier = Modifier.width(40.dp).height(40.dp).padding(start = 5.dp).clickable(onClick = { showHistory = true })) } } else null,
+                modifier = Modifier.width(40.dp).height(40.dp).padding(start = 5.dp).clickable { showHistory = true }) } } else null,
             trailingIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), tint = buttonColor, contentDescription = "search",
-                modifier = Modifier.width(40.dp).height(40.dp).padding(start = 5.dp).clickable(onClick = { performSearch(queryText) })) }
+                modifier = Modifier.width(40.dp).height(40.dp).padding(start = 5.dp).clickable { performSearch(queryText) }) }
         )
     }
 }
@@ -473,7 +473,7 @@ fun NumberEditor(initVal: Int, label: String = "seconds", nz: Boolean = true, in
                 if (it.toIntOrNull() != null) showSet = true
                 if (instant && showSet) set()
             },
-            trailingIcon = { if (!instant && showSet) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).clickable(onClick = { set() })) }
+            trailingIcon = { if (!instant && showSet) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).clickable { set() }) }
         )
 }
 
@@ -547,7 +547,7 @@ fun TagSettingDialog(tagType: TagType, existingTags: Set<String>, multiples: Boo
             if (multiples) Text(stringResource(R.string.tagging_multiple_sum))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 tags.forEach { FilterChip(onClick = {  }, label = { Text(it) }, selected = false, trailingIcon = { Icon(imageVector = Icons.Filled.Close, contentDescription = "Close icon",
-                    modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { tags.remove(it) })) }) }
+                    modifier = Modifier.size(FilterChipDefaults.IconSize).padding(start = 3.dp).clickable { tags.remove(it) }) }) }
             }
             ExposedDropdownMenuBox(expanded = showSuggestions, onExpandedChange = { }) {
                 TextField(value = text, placeholder = { Text("Type something...") }, keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
@@ -567,12 +567,12 @@ fun TagSettingDialog(tagType: TagType, existingTags: Set<String>, multiples: Boo
                         }
                     ),
                     trailingIcon = { Icon(imageVector = Icons.Filled.Add, contentDescription = "Add icon",
-                        modifier = Modifier.size(30.dp).clickable(onClick = {
+                        modifier = Modifier.size(30.dp).clickable {
                             if (text.isNotBlank()) {
                                 if (text !in tags) tags.add(text)
                                 text = ""
                             }
-                        })) }
+                        }) }
                 )
                 ExposedDropdownMenu(expanded = showSuggestions, onDismissRequest = { showSuggestions = false }) {
                     for (i in suggestedTags.indices) {

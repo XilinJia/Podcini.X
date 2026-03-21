@@ -207,7 +207,7 @@ class Id3MetadataReader(source: CountingSource) : ID3Reader(source) {
 
     override fun readFrame(frameHeader: FrameHeader) {
         if (FRAME_ID_COMMENT == frameHeader.id) {
-            val frameStart = position.toLong()
+            val frameStart = position
             val encoding = buffer.readByte().toInt()
             skipBytes(3) // Language
             val shortDescription = readEncodedString(encoding, frameHeader.size - 4)

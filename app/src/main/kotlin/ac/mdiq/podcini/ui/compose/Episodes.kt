@@ -305,7 +305,7 @@ val webDataCache = LruCache<Long, String>(10)
 
 @Composable
 fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters: Boolean = false) {
-    val context = LocalContext.current
+//    val context = LocalContext.current
     val textColor = MaterialTheme.colorScheme.onSurface
     var webviewData by remember { mutableStateOf<String?>("") }
     var playerLocal: ExoPlayer? by remember { mutableStateOf(null) }
@@ -383,12 +383,12 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                                 done = it
                                 upsertBlkEmb(todo) { todo -> todo.completed = done }
                             })
-                            Text(text = todo.title, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.clickable(onClick = {
+                            Text(text = todo.title, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.clickable {
                                 onTodo = todo
                                 showTodoDialog = true
-                            }))
+                            })
                             Spacer(Modifier.weight(1f))
-                            Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "delete", modifier = Modifier.padding(end = 15.dp).clickable(onClick = { upsertBlk(episode) { it.todos.remove(todo) } }))
+                            Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "delete", modifier = Modifier.padding(end = 15.dp).clickable { upsertBlk(episode) { it.todos.remove(todo) } })
                         }
                         if (todo.dueTime > 0) {
                             val dueText = remember(todo.dueTime) { "D:" + formatDateTimeFlex(todo.dueTime) }
@@ -425,7 +425,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                             mPlayer?.seekTo(mark.toInt())
                         } else Logt(TAG, context.getString(R.string.play_mark_msg))
                     }, label = { Text(durationStringShort(mark, false)) }, selected = false, trailingIcon = {
-                        Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete", modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { markToRemove = mark }))
+                        Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete", modifier = Modifier.size(FilterChipDefaults.IconSize).padding(start = 3.dp).clickable { markToRemove = mark })
                     })
                 }
             }
@@ -457,8 +457,9 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                             playerLocal!!.prepare()
                             playerLocal!!.play()
                         } else Loge(TAG, "clip file doesn't exist: ${file.absPath}")
-                    }, label = { Text(clip.substringBefore(".")) }, selected = false, trailingIcon = {
-                        Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete", modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { cliptToRemove = clip }))
+                    }, label = { Text(clip.substringBefore(".")) }, selected = false,
+                        trailingIcon = {
+                        Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete", modifier = Modifier.size(FilterChipDefaults.IconSize).padding(start = 3.dp).clickable { cliptToRemove = clip })
                     })
                 }
             }
@@ -467,7 +468,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
         if (episode.related.isNotEmpty()) {
             var showTodayStats by remember { mutableStateOf(false) }
             if (showTodayStats) RelatedEpisodesDialog(episode) { showTodayStats = false }
-            Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
+            Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable { showTodayStats = true })
         }
 
         //                    if (!episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
@@ -475,14 +476,14 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
             val chapters = remember { episode.chapters }
             val textColor = MaterialTheme.colorScheme.onSurface
             val buttonColor = MaterialTheme.colorScheme.tertiary
-            val context = LocalContext.current
+//            val context = LocalContext.current
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp)) {
                 Text(stringResource(R.string.chapters_label))
                 var curChapterIndex by remember { mutableIntStateOf(-1) }
                 for (index in chapters.indices) {
                     val ch = remember(index) { chapters[index] }
                     //            Text(ch.link?: "")
-                    Row(modifier = Modifier.clickable(onClick = {
+                    Row(modifier = Modifier.clickable {
                         if (curEpisode == episode) {
                             if (!isPlaying) playPause()
                         } else {
@@ -491,7 +492,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                         }
                         mPlayer?.seekTo(ch.start.toInt())
                         curChapterIndex = index
-                    })) {
+                    }) {
                         Text(durationStringFull(ch.start.toInt()), color = buttonColor, modifier = Modifier.padding(end = 5.dp))
                         Text(ch.title ?: "No title", color = textColor, fontWeight = if (index == curChapterIndex) FontWeight.Bold else FontWeight.Normal)
                     }
@@ -500,7 +501,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
         }
         if (logs.isNotEmpty()) {
             var showLogs by remember { mutableStateOf(false) }
-            Text(stringResource(R.string.logs), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 16.dp, bottom = 4.dp).clickable(onClick = { showLogs = !showLogs}))
+            Text(stringResource(R.string.logs), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 16.dp, bottom = 4.dp).clickable { showLogs = !showLogs})
             if (showLogs) Column(modifier = Modifier.padding(10.dp)) {
                 for (log in logs) {
                     val message = stringResource(if (!log.isSuccessful) R.string.failed else R.string.download_successful)
@@ -726,12 +727,12 @@ fun EpisodeTimetableDialog(episode: Episode, onDismissRequest: () -> Unit, cb: (
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             for (timer in timers) {
                 Row {
-                    Text(fullDateTimeString(timer.triggerTime), modifier = Modifier.clickable(onClick = { cb(timer) }))
+                    Text(fullDateTimeString(timer.triggerTime), modifier = Modifier.clickable{ cb(timer) })
                     Spacer(Modifier.width(100.dp))
-                    Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete", modifier = Modifier.clickable(onClick = {
+                    Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete", modifier = Modifier.clickable {
                         timer.cancel()
                         upsertBlk(appAttribs) { it.timetable.remove(timer) }
-                    }))
+                    })
                 }
             }
         }
@@ -930,7 +931,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
                         Text(stringResource(R.string.text_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (queryText.isBlank()) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
                         Spacer(Modifier.width(20.dp))
-                        if (expandRow) Text(stringResource(R.string.show_criteria), color = buttonColor, modifier = Modifier.clickable(onClick = {showSearchBy = !showSearchBy}))
+                        if (expandRow) Text(stringResource(R.string.show_criteria), color = buttonColor, modifier = Modifier.clickable {showSearchBy = !showSearchBy})
                     }
                     if (expandRow) {
                         SearchBarRow(R.string.search_hint, defaultText = queryText, modifier = Modifier.fillMaxWidth().padding(start = 10.dp)) { query ->
@@ -1050,13 +1051,13 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                                                 showIcon = true
                                             }
                                             if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
-                                                modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
+                                                modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable {
                                                     val f = floor
                                                     val c = if (ceiling == 0) Int.MAX_VALUE else ceiling
                                                     filter.durationFloor = f * 1000
                                                     filter.durationCeiling = if (c < Int.MAX_VALUE) c * 1000 else c
                                                     showIcon = false
-                                                }))
+                                                })
                                         }
                                     }
                                 }
@@ -1072,10 +1073,10 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                                             },
                                             trailingIcon = {
                                                 if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
-                                                    modifier = Modifier.size(30.dp).clickable(onClick = {
+                                                    modifier = Modifier.size(30.dp).clickable {
                                                         filter.titleText = titleText
                                                         showIcon = false
-                                                    }))
+                                                    })
                                             })
                                     }
                                 }

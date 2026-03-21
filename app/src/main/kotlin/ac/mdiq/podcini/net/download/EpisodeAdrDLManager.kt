@@ -250,7 +250,7 @@ class EpisodesDownloadWorker(context: Context, params: WorkerParameters) : Corou
                 applicationContext.getString(R.string.download_error_details)))
         }
         Logd(TAG, "starting downloader")
-        try { downloader!!.run()
+        try { downloader!!.download()
         } catch (e: Exception) {
             Logs(TAG, e, "failed performDownload exception on downloader!!.call()")
             addDownloadStatus(downloader!!.result)

@@ -2,8 +2,8 @@ package ac.mdiq.podcini.net.feed
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.automation.autodownload
-import ac.mdiq.podcini.automation.autoenqueue
+import ac.mdiq.podcini.automation.AutoDownloadAlgorithm
+import ac.mdiq.podcini.automation.AutoEnqueueAlgorithm
 import ac.mdiq.podcini.config.CHANNEL_ID
 import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.download.DownloadRequest
@@ -14,6 +14,7 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.isFeedRefreshAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.compileLanguages
 import ac.mdiq.podcini.storage.database.compileTags
 import ac.mdiq.podcini.storage.database.feedOperationText
@@ -67,7 +68,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
     var force = false
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    fun startRefresh() {
+    suspend fun startRefresh() {
         Logd(TAG, "startRefresh doItAnyway: $doItAnyway")
         val ready = prepare()
         if (!ready) {
@@ -98,8 +99,8 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
         }
     }
 
-    fun prepare(): Boolean {
-        scope.launch(Dispatchers.Main) { feedOperationText = context.getString(R.string.preparing) }
+    suspend fun prepare(): Boolean {
+        withContext(Dispatchers.Main) { feedOperationText = context.getString(R.string.preparing) }
         if (feeds.isEmpty()) {
             val feedIds = appAttribs.feedIdsToRefresh
             if (feedIds.isNotEmpty()) {
@@ -120,7 +121,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
                 itr.remove()
             }
         }
-        scope.launch(Dispatchers.Main) { feedOperationText = "" }
+        withContext(Dispatchers.Main) { feedOperationText = "" }
         return true
     }
 
@@ -144,13 +145,14 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
                 } catch (e: Exception) {
                     Loge(TAG, "refreshFeeds: update failed ${feed.title} ${e.message}")
                     upsert(feed) { it.lastUpdateFailed = true }
-                    val status = DownloadResult(feed.id, feed.title ?: "", DownloadError.ERROR_IO_ERROR, false, e.message ?: "")
+                    val status = DownloadResult(feed, DownloadError.ERROR_IO_ERROR, false, e.message ?: "")
                     addDownloadStatus(status)
                 }
                 titles.removeAt(0)
                 feedIdsToRefresh.removeAt(0)
                 upsertBlk(appAttribs) { it.feedIdsToRefresh = feedIdsToRefresh.toRealmSet() }
-            } // TODO: not sure these need to be here
+            }
+            // TODO: not sure these need to be here
             compileLanguages()
             compileTags()
         }
@@ -159,8 +161,8 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
 
         if (feedsToOnlyEnqueue.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyEnqueue)
         if (feedsToOnlyDownload.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyDownload)
-        autoenqueue(feedsToUpdate.toList())
-        autodownload(feedsToUpdate.toList())
+        AutoEnqueueAlgorithm().run(feedsToUpdate)
+        if (appPrefs.enableAutoDl) AutoDownloadAlgorithm().run(feedsToUpdate)
         feedsToUpdate.clear()
         feedsToOnlyEnqueue.clear()
         feedsToOnlyDownload.clear()
@@ -232,9 +234,9 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
 
             var downloadStatus: DownloadResult
             if (isSuccessful) {
-                downloadStatus = DownloadResult(feedToParse.id, feedToParse.getTextIdentifier()?:"", DownloadError.SUCCESS, true, "")
+                downloadStatus = DownloadResult(feedToParse, DownloadError.SUCCESS, true, "")
             } else {
-                downloadStatus = DownloadResult(feedToParse.id, feedToParse.getTextIdentifier() ?: "", reason ?: DownloadError.ERROR_NOT_FOUND, false, reasonDetailed ?: "")
+                downloadStatus = DownloadResult(feedToParse, reason ?: DownloadError.ERROR_NOT_FOUND, false, reasonDetailed ?: "")
                 Logt(TAG, "refreshFeed: feed update failed: unsuccessful: ${feed.title}")
                 upsert(feed) { it.lastUpdateFailed = true }
                 addDownloadStatus(downloadStatus)

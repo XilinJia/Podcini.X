@@ -647,7 +647,7 @@ fun LibraryScreen() {
                         Text(feedCountState, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = textColor, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f))
                     }
                 } },
-                navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable(onClick = { drawerController?.open() })) } ,
+                navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) } ,
                 actions = {
                     if (!vm.isViewGarden) IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                     if (!vm.isViewGarden) IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (isFiltered) buttonAltColor else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
@@ -1191,13 +1191,13 @@ fun LibraryScreen() {
                             Box(modifier = Modifier.size(imageSize.dp)) {
                                 AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover",
                                     colorFilter = if (!feed.inNormalVolume) ColorFilter.tint(color = Color.Gray.copy(alpha = 0.5f), blendMode = BlendMode.SrcAtop) else null,
-                                    modifier = Modifier.fillMaxSize().clickable(onClick = {
+                                    modifier = Modifier.fillMaxSize().clickable {
                                         Logd(TAG, "icon clicked!")
                                         if (!feed.isBuilding) {
                                             if (selectMode) toggleSelected()
                                             else navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}&modeName=${FeedScreenMode.Info.name}")
                                         }
-                                    }))
+                                    })
                                 if (feed.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = buttonColor, contentDescription = "rating", modifier = Modifier.size((imageSize/4).dp).align(Alignment.BottomStart).background(MaterialTheme.colorScheme.tertiaryContainer.copy(0.8f)))
                             }
                             Box(Modifier.weight(1f).fillMaxHeight().padding(start = 10.dp).combinedClickable(onClick = {
@@ -1236,20 +1236,20 @@ fun LibraryScreen() {
             if (selectMode) {
                 Row(modifier = Modifier.align(Alignment.TopEnd).background(MaterialTheme.colorScheme.tertiaryContainer),
                     horizontalArrangement = Arrangement.spacedBy(15.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_upward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).padding(start = 10.dp).clickable(onClick = {
+                    Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_upward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).padding(start = 10.dp).clickable {
                         feedsSelected.clear()
                         for (i in 0..longPressIndex) feedsSelected.add(feedList[i])
                         selectedSize = feedsSelected.size
                         Logd(TAG, "selectedIds: ${feedsSelected.size}")
-                    }))
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_downward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable(onClick = {
+                    })
+                    Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_downward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable {
                         feedsSelected.clear()
                         for (i in longPressIndex..<feedList.size) feedsSelected.add(feedList[i])
                         selectedSize = feedsSelected.size
                         Logd(TAG, "selectedIds: ${feedsSelected.size}")
-                    }))
+                    })
                     var selectAllRes by remember { mutableIntStateOf(R.drawable.ic_select_all) }
-                    Icon(imageVector = ImageVector.vectorResource(selectAllRes), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable(onClick = {
+                    Icon(imageVector = ImageVector.vectorResource(selectAllRes), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable {
                         if (selectedSize != feedList.size) {
                             feedsSelected.clear()
                             feedsSelected.addAll(feedList)
@@ -1261,7 +1261,7 @@ fun LibraryScreen() {
                         }
                         selectedSize = feedsSelected.size
                         Logd(TAG, "selectedIds: ${feedsSelected.size}")
-                    }))
+                    })
                     @Composable
                     fun FeedsSpeedDial(selected: SnapshotStateList<Feed>, modifier: Modifier = Modifier) {
                         val bgColor = MaterialTheme.colorScheme.tertiaryContainer

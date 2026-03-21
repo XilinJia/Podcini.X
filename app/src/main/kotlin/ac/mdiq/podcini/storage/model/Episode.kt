@@ -684,6 +684,7 @@ data class EpisodeDTO(
 
     val tags: Set<String> = setOf(),
     val marks: Set<Long> = setOf(),
+    val clips: Set<String> = setOf(),
     val todos: List<TodoDTO> = listOf(),
 
     val rating: Int = Rating.UNRATED.code,
@@ -721,6 +722,7 @@ fun Episode.toDTO() = EpisodeDTO(
 
     tags = this.tags.toSet(),
     marks = this.marks.toSet(),
+    clips = this.clips.toSet(),
     todos = this.todos.map { it.toDTO() },
 
     rating = this.rating,
@@ -746,6 +748,7 @@ fun Episode.toBasicDTO() = EpisodeDTO(
 
     tags = this.tags.toSet(),
     marks = this.marks.toSet(),
+    clips = this.clips.toSet(),
     todos = this.todos.map { it.toDTO() },
 
     rating = this.rating,
@@ -781,6 +784,7 @@ fun EpisodeDTO.toRealm() = Episode().apply {
 
         it.tags = this@toRealm.tags.toRealmSet()
         it.marks = this@toRealm.marks.toRealmSet()
+        it.clips = this@toRealm.clips.toRealmSet()
         it.todos.clear()
         it.todos.addAll(this@toRealm.todos.map { td -> td.toRealm() })
 

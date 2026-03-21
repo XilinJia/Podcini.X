@@ -164,7 +164,7 @@ fun NavDrawerScreen() {
             }
             if (psState == PSState.Hidden) {
                 Spacer(Modifier.height(50.dp))
-                AsyncImage(model = R.drawable.teaser, contentDescription = "PlayerUI", contentScale = ContentScale.FillBounds, modifier = Modifier.fillMaxWidth().height(60.dp).clickable(onClick = { psState = PSState.PartiallyExpanded }))
+                AsyncImage(model = R.drawable.teaser, contentDescription = "PlayerUI", contentScale = ContentScale.FillBounds, modifier = Modifier.fillMaxWidth().height(60.dp).clickable { psState = PSState.PartiallyExpanded })
             }
         }
     }

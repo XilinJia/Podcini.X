@@ -1,61 +1,40 @@
 package ac.mdiq.podcini.storage.database
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.storage.model.ARCHIVED_VOLUME_ID
 import ac.mdiq.podcini.storage.model.DownloadResult
-import ac.mdiq.podcini.storage.model.DownloadResult.Companion.addDownloadStatus
-import ac.mdiq.podcini.storage.model.DownloadResult.Companion.getFeedDownloadLog
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_ROOT
 import ac.mdiq.podcini.storage.model.QueueEntry
-import ac.mdiq.podcini.storage.parser.Id3MetadataReader
-import ac.mdiq.podcini.storage.parser.VorbisCommentMetadataReader
-import ac.mdiq.podcini.storage.parser.VorbisCommentReaderException
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
-import ac.mdiq.podcini.storage.utils.CountingSource
 import ac.mdiq.podcini.storage.utils.DAY_MIL
 import ac.mdiq.podcini.storage.utils.FOUR_DAY_MIL
-import ac.mdiq.podcini.storage.utils.MediaMetadataRetrieverCompat
 import ac.mdiq.podcini.storage.utils.cacheDir
 import ac.mdiq.podcini.storage.utils.div
-import ac.mdiq.podcini.storage.utils.getMimeType
 import ac.mdiq.podcini.storage.utils.nowInMillis
-import ac.mdiq.podcini.storage.utils.parseDate
-import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
-import ac.mdiq.podcini.utils.Logs
-import ac.mdiq.podcini.utils.Logt
-import ac.mdiq.podcini.utils.parsePatternTimestampToMillis
 import android.app.backup.BackupManager
-import android.media.MediaMetadataRetriever
-import android.net.Uri
-import android.provider.DocumentsContract
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.net.toUri
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.UpdatedResults
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.io.IOException
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 private const val TAG: String = "Feeds"
 
@@ -76,7 +55,6 @@ fun getFeedList(queryString: String = ""): List<Feed> {
 
 fun compileLanguages() {
     val langsSet = mutableSetOf<String>()
-//    val feeds = getFeedList()
     for (feed in allFeeds) {
         val langs = feed.langSet
         if (langs.isNotEmpty()) langsSet.addAll(langs)
@@ -94,7 +72,6 @@ fun compileLanguages() {
 
 fun compileTags() {
     val tagsSet = mutableSetOf<String>()
-//    val feeds = getFeedList()
     for (feed in allFeeds) tagsSet.addAll(feed.tags.filter { it != TAG_ROOT })
     val newTags = tagsSet - appAttribs.feedTagSet
     if (newTags.isNotEmpty()) {
@@ -700,158 +677,3 @@ class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L, private 
     }
     fun clear() = map.clear()
 }
-
-@OptIn(ExperimentalUuidApi::class)
-suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) {
-    /**
-     * Android's DocumentFile is slow because every single method call queries the ContentResolver.
-     * This queries the ContentResolver a single time with all the information.
-     */
-    data class FastDocumentFile(val name: String, val type: String, val uri: Uri, val length: Long, val lastModified: Long)
-
-    fun getImageUrl(files: List<FastDocumentFile>, folderUri: Uri): String {
-        val PREFERRED_FEED_IMAGE_FILENAMES: Array<String> = arrayOf("folder.jpg", "Folder.jpg", "folder.png", "Folder.png")
-        for (iconLocation in PREFERRED_FEED_IMAGE_FILENAMES) {
-            for (file in files) if (iconLocation == file.name) return file.uri.toString()
-        }
-        for (file in files) {
-            val mime = file.type
-            if (mime.startsWith("image/jpeg") || mime.startsWith("image/png")) return file.uri.toString()
-        }
-        return Feed.PREFIX_GENERATIVE_COVER + folderUri
-    }
-    fun createEpisode(feed: Feed, file: FastDocumentFile): Episode {
-        val item = Episode(0L, file.name, Uuid.random().toString(), file.name, file.lastModified, EpisodeState.UNPLAYED.code, feed)
-        item.isAutoDownloadEnabled = false
-        val size = file.length
-        Logd(TAG, "createEpisode file.uri: ${file.uri}")
-        item.fillMedia(0, 0, size, file.type, file.uri.toString(), file.uri.toString(), false, 0L, 0, 0)
-        val episodes = feed.episodes
-        for (existingItem in episodes) {
-            if (existingItem.downloadUrl == file.uri.toString() && existingItem.size == file.length) {
-                // We found an old file that we already scanned. Re-use metadata.
-                item.updateFromOther(existingItem)
-                return item
-            }
-        }
-        // Did not find existing item. Scan metadata.
-        try {
-            MediaMetadataRetrieverCompat().use { mmr ->
-                val NULL_DATE_PLACEHOLDER = "19040101T000000.000Z"
-                mmr.setDataSource(getAppContext(), file.uri)
-                val dateStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)
-                if (!dateStr.isNullOrEmpty() && dateStr != NULL_DATE_PLACEHOLDER) {
-                    try {
-                        item.pubDate = parsePatternTimestampToMillis("yyyyMMdd'T'HHmmss", dateStr)?: 0L
-                    } catch (e: Throwable) {
-                        Logs(TAG, e, "loadMetadata failed")
-                        val date = parseDate(dateStr)
-                        if (date != null) item.pubDate = date.toEpochMilliseconds()
-                    }
-                }
-                val title = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
-                if (!title.isNullOrEmpty()) item.title = title
-                val durationStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                if (!durationStr.isNullOrBlank()) item.duration = durationStr.toIntOrNull() ?: 30000
-                item.hasEmbeddedPicture = (mmr.embeddedPicture != null)
-            }
-            try {
-                val source = CountingSource(file.uri.toUF().source())
-                val reader = Id3MetadataReader(source)
-                reader.readSource()
-                item.setDescriptionIfLonger(reader.comment)
-            } catch (e: Throwable) {
-                Logs(TAG, e, "Unable to parse ID3 of " + file.uri + ": ")
-                try {
-                    val source = CountingSource(file.uri.toUF().source())
-                    val reader = VorbisCommentMetadataReader(source)
-                    reader.readSource()
-                    item.setDescriptionIfLonger(reader.description)
-                } catch (e2: IOException) { Logs(TAG, e2, "Unable to parse vorbis comments of " + file.uri + ": ")
-                } catch (e2: VorbisCommentReaderException) { Logs(TAG, e2, "Unable to parse vorbis comments of " + file.uri + ": ") }
-            }
-        } catch (e: Exception) {
-            Logs(TAG, e, "loadMetadata failed")
-            item.setDescriptionIfLonger(e.message) }
-        return item
-    }
-    fun listFastFiles(folderUri: Uri?): List<FastDocumentFile> {
-        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(folderUri, DocumentsContract.getDocumentId(folderUri))
-        val cursor = getAppContext().contentResolver.query(childrenUri, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-            DocumentsContract.Document.COLUMN_SIZE,
-            DocumentsContract.Document.COLUMN_LAST_MODIFIED,
-            DocumentsContract.Document.COLUMN_MIME_TYPE), null, null, null)
-        val list = mutableListOf<FastDocumentFile>()
-        while (cursor!!.moveToNext()) {
-            val id = cursor.getString(0)
-            val uri = DocumentsContract.buildDocumentUriUsingTree(folderUri, id)
-            val name = cursor.getString(1)
-            val size = cursor.getLong(2)
-            val lastModified = cursor.getLong(3)
-            val mimeType = cursor.getString(4)
-            list.add(FastDocumentFile(name, mimeType, uri, size, lastModified))
-        }
-        cursor.close()
-        return list
-    }
-
-    if (feed.downloadUrl.isNullOrEmpty()) return
-    val uriString = feed.downloadUrl!!.replace(Feed.PREFIX_LOCAL_FOLDER, "")
-    val documentFolder = uriString.toUF()
-    if (!documentFolder.exists()) throw IOException("Cannot read local directory. Try re-connecting the folder on the podcast info page.")
-
-    val folderUri = uriString.toUri()
-    val allFiles = listFastFiles(folderUri)
-    val mediaFiles: MutableList<FastDocumentFile> = mutableListOf()
-    val mediaFileNames: MutableSet<String> = HashSet()
-    for (file in allFiles) {
-        val mimeType = getMimeType(file.type, file.uri.toString()) ?: continue
-        val mediaType = MediaType.fromMimeType(mimeType)
-        if (mediaType == MediaType.AUDIO || mediaType == MediaType.VIDEO) {
-            mediaFiles.add(file)
-            mediaFileNames.add(file.name)
-            Logd(TAG, "updateLocalFeed add to mediaFileNames ${file.name}")
-        }
-    }
-
-    // add new files to feed and update item data
-    val newItems = mutableListOf<Episode>()
-    for (i in mediaFiles.indices) {
-        Logd(TAG, "updateLocalFeed mediaFiles ${mediaFiles[i].name}")
-        val oldItem = realm.query(Episode::class).query("feedId == ${feed.id} AND link == $0", mediaFiles[i].name).first().find()
-        val newItem = createEpisode(feed, mediaFiles[i])
-        Logd(TAG, "updateLocalFeed oldItem: ${oldItem?.title} url: ${oldItem?.downloadUrl}")
-        Logd(TAG, "updateLocalFeed newItem: ${newItem.title} url: ${newItem.downloadUrl}")
-        if (oldItem != null) upsertBlk(oldItem) { it.updateFromOther(newItem) }
-        else newItems.add(newItem)
-        progressCB?.invoke(i, mediaFiles.size)
-    }
-    // remove feed items without corresponding file
-    val it = newItems.iterator()
-    while (it.hasNext()) {
-        val item = it.next()
-        if (!mediaFileNames.contains(item.link)) {
-            Logt(TAG, "updateLocalFeed removing episode without file: ${item.link} ${item.title} ")
-            it.remove()
-        }
-    }
-    feed.imageUrl = getImageUrl(allFiles, folderUri)
-    feed.episodes.addAll(newItems)
-    updateFeedFull(feed, removeUnlistedItems = true)
-
-    fun mustReportDownloadSuccessful(feed: Feed): Boolean {
-        val downloadResults = getFeedDownloadLog(feed.id).toMutableList()
-        if (downloadResults.isEmpty()) return true
-        downloadResults.sortWith { ds1: DownloadResult, ds2: DownloadResult -> (ds1.completionTime - ds2.completionTime).toInt() }
-        val lastDownloadResult = downloadResults[downloadResults.size - 1]
-        return !lastDownloadResult.isSuccessful
-    }
-
-    if (mustReportDownloadSuccessful(feed)) {
-        val status = DownloadResult(feed.id, feed.title?:"", DownloadError.SUCCESS, true, "")
-        addDownloadStatus(status)
-        upsert(feed) { it.lastUpdateFailed = false }
-    }
-}
-

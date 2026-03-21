@@ -1,6 +1,5 @@
 package ac.mdiq.podcini.ui.screens
 
-import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.OpmlBackupAgent.Companion.performRestore
 import ac.mdiq.podcini.config.settings.OpmlTransporter
@@ -12,26 +11,15 @@ import ac.mdiq.podcini.net.feed.PodcastIndexPodcastSearcher
 import ac.mdiq.podcini.net.feed.PodcastSearchResult
 import ac.mdiq.podcini.net.feed.PodcastSearcher
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
-import ac.mdiq.podcini.storage.database.addNewFeed
+import ac.mdiq.podcini.storage.database.addLocalFolder
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
-import ac.mdiq.podcini.storage.database.feedByIdentityOrID
 import ac.mdiq.podcini.storage.database.feedCount
-import ac.mdiq.podcini.storage.database.getId
-import ac.mdiq.podcini.storage.database.realm
-import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
-import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.SearchHistorySize
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
-import ac.mdiq.podcini.storage.model.Volume
-import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.utils.AddLocalFolder
-import ac.mdiq.podcini.storage.utils.UnifiedFile
-import ac.mdiq.podcini.storage.utils.persistedTrees
-import ac.mdiq.podcini.storage.utils.toAndroidUri
-import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
@@ -39,10 +27,8 @@ import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
 import ac.mdiq.podcini.ui.compose.SearchBarRow
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
-import ac.mdiq.podcini.utils.Logt
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
-import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -164,67 +150,6 @@ class FindFeedsVM: ViewModel() {
         }.apply { invokeOnCompletion { searchJob = null } }
     }
 
-    fun addLocalFolder(uri: Uri) {
-        val context = getAppContext()
-        context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-        runOnIOScope {
-            try {
-                persistedTrees.add(uri)
-                val file = uri.toUF()
-                val feeds = mutableListOf<Feed>()
-                val volumes = mutableListOf<Volume>()
-
-                suspend fun traverseDirectory(directory: UnifiedFile?, parentId: Long = -1) {
-                    if (directory == null || !directory.isDirectory()) return
-
-                    val content = directory.listChildren()
-                    val filesInThisDir = content.filter { !it.isDirectory() }
-
-                    if (filesInThisDir.isNotEmpty()) {
-                        Logd(TAG,"Found files in folder: ${directory.toAndroidUri()}")
-                        val uri = directory.toAndroidUri()
-                        val title = directory.name
-                        val dirFeed = Feed(Feed.PREFIX_LOCAL_FOLDER + uri.toString(), null, title)
-                        val fExist = feedByIdentityOrID(dirFeed)
-                        if (fExist == null) {
-                            dirFeed.volumeId = parentId
-                            dirFeed.episodeSortOrder = EpisodeSortOrder.EPISODE_TITLE_ASC
-                            dirFeed.keepUpdated = false
-                            dirFeed.autoDownload = false
-                            dirFeed.description = context.getString(R.string.local_feed_description)
-                            dirFeed.author = context.getString(R.string.local_folder)
-                            addNewFeed(dirFeed)
-                            feeds.add(dirFeed)
-                        } else Logt(TAG, "local feed already exists: $title $uri")
-                    }
-
-                    val subDirsInThisDir = content.filter { it.isDirectory() }
-                    if (subDirsInThisDir.isNotEmpty()) {
-                        val v: Volume
-                        val vExist = realm.query(Volume::class).query("uriString == $0", directory.absPath).first().find()
-                        if (vExist == null) {
-                            v = Volume()
-                            v.id = getId()
-                            v.name = directory.name
-                            v.uriString = directory.absPath
-                            v.parentId = parentId
-                            v.isLocal = true
-                            volumes.add(v)
-                            Logd(TAG, "Created volume: ${v.name} $parentId")
-                        } else v = realm.copyFromRealm(vExist)
-
-                        for (subDir in subDirsInThisDir) traverseDirectory(subDir, v.id)
-                    }
-                }
-
-                traverseDirectory(file)
-                if (volumes.isNotEmpty()) realm.write { for (v in volumes) copyToRealm(v) }
-                if (feeds.isNotEmpty()) gearbox.feedUpdater(feeds, doItAnyway = true).startRefresh()
-                Logt(TAG, "Imported ${feeds.size} local feeds in ${volumes.size} volumes")
-            } catch (e: Throwable) { Logs(TAG, e, e.localizedMessage?: "No messaage") }
-        }
-    }
-
     override fun onCleared() {
         super.onCleared()
         searchJob?.cancel()
@@ -259,7 +184,6 @@ fun FindFeedsScreen() {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
-
     
     @Composable
     fun MyTopAppBar() {
@@ -277,7 +201,7 @@ fun FindFeedsScreen() {
                     if (str.matches("http[s]?://.*".toRegex())) navController.navigate("${Screens.OnlineFeed.name}?url=${str.encodeURLParameter()}")
                     else vm.search(str)
                 }
-            }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable(onClick = { drawerController?.open() })) } )
+            }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) } )
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
@@ -296,7 +220,7 @@ fun FindFeedsScreen() {
     }
     val addLocalFolderLauncher = rememberLauncherForActivityResult(AddLocalFolder()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
-        vm.addLocalFolder(uri)
+        addLocalFolder(uri)
     }
 
     if (vm.showOpmlImportSelectionDialog) OpmlImportSelectionDialog(vm.readElements) { vm.showOpmlImportSelectionDialog = false }
@@ -304,27 +228,27 @@ fun FindFeedsScreen() {
     var showAdvanced by remember { mutableStateOf(false) }
     if (showAdvanced) CommonPopupCard({ showAdvanced = false }) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.search_combined_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
+            Text(stringResource(R.string.search_combined_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
                 setOnlineSearchTerms(CombinedSearcher::class.java)
                 showAdvanced = false
-            }))
+            })
             val gearProviderRes = remember { gearbox.gearProviderRes() }
-            if (gearProviderRes > 0) Text(stringResource(gearProviderRes), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
+            if (gearProviderRes > 0) Text(stringResource(gearProviderRes), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
                 setOnlineSearchTerms(gearbox.gearSearchProvider())
                 showAdvanced = false
-            }))
-            Text(stringResource(R.string.search_itunes_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
+            })
+            Text(stringResource(R.string.search_itunes_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
                 setOnlineSearchTerms(ItunesPodcastSearcher::class.java)
                 showAdvanced = false
-            }))
-            Text(stringResource(R.string.search_podcastindex_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
+            })
+            Text(stringResource(R.string.search_podcastindex_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
                 setOnlineSearchTerms(PodcastIndexPodcastSearcher::class.java)
                 showAdvanced = false
-            }))
-            Text(stringResource(R.string.opml_add_podcast_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
+            })
+            Text(stringResource(R.string.opml_add_podcast_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
                 try { chooseOpmlImportPathLauncher.launch("*/*") } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.unable_to_start_system_file_manager)) }
                 showAdvanced = false
-            }))
+            })
         }
     }
 
@@ -332,13 +256,13 @@ fun FindFeedsScreen() {
         ConstraintLayout(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             val (controlRow, gridView, progressBar, empty, txtvError, butRetry, powered) = createRefs()
             Row(modifier = Modifier.padding(vertical = 8.dp, horizontal = 20.dp).fillMaxWidth().constrainAs(controlRow) { top.linkTo(parent.top) }) {
-                Text(stringResource(R.string.top_chart), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = { navController.navigate(Screens.TopChart.name) }))
+                Text(stringResource(R.string.top_chart), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { navController.navigate(Screens.TopChart.name) })
                 Spacer(Modifier.weight(1f))
-                Text(stringResource(R.string.local),color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = {
+                Text(stringResource(R.string.local),color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable {
                     try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.unable_to_start_system_file_manager)) }
-                }))
+                })
                 Spacer(Modifier.weight(1f))
-                Text(stringResource(R.string.advanced), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = { showAdvanced = !showAdvanced }))
+                Text(stringResource(R.string.advanced), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { showAdvanced = !showAdvanced })
             }
 
             if (vm.showProgress) CircularProgressIndicator(progress = { 0.6f }, strokeWidth = 10.dp, modifier = Modifier.size(50.dp).constrainAs(progressBar) { centerTo(parent) })

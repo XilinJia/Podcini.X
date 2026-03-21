@@ -1,12 +1,11 @@
 package ac.mdiq.podcini.ui.actions
 
-import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.DownloadRequest.Companion.requestFor
+import ac.mdiq.podcini.net.download.Downloader.Companion.downloaderFor
 import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.net.download.EpisodeDLManager.Companion.updateDB
-import ac.mdiq.podcini.net.download.Downloader.Companion.downloaderFor
 import ac.mdiq.podcini.net.utils.NetworkUtils
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
@@ -208,7 +207,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                     runOnIOScope {
                         val request = requestFor(item).build()
                         val downloader = downloaderFor(request)
-                        downloader?.run()
+                        downloader?.download()
                         val status = downloader?.result
                         if (status?.isSuccessful == true) updateDB(request)
                     }
@@ -348,119 +347,119 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
             Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(15.dp)) {
                 Logd(TAG, "button label: $type")
                 if (type != ButtonTypes.TTS) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
                         type = ButtonTypes.TTS
                         onClick()
                         onDismiss()
-                    })) {
+                    }) {
                         Icon(imageVector = ImageVector.vectorResource(ButtonTypes.TTS.drawable), modifier = Modifier.size(24.dp), contentDescription = "TTS")
                         Text(stringResource(ButtonTypes.TTS.labelRes))
                     }
                 }
                 if (type != ButtonTypes.TTS_NOW) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
                         type = ButtonTypes.TTS_NOW
                         onClick()
                         onDismiss()
-                    })) {
+                    }) {
                         Icon(imageVector = ImageVector.vectorResource(ButtonTypes.TTS_NOW.drawable), modifier = Modifier.size(24.dp), contentDescription = "TTS now")
                         Text(stringResource(ButtonTypes.TTS_NOW.labelRes))
                     }
                 }
                 if (type != ButtonTypes.WEBSITE) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
                         val btn = ActionButton(item, ButtonTypes.WEBSITE)
                         btn.onClick()
                         onDismiss()
-                    })) {
+                    }) {
                         Icon(imageVector = ImageVector.vectorResource(ButtonTypes.WEBSITE.drawable), modifier = Modifier.size(24.dp), contentDescription = "Web")
                         Text(stringResource(ButtonTypes.WEBSITE.labelRes))
                     }
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
                         val btn = ActionButton(item, ButtonTypes.DOWNLOAD)
                         btn.onClick()
                         type = btn.type
                         onDismiss()
-                    })) {
+                    }) {
                         Icon(imageVector = ImageVector.vectorResource(ButtonTypes.DOWNLOAD.drawable), modifier = Modifier.size(24.dp), contentDescription = "Download")
                         Text(stringResource(ButtonTypes.DOWNLOAD.labelRes))
                     }
                 }
                 if (type !in listOf(ButtonTypes.STREAM, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
                         val btn = ActionButton(item, ButtonTypes.DELETE)
                         btn.onClick()
                         type = btn.type
                         onDismiss()
-                    })) {
+                    }) {
                         Icon(imageVector = ImageVector.vectorResource(ButtonTypes.DELETE.drawable), modifier = Modifier.size(24.dp), contentDescription = "Delete")
                         Text(stringResource(ButtonTypes.DELETE.labelRes))
                     }
                 }
                 if (type !in listOf(ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
                         val btn = ActionButton(item, ButtonTypes.PLAY_REPEAT)
                         btn.onClick()
                         type = btn.type
                         onDismiss()
-                    })) {
+                    }) {
                         Icon(imageVector = ImageVector.vectorResource(ButtonTypes.PLAY_REPEAT.drawable), modifier = Modifier.size(24.dp), contentDescription = "Play repeat")
                         Text(stringResource(ButtonTypes.PLAY_REPEAT.labelRes))
                     }
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
                         val btn = ActionButton(item, ButtonTypes.PLAY)
                         btn.onClick()
                         type = btn.type
                         onDismiss()
-                    })) {
+                    }) {
                         Icon(imageVector = ImageVector.vectorResource(ButtonTypes.PLAY.drawable), modifier = Modifier.size(24.dp), contentDescription = "Play")
                         Text(stringResource(ButtonTypes.PLAY.labelRes))
                     }
                 }
                 if (type !in listOf(ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
                         val btn = ActionButton(item, ButtonTypes.PLAY_ONE)
                         btn.onClick()
                         type = btn.type
                         onDismiss()
-                    })) {
+                    }) {
                         Icon(imageVector = ImageVector.vectorResource(ButtonTypes.PLAY_ONE.drawable), modifier = Modifier.size(24.dp), contentDescription = "Play one")
                         Text(stringResource(ButtonTypes.PLAY_ONE.labelRes))
                     }
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.DELETE)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
                         val btn = ActionButton(item, ButtonTypes.STREAM_REPEAT)
                         btn.onClick()
                         type = btn.type
                         onDismiss()
-                    })) {
+                    }) {
                         Icon(imageVector = ImageVector.vectorResource(ButtonTypes.STREAM_REPEAT.drawable), modifier = Modifier.size(24.dp), contentDescription = "Stream repeat")
                         Text(stringResource(ButtonTypes.STREAM_REPEAT.labelRes))
                     }
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DELETE)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
                         val btn = ActionButton(item, ButtonTypes.STREAM)
                         btn.onClick()
                         type = btn.type
                         onDismiss()
-                    })) {
+                    }) {
                         Icon(imageVector = ImageVector.vectorResource(ButtonTypes.STREAM.drawable), modifier = Modifier.size(24.dp), contentDescription = "Stream")
                         Text(stringResource(ButtonTypes.STREAM.labelRes))
                     }
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.DELETE)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
                         val btn = ActionButton(item, ButtonTypes.STREAM_ONE)
                         btn.onClick()
                         type = btn.type
                         onDismiss()
-                    })) {
+                    }) {
                         Icon(imageVector = ImageVector.vectorResource(ButtonTypes.STREAM_ONE.drawable), modifier = Modifier.size(24.dp), contentDescription = "Stream one")
                         Text(stringResource(ButtonTypes.STREAM_ONE.labelRes))
                     }

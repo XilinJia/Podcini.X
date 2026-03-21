@@ -370,11 +370,9 @@ fun NetworkStorageScreen() {
                         showIcon = true
                     },
                     trailingIcon = {
-                        if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings", modifier = Modifier.size(30.dp).clickable(
-                            onClick = {
-                                upsertBlk(appAttribs) { it.name = name }
-                                showIcon =  false
-                            }))
+                        if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings", modifier = Modifier.size(30.dp).clickable {
+                            upsertBlk(appAttribs) { it.name = name }
+                            showIcon =  false })
                 })
             }
             Text(stringResource(R.string.network_identifier_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
@@ -445,7 +443,7 @@ fun NetworkStorageScreen() {
             )
         }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-            Column(modifier = Modifier.weight(1f).clickable(onClick = { showSetCustomFolderDialog = true })) {
+            Column(modifier = Modifier.weight(1f).clickable { showSetCustomFolderDialog = true }) {
                 Text(stringResource(R.string.pref_custom_media_dir_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                 Text(customMediaFolderUriString.ifBlank { stringResource(R.string.pref_custom_media_dir_sum) }, color = textColor, style = MaterialTheme.typography.bodySmall)
             }
@@ -508,9 +506,6 @@ fun NetworkStorageScreen() {
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
 
-        TitleSummarySwitchRow(R.string.pref_disable_wifilock_title, R.string.pref_disable_wifilock_sum, appPrefs.disableWifiLock) {
-            upsertBlk(appPrefs) { p-> p.disableWifiLock = it}
-        }
         var showMeteredNetworkOptions by remember { mutableStateOf(false) }
         TitleSummaryActionColumn(R.string.pref_metered_network_title, R.string.pref_mobileUpdate_sum) { showMeteredNetworkOptions = true }
         if (showMeteredNetworkOptions) {

@@ -416,7 +416,7 @@ fun LogsScreen() {
                                             Loge(TAG, "Could not find feed for feed id: " + status.feedfileId)
                                             return@clickable
                                         }
-                                        gearbox.feedUpdater(listOf(feed)).startRefresh()
+                                        runOnIOScope { gearbox.feedUpdater(listOf(feed)).startRefresh() }
                                     }
                                     RequestTye.FEEDMEDIA.ordinal -> {
                                         showAction = false
@@ -435,7 +435,7 @@ fun LogsScreen() {
     @Composable
      fun MyTopAppBar() {
         Box {
-            TopAppBar(title = { Text(vm.title) }, navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable(onClick = { drawerController?.open() })) },
+            TopAppBar(title = { Text(vm.title) }, navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) },
                 actions = {
                 if (vm.title != "Session") IconButton(onClick = {
                     vm.clearAllLogs()

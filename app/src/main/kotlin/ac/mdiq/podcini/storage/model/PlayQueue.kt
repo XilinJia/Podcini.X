@@ -1,7 +1,8 @@
 package ac.mdiq.podcini.storage.model
 
-import ac.mdiq.podcini.automation.autodownloadForQueue
-import ac.mdiq.podcini.automation.autoenqueueForQueue
+import ac.mdiq.podcini.automation.AutoDownloadAlgorithm
+import ac.mdiq.podcini.automation.AutoEnqueueAlgorithm
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.persistOrdered
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.specs.EnqueueLocation
@@ -18,6 +19,9 @@ import io.github.xilinjia.krdb.types.RealmList
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.annotations.Ignore
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 private const val TAG = "PlayQueue"
 
@@ -83,6 +87,10 @@ class PlayQueue : RealmObject {
 
     var binLimit: Int = 0
 
+    @Ignore
+    var normalFeeds: List<Feed> = listOf()
+        get() = realm.query(Feed::class).query("queueId == $id").find().filter { it.inNormalVolume }
+
     fun contains(episode: Episode): Boolean = realm.query(QueueEntry::class).query("queueId == $id AND episodeId == ${episode.id}").count().find() > 0
 
     fun update() {
@@ -116,8 +124,11 @@ class PlayQueue : RealmObject {
         Logd(TAG, "checkAndFill")
         showStackTrace()
         if (size() == 0 && !isVirtual()) {
-            autoenqueueForQueue(this)
-            if(launchAutoEQDlWhenEmpty) autodownloadForQueue(this)
+            CoroutineScope(Dispatchers.IO).launch {
+                val feeds = normalFeeds
+                AutoEnqueueAlgorithm().run(feeds, true)
+                if(launchAutoEQDlWhenEmpty && appPrefs.enableAutoDl) AutoDownloadAlgorithm().run(feeds, false, noRefreshing = true)
+            }
         }
     }
 

@@ -35,40 +35,39 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun UserInterfaceScreen() {
-    val context = LocalContext.current
+//    val context = LocalContext.current
     val textColor = MaterialTheme.colorScheme.onSurface
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
         Text(stringResource(R.string.appearance), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        var themeIndex by remember { mutableIntStateOf(
+            when(appTheme) {
+                AppThemes.SYSTEM -> 0
+                AppThemes.LIGHT -> 1
+                AppThemes.DARK -> 2
+                else -> 0
+            }) }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            var checkIndex by remember { mutableIntStateOf(
-                when(appTheme) {
-                    AppThemes.SYSTEM -> 0
-                    AppThemes.LIGHT -> 1
-                    AppThemes.DARK -> 2
-                    else -> 0
-                }) }
             Spacer(Modifier.weight(1f))
-            RadioButton(selected = checkIndex == 0, onClick = {
-                checkIndex = 0
+            RadioButton(selected = themeIndex == 0, onClick = {
+                themeIndex = 0
                 appTheme = AppThemes.SYSTEM
             })
             Text(stringResource(R.string.pref_theme_title_automatic), color = textColor, fontWeight = FontWeight.Bold)
             Spacer(Modifier.weight(1f))
-            RadioButton(selected = checkIndex == 1, onClick = {
-                checkIndex = 1
+            RadioButton(selected = themeIndex == 1, onClick = {
+                themeIndex = 1
                 appTheme = AppThemes.LIGHT
             })
             Text(stringResource(R.string.pref_theme_title_light), color = textColor, fontWeight = FontWeight.Bold)
             Spacer(Modifier.weight(1f))
-            RadioButton(selected = checkIndex == 2, onClick = {
-                checkIndex = 2
+            RadioButton(selected = themeIndex == 2, onClick = {
+                themeIndex = 2
                 appTheme = AppThemes.DARK
             })
             Text(stringResource(R.string.pref_theme_title_dark), color = textColor, fontWeight = FontWeight.Bold)
@@ -76,7 +75,7 @@ fun UserInterfaceScreen() {
         }
         TitleSummarySwitchRow(R.string.pref_dynamic_theme_title, R.string.pref_dynamic_theme_message, appPrefs.useDynamicThemes) {
             upsertBlk(appPrefs) { p-> p.useDynamicThemes = it } }
-        TitleSummarySwitchRow(R.string.pref_black_theme_title, R.string.pref_black_theme_message, appPrefs.themeBlack) {
+        if (themeIndex != 1) TitleSummarySwitchRow(R.string.pref_black_theme_title, R.string.pref_black_theme_message, appPrefs.themeBlack) {
             upsertBlk(appPrefs) { p-> p.themeBlack = it } }
         TitleSummarySwitchRow(R.string.pref_episode_cover_title, R.string.pref_episode_cover_summary, appPrefs.useEpisodeCover) {
             upsertBlk(appPrefs) { p-> p.useEpisodeCover = it } }

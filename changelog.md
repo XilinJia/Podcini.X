@@ -1,3 +1,14 @@
+# 10.13.1
+
+* ensure archived feeds are excluded from auto-download/enqueue
+* in FeedsDetails, feed refresh runs in IO dispatcher
+* when sending feed or episodes to other device, clips are included
+* Transceiver is versioned to ensure device compatibility, current version is not compatible with earlier versions
+* wifi lock setting is removed
+* corrected some background color in AVPlayer screen
+* in Settings->Interface, True black setting is shown if theme is not set to Light
+* some code refactoring and cleaning
+
 # 10.13.0
 
 * fixed crash when recording

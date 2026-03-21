@@ -46,7 +46,6 @@ class DownloadResult : RealmObject {
      */
     var reasonDetailed: String
 
-
     constructor(feedId: Long, title: String, reason: DownloadError?, successful: Boolean, reasonDetailed: String, feedfileType: Int = RequestTye.FEED.ordinal, completionDate: Long = nowInMillis()) {
         this.title = title
         this.feedfileId = feedId
@@ -56,6 +55,9 @@ class DownloadResult : RealmObject {
         this.completionTime = completionDate
         this.reasonDetailed = reasonDetailed
     }
+
+    constructor(feed: Feed, reason: DownloadError?, successful: Boolean, reasonDetailed: String, completionDate: Long = nowInMillis())
+            : this(feed.id, feed.title?:"no title", reason, successful, reasonDetailed, RequestTye.FEED.ordinal, completionDate)
 
     constructor() : this(0L, "", DownloadError.ERROR_NOT_FOUND, false, "") {}
 

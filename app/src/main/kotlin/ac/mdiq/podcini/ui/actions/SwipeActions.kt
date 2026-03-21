@@ -115,11 +115,10 @@ class SwipeActions(private val tag: String) {
                 Text(stringResource(R.string.swipe_left))
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
                     Spacer(Modifier.weight(0.1f))
-                    Icon(imageVector = ImageVector.vectorResource(leftAction.value.iconRes), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp)
-                        .clickable(onClick = {
-                            direction = -1
-                            showPickerDialog = true
-                        }))
+                    Icon(imageVector = ImageVector.vectorResource(leftAction.value.iconRes), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable {
+                        direction = -1
+                        showPickerDialog = true
+                    })
                     Spacer(Modifier.weight(0.1f))
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_left_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier.width(50.dp).height(35.dp))
                     Spacer(Modifier.weight(0.5f))
@@ -129,11 +128,10 @@ class SwipeActions(private val tag: String) {
                     Spacer(Modifier.weight(0.5f))
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_right_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier.width(50.dp).height(35.dp))
                     Spacer(Modifier.weight(0.1f))
-                    Icon(imageVector = ImageVector.vectorResource(rightAction.value.iconRes), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp)
-                        .clickable(onClick = {
-                            direction = 1
-                            showPickerDialog = true
-                        }))
+                    Icon(imageVector = ImageVector.vectorResource(rightAction.value.iconRes), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable {
+                        direction = 1
+                        showPickerDialog = true
+                    })
                     Spacer(Modifier.weight(0.1f))
                 }
                 Button(onClick = {

@@ -21,7 +21,7 @@ private const val TAG: String = "IntentUtils"
  */
 fun isCallable(intent: Intent?): Boolean {
     if (intent == null) return false
-    val list = getAppContext().packageManager.queryIntentActivities(intent!!, PackageManager.MATCH_DEFAULT_ONLY)
+    val list = getAppContext().packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
     for (info in list) if (info.activityInfo.exported) return true
     return false
 }

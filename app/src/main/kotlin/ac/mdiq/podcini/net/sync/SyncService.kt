@@ -175,7 +175,6 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
     private fun removeFeedWithDownloadUrl(downloadUrl: String) {
         Logd(TAG, "removeFeedWithDownloadUrl called")
         var feedID: Long? = null
-//        val feeds = getFeedList()
         for (f in allFeeds) {
             val url = f.downloadUrl
             if (url != null && !url.startsWith(Feed.PREFIX_LOCAL_FOLDER)) feedID = f.id

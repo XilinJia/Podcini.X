@@ -19,7 +19,6 @@ import android.net.Uri
 import androidx.core.database.getStringOrNull
 import io.github.xilinjia.krdb.ext.realmSetOf
 import io.github.xilinjia.krdb.ext.toRealmSet
-import kotlinx.io.IOException
 import okio.buffer
 import okio.openZip
 

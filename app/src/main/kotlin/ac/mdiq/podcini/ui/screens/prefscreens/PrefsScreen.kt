@@ -89,10 +89,10 @@ fun PrefsScreen() {
     val drawerController = LocalDrawerController.current
 
     Scaffold(topBar = { TopAppBar(title = { Text(topAppBarTitle) },
-        navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "Back", modifier = Modifier.padding(7.dp).clickable(onClick = {
+        navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "Back", modifier = Modifier.padding(7.dp).clickable {
             if (navController.previousBackStackEntry != null) navController.popBackStack()
             else drawerController?.open()
-        }) ) }) }) { innerPadding ->
+        } ) }) }) { innerPadding ->
         CompositionLocalProvider(LocalViewModelStoreOwner provides viewModelStoreOwner) {
             NavHost(navController = navController, startDestination = PrefScreens.PortalScreen.name, Modifier.padding(innerPadding)) {
                 composable(PrefScreens.PortalScreen.name) {
@@ -140,7 +140,7 @@ fun PrefPortalScreen(navController: NavController) {
         val textColor = MaterialTheme.colorScheme.onSurface
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {
             Icon(imageVector = ImageVector.vectorResource(vecRes), contentDescription = "", tint = textColor, modifier = Modifier.size(40.dp).padding(end = 15.dp))
-            Column(modifier = Modifier.weight(1f).clickable(onClick = { navController.navigate(screen) })) {
+            Column(modifier = Modifier.weight(1f).clickable { navController.navigate(screen) }) {
                 Text(stringResource(titleRes), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                 Text(stringResource(summaryRes), color = textColor, style = MaterialTheme.typography.bodySmall)
             }
@@ -152,7 +152,7 @@ fun PrefPortalScreen(navController: NavController) {
         val textColor = MaterialTheme.colorScheme.onSurface
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {
             Icon(imageVector = ImageVector.vectorResource(vecRes), contentDescription = "", tint = textColor, modifier = Modifier.size(40.dp).padding(end = 15.dp))
-            Column(modifier = Modifier.weight(1f).clickable(onClick = { callback() })) {
+            Column(modifier = Modifier.weight(1f).clickable { callback() }) {
                 Text(stringResource(titleRes), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
             }
         }
@@ -189,14 +189,14 @@ fun AboutScreen(navController: NavController) {
         Image(painter = painterResource(R.drawable.teaser), contentDescription = "")
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, top = 5.dp, bottom = 5.dp)) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_star), contentDescription = "", tint = textColor)
-            Column(Modifier.padding(start = 10.dp).clickable(onClick = {
+            Column(Modifier.padding(start = 10.dp).clickable {
                 val clipboard = context.getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
 //                val clip = ClipData.newPlainText(context.getString(R.string.bug_report_title), PreferenceManager.getDefaultSharedPreferences(context).getString("about_version", "Default summary"))
                 val versionText = "Version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
                 val clip = ClipData.newPlainText(context.getString(R.string.bug_report_title), versionText)
                 clipboard.setPrimaryClip(clip)
                 if (Build.VERSION.SDK_INT <= 32) Logt(TAG, context.getString(R.string.copied_to_clipboard))
-            })) {
+            }) {
                 Text(stringResource(R.string.podcini_version), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                 Text(BuildConfig.VERSION_NAME, color = textColor)
             }
@@ -262,10 +262,10 @@ fun LicensesScreen() {
     }
     LazyColumn(state = lazyListState, modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 20.dp).background(MaterialTheme.colorScheme.surface), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         itemsIndexed(licenses) { index, item ->
-            Column(Modifier.clickable(onClick = {
+            Column(Modifier.clickable {
                 curLicenseIndex = index
                 showDialog = true
-            })) {
+            }) {
                 Text(item.title, color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                 Text(item.subtitle, color = textColor, style = MaterialTheme.typography.bodySmall)
             }
