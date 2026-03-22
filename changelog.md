@@ -1,3 +1,15 @@
+# 10.13.2
+
+* amended OnlineFeed to show (if any) subscription log near the top
+* amended queue picker and WidgetReceiver to fixed large widget possibly not updating: 
+	* select a queue no longer setting it to actQueue
+	* due to Android restrictions:
+		* max number of episodes sent to the widget is limited at 40 at a time
+		* characters in a title are truncated to 40
+		* only id, title, pubDate, state, duration and rating are sent to the widget
+	* enhanced widget selective update mechanism
+	* enhanced ripple effect on buttons in the widget
+
 # 10.13.1
 
 * ensure archived feeds are excluded from auto-download/enqueue

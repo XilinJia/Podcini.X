@@ -140,7 +140,7 @@ class ShortcutsActivity : ComponentActivity() {
             CoroutineScope(Dispatchers.IO).launch {
                 val request = ImageRequest.Builder(context).data(feed.imageUrl).allowHardware(false).build()
                 val result = (ImageLoader(context).execute(request) as? SuccessResult)
-                val bitmap = (result as? BitmapDrawable)?.bitmap
+                val bitmap = (result?.image as? BitmapDrawable)?.bitmap
 
                 val pinShortcutInfo = ShortcutInfoCompat.Builder(context, "id_${feed.id}")
                     .setShortLabel(feed.title ?: "No title")

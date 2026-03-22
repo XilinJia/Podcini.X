@@ -24,10 +24,6 @@
 -dontskipnonpubliclibraryclassmembers
 
 
-# for okhttp
-# -dontwarn okhttp3.**
-# -dontwarn okio.**
-
 # -dontwarn org.jspecify.annotations.NullMarked
 
 # -keepclasseswithmembers class * {

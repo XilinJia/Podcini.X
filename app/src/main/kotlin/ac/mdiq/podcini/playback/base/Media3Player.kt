@@ -6,6 +6,7 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.PodciniHttpClient.encodeCredentials
 import ac.mdiq.podcini.net.utils.NetworkUtils.wasDownloadBlocked
 import ac.mdiq.podcini.playback.SegmentSavingDataSourceFactory
+import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
@@ -22,6 +23,7 @@ import ac.mdiq.podcini.storage.database.streamingCacheSizeMB
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.toWidget
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.utils.toSafeUri
@@ -36,8 +38,10 @@ import android.app.UiModeManager
 import android.content.Context
 import android.content.res.Configuration
 import android.media.audiofx.LoudnessEnhancer
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Format
@@ -86,6 +90,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.io.IOException
+import kotlinx.serialization.json.Json
 import java.io.File
 import kotlin.math.abs
 
@@ -814,8 +819,13 @@ class Media3Player : MediaPlayerBase() {
                             val manager = GlanceAppWidgetManager(getAppContext())
                             val glanceId = manager.getGlanceIds(PodciniWidget::class.java).find { it.toString() == widgetId }
                             glanceId?.let { id ->
-                                updateAppWidgetState(context, id) { prefs ->
-//                                    prefs[statusKey] = "Updated from App!"
+                                val episodes = actQueue.episodesSorted.take(40).map { it.toWidget() }
+                                val json = Json.encodeToString(episodes)
+                                updateAppWidgetState(context, PreferencesGlanceStateDefinition, id) { prefs ->
+                                    prefs.toMutablePreferences().apply {
+                                        this[stringPreferencesKey("episodes")] = json
+                                        this[stringPreferencesKey("update_type")] = "update"
+                                    }
                                 }
                                 PodciniWidget().update(context, id)
                             }

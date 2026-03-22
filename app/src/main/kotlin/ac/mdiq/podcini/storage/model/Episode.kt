@@ -4,6 +4,7 @@ import ac.mdiq.podcini.net.download.PodciniHttpClient.getKtorClient
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.storage.database.episodeById
 import ac.mdiq.podcini.storage.database.feedsMap
+import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_SEPARATOR
@@ -794,3 +795,24 @@ fun EpisodeDTO.toRealm() = Episode().apply {
         it.repeatTime = this@toRealm.repeatTime
     }
 }
+
+@Serializable
+data class WidgetEpisode(
+    val id: Long,
+    val t: String?,
+    val pd: Long,
+    val s: Int,
+    val du: Int,
+    val r: Int
+)
+
+fun Episode.toWidget() = WidgetEpisode(
+    id = this.id,
+    t = this.title?.take(40),
+    pd = this.pubDate,
+    s = this.playState,
+    du = this.duration,
+    r = this.rating
+)
+
+fun WidgetEpisode.toRealm() = realm.query(Episode::class).query("id = ${this.id}").first().find()

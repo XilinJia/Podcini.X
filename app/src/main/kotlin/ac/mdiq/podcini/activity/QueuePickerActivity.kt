@@ -3,8 +3,9 @@ package ac.mdiq.podcini.activity
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.receiver.PodciniWidget
 import ac.mdiq.podcini.storage.database.queuesLive
-import ac.mdiq.podcini.ui.compose.PodciniTheme
+import ac.mdiq.podcini.storage.model.toWidget
 import ac.mdiq.podcini.ui.compose.AppThemes
+import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.filterChipBorder
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -27,11 +28,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.appwidget.updateAll
+import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 
 class QueuePickerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,15 +52,30 @@ class QueuePickerActivity : ComponentActivity() {
                     Column(modifier = Modifier.padding(24.dp)) {
                         Text(text = "Select queue", style = MaterialTheme.typography.headlineSmall)
                         Spacer(modifier = Modifier.height(16.dp))
-                        var curIndex by remember { mutableIntStateOf(0) }
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                            var curIndex by remember { mutableIntStateOf(-1) }
                             for (index in queuesLive.indices) {
                                 FilterChip(onClick = {
                                     curIndex = index
-                                    actQueue = queuesLive[index]
+                                    val queue = queuesLive[index]
                                     lifecycleScope.launch(Dispatchers.IO) {
-                                        PodciniWidget().updateAll(applicationContext)
-                                        withContext(Dispatchers.Main) { finish() }
+                                        val episodes = queue.episodesSorted.take(40).map { it.toWidget() }
+                                        val json = Json.encodeToString(episodes)
+                                        val manager = GlanceAppWidgetManager(this@QueuePickerActivity)
+                                        val glanceIds = manager.getGlanceIds(PodciniWidget::class.java)
+                                        glanceIds.forEach { glanceId ->
+                                            updateAppWidgetState(this@QueuePickerActivity, PreferencesGlanceStateDefinition, glanceId) { prefs ->
+                                                prefs.toMutablePreferences().apply {
+                                                    this[longPreferencesKey("queue_id")] = queue.id
+                                                    this[stringPreferencesKey("queue_name")] = queue.name
+                                                    this[intPreferencesKey("queue_size")] = queue.size()
+                                                    this[stringPreferencesKey("episodes")] = json
+                                                    this[stringPreferencesKey("update_type")] = "queue"
+                                                }
+                                            }
+                                        }
+                                        PodciniWidget().updateAll(this@QueuePickerActivity)
+                                        finish()
                                     }
                                 }, label = { Text(spinnerTexts[index]) }, selected = curIndex == index, border = filterChipBorder(curIndex == index))
                             }
