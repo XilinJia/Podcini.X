@@ -453,7 +453,7 @@
     <string name="pref_default_page_sum">Obrazovka, ktorá sa otvorí pri spúšťaní Podcini</string>
     <string name="pref_back_button_opens_drawer">Tlačidlo späť otvára navigačný panel</string>
     <string name="pref_back_button_opens_drawer_summary">Stlačením tlačidla späť na predvolenej stránke sa otvorí navigačný panel</string>
-    <string name="remember_last_page">Pamätať poslednú stranu</string>
+
     <string name="pref_delete_removes_from_queue_title">Mazanie tiež odstraňuje epizódy z poradia</string>
     <string name="pref_delete_removes_from_queue_sum">Po zmazaní automaticky odstrániť epizódu z poradia</string>
     <string name="pref_contribute">Pomôžte</string>

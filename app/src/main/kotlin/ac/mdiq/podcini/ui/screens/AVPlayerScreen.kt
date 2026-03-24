@@ -329,7 +329,7 @@ fun VolumeDialog(vm: AVPlayerVM, onDismissRequest: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ControlUI(vm: AVPlayerVM, navController: AppNavigator) {
+fun ControlUI(vm: AVPlayerVM) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -415,7 +415,7 @@ fun ControlUI(vm: AVPlayerVM, navController: AppNavigator) {
             },
             onLongClick = {
                 if (vm.episodeFeed != null) {
-                    navController.navigate("${Screens.FeedDetails.name}?feedId=${vm.episodeFeed!!.id}")
+                    navTo(FeedDetails(feedId=vm.episodeFeed!!.id))
                     psState = PSState.PartiallyExpanded
                 }
             }))
@@ -568,14 +568,14 @@ fun ProgressBar(vm: AVPlayerVM) {
 }
 
 @Composable
-fun PlayerUIScreen(modifier: Modifier, navController: AppNavigator) {
+fun PlayerUIScreen(modifier: Modifier) {
     val textColor = MaterialTheme.colorScheme.onSurface
     val vm: AVPlayerVM = viewModel()
     Box(modifier = modifier.fillMaxWidth().height(100.dp).border(1.dp, MaterialTheme.colorScheme.tertiary).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))) {
         Column {
             Text(curEpisode?.title ?: "No title", maxLines = 1, color = textColor, style = MaterialTheme.typography.bodyMedium)
             ProgressBar(vm)
-            ControlUI(vm, navController)
+            ControlUI(vm)
         }
     }
 }
@@ -584,7 +584,6 @@ fun PlayerUIScreen(modifier: Modifier, navController: AppNavigator) {
 @Composable
 fun AVPlayerScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -710,7 +709,7 @@ fun AVPlayerScreen() {
             Column {
                 Text(curEpisode?.title ?: "No title", maxLines = 1, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 ProgressBar(vm)
-                ControlUI(vm, navController)
+                ControlUI(vm)
             }
         }
     }
@@ -751,11 +750,11 @@ fun AVPlayerScreen() {
                             expanded = false
                         })
                         if (curEpisode != null) DropdownMenuItem(text = { Text(stringResource(R.string.queue)) }, onClick = {
-                            navController.navigate("${Screens.Queues.name}?id=${actQueue.id}")
+                            navTo(Queues(id=actQueue.id))
                             expanded = false
                         })
                         if (curEpisode != null) DropdownMenuItem(text = { Text(stringResource(R.string.open_podcast)) }, onClick = {
-                            if (vm.episodeFeed != null) navController.navigate("${Screens.FeedDetails.name}?feedId=${vm.episodeFeed!!.id}")
+                            if (vm.episodeFeed != null) navTo(FeedDetails(feedId=vm.episodeFeed!!.id))
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
@@ -869,8 +868,8 @@ fun AVPlayerScreen() {
                         //                                Logd(TAG, "detectHorizontalDragGestures velocity: $velocity distance: $distance")
                         val shouldSwipe = abs(distance) > swipeDistanceThreshold && abs(velocity) > swipeVelocityThreshold
                         if (shouldSwipe) {
-                            if (distance > 0) navController.navigate("${Screens.Queues.name}?id=${actQueue.id}")
-                            else navController.navigate("${Screens.FeedDetails.name}?feedId=${vm.episodeFeed!!.id}")
+                            if (distance > 0) navTo(Queues(id=actQueue.id))
+                            else navTo(FeedDetails(feedId=vm.episodeFeed!!.id))
                             psState = PSState.PartiallyExpanded
                         }
                         offsetX.animateTo(targetValue = 0f, animationSpec = tween(300))

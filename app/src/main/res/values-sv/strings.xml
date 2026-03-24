@@ -449,7 +449,7 @@
     <string name="pref_default_page_sum">Skärm som öppnas när Podcini startas</string>
     <string name="pref_back_button_opens_drawer">Bakåtknappen öppnar sidomenyn</string>
     <string name="pref_back_button_opens_drawer_summary">Genom att trycka på bakåtknappen på standardsidan öppnas sidomenyn</string>
-    <string name="remember_last_page">Kom ihåg senaste sida</string>
+
     <string name="pref_delete_removes_from_queue_title">Radering tar bort från kön</string>
     <string name="pref_delete_removes_from_queue_sum">Ta automatiskt bort ett avsnitt från kön när det raderas</string>
     <string name="pref_contribute">Bidra</string>

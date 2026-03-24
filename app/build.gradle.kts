@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 274
-        versionName = "10.13.2"
+        versionCode = 275
+        versionName = "10.14.0"
 
         ndkVersion = "29.0.14206865"
 
@@ -174,7 +174,6 @@ dependencies {
 
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.constraintlayout:constraintlayout-compose:1.1.1")
-    implementation("androidx.navigation:navigation-compose:2.9.7")
 
     implementation("androidx.annotation:annotation:1.9.1")
     implementation("androidx.core:core-ktx:1.18.0")
@@ -183,6 +182,11 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
     implementation("androidx.webkit:webkit:1.15.0")
     implementation("androidx.work:work-runtime:2.11.1")
+
+    implementation("androidx.lifecycle:lifecycle-viewmodel-navigation3:2.10.0")
+    implementation("androidx.navigation3:navigation3-runtime:1.0.1")
+    implementation("androidx.navigation3:navigation3-ui:1.0.1")
+
 
     implementation("androidx.media3:media3-exoplayer:1.9.3")
     implementation("androidx.media3:media3-datasource-okhttp:1.9.3")

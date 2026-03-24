@@ -449,7 +449,7 @@
     <string name="pref_default_page_sum">Screen that is opened when starting Podcini</string>
     <string name="pref_back_button_opens_drawer">Back button opens drawer</string>
     <string name="pref_back_button_opens_drawer_summary">Pressing the back button on the default page opens the navigation drawer</string>
-    <string name="remember_last_page">Legutóbbi oldal megjegyzése</string>
+
     <string name="pref_delete_removes_from_queue_title">Delete removes from queue</string>
     <string name="pref_delete_removes_from_queue_sum">Automatically remove an episode from the queue when it is deleted</string>
     <string name="pref_contribute">Közreműködés</string>

@@ -447,7 +447,7 @@
     <string name="pref_default_page_sum">Screen that is opened when starting Podcini</string>
     <string name="pref_back_button_opens_drawer">뒤로 버튼을 누르면 드로어 열기</string>
     <string name="pref_back_button_opens_drawer_summary">기본 페이지에서 뒤로 버튼을 누르면 네비게이션 드로어를 엽니다</string>
-    <string name="remember_last_page">마지막 페이지 저장</string>
+
     <string name="pref_delete_removes_from_queue_title">제거된 항목 대기열에서 삭제</string>
     <string name="pref_delete_removes_from_queue_sum">Automatically remove an episode from the queue when it is deleted</string>
     <string name="pref_contribute">기여</string>

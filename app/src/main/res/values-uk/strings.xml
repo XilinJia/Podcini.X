@@ -453,7 +453,7 @@
     <string name="pref_default_page_sum">Екран, який відкривається при запуску Podcini</string>
     <string name="pref_back_button_opens_drawer">Кнопка назад відкриває навігаційну панель</string>
     <string name="pref_back_button_opens_drawer_summary">Натискання кнопки назад на сторінці за замовчуванням відкриває навігаційну панель</string>
-    <string name="remember_last_page">Остання відкрита сторінка</string>
+
     <string name="pref_delete_removes_from_queue_title">Вилучати з черги при видаленні завантажень</string>
     <string name="pref_delete_removes_from_queue_sum">При видаленні завантаженого епізода також вилучати його з черги</string>
     <string name="pref_contribute">Посприяти</string>

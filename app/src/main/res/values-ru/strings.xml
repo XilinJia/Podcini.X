@@ -453,7 +453,7 @@
     <string name="pref_default_page_sum">Экран, который открывается при запуске Podcini</string>
     <string name="pref_back_button_opens_drawer">Кнопка Возврат открывает боковую панель</string>
     <string name="pref_back_button_opens_drawer_summary">Нажатие кнопки Возврат на первой странице откроет панель навигации</string>
-    <string name="remember_last_page">Запоминать последнюю страницу</string>
+
     <string name="pref_delete_removes_from_queue_title">Убирать удаленные из очереди</string>
     <string name="pref_delete_removes_from_queue_sum">Автоматически удалять эпизод из очереди при его удалении</string>
     <string name="pref_contribute">Поучаствовать</string>

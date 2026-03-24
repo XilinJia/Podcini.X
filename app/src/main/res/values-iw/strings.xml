@@ -378,7 +378,7 @@
   <string name="pref_default_page_sum">המסך שייפתח בהפעלת אנטנה־פּוֹד</string>
   <string name="pref_back_button_opens_drawer">כפתור חזרה פותח מגירה</string>
   <string name="pref_back_button_opens_drawer_summary">לחיצה על כפתור החזרה בעמוד ברירת המחדל פותח את מגירת הניווט</string>
-  <string name="remember_last_page">זכירת העמוד האחרון</string>
+
   <string name="pref_delete_removes_from_queue_title">מחיקה מסירה מהתור</string>
   <string name="pref_delete_removes_from_queue_sum">הסרת פרק מהתור אוטומטית עם מחיקתו</string>
 

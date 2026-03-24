@@ -9,12 +9,6 @@
 -keep class ac.mdiq.podcini**
 -keepclassmembers class ac.mdiq.podcini** {*;}
 
-# -keep class org.mozilla.javascript.** { *; }
-# -keep class org.mozilla.classfile.ClassFileWriter
-# -dontwarn org.mozilla.javascript.tools.**
-# -keep class java.beans.**
-# -dontwarn java.beans.**
-
 -dontwarn com.google.re2j.Matcher
 -dontwarn com.google.re2j.Pattern
 -dontwarn java.beans.**
@@ -36,3 +30,6 @@
 ####
 
 # -dontwarn org.slf4j.impl.StaticLoggerBinder
+
+-optimizations !class/merging/vertical,!class/merging/horizontal
+-optimizations !method/propagation/parameter,!method/marking/private

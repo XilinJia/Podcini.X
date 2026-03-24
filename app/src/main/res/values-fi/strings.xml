@@ -449,7 +449,7 @@
     <string name="pref_default_page_sum">Näyttö, joka avataan Podcinin käynnistyessä</string>
     <string name="pref_back_button_opens_drawer">Takaisin-painike avaa valikon</string>
     <string name="pref_back_button_opens_drawer_summary">Paina takaisin-nappia oletussivulla avaa navigointivalikon</string>
-    <string name="remember_last_page">Muista viimeisin näkymä</string>
+
     <string name="pref_delete_removes_from_queue_title">Deletointi poistaa jonosta</string>
     <string name="pref_delete_removes_from_queue_sum">Poista jakso automaattisesti jonosta, kun se on poistettu</string>
     <string name="pref_contribute">Osallistu</string>

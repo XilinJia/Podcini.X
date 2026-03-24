@@ -159,7 +159,6 @@ class SearchVM: ViewModel() {
 @Composable
 fun SearchScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
     val textColor = MaterialTheme.colorScheme.onSurface
@@ -214,7 +213,7 @@ fun SearchScreen() {
                     if (vm.selectedTabIndex.intValue == 0) Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort", modifier = Modifier.padding(start = 7.dp).clickable { showSortDialog = true })
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "Advanced", modifier = Modifier.padding(start = 7.dp).clickable { vm.showAdvanced = !vm.showAdvanced})
                 }
-            }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.padding(horizontal = 7.dp).clickable { if (navController.previousBackStackEntry != null) navController.popBackStack() else drawerController?.open()  }) } )
+            }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.padding(horizontal = 7.dp).clickable { if (!navBack()) drawerController?.open()  }) } )
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
@@ -237,11 +236,11 @@ fun SearchScreen() {
                     Text(stringResource(R.string.search_online), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable {
                         val query = vm.queryText
                         if (query.matches("http[s]?://.*".toRegex())) {
-                            navController.navigate("${Screens.OnlineFeed.name}?url=${query.encodeURLParameter()}")
+                            navTo(OnlineFeed(url=query.encodeURLParameter()))
                             return@clickable
                         }
                         setOnlineSearchTerms(query = query)
-                        navController.navigate(Screens.FindFeeds.name)
+                        navTo(FindFeeds)
                     })
                 }
                 if (showSearchBy) vm.algo.SearchByGrid()
@@ -264,12 +263,12 @@ fun SearchScreen() {
                         AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover",
                             modifier = Modifier.width(80.dp).height(80.dp).clickable {
                                 Logd(TAG, "icon clicked!")
-                                if (!feed.isBuilding) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}&modeName=${FeedScreenMode.Info.name}")
+                                if (!feed.isBuilding) navTo(FeedDetails(feedId=feed.id, modeName=FeedScreenMode.Info.name))
                             })
                         val textColor = MaterialTheme.colorScheme.onSurface
                         Column(Modifier.weight(1f).padding(start = 10.dp).clickable {
                             Logd(TAG, "clicked: ${feed.title}")
-                            if (!feed.isBuilding) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
+                            if (!feed.isBuilding) navTo(FeedDetails(feedId=feed.id))
                         }) {
                             Row {
                                 if (feed.rating != Rating.UNRATED.code)
@@ -309,7 +308,7 @@ fun SearchScreen() {
                 LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     itemsIndexed(vm.pafeeds, key = { _, feed -> feed.id }) { index, feed ->
                         fun navToOnlineFeed() {
-                            if (feed.feedUrl.isNotBlank()) navController.navigate("${Screens.OnlineFeed.name}?url=${feed.feedUrl.encodeURLParameter()}")
+                            if (feed.feedUrl.isNotBlank()) navTo(OnlineFeed(url=feed.feedUrl.encodeURLParameter()))
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover",

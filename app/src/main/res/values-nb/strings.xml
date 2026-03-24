@@ -351,7 +351,7 @@
   <string name="pref_default_page">Standard side</string>
   <string name="pref_back_button_opens_drawer">Tilbake knappen åpner skuffen</string>
   <string name="pref_back_button_opens_drawer_summary">Å trykke tilbake knappen på standard siden åpner navigasjons skuffen</string>
-  <string name="remember_last_page">Husk siste side</string>
+
   <string name="pref_delete_removes_from_queue_title">Sletting fjerner fra køen</string>
 
 

@@ -27,10 +27,11 @@ import ac.mdiq.podcini.storage.utils.internalDir
 import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.Combo
-import ac.mdiq.podcini.ui.screens.LocalNavController
+import ac.mdiq.podcini.ui.screens.FeedDetails
 import ac.mdiq.podcini.ui.screens.PSState
-import ac.mdiq.podcini.ui.screens.Screens
+
 import ac.mdiq.podcini.ui.screens.handleBackSubScreens
+import ac.mdiq.podcini.ui.screens.navTo
 import ac.mdiq.podcini.ui.screens.psState
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
@@ -131,7 +132,6 @@ var episodeForInfo by mutableStateOf<Episode?>(null)
 fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = MutableStateFlow(emptyList()), allowOpenFeed: Boolean = false) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context by rememberUpdatedState(LocalContext.current)
-    val navController = LocalNavController.current
     val textColor = MaterialTheme.colorScheme.onSurface
 
     val episodeFlow = remember(episode_.id) { listFlow.map { list -> list.firstOrNull { it.id == episode_.id } } }
@@ -208,7 +208,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
             actions = {
                 if (allowOpenFeed) IconButton(onClick = {
                     if (episodeFeed != null) {
-                        navController.navigate("${Screens.FeedDetails.name}?feedId=${episodeFeed.id}")
+                        navTo(FeedDetails(feedId = episodeFeed.id))
                         psState = PSState.PartiallyExpanded
                     }
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_feed), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Open podcast", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }

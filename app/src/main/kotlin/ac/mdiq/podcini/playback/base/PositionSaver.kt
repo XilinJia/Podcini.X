@@ -6,11 +6,9 @@ import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logpe
 import ac.mdiq.podcini.utils.Logt
 import android.annotation.SuppressLint
-import androidx.annotation.OptIn
-import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -31,7 +29,7 @@ class PositionSaver {
         
         fun positionSaverTick() {
             if (mPlayer == null) {
-                Loge(TAG, "positionSaverTick mPlayer is null")
+                Logpe(TAG, "positionSaverTick mPlayer is null")
                 return
             }
             val curPosition = mPlayer!!.getPosition()

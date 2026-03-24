@@ -451,7 +451,7 @@
     <string name="pref_default_page_sum">Ecranul ce este pornit când aplicația este pornită</string>
     <string name="pref_back_button_opens_drawer">Butonul înapoi deschide sertarul</string>
     <string name="pref_back_button_opens_drawer_summary">Apăsarea butonului înapoi pe pagina principală deschide sertarul de navigare</string>
-    <string name="remember_last_page">Amintiți-vă ultima pagină</string>
+
     <string name="pref_delete_removes_from_queue_title">Ștergerea unui episod îl elimină și din coada de redare</string>
     <string name="pref_delete_removes_from_queue_sum">Elimină automat un episod din coada de redare când acesta este șters</string>
     <string name="pref_contribute">Contribuie</string>

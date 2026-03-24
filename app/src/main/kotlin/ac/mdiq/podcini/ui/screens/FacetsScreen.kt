@@ -450,7 +450,6 @@ class FacetsVM(modeName_: String): ViewModel() {
 fun FacetsScreen(modeName: String = "") {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context by rememberUpdatedState(LocalContext.current)
-    val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
     val vm: FacetsVM = viewModel(key = modeName, factory = viewModelFactory { initializer { FacetsVM(modeName) } })
@@ -569,9 +568,9 @@ fun FacetsScreen(modeName: String = "") {
                         if (vm.showFeeds) IconButton(onClick = {
                             feedIdsToUse.clear()
                             feedIdsToUse.addAll(feedsAssociated.map { it.id })
-                            navController.navigate(Screens.Library.name)
+                            navTo(Library)
                         }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "library") }
-                        IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
+                        IconButton(onClick = { navTo(Search) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                         if (facetsMode in listOf(QuickAccess.History, QuickAccess.Downloaded, QuickAccess.New)) {
                             IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                             DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {

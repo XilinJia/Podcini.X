@@ -447,7 +447,7 @@
     <string name="pref_default_page_sum">启动 Podcini 时打开屏幕</string>
     <string name="pref_back_button_opens_drawer">返回键打开抽屉栏</string>
     <string name="pref_back_button_opens_drawer_summary">按下默认页面上的后退按钮打开导航栏</string>
-    <string name="remember_last_page">记住最后一个页面</string>
+
     <string name="pref_delete_removes_from_queue_title">删除队列中的删除</string>
     <string name="pref_delete_removes_from_queue_sum">删除时自动从队列中移除剧集</string>
     <string name="pref_contribute">贡献</string>

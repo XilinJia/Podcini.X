@@ -1,16 +1,14 @@
 package ac.mdiq.podcini.activity
 
-import ac.mdiq.podcini.ui.compose.PodciniTheme
-import ac.mdiq.podcini.ui.screens.AppNavigator
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.compose.LargePoster
-import ac.mdiq.podcini.ui.screens.LocalNavController
-import ac.mdiq.podcini.ui.screens.Navigate
-import ac.mdiq.podcini.ui.screens.Screens
+import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.appTheme
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.commonMessage
+import ac.mdiq.podcini.ui.screens.EpisodeInfo
+import ac.mdiq.podcini.ui.screens.navTo
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.toastMassege
 import android.content.Intent
@@ -22,13 +20,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.flow.MutableStateFlow
 
 private const val TAG = "EpisodeInfoActivity"
@@ -51,16 +46,15 @@ class EpisodeInfoActivity : ComponentActivity() {
         })
 
         setContent {
-            PodciniTheme() {
-                val navController = rememberNavController()
-                val navigator = remember { AppNavigator(navController) { route -> Logd(TAG, "Navigated to: $route") } }
+            PodciniTheme {
+//                val navController = rememberNavController()
+//                val navigator = remember { MyNavigator(navController) { route -> Logd(TAG, "Navigated to: $route") } }
                 val episodeId by currentEpisodeId.collectAsStateWithLifecycle()
                 Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth()) {
                     if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                     if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
                     if (commonMessage != null) LargePoster(commonMessage!!)
-                    CompositionLocalProvider(LocalNavController provides navigator) {
-                        episodeId?.let { Navigate(navController, "${Screens.EpisodeInfo.name}?episodeId=$episodeId") } }
+                    episodeId?.let { navTo(EpisodeInfo(episodeId = episodeId!!)) }
                 }
             }
         }

@@ -354,7 +354,7 @@
   <string name="pref_default_page">Pàgina predeterminada</string>
   <string name="pref_back_button_opens_drawer">El botó Enrere obre el calaix</string>
   <string name="pref_back_button_opens_drawer_summary">En prémer el botó Enrere a la pàgina per defecte, s\'obre el calaix de navegació</string>
-  <string name="remember_last_page">Recorda l\'última pàgina</string>
+
   <string name="pref_delete_removes_from_queue_title">Eliminar remoure de la cua</string>
 
 

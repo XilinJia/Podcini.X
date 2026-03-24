@@ -274,7 +274,6 @@ fun QueuesScreen(id: Long = -1L) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
-    val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
     val vm: QueuesVM = viewModel(key = id.toString(), factory = viewModelFactory { initializer { QueuesVM(id) } })
@@ -510,16 +509,15 @@ fun QueuesScreen(id: Long = -1L) {
                             facetsMode = QuickAccess.Custom
                             facetsCustomTag = vm.spinnerTexts[vm.curIndex]
                             facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", vm.feedsAssociated.map { it.id })
-                            navController.navigate("${Screens.Facets.name}?modeName=${QuickAccess.Custom.name}")
-//                            navController.navigate(Screens.Facets.name)
+                                navTo(Facets(modeName=QuickAccess.Custom.name))
                         }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "facets") }
                         IconButton(onClick = {
                             feedIdsToUse.clear()
                             feedIdsToUse.addAll(vm.feedsAssociated.map { it.id })
-                            navController.navigate(Screens.Library.name)
+                            navTo(Library)
                         }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "library") }
                     }
-                    if (vm.queuesMode == QueuesScreenMode.Queue) IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
+                    if (vm.queuesMode == QueuesScreenMode.Queue) IconButton(onClick = { navTo(Search) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                     DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.settings_label)) }, onClick = {

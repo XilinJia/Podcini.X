@@ -60,19 +60,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.navigation.NavBackStackEntry
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation3.ui.NavDisplay
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 
 private const val TAG = "MainScreen"
-
-private var initScreen by mutableStateOf<String?>(null)
-private var intendedScreen by mutableStateOf("")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,19 +75,17 @@ fun MainActivityUI() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context by rememberUpdatedState(LocalContext.current)
     val lcScope = rememberCoroutineScope()
-    val navController = rememberNavController()
-    val navigator = remember { AppNavigator(navController) { route ->
-        Logd(TAG, "Navigated to: $route")
-        if (psState == PSState.Expanded) psState =  PSState.PartiallyExpanded
-    } }
-
-     var navStackJob: Job? by remember { mutableStateOf(null) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             Logd(TAG, "DisposableEffect LifecycleEventObserver: $event")
             when (event) {
-                Lifecycle.Event.ON_CREATE -> if (appAttribs.restoreLastScreen) initScreen = appAttribs.prefLastScreen
+                Lifecycle.Event.ON_CREATE -> {
+                    if (appAttribs.restoreLastScreen) {
+                        val restored: List<NavKey> = Json.decodeFromString(appAttribs.backstack)
+                        if (restored.isNotEmpty()) backStack.addAll(restored.take(10))
+                    }
+                }
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {}
@@ -101,23 +94,7 @@ fun MainActivityUI() {
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            navStackJob?.cancel()
-            navStackJob = null
-        }
-    }
-
-    LaunchedEffect(navController) {
-        fun NavBackStackEntry.resolvedRoute(): String {
-            val template = destination.route ?: return ""
-            var resolved = template
-            arguments?.keySet()?.forEach { key -> resolved = resolved.replace("{$key}", arguments?.get(key)?.toString() ?: "") }
-            return resolved
-        }
-        navController.currentBackStackEntryFlow.map { it.resolvedRoute() }.distinctUntilChanged().collect { resolved ->
-            withContext(Dispatchers.IO) { upsert(appAttribs) { it.prefLastScreen = resolved } }
-            Logd(TAG, "currentBackStackEntryFlow Now at: $resolved")
-        }
+        onDispose {}
     }
 
     val sheetState = rememberBottomSheetScaffoldState(bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded, skipHiddenState = false))
@@ -195,83 +172,46 @@ fun MainActivityUI() {
         }
     }
 
+    LaunchedEffect(Unit) {
+        snapshotFlow { backStack.toList() }.debounce(200).collect { stack ->
+            val json = Json.encodeToString(stack)
+            withContext(Dispatchers.IO) { upsert(appAttribs) { it.backstack = json } }
+        }
+    }
+
     val windowInfo = LocalWindowInfo.current
     val screenWidth = windowInfo.containerSize.width.dp
     Logd(TAG, "before CompositionLocalProvider")
-    CompositionLocalProvider(LocalDrawerController provides drawerCtrl, LocalDrawerState provides drawerState, LocalNavController provides navigator) {
+    CompositionLocalProvider(LocalDrawerController provides drawerCtrl, LocalDrawerState provides drawerState) {
         ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
             BottomSheetScaffold(sheetContent = { AVPlayerScreen() }, scaffoldState = sheetState, sheetMaxWidth = screenWidth, sheetPeekHeight = bottomInsetPadding + 100.dp, sheetDragHandle = {}, sheetShape = RectangleShape, topBar = {}) { paddingValues ->
                 Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(top = paddingValues.calculateTopPadding(), bottom = dynamicBottomPadding)) {
-                    Navigate(navController, initScreen ?: "")
-                }
-            }
-            LaunchedEffect(intendedScreen) {
-                Logd(TAG, "LaunchedEffect intendedScreen: $intendedScreen")
-                if (intendedScreen.isNotBlank()) {
-                    navigator.navigate(intendedScreen) {
-                        popUpTo(0) { inclusive = true }
-                        launchSingleTop = true
-                    }
+                    NavDisplay(backStack = backStack, onBack = { navBack() }, entryProvider = anyEntryProvider)
                 }
             }
         }
     }
 
-    //        CompositionLocalProvider(LocalDrawerController provides drawerCtrl, LocalDrawerState provides drawerState, LocalNavController provides navigator) {
-    //            ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
-    //                Scaffold(bottomBar = { AudioPlayerUIScreen(modifier = Modifier.padding(bottom = bottomInsetPadding), navigator) }) { innerPadding ->
-    //                    val playerHeightOnly = (innerPadding.calculateBottomPadding() - bottomInsetPadding).coerceAtLeast(0.dp)
-    //                    Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(bottom = playerHeightOnly)) {
-    //                        if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
-    //                        if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
-    //                        if (commonMessage != null) LargePoster(commonMessage!!)
-    //                        Navigate(navController, initScreen ?: "")
-    //                    }
-    //                }
-    //                LaunchedEffect(intendedScreen) {
-    //                    Logd(TAG, "LaunchedEffect intendedScreen: $intendedScreen")
-    //                    if (intendedScreen.isNotBlank()) {
-    //                        navigator.navigate(intendedScreen) {
-    //                            popUpTo(0) { inclusive = true }
-    //                            launchSingleTop = true
-    //                        }
-    //                        intendedScreen = ""
-    //                    }
-    //                }
-    //            }
-    //        }
-
     BackHandler(enabled = handleBackSubScreens.isEmpty()) {
         Logd(TAG, "BackHandler isBSExpanded: $psState")
         val openDrawer = appPrefs.backButtonOpensDrawer
-        val defPage = defaultScreen
-        val currentDestination = navigator.currentDestination
-        var curruntRoute = currentDestination?.route ?: ""
-        Logd(TAG, "BackHandler curruntRoute0: $curruntRoute defPage: $defPage")
+        val defPage = defaultNavKey
+        Logd(TAG, "BackHandler curruntRoute0: defPage: $defPage")
         when {
             drawerState.isOpen -> drawerCtrl.close()
             psState == PSState.Expanded -> psState = PSState.PartiallyExpanded
-            navigator.previousBackStackEntry != null -> {
+            backStack.size > 1 -> {
                 Logd(TAG, "nav to back")
-                navigator.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
-                navigator.popBackStack()
-                curruntRoute = currentDestination?.route ?: ""
-                Logd(TAG, "BackHandler curruntRoute: [$curruntRoute]")
+                navBack()
+                Logd(TAG, "BackHandler curruntRoute: ")
             }
-            defPage.isNotBlank() && curruntRoute.isNotBlank() && curruntRoute.substringBefore('?') != defPage.substringBefore('?') -> {
+            backStack.size == 1 && defPage != backStack[0] -> {
                 Logd(TAG, "nav to defPage: $defPage")
-                navigator.navigate(defPage) { popUpTo(0) { inclusive = true } }
-                curruntRoute = currentDestination?.route ?: ""
-                Logd(TAG, "BackHandler curruntRoute1: [$curruntRoute]")
+                navTo(defPage)
+                Logd(TAG, "BackHandler curruntRoute1: ")
             }
             openDrawer -> drawerCtrl.open()
             else -> Logt(TAG, context.getString(R.string.no_more_screens_back))
         }
     }
-}
-
-fun setIntentScreen(screen: String) {
-    Logd(TAG, "setIntentScreen screen: $screen initScreen: $initScreen")
-    if (initScreen == null) initScreen = screen
-    else intendedScreen = screen
 }

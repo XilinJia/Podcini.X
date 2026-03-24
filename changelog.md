@@ -1,3 +1,12 @@
+# 10.14.0
+
+* toast messages can be viewed in EpisodeInfo and AVPlayer screen
+* added more error handling in exoplayer error listener
+* revamped navigation routines to migrate to Navigation3
+	* if "Restore from last" is checked, instead of the last screen, the last history of 10 is restored
+	* last screen from previous versions can not be restored
+* disabled R8 fullMode
+
 # 10.13.2
 
 * amended OnlineFeed to show (if any) subscription log near the top

@@ -16,8 +16,10 @@ import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.storage.utils.nowInMillis
-import ac.mdiq.podcini.ui.screens.LocalNavController
-import ac.mdiq.podcini.ui.screens.Screens
+import ac.mdiq.podcini.ui.screens.FeedDetails
+import ac.mdiq.podcini.ui.screens.OnlineFeed
+import ac.mdiq.podcini.ui.screens.navTo
+
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.formatLargeInteger
@@ -171,7 +173,6 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
 fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
     val TAG = "OnlineFeedItem"
     val context = LocalContext.current
-    val navController = LocalNavController.current
     val showSubscribeDialog = remember { mutableStateOf(false) }
     if (showSubscribeDialog.value) CommonPopupCard(onDismissRequest = { showSubscribeDialog.value = false }) {
         val textColor = MaterialTheme.colorScheme.onSurface
@@ -188,8 +189,8 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
         onClick = {
             if (feed.feedUrl != null) {
                 Logd(TAG, "feed.feedId: ${feed.feedId}")
-                if (feed.feedId > 0) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.feedId}")
-                else navController.navigate("${Screens.OnlineFeed.name}?url=${feed.feedUrl.encodeURLParameter()}&source=${feed.source}")
+                if (feed.feedId > 0) navTo(FeedDetails(feedId = feed.feedId))
+                else navTo(OnlineFeed(url = feed.feedUrl.encodeURLParameter(), source = feed.source))
             } },
         onLongClick = { showSubscribeDialog.value = true })) {
         val textColor = MaterialTheme.colorScheme.onSurface
@@ -337,7 +338,6 @@ fun VideoModeDialog(initMode: VideoMode?, onDismissRequest: () -> Unit, callback
 @Composable
 fun AssociatedFeedsGrid(feedsAssociated: List<Feed>) {
     val TAG = "AssociatedFeedsGrid"
-    val navController = LocalNavController.current
     val context = LocalContext.current
     LazyVerticalGrid(state = rememberLazyGridState(), columns = GridCells.Adaptive(80.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -354,7 +354,7 @@ fun AssociatedFeedsGrid(feedsAssociated: List<Feed>) {
                             start.linkTo(parent.start)
                         }.combinedClickable(onClick = {
                             Logd(TAG, "clicked: ${feed.title}")
-                            navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
+                            navTo(FeedDetails(feedId = feed.id))
                         }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
                 )
                 val numEpisodes by remember(feed.episodesCount) { mutableIntStateOf(feed.episodesCount) }

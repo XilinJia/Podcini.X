@@ -10,7 +10,6 @@ import ac.mdiq.podcini.net.feed.FeedBuilderBase
 import ac.mdiq.podcini.net.feed.FeedUrlNotFoundException
 import ac.mdiq.podcini.net.feed.PodcastSearchResult
 import ac.mdiq.podcini.net.feed.PodcastSearcherRegistry
-import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appPrefs
@@ -311,8 +310,6 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     val drawerController = LocalDrawerController.current
     val context by rememberUpdatedState(LocalContext.current)
     val textColor = MaterialTheme.colorScheme.onSurface
-    val navController = LocalNavController.current
-
     val vm: OnlineFeedVM = viewModel(key = url, factory = viewModelFactory { initializer { OnlineFeedVM(url, source, shared) } })
 
     var swipeActions by remember { mutableStateOf(SwipeActions(TAG)) }
@@ -381,12 +378,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     @Composable
     fun MyTopAppBar() {
         Box {
-            TopAppBar(title = { Text(text = "Online feed") }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer",  modifier = Modifier.padding(7.dp).clickable {
-                if (navController.previousBackStackEntry != null) {
-                    navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
-                    navController.popBackStack()
-                } else drawerController?.open()
-            }) } )
+            TopAppBar(title = { Text(text = "Online feed") }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer",  modifier = Modifier.padding(7.dp).clickable { if (!navBack()) drawerController?.open() }) } )
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
@@ -425,7 +417,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                                 val log = realm.query(ShareLog::class).query("url == $0", vm.feedUrl).first().find()
                                 if (log != null) upsertBlk(log) { it.status = ShareLog.Status.EXISTING.ordinal }
                             }
-                            navController.navigate("${Screens.FeedDetails.name}?feedId=${vm.feedId}&modeName=${FeedScreenMode.Info.name}")
+                            navTo(FeedDetails(feedId=vm.feedId, modeName=FeedScreenMode.Info.name))
                         } else {
                             vm.enableSubscribe = false
                             vm.enableEpisodes = false
@@ -500,12 +492,12 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 Text(stringResource(R.string.feeds_related_to_author), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 10.dp).clickable {
                         setOnlineSearchTerms(query = "${vm.feed?.author} podcasts")
-                        navController.navigate(Screens.FindFeeds.name)
+                        navTo(FindFeeds)
                     })
                 LazyRow(state = rememberLazyListState(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     items(vm.relatedFeeds) { feed ->
                         AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable {
-                            navController.navigate("${Screens.OnlineFeed.name}?url=${feed.feedUrl?.encodeURLParameter()}&source=${feed.source}")
+                            navTo(OnlineFeed(url=feed.feedUrl?.encodeURLParameter()?:"", source=feed.source))
                         })
                     }
                 }

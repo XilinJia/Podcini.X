@@ -455,7 +455,7 @@
     <string name="pref_default_page_sum">Ekran otwierany podczas uruchamiania Podcini</string>
     <string name="pref_back_button_opens_drawer">Przycisk Wstecz otwiera szufladę</string>
     <string name="pref_back_button_opens_drawer_summary">Naciśnięcie przycisku wstecz na domyślnej stronie otwiera szufladę nawigacyjną</string>
-    <string name="remember_last_page">Zapiętaj ostatnią stronę</string>
+
     <string name="pref_delete_removes_from_queue_title">Usuń z kolejki</string>
     <string name="pref_delete_removes_from_queue_sum">Automatycznie usuń odcinek z kolejki po usunięciu</string>
     <string name="pref_contribute">Przyczyń się do rozwoju</string>

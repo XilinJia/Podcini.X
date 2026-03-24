@@ -12,6 +12,7 @@ import ac.mdiq.podcini.storage.database.smartRemoveFromAllQueues
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.ui.compose.AddTimerDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CommentEditingDialog
@@ -21,14 +22,15 @@ import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EraseEpisodesDialog
 import ac.mdiq.podcini.ui.compose.FutureStateDialog
 import ac.mdiq.podcini.ui.compose.IgnoreEpisodesDialog
-import ac.mdiq.podcini.ui.screens.LocalNavController
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
 import ac.mdiq.podcini.ui.compose.PutToQueueDialog
-import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.compose.ShelveDialog
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.ui.compose.commonConfirm
+import ac.mdiq.podcini.ui.screens.Search
+import ac.mdiq.podcini.ui.screens.navTo
+
 import ac.mdiq.podcini.ui.screens.setSearchTerms
 import ac.mdiq.podcini.utils.Logd
 import androidx.compose.foundation.border
@@ -59,7 +61,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ac.mdiq.podcini.storage.utils.nowInMillis
 
 
 abstract class EpisodeAction {
@@ -363,10 +364,9 @@ class SearchSelected : EpisodeAction() {
                 text = { TextField(value = textFieldValue, onValueChange = { textFieldValue = it }, readOnly = true, textStyle = TextStyle(fontSize = 18.sp), modifier = Modifier.fillMaxWidth().padding(16.dp).border(1.dp, MaterialTheme.colorScheme.primary)) },
                 confirmButton = {
                     if (selectedText.isNotEmpty()) {
-                        val navController = LocalNavController.current
                         Button(modifier = Modifier.padding(top = 8.dp), onClick = {
                             setSearchTerms("$selectedText,")
-                            navController.navigate(Screens.Search.name)
+                            navTo(Search)
                             showSearchDialog = false
                         }) { Text(stringResource(R.string.search_label)) }
                     }

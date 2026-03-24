@@ -40,15 +40,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
@@ -63,7 +60,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil3.compose.AsyncImage
 import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private const val TAG = "NavDrawerScreen"
@@ -76,7 +72,6 @@ val LocalDrawerState = staticCompositionLocalOf<DrawerState> { error("DrawerStat
 @Composable
 fun NavDrawerScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val navigator = LocalNavController.current
     val drawerCtrl = LocalDrawerController.current
     val drawerState = LocalDrawerState.current
 
@@ -131,10 +126,7 @@ fun NavDrawerScreen() {
             for (nav in navMap.entries) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 15.dp).clickable {
                     Logd(TAG, "nav.key: ${nav.key}")
-                    navigator.navigate(nav.key) {
-                        if (nav.key in listOf(Screens.Library.name, Screens.Queues.name, Screens.Facets.name)) popUpTo(0) { inclusive = true }
-                        else popUpTo(nav.key) { inclusive = true }
-                    }
+                    navTo(nav.value.navKey, PopMode.Clear)
                     drawerCtrl?.close()
                 }) {
                     Icon(imageVector = ImageVector.vectorResource(nav.value.iconRes), tint = textColor, contentDescription = nav.key, modifier = Modifier.padding(start = 10.dp))
@@ -145,7 +137,7 @@ fun NavDrawerScreen() {
             }
             HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 10.dp).fillMaxWidth().clickable {
-                navigator.navigate(Screens.Settings.name) { popUpTo(Screens.Settings.name) { inclusive = true } }
+                navTo(Settings, PopMode.Clear)
                 drawerCtrl?.close()
             }) {
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), tint = textColor, contentDescription = "settings", modifier = Modifier.padding(start = 10.dp))
@@ -154,7 +146,7 @@ fun NavDrawerScreen() {
             HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
             for (f in feedBriefs) {
                 Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp).clickable {
-                    navigator.navigate("${Screens.FeedDetails.name}?feedId=${f.id}")
+                    navTo(FeedDetails(feedId=f.id))
                     drawerCtrl?.close()
                     psState = PSState.PartiallyExpanded
                 }) {
@@ -170,17 +162,17 @@ fun NavDrawerScreen() {
     }
 }
 
-class NavItem(val iconRes: Int, val nameRes: Int) {
+data class NavItem(val navKey: NavKey, val iconRes: Int, val nameRes: Int) {
     var count by mutableIntStateOf(0)
 }
 
 private val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
-    Screens.Library.name to NavItem(R.drawable.ic_subscriptions, R.string.library),
-    Screens.Queues.name to NavItem(R.drawable.ic_playlist_play, R.string.queue_label),
-    Screens.Facets.name to NavItem(R.drawable.baseline_view_in_ar_24, R.string.facets),
-    Screens.Logs.name to NavItem(R.drawable.ic_history, R.string.logs_label),
-    Screens.Statistics.name to NavItem(R.drawable.ic_chart_box, R.string.statistics_label),
-    Screens.FindFeeds.name to NavItem(R.drawable.ic_add, R.string.add_feed_label),
+    Screens.Library.name to NavItem(Library,R.drawable.ic_subscriptions, R.string.library),
+    Screens.Queues.name to NavItem(Queues(), R.drawable.ic_playlist_play, R.string.queue_label),
+    Screens.Facets.name to NavItem(Facets(), R.drawable.baseline_view_in_ar_24, R.string.facets),
+    Screens.Logs.name to NavItem(Logs, R.drawable.ic_history, R.string.logs_label),
+    Screens.Statistics.name to NavItem(Statistics, R.drawable.ic_chart_box, R.string.statistics_label),
+    Screens.FindFeeds.name to NavItem(FindFeeds, R.drawable.ic_add, R.string.add_feed_label),
 )
 
 interface DrawerController {

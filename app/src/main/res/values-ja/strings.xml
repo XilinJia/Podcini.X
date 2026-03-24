@@ -449,7 +449,7 @@
     <string name="pref_default_page_sum">Podciniを起動したときに開かれる画面</string>
     <string name="pref_back_button_opens_drawer">戻るボタンでドロワーを開く</string>
     <string name="pref_back_button_opens_drawer_summary">デフォルトページの戻るボタンを押すと、ナビゲーションドロワーが開きます</string>
-    <string name="remember_last_page">最後のページを記憶</string>
+
     <string name="pref_delete_removes_from_queue_title">キューから削除する</string>
     <string name="pref_delete_removes_from_queue_sum">キューからエピソードを自動的に削除する</string>
     <string name="pref_contribute">貢献</string>

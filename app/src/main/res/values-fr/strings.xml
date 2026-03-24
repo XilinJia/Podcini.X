@@ -452,7 +452,7 @@
     <string name="pref_default_page_sum">Choisir l\'écran par défaut à l\'ouverture d\'Podcini</string>
     <string name="pref_back_button_opens_drawer">Le bouton retour ouvre le volet de navigation</string>
     <string name="pref_back_button_opens_drawer_summary">Ouvrir le volet de navigation quand le bouton retour est utilisé sur l\'écran par défaut</string>
-    <string name="remember_last_page">Dernier écran utilisé</string>
+
     <string name="pref_delete_removes_from_queue_title">Supprimer retire de la liste de lecture</string>
     <string name="pref_delete_removes_from_queue_sum">Retirer de la liste de lecture un épisode quand son fichier est supprimé</string>
     <string name="pref_contribute">Contribuer</string>

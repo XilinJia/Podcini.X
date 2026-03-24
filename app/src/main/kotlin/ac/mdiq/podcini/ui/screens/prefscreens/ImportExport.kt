@@ -50,6 +50,7 @@ import android.app.Activity.RESULT_OK
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
@@ -119,6 +120,8 @@ fun ImportExportScreen() {
     val backupDirName = "Podcini-Backups"
     val mediaFilesDirName = "Podcini-MediaFiles"
     val clipsDirName = "Podcini-Clips"
+
+    BackHandler(enabled = true) { pfBackStack.removeLastOrNull() }
 
     var showProgress by remember { mutableStateOf(false) }
     fun isJsonFile(uri: Uri): Boolean {

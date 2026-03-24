@@ -449,7 +449,7 @@
     <string name="pref_default_page_sum">Οθόνη που ανοίγει κατά την εκκίνηση του Podcini</string>
     <string name="pref_back_button_opens_drawer">Το κουμπί \"Πίσω\" ανοίγει το συρτάρι</string>
     <string name="pref_back_button_opens_drawer_summary">Πατώντας το πλήκτρο πίσω στην προεπιλεγμένη σελίδα ανοίγει το συρτάρι πλοήγησης</string>
-    <string name="remember_last_page">Απομνημόνευση τελευταίας σελίδας</string>
+
     <string name="pref_delete_removes_from_queue_title">Διαγραφή αφαίρεσης από την ουρά</string>
     <string name="pref_delete_removes_from_queue_sum">Αυτόματη αφαίρεση ενός επεισοδίου από την ουρά όταν διαγραφεί</string>
     <string name="pref_contribute">Συνεισφέρετε</string>

@@ -3,6 +3,7 @@
 package ac.mdiq.podcini.utils
 
 import ac.mdiq.podcini.BuildConfig
+import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.storage.database.appPrefs
 import android.util.Log
 import androidx.compose.runtime.getValue
@@ -16,16 +17,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 val LogScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
-var toastMessages = mutableStateListOf<String>()
+var sessionLogs = mutableStateListOf<String>()
 var toastMassege by mutableStateOf("")
 
 private suspend fun trimToasts() {
-    val size = toastMessages.size
+    val size = sessionLogs.size
     if (size > 120) {
         withContext(Dispatchers.Main) {
-            val newList = toastMessages.subList(20, size).toList()
-            toastMessages.clear()
-            toastMessages.addAll(newList)
+            val newList = sessionLogs.subList(20, size).toList()
+            sessionLogs.clear()
+            sessionLogs.addAll(newList)
         }
     }
 }
@@ -39,7 +40,16 @@ fun Loge(t: String, m: String) {
     LogScope.launch {
         trimToasts()
         if (appPrefs.showErrorToasts) toastMassege = "$t: Error: $m"
-        toastMessages.add("${fullDateTimeString()} $t: Error: $m")
+        sessionLogs.add("${fullDateTimeString()} $t: Error: $m")
+    }
+}
+
+fun Logpe(t: String, m: String) {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m)
+    LogScope.launch {
+        trimToasts()
+        if (appPrefs.showErrorToasts) toastMassege = "$t: Error: $m"
+        sessionLogs.add("${fullDateTimeString()} $t: ${curEpisode?.id} Error: $m")
     }
 }
 
@@ -49,7 +59,17 @@ fun Logs(t: String, m: String) {
     LogScope.launch {
         trimToasts()
         if (appPrefs.showErrorToasts) toastMassege = "$t: Error: $m "
-        toastMessages.add("${fullDateTimeString()} $t: Error: $m ")
+        sessionLogs.add("${fullDateTimeString()} $t: Error: $m ")
+    }
+}
+
+fun Logps(t: String, m: String) {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m)
+    showStackTrace()
+    LogScope.launch {
+        trimToasts()
+        if (appPrefs.showErrorToasts) toastMassege = "$t: Error: $m "
+        sessionLogs.add("${fullDateTimeString()} $t: ${curEpisode?.id} Error: $m ")
     }
 }
 
@@ -59,7 +79,17 @@ fun Logs(t: String, e: Throwable, m: String = "") {
     LogScope.launch {
         trimToasts()
         if (appPrefs.showErrorToasts) toastMassege = "$t: $m Error: $me"
-        toastMessages.add("${fullDateTimeString()} $t: $m Error: $me")
+        sessionLogs.add("${fullDateTimeString()} $t: $m Error: $me")
+    }
+}
+
+fun Logps(t: String, e: Throwable, m: String = "") {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m + ": "+ e.message + "\n" + Log.getStackTraceString(e))
+    val me = e.message
+    LogScope.launch {
+        trimToasts()
+        if (appPrefs.showErrorToasts) toastMassege = "$t: $m Error: $me"
+        sessionLogs.add("${fullDateTimeString()} $t: ${curEpisode?.id} $m Error: $me")
     }
 }
 
@@ -68,7 +98,16 @@ fun Logt(t: String, m: String) {
     LogScope.launch {
         trimToasts()
         toastMassege = "$t: $m"
-        toastMessages.add("${fullDateTimeString()} $t: $m")
+        sessionLogs.add("${fullDateTimeString()} $t: $m")
+    }
+}
+
+fun Logpt(t: String, m: String) {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.d(t, m)
+    LogScope.launch {
+        trimToasts()
+        toastMassege = "$t: $m"
+        sessionLogs.add("${fullDateTimeString()} $t: ${curEpisode?.id} $m")
     }
 }
 

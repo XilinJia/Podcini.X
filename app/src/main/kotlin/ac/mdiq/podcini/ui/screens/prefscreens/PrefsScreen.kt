@@ -11,6 +11,12 @@ import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.IconTitleSummaryActionRow
 import ac.mdiq.podcini.ui.screens.LocalDrawerController
+import ac.mdiq.podcini.ui.screens.PopMode
+import ac.mdiq.podcini.ui.screens.backStack
+import ac.mdiq.podcini.ui.screens.defaultNavKey
+import ac.mdiq.podcini.ui.screens.navBack
+import ac.mdiq.podcini.ui.screens.navTo
+
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.openInBrowser
@@ -20,6 +26,7 @@ import android.content.Context.CLIPBOARD_SERVICE
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -67,86 +74,100 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
-import androidx.navigation.NavController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.ui.NavDisplay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.io.IOException
+import kotlinx.serialization.Serializable
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import javax.xml.parsers.DocumentBuilderFactory
 
-private val TAG = "PrefsMainScreen"
+private const val TAG = "PrefsMainScreen"
+
+val pfBackStack = mutableStateListOf<PFNavKey>(PFNav.Portal)
+
+@Serializable
+sealed class PFNavKey
+
+object PFNav {
+    @Serializable
+    data object Portal : PFNavKey()
+
+    @Serializable
+    data object Interface : PFNavKey()
+
+    @Serializable
+    data object NetworkStorage : PFNavKey()
+
+    @Serializable
+    data object ImportExport : PFNavKey()
+
+    @Serializable
+    data object Playback : PFNavKey()
+
+    @Serializable
+    data object Notification : PFNavKey()
+
+    @Serializable
+    data object About : PFNavKey()
+
+    @Serializable
+    data object Licenses : PFNavKey()
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+val pfEntryProvider = entryProvider {
+    entry<PFNav.Portal>{ PrefPortalScreen() }
+    entry<PFNav.Interface>{ UserInterfaceScreen() }
+    entry<PFNav.NetworkStorage>{ NetworkStorageScreen() }
+    entry<PFNav.ImportExport>{ ImportExportScreen() }
+    entry<PFNav.Playback>{ PlaybackScreen() }
+    entry<PFNav.Notification>{ NotificationPrefScreen() }
+    entry<PFNav.About>{ AboutScreen() }
+    entry<PFNav.Licenses>{ LicensesScreen() }
+}
+
+val pfAnyEntryProvider: (Any) -> NavEntry<Any> = { key ->
+    pfEntryProvider(key as PFNavKey) as NavEntry<Any>
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrefsScreen() {
-    val navController = rememberNavController()
     var topAppBarTitle by remember { mutableStateOf("Home") }
     val viewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current) { "No ViewModelStoreOwner was provided via LocalViewModelStoreOwner" }
     val drawerController = LocalDrawerController.current
 
     Scaffold(topBar = { TopAppBar(title = { Text(topAppBarTitle) },
-        navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "Back", modifier = Modifier.padding(7.dp).clickable {
-            if (navController.previousBackStackEntry != null) navController.popBackStack()
-            else drawerController?.open()
-        } ) }) }) { innerPadding ->
+        navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "Back", modifier = Modifier.padding(7.dp).clickable { if (!navBack()) drawerController?.open() } ) }) }) { innerPadding ->
         CompositionLocalProvider(LocalViewModelStoreOwner provides viewModelStoreOwner) {
-            NavHost(navController = navController, startDestination = PrefScreens.PortalScreen.name, Modifier.padding(innerPadding)) {
-                composable(PrefScreens.PortalScreen.name) {
-                    topAppBarTitle = stringResource(PrefScreens.PortalScreen.titleRes)
-                    PrefPortalScreen(navController)
-                }
-                composable(PrefScreens.InterfaceScreen.name) {
-                    topAppBarTitle = stringResource(PrefScreens.InterfaceScreen.titleRes)
-                    UserInterfaceScreen()
-                }
-                composable(PrefScreens.NetworkStorageScreen.name) {
-                    topAppBarTitle = stringResource(PrefScreens.NetworkStorageScreen.titleRes)
-                    NetworkStorageScreen()
-                }
-                composable(PrefScreens.ImportExportScreen.name) {
-                    topAppBarTitle = stringResource(PrefScreens.ImportExportScreen.titleRes)
-                    ImportExportScreen()
-                }
-                composable(PrefScreens.PlaybackScreen.name) {
-                    topAppBarTitle = stringResource(PrefScreens.PlaybackScreen.titleRes)
-                    PlaybackScreen()
-                }
-                composable(PrefScreens.NotificationScreen.name) {
-                    topAppBarTitle = stringResource(PrefScreens.NotificationScreen.titleRes)
-                    NotificationPrefScreen()
-                }
-                composable(PrefScreens.AboutScreen.name) {
-                    topAppBarTitle = stringResource(PrefScreens.AboutScreen.titleRes)
-                    AboutScreen(navController)
-                }
-                composable(PrefScreens.LicensesScreen.name) {
-                    topAppBarTitle = stringResource(PrefScreens.LicensesScreen.titleRes)
-                    LicensesScreen()
-                }
-            }
+            NavDisplay(backStack = pfBackStack, onBack = { navBack() }, entryProvider = pfAnyEntryProvider, modifier = Modifier.padding(innerPadding))
         }
     }
 }
 
 @Composable
-fun PrefPortalScreen(navController: NavController) {
+fun PrefPortalScreen() {
     val context by rememberUpdatedState(LocalContext.current)
+    BackHandler(enabled = true) {
+        pfBackStack.removeRange(0, pfBackStack.size-1)
+        navTo(defaultNavKey, PopMode.Clear)
+    }
+
     @Composable
-    fun IconTitleSummaryScreenRow(vecRes: Int, titleRes: Int, summaryRes: Int, screen: String) {
+    fun IconTitleSummaryScreenRow(vecRes: Int, titleRes: Int, summaryRes: Int, screen: PFNavKey) {
         val textColor = MaterialTheme.colorScheme.onSurface
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {
             Icon(imageVector = ImageVector.vectorResource(vecRes), contentDescription = "", tint = textColor, modifier = Modifier.size(40.dp).padding(end = 15.dp))
-            Column(modifier = Modifier.weight(1f).clickable { navController.navigate(screen) }) {
+            Column(modifier = Modifier.weight(1f).clickable { pfBackStack.add(screen) }) {
                 Text(stringResource(titleRes), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                 Text(stringResource(summaryRes), color = textColor, style = MaterialTheme.typography.bodySmall)
             }
         }
     }
-
     @Composable
     fun IconTitleActionRow(vecRes: Int, titleRes: Int, callback: ()-> Unit) {
         val textColor = MaterialTheme.colorScheme.onSurface
@@ -166,25 +187,27 @@ fun PrefPortalScreen(navController: NavController) {
                 Text(copyrightNoticeText, color = textColor)
             }
         }
-        IconTitleSummaryScreenRow(R.drawable.ic_appearance, R.string.user_interface_label, R.string.user_interface_sum, PrefScreens.InterfaceScreen.name)
-        IconTitleSummaryScreenRow(R.drawable.ic_play_24dp, R.string.playback_pref, R.string.playback_pref_sum, PrefScreens.PlaybackScreen.name)
-        IconTitleSummaryScreenRow(R.drawable.ic_download, R.string.network_storage_pref, R.string.downloads_pref_sum, PrefScreens.NetworkStorageScreen.name)
-        IconTitleSummaryScreenRow(R.drawable.ic_storage, R.string.import_export_pref, R.string.import_export_summary, PrefScreens.ImportExportScreen.name)
-        IconTitleActionRow(R.drawable.ic_notifications, R.string.notification_pref_fragment) { navController.navigate(PrefScreens.NotificationScreen.name) }
+        IconTitleSummaryScreenRow(R.drawable.ic_appearance, R.string.user_interface_label, R.string.user_interface_sum, PFNav.Interface)
+        IconTitleSummaryScreenRow(R.drawable.ic_play_24dp, R.string.playback_pref, R.string.playback_pref_sum, PFNav.Playback)
+        IconTitleSummaryScreenRow(R.drawable.ic_download, R.string.network_storage_pref, R.string.downloads_pref_sum, PFNav.NetworkStorage)
+        IconTitleSummaryScreenRow(R.drawable.ic_storage, R.string.import_export_pref, R.string.import_export_summary, PFNav.ImportExport)
+        IconTitleActionRow(R.drawable.ic_notifications, R.string.notification_pref_fragment) { pfBackStack.add(PFNav.Notification) }
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
         Text(stringResource(R.string.project_pref), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
         IconTitleActionRow(R.drawable.ic_questionmark, R.string.whats_new) { openInBrowser("${githubAddress}/blob/main/changelog.md") }
         IconTitleActionRow(R.drawable.ic_questionmark, R.string.documentation_support) { openInBrowser(githubAddress) }
         IconTitleActionRow(R.drawable.ic_contribute, R.string.pref_contribute) { openInBrowser(githubAddress) }
         IconTitleActionRow(R.drawable.ic_bug, R.string.bug_report_title) { context.startActivity(Intent(context, BugReportActivity::class.java)) }
-        IconTitleActionRow(R.drawable.ic_info, R.string.about_pref) { navController.navigate(PrefScreens.AboutScreen.name) }
+        IconTitleActionRow(R.drawable.ic_info, R.string.about_pref) { pfBackStack.add(PFNav.About) }
     }
 }
 
 @Composable
-fun AboutScreen(navController: NavController) {
+fun AboutScreen() {
     val context by rememberUpdatedState(LocalContext.current)
     val textColor = MaterialTheme.colorScheme.onSurface
+    BackHandler(enabled = true) { pfBackStack.removeLastOrNull() }
+
     Column(modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
         Image(painter = painterResource(R.drawable.teaser), contentDescription = "")
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, top = 5.dp, bottom = 5.dp)) {
@@ -203,7 +226,7 @@ fun AboutScreen(navController: NavController) {
         }
         IconTitleSummaryActionRow(R.drawable.ic_questionmark, R.string.online_help, R.string.online_help_sum) { openInBrowser(githubAddress) }
         IconTitleSummaryActionRow(R.drawable.ic_info, R.string.privacy_policy, R.string.privacy_policy) { openInBrowser("${githubAddress}/blob/main/PrivacyPolicy.md") }
-        IconTitleSummaryActionRow(R.drawable.ic_info, R.string.licenses, R.string.licenses_summary) { navController.navigate(PrefScreens.LicensesScreen.name) }
+        IconTitleSummaryActionRow(R.drawable.ic_info, R.string.licenses, R.string.licenses_summary) { pfBackStack.add(PFNav.Licenses) }
         IconTitleSummaryActionRow(R.drawable.baseline_mail_outline_24, R.string.email_developer, R.string.email_sum) {
             val emailIntent = Intent(Intent.ACTION_SEND).apply {
                 putExtra(Intent.EXTRA_EMAIL, arrayOf(developerEmail))
@@ -219,6 +242,8 @@ fun AboutScreen(navController: NavController) {
 @Composable
 fun LicensesScreen() {
     val context by rememberUpdatedState(LocalContext.current)
+    BackHandler(enabled = true) { pfBackStack.removeLastOrNull() }
+
     class LicenseItem(val title: String, val subtitle: String, val licenseUrl: String, val licenseTextFile: String)
     val licenses = remember { mutableStateListOf<LicenseItem>() }
     LaunchedEffect(Unit) {
@@ -276,19 +301,10 @@ fun LicensesScreen() {
 @Composable
 fun NotificationPrefScreen() {
     val context by rememberUpdatedState(LocalContext.current)
+    BackHandler(enabled = true) { pfBackStack.removeLastOrNull() }
+
     val intent = Intent()
     intent.action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
     intent.putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
     context.startActivity(intent)
-}
-
-enum class PrefScreens(val titleRes: Int) {
-    PortalScreen(R.string.settings_label),
-    InterfaceScreen(R.string.user_interface_label),
-    PlaybackScreen(R.string.playback_pref),
-    NetworkStorageScreen(R.string.network_storage_pref),
-    ImportExportScreen(R.string.import_export_pref),
-    NotificationScreen(R.string.notification_pref_fragment),
-    AboutScreen(R.string.about_pref),
-    LicensesScreen(R.string.licenses);
 }

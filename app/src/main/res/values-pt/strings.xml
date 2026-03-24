@@ -451,7 +451,7 @@
     <string name="pref_default_page_sum">Ecrã a mostrar ao iniciar Podcini</string>
     <string name="pref_back_button_opens_drawer">Botão Recuar abre o menu</string>
     <string name="pref_back_button_opens_drawer_summary">Ao premir o botão Recuar na página padrão, abre o menu de navegação</string>
-    <string name="remember_last_page">Memorizar último ecrã</string>
+
     <string name="pref_delete_removes_from_queue_title">Remover da fila</string>
     <string name="pref_delete_removes_from_queue_sum">Remover episódio da fila se for eliminado do dispositivo</string>
     <string name="pref_contribute">Participar</string>

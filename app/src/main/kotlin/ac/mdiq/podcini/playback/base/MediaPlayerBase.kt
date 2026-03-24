@@ -33,9 +33,9 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.loadChapters
 import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
-import ac.mdiq.podcini.utils.Logs
-import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.Logpe
+import ac.mdiq.podcini.utils.Logps
+import ac.mdiq.podcini.utils.Logpt
 import ac.mdiq.podcini.utils.sendLocalBroadcast
 import android.content.ComponentName
 import android.content.Intent
@@ -164,7 +164,7 @@ abstract class MediaPlayerBase {
     fun seekDelta(delta: Int) {
         val curPosition = getPosition()
         if (curPosition != Episode.INVALID_TIME) seekTo(curPosition + delta)
-        else Loge(TAG, "seekDelta getPosition() returned INVALID_TIME in seekDelta")
+        else Logpe(TAG, "seekDelta getPosition() returned INVALID_TIME in seekDelta")
     }
 
     abstract fun setPlaybackParams(speed: Float)
@@ -200,7 +200,7 @@ abstract class MediaPlayerBase {
     abstract fun shutdown()
 
 //    open fun resetVideoSurface() {
-//        Loge(TAG, "Resetting Video Surface unsupported in Remote Media Player")
+//        Logpe(TAG, "Resetting Video Surface unsupported in Remote Media Player")
 //    }
 
     open fun setAudioTrack(track: Int) {}
@@ -249,7 +249,7 @@ abstract class MediaPlayerBase {
                 if (duration !in 1..skipIntroMS) {
                     Logd(TAG, "onPlaybackStart skipIntro ${playable.getEpisodeTitle()}")
                     seekTo(skipIntroMS)
-                    Logt(TAG, getAppContext().getString(R.string.pref_feed_skip_intro_toast, skipIntro))
+                    Logpt(TAG, getAppContext().getString(R.string.pref_feed_skip_intro_toast, skipIntro))
                 }
             }
             upsertBlk(playable) { it.setPlaybackStart() }
@@ -342,7 +342,7 @@ abstract class MediaPlayerBase {
         if (it.startTime > 0) {
             var delta = (nowInMillis() - it.startTime)
             if (delta > 3 * max(it.playedDuration, 60000)) {
-                Logt(TAG, "upsertDB likely invalid delta: $delta ${it.title}")
+                Logpt(TAG, "upsertDB likely invalid delta: $delta ${it.title}")
                 it.startTime = nowInMillis()
                 delta = 0L
             }
@@ -369,7 +369,7 @@ abstract class MediaPlayerBase {
             try {
                 loadChapters(media, false)
                 withContext(Dispatchers.Main) { onChapterLoaded(media) }
-            } catch (e: Throwable) { Logs(TAG, e, "Error loading chapters:") }
+            } catch (e: Throwable) { Logps(TAG, e, "Error loading chapters:") }
         }
     }
 
@@ -520,18 +520,18 @@ abstract class MediaPlayerBase {
                     mPlayer?.prepare()
                     sleepManager?.restartSleepTimer()
                 }
-                else -> Loge(TAG, "Play/Pause button was pressed and PlaybackService state was unknown: $status")
+                else -> Logpe(TAG, "Play/Pause button was pressed and PlaybackService state was unknown: $status")
             }
         }
 
         fun isStreamingCapable(media: Episode): Boolean {
 //            showStackTrace()
             if (!isNetworkUrl(media.downloadUrl)) {
-                Loge(TAG, "streaming media without a remote downloadUrl: ${media.downloadUrl}. Abort")
+                Logpe(TAG, "streaming media without a remote downloadUrl: ${media.downloadUrl}. Abort")
                 return false
             }
             if (!networkMonitor.isConnected) {
-                Loge(TAG, "streaming media but network is not available, abort")
+                Logpe(TAG, "streaming media but network is not available, abort")
                 return false
             }
             return true

@@ -21,9 +21,9 @@ import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.storage.utils.parent
 import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
-import ac.mdiq.podcini.utils.Logs
-import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.Logpe
+import ac.mdiq.podcini.utils.Logps
+import ac.mdiq.podcini.utils.Logpt
 import android.net.Uri
 import androidx.media3.common.Format
 import androidx.media3.common.Timeline
@@ -117,7 +117,7 @@ class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : Da
             clipStartByte = (startPositionMs * bitrate / 8 / 1000)
             clipBytesWritten = 0L
             Logd(TAG, "Started recording at byte offset $clipStartByte")
-        } else Loge(TAG, "Cannot start recording: tempDir not set or already recording")
+        } else Logpe(TAG, "Cannot start recording: tempDir not set or already recording")
     }
 
     // Stop recording and return the temp file for processing
@@ -151,11 +151,11 @@ class SegmentSavingDataSourceFactory(private val upstreamFactory: CacheDataSourc
  */
 suspend fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long? = null) {
     val mediaItem = exoPlayer!!.currentMediaItem ?: run {
-        Loge(TAG, "No current media item.")
+        Logpe(TAG, "No current media item.")
         return
     }
     val uri = mediaItem.localConfiguration?.uri ?: run {
-        Loge(TAG, "No URI in MediaItem.")
+        Logpe(TAG, "No URI in MediaItem.")
         return
     }
     if (endPositionMs == null) {
@@ -171,14 +171,14 @@ suspend fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long?
         .flatMap { group -> (0 until group.length).map { group.getTrackFormat(it) } }
         .firstOrNull { it.sampleMimeType?.startsWith("audio/") == true }
     if (audioFormat == null) {
-        Loge(TAG, "No audio track found.")
+        Logpe(TAG, "No audio track found.")
         return
     }
     val mimeType = audioFormat.sampleMimeType
     Logd(TAG, "mimeType: [$mimeType]")
     val ext = getFileExtensionFromMimeType(mimeType)
     if (ext == null) {
-        Loge(TAG, "Audio format not supported: $ext")
+        Logpe(TAG, "Audio format not supported: $ext")
         return
     }
 
@@ -211,8 +211,8 @@ suspend fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long?
                     outputFile.writeBytes(adjustedSegment)
                     upsert(curEpisode!!) { it.clips.add(clipname) }
                     Logd(TAG, "Saved local clip to: ${outputFile.absPath}")
-                } else Loge(TAG, "Failed to extract segment from local media")
-            } catch (e: Exception) { Logs(TAG, e, "FileKit operation failed")
+                } else Logpe(TAG, "Failed to extract segment from local media")
+            } catch (e: Exception) { Logps(TAG, e, "FileKit operation failed")
             } finally { tempFile.delete() }
         }
         else -> {   // streaming
@@ -226,7 +226,7 @@ suspend fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long?
             val cacheSpan = cache.getCachedSpans(key).firstOrNull { span -> span.position <= startByte && (span.position + span.length) >= endByte }
             Logd(TAG, "cacheSpan found: ${cacheSpan != null}")
             if (cacheSpan?.file?.exists() == true) {
-                val javaFile = cacheSpan.file ?: run { Loge(TAG, "CacheSpan is null or has no file"); return }
+                val javaFile = cacheSpan.file ?: run { Logpe(TAG, "CacheSpan is null or has no file"); return }
                 val path = javaFile.toOkioPath()
                 val tempFile = outputFile.parent()!! / "temp_segment.${outputFile.extension}"
                 try {
@@ -238,7 +238,7 @@ suspend fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long?
                         tempFile.writeBytes(segmentData)
                         Logd(TAG, "Total written: $totalRead bytes")
                     }
-                } catch (e: Exception) { Logs(TAG, e, "Failed to extract from cache span") }
+                } catch (e: Exception) { Logps(TAG, e, "Failed to extract from cache span") }
 
                 val segment = tempFile.readBytes()
                 tempFile.delete()
@@ -278,7 +278,7 @@ suspend fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long?
                         tempOutput.writeBytes(segmentData)
                         Logd(TAG, "Total written: $totalRead bytes")
                     }
-                } catch (e: Exception) { Logs(TAG, e, "Failed to extract from cache span") }
+                } catch (e: Exception) { Logps(TAG, e, "Failed to extract from cache span") }
                 val segment = tempOutput.readBytes()
                 tempOutput.delete()
                 if (segment.isNotEmpty()) {
@@ -292,9 +292,9 @@ suspend fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long?
                     outputFile.writeBytes(adjustedSegment)
                     upsert(curEpisode!!) { it.clips.add(clipname) }
                     Logd(TAG, "Saved clip to: ${outputFile.absPath}")
-                } else Loge(TAG, "Failed to extract segment from temp file")
+                } else Logpe(TAG, "Failed to extract segment from temp file")
                 tempFileDS.delete()
-            } else Loge(TAG, "Failed saving clip: No temp file available after stopping recording")
+            } else Logpe(TAG, "Failed saving clip: No temp file available after stopping recording")
         }
     }
 }
@@ -340,7 +340,7 @@ private fun adjustOggClip(bytes: ByteArray, cache: SimpleCache, key: String, sta
 
 private fun adjustMp4Clip(bytes: ByteArray, cache: SimpleCache, key: String, startByte: Long, endByte: Long): ByteArray {
     if (startByte > 0 || endByte < spansTotalLength(cache, key)) {
-        Logt(TAG, "MP4 clip may not be playable without re-muxing.")
+        Logpt(TAG, "MP4 clip may not be playable without re-muxing.")
         val fullFileBytes = getFullFileFromCache(cache, key)
         return fullFileBytes ?: bytes
     }
@@ -348,7 +348,7 @@ private fun adjustMp4Clip(bytes: ByteArray, cache: SimpleCache, key: String, sta
 }
 private fun adjustLocalOggClip(bytes: ByteArray): ByteArray = bytes
 private fun adjustLocalMp4Clip(bytes: ByteArray): ByteArray {
-    Logt(TAG, "Local MP4 clip may not be playable without re-muxing.")
+    Logpt(TAG, "Local MP4 clip may not be playable without re-muxing.")
     return bytes
 }
 
@@ -387,7 +387,7 @@ fun moveClips() {
     suspend fun move(source: UnifiedFile): Int {
         if (!source.exists()) return 0
         val files = source.listChildren()
-        if (files.isNotEmpty()) Logt(TAG, "number of clips to move: ${files.size}")
+        if (files.isNotEmpty()) Logpt(TAG, "number of clips to move: ${files.size}")
         for (f in files) {
             val fileName = f.absPath.substringAfterLast('/')
             val newPath = "${clipsDir.absPath}/$fileName"
@@ -401,7 +401,7 @@ fun moveClips() {
         var num = move(mediaDir)
         val clipsDir_ = internalDir / "clips"
         num += move(clipsDir_)
-        if (num > 0) Logt(TAG, "number of clips moved: $num to ${clipsDir_.absPath}")
+        if (num > 0) Logpt(TAG, "number of clips moved: $num to ${clipsDir_.absPath}")
         upsert(appPrefs) { it.clipsMoved = true }
 
         val files = clipsDir.listChildren()

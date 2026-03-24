@@ -94,7 +94,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
@@ -118,6 +117,7 @@ import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.jvmErasure
 import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.format
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -209,7 +209,6 @@ class StatisticsVM: ViewModel() {
 fun StatisticsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context by rememberUpdatedState(LocalContext.current)
-    val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
     val vm: StatisticsVM = viewModel()
@@ -294,7 +293,7 @@ fun StatisticsScreen() {
                 Row(Modifier.background(MaterialTheme.colorScheme.surface).fillMaxWidth()) {
                     AsyncImage(model = ImageRequest.Builder(context).data(feedStats.feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), contentDescription = "imgvCover", placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentScale = ContentScale.FillBounds,
                         modifier = Modifier.width(40.dp).height(90.dp).padding(end = 5.dp).clickable {
-                            navController.navigate("${Screens.FeedDetails.name}?feedId=${feedStats.feed.id}&modeName=${FeedScreenMode.Info.name}")
+                            navTo(FeedDetails(feedId=feedStats.feed.id, modeName=FeedScreenMode.Info.name))
                         })
                     Column(modifier = Modifier.clickable {
                         feedId = feedStats.feed.id
@@ -824,7 +823,6 @@ private fun getStatistics(timeFrom: Long, timeTo: Long, feedId: Long = 0L, forDL
 
 @Composable
 fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Long, showOpenFeed: Boolean = false, onDismissRequest: () -> Unit) {
-    val navController = LocalNavController.current
     var fStat by remember { mutableStateOf<FeedStatistics?>(null) }
     val episodes = remember { mutableStateListOf<Episode>()  }
     fun loadStatistics() {
@@ -879,7 +877,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
             }
         },
         confirmButton = { if (showOpenFeed) TextButton(onClick = {
-            navController.navigate("${Screens.FeedDetails.name}?feedId=${feedId}")
+            navTo(FeedDetails(feedId=feedId))
             onDismissRequest()
         }) { Text(stringResource(R.string.open_podcast))} },
         dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }

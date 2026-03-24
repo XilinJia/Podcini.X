@@ -3,133 +3,124 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.ui.screens.DefaultPages.Companion.toNavKey
 import ac.mdiq.podcini.ui.screens.prefscreens.PrefsScreen
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
-import ac.mdiq.podcini.utils.timeIt
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateSetOf
-import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavDestination
-import androidx.navigation.NavHostController
-import androidx.navigation.NavOptionsBuilder
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
-import io.ktor.http.decodeURLQueryComponent
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.entryProvider
+import kotlinx.serialization.Serializable
 
 private const val TAG = "ScreensUtils"
 
-const val COME_BACK = "comeback"
-
 val handleBackSubScreens = mutableStateSetOf<String>()
 
-val LocalNavController = staticCompositionLocalOf<AppNavigator> { error("NavController not provided") }
+val backStack = mutableStateListOf(defaultNavKey)
 
-val defaultScreen: String
+private const val MAX_STACK = 10
+
+enum class PopMode {
+    None,
+    UpTo,
+    Clear
+}
+
+fun navTo(key: NavKey, popMode: PopMode = PopMode.None) {
+    if (popMode != PopMode.None) {
+        var from = if (popMode == PopMode.UpTo) {
+            val index = backStack.indexOfFirst { it.javaClass == key.javaClass }
+            if (index >= 0) index else 0
+        } else 0
+        val toKeep = backStack.subList(from, backStack.size).filter { it::class in setOf(Library::class, Queues::class) }
+        backStack.subList(from, backStack.size).clear()
+        backStack.addAll(toKeep)
+    }
+    if (backStack.lastOrNull() != key) backStack.add(key)
+    if (backStack.size > MAX_STACK + 5) backStack.removeRange(0, 5)
+}
+
+fun navBack(): Boolean {
+    if (backStack.size > 1) {
+        backStack.removeLastOrNull()
+        return true
+    }
+    return false
+}
+
+@Serializable
+sealed class NavKey
+
+@Serializable
+data object Library : NavKey()
+
+@Serializable
+data class Queues(val id: Long = -1L) : NavKey()
+
+@Serializable
+data class FeedDetails(val feedId: Long = -1L, val modeName: String = FeedScreenMode.List.name) : NavKey()
+
+@Serializable
+data object FeedsSettings : NavKey()
+
+@Serializable
+data class EpisodeInfo(val episodeId: Long = -1L) : NavKey()
+
+@Serializable
+data class Facets(val modeName: String = QuickAccess.None.name) : NavKey()
+
+@Serializable
+data object Search : NavKey()
+
+@Serializable
+data object TopChart : NavKey()
+
+@Serializable
+data class OnlineFeed(val url: String = "Error", val source: String = "", val shared: Boolean = false) : NavKey()
+
+@Serializable
+data object FindFeeds : NavKey()
+
+@Serializable
+data object Logs : NavKey()
+
+@Serializable
+data object Statistics : NavKey()
+
+@Serializable
+data object Settings : NavKey()
+
+val defaultNavKey: NavKey
     get() {
-        if (allFeeds.isEmpty()) return Screens.FindFeeds.name
-
-        var value = appPrefs.defaultPage
+        if (allFeeds.isEmpty()) return FindFeeds
+        val value = appPrefs.defaultPage
         Logd(TAG, "get defaultScreen defaultPage: [$value]")
         fun isValid(): Boolean = runCatching { Screens.valueOf(value) }.isSuccess
-        if (value.isBlank() || !isValid()) value = Screens.Library.name
+        if (value.isBlank() || !isValid()) return Library
         Logd(TAG, "get defaultScreen value: [$value]")
-        return value
+        return toNavKey(value)
     }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun Navigate(navController: NavHostController, startScreen: String = "") {
-    fun isValid(fullRoute: String): Boolean {
-        Logd(TAG, "isValid fullRoute: $fullRoute")
-        val pathEndIndex = fullRoute.indexOf('/')
-//        if (pathEndIndex > 0) return false    // TODO: why do this?
+val myEntryProvider = entryProvider {
+    entry<Library>{ LibraryScreen() }
+    entry<Queues>{ k-> QueuesScreen(k.id) }
+    entry<FeedDetails>{ k-> FeedDetailsScreen(k.feedId, k.modeName) }
+    entry<FeedsSettings>{ FeedsSettingsScreen() }
+    entry<EpisodeInfo>{ k-> EpisodeInfoScreen(k.episodeId) }
+    entry<Facets>{ k-> FacetsScreen(k.modeName) }
+    entry<Search>{ SearchScreen() }
+    entry<TopChart>{ TopChartScreen() }
+    entry<OnlineFeed>{ k-> OnlineFeedScreen(k.url, k.source, k.shared) }
+    entry<FindFeeds>{ FindFeedsScreen() }
+    entry<Logs>{ LogsScreen() }
+    entry<Statistics>{ StatisticsScreen() }
+    entry<Settings>{ PrefsScreen() }
+}
 
-        val queryStartIndex = fullRoute.indexOf('?')
-        val endIndex = when {
-            pathEndIndex != -1 && queryStartIndex != -1 -> minOf(pathEndIndex, queryStartIndex)
-            pathEndIndex != -1 -> pathEndIndex
-            queryStartIndex != -1 -> queryStartIndex
-            else -> -1
-        }
-        val r = if (endIndex != -1) fullRoute.take(endIndex) else { fullRoute }
-        Logd(TAG, "isValid r: $r")
-        return (Screens.entries.any { it.name == r })
-    }
-    Logd(TAG, "Navigate startScreen: $startScreen")
-    timeIt("$TAG start of Navigate")
-    var startScreen = startScreen
-    if (startScreen.isBlank()) {
-        val dfs = defaultScreen
-        Logd(TAG, "Navigate dfs: $dfs")
-        startScreen = if (isValid(dfs)) dfs else Screens.Library.name
-    }
-    Logd(TAG, "Navigate startScreen 1: $startScreen")
-
-    NavHost(navController = navController, startDestination = startScreen) { // TODO: defaultScreen
-        composable(Screens.Library.name) { LibraryScreen() }
-        composable(route = "${Screens.Queues.name}?index={index}", arguments = listOf(navArgument("index") {
-            type = NavType.LongType
-            defaultValue = -1L
-        })) { entry ->
-            val index = entry.arguments?.getLong("index") ?: -1L
-            QueuesScreen(index)
-        }
-        composable(route = "${Screens.FeedDetails.name}?feedId={feedId}&modeName={modeName}", arguments = listOf(navArgument("feedId") {
-            type = NavType.LongType
-            defaultValue = -1L
-        }, navArgument("modeName") {
-            type = NavType.StringType
-            defaultValue = FeedScreenMode.List.name
-        })) { entry ->
-            val feedId = entry.arguments?.getLong("feedId") ?: -1L
-            val modeName = entry.arguments?.getString("modeName") ?: FeedScreenMode.List.name
-            FeedDetailsScreen(feedId, modeName)
-        }
-        composable(Screens.FeedsSettings.name) { FeedsSettingsScreen() }
-        composable(route = "${Screens.EpisodeInfo.name}?episodeId={episodeId}", arguments = listOf(navArgument("episodeId") {
-            type = NavType.LongType
-            defaultValue = -1L
-        })) { entry ->
-            val episodeId = entry.arguments?.getLong("episodeId") ?: -1L
-            EpisodeInfoScreen(episodeId)
-        }
-        composable("${Screens.Facets.name}?modeName={modeName}", arguments = listOf(navArgument("modeName") {
-            type = NavType.StringType
-            defaultValue = QuickAccess.None.name
-        })) { entry ->
-            val modeName = entry.arguments?.getString("modeName") ?: QuickAccess.None.name
-            FacetsScreen(modeName)
-        }
-        composable(Screens.Search.name) { SearchScreen() }
-        composable(Screens.TopChart.name) { TopChartScreen() }
-        composable(route = "${Screens.OnlineFeed.name}?url={url}&source={source}&shared={shared}", arguments = listOf(navArgument("url") {
-            type = NavType.StringType
-            defaultValue = ""
-        }, navArgument("source") {
-            type = NavType.StringType
-            defaultValue = ""
-        }, navArgument("shared") {
-            type = NavType.BoolType
-            defaultValue = false
-        })) { entry ->
-            val encodedUrl = entry.arguments?.getString("url") ?: "Error"
-//            val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.name())
-            val url = encodedUrl.decodeURLQueryComponent()
-            val source = entry.arguments?.getString("source") ?: ""
-            val shared = entry.arguments?.getBoolean("shared") ?: false
-            OnlineFeedScreen(url, source, shared)
-        }
-        composable(Screens.FindFeeds.name) { FindFeedsScreen() }
-        composable(Screens.Logs.name) { LogsScreen() }
-        composable(Screens.Statistics.name) { StatisticsScreen() }
-        composable(Screens.Settings.name) { PrefsScreen() }
-    }
-    timeIt("$TAG end of Navigate")
+val anyEntryProvider: (Any) -> NavEntry<Any> = { key ->
+    myEntryProvider(key as NavKey) as NavEntry<Any>
 }
 
 enum class DefaultPages(val res: Int) {
@@ -137,13 +128,25 @@ enum class DefaultPages(val res: Int) {
     Queues(R.string.queue_label),
     Facets(R.string.facets),
     OnlineSearch(R.string.add_feed_label),
-    Statistics(R.string.statistics_label),
-//    Remember(R.string.remember_last_page);
+    Statistics(R.string.statistics_label);
+
+    companion object {
+        @Suppress("RemoveRedundantQualifierName")
+        fun toNavKey(p: String): NavKey {
+            return when (p) {
+                Library.name -> ac.mdiq.podcini.ui.screens.Library
+                Queues.name -> Queues()
+                Facets.name -> Facets()
+                OnlineSearch.name -> FindFeeds
+                Statistics.name -> ac.mdiq.podcini.ui.screens.Statistics
+                else -> ac.mdiq.podcini.ui.screens.Library
+            }
+        }
+    }
 }
 
 enum class Screens {
     Library,
-    VideoPlayer,
     FeedDetails,
     FeedsSettings,
     Facets,
@@ -156,46 +159,4 @@ enum class Screens {
     Logs,
     Statistics,
     Settings
-}
-
-fun NavHostController.safeNavigate(route: String, builder: NavOptionsBuilder.() -> Unit = {}) {
-    try {
-        this.navigate(route, builder)
-    } catch (e: IllegalArgumentException) {
-        Loge(TAG, "Navigation failed: ${e.message}")
-        this.navigate(Screens.Library.name, builder)
-    }
-}
-
-fun NavHostController.routeExists(route: String): Boolean {
-    return try { this.graph.findNode(route) != null } catch (e: Exception) { false }
-}
-
-class AppNavigator(
-    val navController: NavHostController,
-    private val onNavigated: (String) -> Unit) {
-
-    fun navigate(route: String, builder: NavOptionsBuilder.() -> Unit = {}) {
-        var route = route
-        if (!navController.routeExists(route)) {
-            Loge(TAG, "navigate invalid route: $route. Open Library")
-            route = Screens.Library.name
-        }
-        onNavigated(route)
-        navController.safeNavigate(route, builder)
-    }
-
-    val currentDestination:  NavDestination?
-        get() = navController.currentDestination
-
-    val previousBackStackEntry: NavBackStackEntry?
-        get() = navController.previousBackStackEntry
-
-    fun popBackStack(): Boolean {
-        return navController.popBackStack()
-    }
-
-    fun popBackStack(route: String, inclusive: Boolean, saveState: Boolean = false): Boolean {
-        return navController.popBackStack(route, inclusive, saveState)
-    }
 }

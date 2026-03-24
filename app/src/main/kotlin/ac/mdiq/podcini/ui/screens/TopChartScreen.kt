@@ -231,7 +231,6 @@ class DiscoveryVM: ViewModel() {
 fun TopChartScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context by rememberUpdatedState(LocalContext.current)
-    val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
     val vm: DiscoveryVM = viewModel()
@@ -331,8 +330,7 @@ fun TopChartScreen() {
                     Spacer(Modifier.weight(1f))
                     Text(vm.countryCode, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end=20.dp).clickable { showSelectCounrty = true })
                 } },
-                navigationIcon = { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "", modifier = Modifier.padding(7.dp).clickable {
-                    if (navController.previousBackStackEntry != null) navController.popBackStack() else drawerController?.open() }) })
+                navigationIcon = { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "", modifier = Modifier.padding(7.dp).clickable { if (!navBack()) drawerController?.open() }) })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }

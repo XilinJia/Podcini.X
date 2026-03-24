@@ -25,7 +25,7 @@ import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.error.DownloadErrorLabel.from
 import ac.mdiq.podcini.utils.formatDateTimeFlex
-import ac.mdiq.podcini.utils.toastMessages
+import ac.mdiq.podcini.utils.sessionLogs
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -138,7 +138,6 @@ class LogsVM: ViewModel() {
 fun LogsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context by rememberUpdatedState(LocalContext.current)
-    val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
     val vm: LogsVM = viewModel()
@@ -211,12 +210,12 @@ fun LogsScreen() {
                         when(log.type) {
                             ShareLog.Type.YTMedia.name, "youtube media" -> {
                                 val episode = realm.query(Episode::class).query("title == $0", log.title).first().find()
-                                if (episode != null) navController.navigate("${Screens.EpisodeInfo.name}?episodeId=${episode.id}")
+                                if (episode != null) navTo(EpisodeInfo(episodeId=episode.id))
                                 else hasError = true
                             }
                             ShareLog.Type.Podcast.name, "podcast" -> {
                                 val feed = realm.query(Feed::class, "eigenTitle == $0 && author == $1", log.title?:"", log.author?:"").first().find()
-                                if (feed != null) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}&modeName=${FeedScreenMode.Info.name}")
+                                if (feed != null) navTo(FeedDetails(feedId=feed.id, modeName=FeedScreenMode.Info.name))
                                 else hasError = true
                             }
                             else -> {
@@ -314,7 +313,7 @@ fun LogsScreen() {
         val lazyListState = rememberLazyListState()
         val textColor = MaterialTheme.colorScheme.onSurface
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(toastMessages.reversed()) { log ->
+            items(sessionLogs.reversed()) { log ->
                 val color = remember { if (log.contains("Error", ignoreCase = true)) Color.Red else textColor }
                 Text(log, color = color)
             }
@@ -353,8 +352,8 @@ fun LogsScreen() {
                     Spacer(Modifier.weight(0.3f))
                     val bynText = if (feed != null || media != null) stringResource(R.string.open) else "OK"
                     Text(bynText, color = textColor, modifier = Modifier.clickable {
-                        if (feed != null) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed!!.id}&modeName=${FeedScreenMode.Info.name}")
-                        else if (media != null) navController.navigate("${Screens.EpisodeInfo.name}?episodeId=${media!!.id}")
+                        if (feed != null) navTo(FeedDetails(feedId=feed!!.id, modeName=FeedScreenMode.Info.name))
+                        else if (media != null) navTo(EpisodeInfo(episodeId=media!!.id))
                         onDismissRequest()
                     })
                     Spacer(Modifier.weight(0.2f))

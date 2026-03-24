@@ -39,9 +39,9 @@ import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
-import ac.mdiq.podcini.utils.Logs
-import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.Logpe
+import ac.mdiq.podcini.utils.Logps
+import ac.mdiq.podcini.utils.Logpt
 import ac.mdiq.podcini.utils.timeIt
 import android.Manifest
 import android.annotation.SuppressLint
@@ -150,7 +150,7 @@ class PlaybackService : MediaLibraryService() {
                             unpauseIfPauseOnDisconnect(false)
                         }
                     }
-                } else Loge(TAG, "Received invalid ACTION_HEADSET_PLUG intent")
+                } else Logpe(TAG, "Received invalid ACTION_HEADSET_PLUG intent")
             }
         }
     }
@@ -519,14 +519,14 @@ class PlaybackService : MediaLibraryService() {
      * Handles media button events. return: keycode was handled
      */
     private fun handleKeycode(keycode: Int, notificationButton: Boolean): Boolean {
-        Logt(TAG, "Handling keycode: $keycode")
+        Logpt(TAG, "Handling keycode: $keycode")
         // TODO: check out this
         fun startPlayingFromPreferences() {
             recreateMediaSessionIfNeeded()
             try {
                 restoreMediaFromPreferences()
                 startPlaying()
-            } catch (e: Throwable) { Logs(TAG, e, "EpisodeMedia was not loaded from preferences. Stopping service.") }
+            } catch (e: Throwable) { Logps(TAG, e, "EpisodeMedia was not loaded from preferences. Stopping service.") }
         }
         when (keycode) {
             KeyEvent.KEYCODE_HEADSETHOOK, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
@@ -602,7 +602,7 @@ class PlaybackService : MediaLibraryService() {
             else -> {
                 Logd(TAG, "Unhandled key code: $keycode")
                 // only notify the user about an unknown key event if it is actually doing something
-                if (curEpisode != null && isPlaying) Loge(TAG, resources.getString(R.string.unknown_media_key, keycode))
+                if (curEpisode != null && isPlaying) Logpe(TAG, resources.getString(R.string.unknown_media_key, keycode))
             }
         }
         return false
@@ -611,7 +611,7 @@ class PlaybackService : MediaLibraryService() {
     private fun startPlaying() {
         Logd(TAG, "startPlaying called")
         if (curEpisode == null) {
-            Logt(TAG, "startPlaying: No media to play")
+            Logpt(TAG, "startPlaying: No media to play")
             return
         }
         val media = curEpisode!!

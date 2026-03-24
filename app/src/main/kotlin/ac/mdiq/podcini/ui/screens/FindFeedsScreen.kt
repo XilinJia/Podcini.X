@@ -162,7 +162,6 @@ class FindFeedsVM: ViewModel() {
 fun FindFeedsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context by rememberUpdatedState(LocalContext.current)
-    val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
     val vm: FindFeedsVM = viewModel()
@@ -198,7 +197,7 @@ fun FindFeedsScreen() {
                         it.onlineSearchHistory.add(0, str)
                         if (it.onlineSearchHistory.size > SearchHistorySize+4) it.onlineSearchHistory.apply { subList(SearchHistorySize, size).clear() }
                     }
-                    if (str.matches("http[s]?://.*".toRegex())) navController.navigate("${Screens.OnlineFeed.name}?url=${str.encodeURLParameter()}")
+                    if (str.matches("http[s]?://.*".toRegex())) navTo(OnlineFeed(url=str.encodeURLParameter()))
                     else vm.search(str)
                 }
             }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) } )
@@ -256,7 +255,7 @@ fun FindFeedsScreen() {
         ConstraintLayout(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             val (controlRow, gridView, progressBar, empty, txtvError, butRetry, powered) = createRefs()
             Row(modifier = Modifier.padding(vertical = 8.dp, horizontal = 20.dp).fillMaxWidth().constrainAs(controlRow) { top.linkTo(parent.top) }) {
-                Text(stringResource(R.string.top_chart), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { navController.navigate(Screens.TopChart.name) })
+                Text(stringResource(R.string.top_chart), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { navTo(TopChart) })
                 Spacer(Modifier.weight(1f))
                 Text(stringResource(R.string.local),color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable {
                     try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.unable_to_start_system_file_manager)) }

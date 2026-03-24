@@ -1,10 +1,8 @@
 package ac.mdiq.podcini.playback.base
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.PodciniHttpClient.encodeCredentials
-import ac.mdiq.podcini.net.utils.NetworkUtils.wasDownloadBlocked
 import ac.mdiq.podcini.playback.SegmentSavingDataSourceFactory
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
@@ -30,9 +28,9 @@ import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
-import ac.mdiq.podcini.utils.Logs
-import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.Logpe
+import ac.mdiq.podcini.utils.Logpt
+import ac.mdiq.podcini.utils.Logps
 import ac.mdiq.podcini.utils.timeIt
 import android.app.UiModeManager
 import android.content.Context
@@ -65,7 +63,7 @@ import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.datasource.HttpDataSource.HttpDataSourceException
+import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
@@ -166,18 +164,57 @@ class Media3Player : MediaPlayerBase() {
                     savePlayerStatus(stat)
                 }
                 override fun onPlayerError(error: PlaybackException) {
-                    Logd(TAG, "onPlayerError ${error.message}")
-                    setPlayerStatus(PlayerStatus.ERROR, curEpisode)
-                    if (wasDownloadBlocked(error)) {
-                        Loge(TAG, "audioErrorListener: ${getAppContext().getString(R.string.download_error_blocked)}")
-                        setPlayerStatus(PlayerStatus.ERROR, curEpisode)
-                    } else {
-                        var cause = error.cause
-                        if (cause is HttpDataSourceException && cause.cause != null) cause = cause.cause
-                        if (cause != null && "Source error" == cause.message) cause = cause.cause
-                        Loge(TAG, "audioErrorListener: ${if (cause != null) cause.message else error.message}")
-                        setPlayerStatus(PlayerStatus.ERROR, curEpisode)
+                    fun handleTerminalError(message: String) {
+                        Logpe(TAG, message)
+                        exoPlayer?.stop()
+                        exoPlayer?.clearMediaItems()
+                        setPlayerStatus(PlayerStatus.STOPPED, curEpisode)
                     }
+                    Logd(TAG, "onPlayerError ${error.message}")
+                    when (error.errorCode) {
+                        PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+                        PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
+                        PlaybackException.ERROR_CODE_TIMEOUT -> {
+                            val lastPosition = exoPlayer?.currentPosition ?: 0L
+                            Logpt(TAG, "player error: ${error.localizedMessage}, retrying...")
+                            exoPlayer?.prepare()
+                            exoPlayer?.seekTo(lastPosition)
+                            exoPlayer?.play()
+                        }
+                        PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW -> {
+                            exoPlayer?.prepare()
+                            exoPlayer?.play()
+                        }
+                        else -> {
+                            // Terminal errors (404, Media Unsupported)
+                            Logpe("PlayerError", "Permanent error: ${error.localizedMessage}")
+                            val cause = error.cause
+                            when {
+                                // CASE: 404 Not Found
+                                error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND || (cause is HttpDataSource.InvalidResponseCodeException && cause.responseCode == 404) -> {
+                                    handleTerminalError("Episode not found on server (404).")
+                                }
+                                // CASE: Media Unsupported (Codecs/Containers)
+                                error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED || error.errorCode == PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED -> {
+                                    handleTerminalError("This device cannot play this file format.")
+                                }
+                                // CASE: 403 Forbidden (Auth issues)
+                                cause is HttpDataSource.InvalidResponseCodeException && cause.responseCode == 403 -> {
+                                    handleTerminalError("Access denied (403). Check your subscription.")
+                                }
+                            }
+                        }
+                    }
+//                    if (wasDownloadBlocked(error)) {
+//                        Logpe(TAG, "audioErrorListener: ${getAppContext().getString(R.string.download_error_blocked)}")
+//                        setPlayerStatus(PlayerStatus.ERROR, curEpisode)
+//                    } else {
+//                        var cause = error.cause
+//                        if (cause is HttpDataSourceException && cause.cause != null) cause = cause.cause
+//                        if (cause != null && "Source error" == cause.message) cause = cause.cause
+//                        Logpe(TAG, "audioErrorListener: ${if (cause != null) cause.message else error.message}")
+//                        setPlayerStatus(PlayerStatus.ERROR, curEpisode)
+//                    }
                 }
                 override fun onPositionDiscontinuity(oldPosition: PositionInfo, newPosition: PositionInfo, reason: @DiscontinuityReason Int) {
                     Logd(TAG, "onPositionDiscontinuity ${oldPosition.positionMs} ${newPosition.positionMs} $reason")
@@ -195,7 +232,7 @@ class Media3Player : MediaPlayerBase() {
                                 oldEnhancer.release()
                             }
                             loudnessEnhancer = newEnhancer
-                        } catch (e: Throwable) { Logs(TAG, e, "Failed to init LoudnessEnhancer") }
+                        } catch (e: Throwable) { Logps(TAG, e, "Failed to init LoudnessEnhancer") }
                     }
                 }
                 override fun onTracksChanged(tracks: Tracks) {
@@ -216,10 +253,10 @@ class Media3Player : MediaPlayerBase() {
 
             exoplayerOffloadListener = object: ExoPlayer.AudioOffloadListener {
                 override fun onOffloadedPlayback(offloadSchedulingEnabled: Boolean) {
-                    Logt(TAG, "AudioOffloadListener Offload scheduling enabled: $offloadSchedulingEnabled")
+                    Logpt(TAG, "AudioOffloadListener Offload scheduling enabled: $offloadSchedulingEnabled")
                 }
                 override fun onSleepingForOffloadChanged(isSleepingForOffload: Boolean) {
-                    Logt(TAG, "AudioOffloadListener CPU is sleeping for offload: $isSleepingForOffload")
+                    Logpt(TAG, "AudioOffloadListener CPU is sleeping for offload: $isSleepingForOffload")
                 }
             }
             createStaticPlayer()
@@ -256,7 +293,7 @@ class Media3Player : MediaPlayerBase() {
             return
         }
         offloadEnabled = enabled
-        Logt(TAG, "switchOffload set audio offload $offloadEnabled")
+        Logpt(TAG, "switchOffload set audio offload $offloadEnabled")
 
         val wasPlaying = exoPlayer!!.isPlaying
         val position = exoPlayer!!.currentPosition
@@ -336,7 +373,7 @@ class Media3Player : MediaPlayerBase() {
         Logd(TAG, "setDataSource url [${media.downloadUrl}]")
         val url = media.downloadUrl
         if (url.isNullOrBlank()) {
-            Loge(TAG, "setDataSource: media downloadUrl is null or blank ${media.title}")
+            Logpe(TAG, "setDataSource: media downloadUrl is null or blank ${media.title}")
             upsertBlk(media) { it.setPlayState(EpisodeState.ERROR) }
             throw IllegalArgumentException("blank url")
         }
@@ -356,7 +393,7 @@ class Media3Player : MediaPlayerBase() {
                 setDataSource(media, metadata, url, user, password)
             }
         } catch (e: Throwable) {
-            Loge(TAG, "setDataSource: ${e.message}")
+            Logpe(TAG, "setDataSource: ${e.message}")
             upsertBlk(media) { it.setPlayState(EpisodeState.ERROR) }
             throw e
         }
@@ -488,14 +525,14 @@ class Media3Player : MediaPlayerBase() {
                     if (prepareImmediately) prepare()
                 }
             } catch (e: IOException) {
-                Logs(TAG, e, "prepareMedia failed ${e.localizedMessage ?: ""}")
+                Logps(TAG, e, "prepareMedia failed ${e.localizedMessage ?: ""}")
                 withContext(Dispatchers.Main) { setPlayerStatus(PlayerStatus.ERROR, curEpisode) }
             } catch (e: IllegalStateException) {
-                Logs(TAG, e, "prepareMedia failed ${e.localizedMessage ?: ""}")
+                Logps(TAG, e, "prepareMedia failed ${e.localizedMessage ?: ""}")
                 withContext(Dispatchers.Main) { setPlayerStatus(PlayerStatus.ERROR, curEpisode) }
             } catch (e: Throwable) {
                 withContext(Dispatchers.Main) { setPlayerStatus(PlayerStatus.ERROR, curEpisode) }
-                Logs(TAG, e, "setDataSource error: [${e.localizedMessage}]")
+                Logps(TAG, e, "setDataSource error: [${e.localizedMessage}]")
             } finally { }
         }
     }
@@ -508,7 +545,7 @@ class Media3Player : MediaPlayerBase() {
             val enabled = speedEnablesOffload && silenceEnablesOffload
             if (enabled != offloadEnabled) {
                 offloadEnabled = enabled
-                Logt(TAG, "setSource set audio offload $offloadEnabled")
+                Logpt(TAG, "setSource set audio offload $offloadEnabled")
                 exoPlayer!!.trackSelectionParameters = exoPlayer!!.trackSelectionParameters.buildUpon().setAudioOffloadPreferences(AudioOffloadPreferences.Builder().setAudioOffloadMode(if (offloadEnabled) AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED else AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED).build()).build()
             }
             needChangeOffload = false
@@ -538,7 +575,7 @@ class Media3Player : MediaPlayerBase() {
             // Can't set params when paused - so always set it on start in case they changed
             exoPlayer?.playbackParameters = playbackParameters
             setPlayerStatus(PlayerStatus.PLAYING, curEpisode)
-        } else Logt(TAG, "Call to play() was ignored because current state of PSMP object is $status")
+        } else Logpt(TAG, "Call to play() was ignored because current state of PSMP object is $status")
     }
 
     override fun pause(reinit: Boolean) {
@@ -548,7 +585,7 @@ class Media3Player : MediaPlayerBase() {
             exoPlayer?.pause()
             setPlayerStatus(PlayerStatus.PAUSED, curEpisode, getPosition())
             if (isStreaming && reinit) reinit()
-        } else Logt(TAG, "Ignoring call to pause: Player is in $status state")
+        } else Logpt(TAG, "Ignoring call to pause: Player is in $status state")
     }
 
     override fun prepare() {
@@ -615,7 +652,7 @@ class Media3Player : MediaPlayerBase() {
     override fun getPosition(): Int {
         var retVal = Episode.INVALID_TIME
 //        showStackTrace()
-        if (exoPlayer?.isPlaying == true && !status.isAtLeast(PlayerStatus.PREPARED)) Logt(TAG, "exoPlayer playbackState ${exoPlayer?.playbackState} player status $status")
+        if (exoPlayer?.isPlaying == true && !status.isAtLeast(PlayerStatus.PREPARED)) Logpt(TAG, "exoPlayer playbackState ${exoPlayer?.playbackState} player status $status")
         if (exoPlayer?.isCommandAvailable(COMMAND_GET_CURRENT_MEDIA_ITEM) == true) retVal = exoPlayer!!.currentPosition.toInt()
 //        Logd(TAG, "getPosition player position: $retVal")
         if (retVal <= 0 && curEpisode != null) retVal = curEpisode!!.position
@@ -688,7 +725,7 @@ class Media3Player : MediaPlayerBase() {
             bufferingUpdateListener = { }
 //            TODO: should use: exoPlayer!!.playWhenReady ?
             if (exoPlayer?.isPlaying == true) exoPlayer?.stop()
-        } catch (e: Exception) { Logs(TAG, e) }
+        } catch (e: Exception) { Logps(TAG, e) }
         release()
         status = PlayerStatus.STOPPED
 //        releaseWifiLockIfNecessary()
@@ -703,7 +740,7 @@ class Media3Player : MediaPlayerBase() {
 //            Logd(TAG, "Resetting video surface")
 //            exoPlayer?.setVideoSurfaceHolder(null)
 //            reinit()
-//        } else Logt(TAG, "Resetting video surface for media of Audio type")
+//        } else Logpt(TAG, "Resetting video surface for media of Audio type")
 //    }
 
     /**

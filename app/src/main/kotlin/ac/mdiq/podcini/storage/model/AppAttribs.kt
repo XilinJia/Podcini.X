@@ -21,7 +21,9 @@ class AppAttribs: RealmObject {
     var uniqueId: String = ""
 
     var restoreLastScreen: Boolean = false
-    var prefLastScreen: String = ""
+//    var prefLastScreen: String = ""
+
+    var backstack: String = ""
 
     var curQueueId: Long = 0L
 
@@ -76,7 +78,7 @@ class AppAttribs: RealmObject {
         if (udpPort != other.udpPort) return false
         if (name != other.name) return false
         if (uniqueId != other.uniqueId) return false
-        if (prefLastScreen != other.prefLastScreen) return false
+//        if (prefLastScreen != other.prefLastScreen) return false
         if (queuesMode != other.queuesMode) return false
         if (langSet.size != other.langSet.size) return false
         if (langsPreferred.size != other.langsPreferred.size) return false
@@ -104,7 +106,7 @@ class AppAttribs: RealmObject {
         result = 31 * result + udpPort
         result = 31 * result + name.hashCode()
         result = 31 * result + uniqueId.hashCode()
-        result = 31 * result + prefLastScreen.hashCode()
+//        result = 31 * result + prefLastScreen.hashCode()
         result = 31 * result + queuesMode.hashCode()
         result = 31 * result + langSet.size
         result = 31 * result + langsPreferred.size

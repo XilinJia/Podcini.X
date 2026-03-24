@@ -128,7 +128,6 @@ var feedsToSet: List<Feed> = listOf()
 fun FeedsSettingsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context by rememberUpdatedState(LocalContext.current)
-    val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
     var feedFlow by remember { mutableStateOf<Flow<SingleQueryChange<Feed>>>(emptyFlow()) }
@@ -201,13 +200,8 @@ fun FeedsSettingsScreen() {
     @Composable
     fun MyTopAppBar() {
         Box {
-            TopAppBar(title = { Text(text = stringResource(R.string.feed_settings_label), fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.padding(7.dp).clickable {
-                if (navController.previousBackStackEntry != null) {
-                    navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
-                    navController.popBackStack()
-                } else drawerController?.open()
-            }) } )
+            TopAppBar(title = { Text(text = stringResource(R.string.feed_settings_label), fontSize = 20.sp, fontWeight = FontWeight.Bold) },
+                navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.padding(7.dp).clickable { if (!navBack()) drawerController?.open() }) } )
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }

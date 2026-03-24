@@ -68,6 +68,7 @@ import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.error.DownloadErrorLabel.from
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.fullDateTimeString
+import ac.mdiq.podcini.utils.sessionLogs
 import ac.mdiq.podcini.utils.shareFeedItemFile
 import ac.mdiq.podcini.utils.shareFeedItemLinkWithDownloadLink
 import ac.mdiq.podcini.utils.shareLink
@@ -305,7 +306,6 @@ val webDataCache = LruCache<Long, String>(10)
 
 @Composable
 fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters: Boolean = false) {
-//    val context = LocalContext.current
     val textColor = MaterialTheme.colorScheme.onSurface
     var webviewData by remember { mutableStateOf<String?>("") }
     var playerLocal: ExoPlayer? by remember { mutableStateOf(null) }
@@ -330,7 +330,8 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
     }
     if (showTodoDialog) TodoDialog(episode, onTodo) { showTodoDialog = false}
 
-    val logs = remember(episode.id) { realm.query(DownloadResult::class).query("feedfileId == ${episode.id} AND feedfileType == ${RequestTye.FEEDMEDIA.ordinal}").sort("completionTime",  Sort.DESCENDING).find() }
+    val playerLogs = remember(episode.id) { sessionLogs.filter { it.contains(episode.id.toString()) } }
+    val dlLogs = remember(episode.id) { realm.query(DownloadResult::class).query("feedfileId == ${episode.id} AND feedfileType == ${RequestTye.FEEDMEDIA.ordinal}").sort("completionTime",  Sort.DESCENDING).find() }
 
     LaunchedEffect(episode) {
         Logd(TAG, "LaunchedEffect(episode, episodeId)")
@@ -499,11 +500,11 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                 }
             }
         }
-        if (logs.isNotEmpty()) {
+        if (dlLogs.isNotEmpty() || playerLogs.isNotEmpty()) {
             var showLogs by remember { mutableStateOf(false) }
             Text(stringResource(R.string.logs), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 16.dp, bottom = 4.dp).clickable { showLogs = !showLogs})
             if (showLogs) Column(modifier = Modifier.padding(10.dp)) {
-                for (log in logs) {
+                for (log in dlLogs) {
                     val message = stringResource(if (!log.isSuccessful) R.string.failed else R.string.download_successful)
                     Row {
                         Text(formatDateTimeFlex(log.completionTime))
@@ -517,6 +518,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                     }
                     Spacer(Modifier.width(4.dp))
                 }
+                for (log in playerLogs) Text(log.replace(episode.id.toString(), ""))
             }
         }
         Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp))

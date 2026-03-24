@@ -52,6 +52,7 @@ import android.content.Intent
 import android.net.Uri
 import android.net.wifi.WifiManager
 import android.util.Patterns
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -135,6 +136,8 @@ enum class MobileUpdateOptions(val res: Int) {
 @Composable
 fun NetworkStorageScreen() {
     val context by rememberUpdatedState(LocalContext.current)
+    BackHandler(enabled = true) { pfBackStack.removeLastOrNull() }
+
     @Composable
     fun ProxyDialog(onDismissRequest: ()->Unit) {
         val textColor = MaterialTheme.colorScheme.onSurface
@@ -563,6 +566,7 @@ enum class EpisodeCleanupOptions(val res: Int, val num: Int) {
 @Composable
 fun SynchronizationScreen() {
     val context by rememberUpdatedState(LocalContext.current)
+    BackHandler(enabled = true) { pfBackStack.removeLastOrNull() }
 
     val selectedSyncProviderKey: String = SynchronizationSettings.selectedSyncProviderKey?:""
     var selectedProvider by remember { mutableStateOf(SynchronizationProviderViewData.fromIdentifier(selectedSyncProviderKey)) }

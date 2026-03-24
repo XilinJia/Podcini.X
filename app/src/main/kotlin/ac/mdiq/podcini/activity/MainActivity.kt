@@ -4,10 +4,9 @@ import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.activity.starter.MainActivityStarter
-import ac.mdiq.podcini.storage.utils.autoBackup
 import ac.mdiq.podcini.net.download.DownloadStatus
-import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.net.download.Downloader.Companion.downloadStates
+import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.net.feed.FeedUpdateManager
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
@@ -17,17 +16,25 @@ import ac.mdiq.podcini.playback.moveClips
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.utils.autoBackup
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.appTheme
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.dialog.RatingDialog
+import ac.mdiq.podcini.ui.screens.Facets
+import ac.mdiq.podcini.ui.screens.FeedDetails
+import ac.mdiq.podcini.ui.screens.FindFeeds
+import ac.mdiq.podcini.ui.screens.Library
 import ac.mdiq.podcini.ui.screens.MainActivityUI
+import ac.mdiq.podcini.ui.screens.OnlineFeed
 import ac.mdiq.podcini.ui.screens.PSState
+import ac.mdiq.podcini.ui.screens.Queues
 import ac.mdiq.podcini.ui.screens.QuickAccess
-import ac.mdiq.podcini.ui.screens.Screens
+import ac.mdiq.podcini.ui.screens.Search
+import ac.mdiq.podcini.ui.screens.Statistics
+import ac.mdiq.podcini.ui.screens.navTo
 import ac.mdiq.podcini.ui.screens.psState
-import ac.mdiq.podcini.ui.screens.setIntentScreen
 import ac.mdiq.podcini.ui.screens.setOnlineSearchTerms
 import ac.mdiq.podcini.ui.screens.setSearchTerms
 import ac.mdiq.podcini.utils.EventFlow
@@ -365,43 +372,43 @@ class MainActivity : BaseActivity() {
             intent.hasExtra(Extras.feed_id.name) -> {
                 val feedId = intent.getLongExtra(Extras.feed_id.name, 0)
                 Logd(TAG, "handleNavIntent: feedId: $feedId")
-                if (feedId > 0) setIntentScreen("${Screens.FeedDetails.name}?feedId=${feedId}")
+                if (feedId > 0) navTo(FeedDetails(feedId = feedId))
                 psState = PSState.PartiallyExpanded
             }
             intent.hasExtra(Extras.queue_id.name) -> {
                 val queueId = intent.getLongExtra(Extras.queue_id.name, 0)
                 Logd(TAG, "handleNavIntent: queueId: $queueId")
-                if (queueId >= 0) setIntentScreen("${Screens.Queues.name}?index=${queueId}")
+                if (queueId >= 0) navTo(Queues(id = queueId))
                 psState = PSState.PartiallyExpanded
             }
             intent.hasExtra(Extras.facet_name.name) -> {
                 val facetName = intent.getStringExtra(Extras.facet_name.name)
                 Logd(TAG, "handleNavIntent: facetName: $facetName")
-                if (!facetName.isNullOrEmpty()) QuickAccess.entries.find { it.name == facetName }?.let { setIntentScreen("${Screens.Facets.name}?modeName=${it.name}") }
+                if (!facetName.isNullOrEmpty()) QuickAccess.entries.find { it.name == facetName }?.let { navTo(Facets(modeName = it.name)) }
                 psState = PSState.PartiallyExpanded
             }
             intent.hasExtra(Extras.fragment_feed_url.name) -> {
                 val feedurl = intent.getStringExtra(Extras.fragment_feed_url.name)
                 val isShared = intent.getBooleanExtra(Extras.isShared.name, false)
-                if (feedurl != null) setIntentScreen("${Screens.OnlineFeed.name}?url=${feedurl.encodeURLParameter()}&shared=${isShared}")
+                if (feedurl != null) navTo(OnlineFeed(url = feedurl.encodeURLParameter(), shared = isShared))
             }
             intent.hasExtra(Extras.search_string.name) -> {
                 setOnlineSearchTerms(query = intent.getStringExtra(Extras.search_string.name))
-                setIntentScreen(Screens.FindFeeds.name)
+                navTo(FindFeeds)
             }
             intent.getBooleanExtra(MainActivityStarter.Extras.open_player.name, false) -> psState = PSState.Expanded
             intent.hasExtra("shortcut_route") -> {
                 val route = intent.getStringExtra("shortcut_route")
                 Logd(TAG, "intent.hasExtra(shortcut_route) route $route")
                 val screen = when (route) {
-                    "Queues" -> Screens.Queues.name
-                    "Facets" -> Screens.Facets.name
-                    "library" -> Screens.Library.name
-                    "FindFeeds" -> Screens.FindFeeds.name
-                    "Statistics" -> Screens.Statistics.name
-                    else -> Screens.Library.name
+                    "Queues" -> Queues()
+                    "Facets" -> Facets()
+                    "library" -> Library
+                    "FindFeeds" -> FindFeeds
+                    "Statistics" -> Statistics
+                    else -> Library
                 }
-                setIntentScreen(screen)
+                navTo(screen)
             }
             else -> {
                 // deeplink
@@ -412,15 +419,15 @@ class MainActivity : BaseActivity() {
                     "/deeplink/search" -> {
                         val query = uri.getQueryParameter("query") ?: return
                         setSearchTerms(query)
-                        setIntentScreen(Screens.Search.name)
+                        navTo(Search)
                     }
                     "/deeplink/main" -> {
                         val feature = uri.getQueryParameter("page") ?: return
                         when (feature) {
-                            "FACETS" -> setIntentScreen(Screens.Facets.name)
-                            "QUEUES" -> setIntentScreen(Screens.Queues.name)
-                            "LIBRARY" -> setIntentScreen(Screens.Library.name)
-                            "STATISTCS" -> setIntentScreen(Screens.Statistics.name)
+                            "FACETS" -> navTo(Facets())
+                            "QUEUES" -> navTo(Queues())
+                            "LIBRARY" -> navTo(Library)
+                            "STATISTCS" -> navTo(Statistics)
                             else -> Logt(TAG, getString(R.string.app_action_not_found) + feature)
                         }
                     }

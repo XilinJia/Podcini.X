@@ -246,7 +246,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
-    val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
     val vm: FeedDetailsVM = viewModel(key = feedId.toString(), factory = viewModelFactory { initializer { FeedDetailsVM(feedId, modeName) } })
@@ -319,7 +318,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
         if (showChooseRatingDialog) ChooseRatingDialog(listOf(feed!!)) { showChooseRatingDialog = false }
 
-        if (showRemoveFeedDialog) RemoveFeedDialog(listOf(feed!!), onDismissRequest = { showRemoveFeedDialog = false }) { navController.navigate(Screens.Library.name) }
+        if (showRemoveFeedDialog) RemoveFeedDialog(listOf(feed!!), onDismissRequest = { showRemoveFeedDialog = false }) { navTo(Library) }
 
         if (feed != null && showFilterDialog) {
             vm.showHeader = false
@@ -367,7 +366,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     else Logt(TAG, "can not find curEpisode to scroll to")
                 } else Logt(TAG, "only scroll when episodes number is larger than 5")
             } else vm.screenModeFlow.value = (FeedScreenMode.List)
-        } else if (curEpisode?.feedId != null) navController.navigate("${Screens.FeedDetails.name}?feedId=${curEpisode!!.feedId}")
+        } else if (curEpisode?.feedId != null) navTo(FeedDetails(feedId = curEpisode!!.feedId!!))
     }
 
     @Composable
@@ -417,12 +416,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         val buttonColor = Color(0xDDFFD700)
         val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
         Box {
-            TopAppBar(title = { Text("") }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable {
-                if (navController.previousBackStackEntry != null) {
-                    navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
-                    navController.popBackStack()
-                } else drawerController?.open()
-            } )  },
+            TopAppBar(title = { Text("") }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { if (!navBack()) drawerController?.open() } )  },
                 actions = {
                     if (screenMode == FeedScreenMode.List) {
                         val isFiltered = remember(feed?.filterString, feed?.episodeFilter?.propertySet) { !feed?.filterString.isNullOrBlank() && !feed?.episodeFilter?.propertySet.isNullOrEmpty() }
@@ -443,16 +437,16 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         }
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), tint = histColor, contentDescription = "history") }
                     if (feed?.queue != null) IconButton(onClick = {
-                        navController.navigate("${Screens.Queues.name}?id=${feed?.queue?.id ?: -1L}")
+                        navTo(Queues(id=feed?.queue?.id ?: -1L))
                         psState = PSState.PartiallyExpanded
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.playlist_play), contentDescription = "queue") }
-                    IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
+                    IconButton(onClick = { navTo(Search) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                     if (feed != null) {
                         IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                         DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
                             DropdownMenuItem(text = { Text(stringResource(R.string.settings_label)) }, onClick = {
                                 feedsToSet = listOf(feed!!)
-                                navController.navigate(Screens.FeedsSettings.name)
+                                navTo(FeedsSettings)
                                 expanded = false
                             })
                             if (!feed?.downloadUrl.isNullOrBlank()) DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
@@ -558,13 +552,13 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             Row {
                 TextButton({ showFeedStats = true }) { Text(stringResource(R.string.this_podcast)) }
                 Spacer(Modifier.width(20.dp))
-                TextButton({ navController.navigate(Screens.Statistics.name) }) { Text(stringResource(R.string.all_podcasts)) }
+                TextButton({ navTo(Statistics) }) { Text(stringResource(R.string.all_podcasts)) }
             }
             if (feed?.isSynthetic() == false) {
                 Text(stringResource(R.string.feeds_related_to_author), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 10.dp).clickable {
                         setOnlineSearchTerms(query = "${feed?.author} podcasts")
-                        navController.navigate(Screens.FindFeeds.name)
+                        navTo(FindFeeds)
                     })
                 Text(stringResource(R.string.last_full_update) + ": ${formatDateTimeFlex(feed?.lastFullUpdateTime?:0L)}", modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                 if (vm.logs.isNotEmpty()) {

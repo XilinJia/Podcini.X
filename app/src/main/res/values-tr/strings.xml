@@ -560,7 +560,7 @@
     <string name="pref_show_error_toasts_sum">Hata mesajlarının bildirim olarak gösterilip gösterilmeyeceğini aç/kapat.</string>
     <string name="pref_print_logs">Hata ayıklama günlüklerini yazdır</string>
     <string name="pref_print_logs_sum">Hata ayıklama mesajlarının kaydedilip kaydedilmeyeceğini aç/kapat. Bu, performansı düşürebilir. Yalnızca sorunları bildirmeye hazırlanırken bunu açın.</string>
-    <string name="remember_last_page">Son sayfayı hatırla</string>
+
     <string name="pref_delete_removes_from_queue_title">Silme kuyruktan kaldırır</string>
     <string name="pref_delete_removes_from_queue_sum">Bir bölüm silindiğinde otomatik olarak kuyruktan kaldır</string>
     <string name="pref_contribute">Katkıda bulun</string>

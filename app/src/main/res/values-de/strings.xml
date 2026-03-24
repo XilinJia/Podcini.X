@@ -452,7 +452,7 @@
     <string name="pref_default_page_sum">Bildschirm, der beim Start von Podcini angezeigt wird</string>
     <string name="pref_back_button_opens_drawer">Seitenleiste mit der Zurücktaste öffnen</string>
     <string name="pref_back_button_opens_drawer_summary">Die Zurücktaste auf der Standardseite öffnet die Seitenleiste</string>
-    <string name="remember_last_page">Letzte Seite merken</string>
+
     <string name="pref_delete_removes_from_queue_title">Löschen entfernt aus Warteschlange</string>
     <string name="pref_delete_removes_from_queue_sum">Episode automatisch aus der Warteschlange entfernen, wenn sie gelöscht wird</string>
     <string name="pref_contribute">Mitwirken</string>

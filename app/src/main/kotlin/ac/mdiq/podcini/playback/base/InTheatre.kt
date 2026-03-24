@@ -25,7 +25,7 @@ import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.ui.screens.curVideoMode
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logpe
 import ac.mdiq.podcini.utils.timeIt
 import android.content.ComponentName
 import androidx.compose.runtime.getValue
@@ -212,7 +212,7 @@ object InTheatre {
         if (curState.curMediaType != LONG_MINUS_1) {
             if (curState.curMediaType == LONG_PLUS_1) {
                 if (curState.curMediaId != 0L) setAsCurEpisode(episodeById(curState.curMediaId))
-            } else Loge(TAG, "Could not restore EpisodeMedia object from preferences")
+            } else Logpe(TAG, "Could not restore EpisodeMedia object from preferences")
         }
     }
 

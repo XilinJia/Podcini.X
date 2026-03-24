@@ -449,7 +449,7 @@
     <string name="pref_default_page_sum">Skærm, der åbnes, når Podcini startes</string>
     <string name="pref_back_button_opens_drawer">Tilbageknap åbner panel</string>
     <string name="pref_back_button_opens_drawer_summary">Ved tryk på tilbage-knappen på standardsiden åbnes navigationspanelet</string>
-    <string name="remember_last_page">Husk sidste side</string>
+
     <string name="pref_delete_removes_from_queue_title">Slet fjerner fra kø</string>
     <string name="pref_delete_removes_from_queue_sum">Fjern automatisk et afsnit fra køen, når det slettes</string>
     <string name="pref_contribute">Bidrag</string>

@@ -449,7 +449,7 @@
     <string name="pref_default_page_sum">Scherm dat wordt geopend bij het starten van Podcini</string>
     <string name="pref_back_button_opens_drawer">App-overzicht van de terugknop opent</string>
     <string name="pref_back_button_opens_drawer_summary">Het indrukken van de terugknop op de standaard pagina opent de navigatie lade</string>
-    <string name="remember_last_page">Vorige pagina onthouden</string>
+
     <string name="pref_delete_removes_from_queue_title">Verwijdert van wachtrij</string>
     <string name="pref_delete_removes_from_queue_sum">Verwijder een aflevering automatisch van de wachtrij wanneer deze wordt verwijderd</string>
     <string name="pref_contribute">Bijdragen</string>

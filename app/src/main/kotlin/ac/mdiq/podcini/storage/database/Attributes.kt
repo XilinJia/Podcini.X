@@ -68,11 +68,11 @@ fun initAppPrefs() {
         flow.collect { changes: SingleQueryChange<AppAttribs> ->
             when (changes) {
                 is InitialObject -> {
-                    Logd(TAG, "appAttribsJob InitialObject prefLastScreen: ${changes.obj.prefLastScreen}")
+                    Logd(TAG, "appAttribsJob InitialObject ")
                     appAttribs = changes.obj
                 }
                 is UpdatedObject -> {
-                    Logd(TAG, "appAttribsJob UpdatedObject prefLastScreen: ${changes.obj.prefLastScreen}")
+                    Logd(TAG, "appAttribsJob UpdatedObject ")
                     appAttribs = changes.obj
                 }
                 is DeletedObject -> {}

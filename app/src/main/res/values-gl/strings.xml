@@ -374,7 +374,7 @@
   <string name="pref_default_page_sum">Pantalla que se mostra cando inicias Podcini</string>
   <string name="pref_back_button_opens_drawer">O botón Atrás abre o panel</string>
   <string name="pref_back_button_opens_drawer_summary">Ao premer o botón atrás na páxina por defecto abre o panel de navegación</string>
-  <string name="remember_last_page">Lembrar última páxina</string>
+
   <string name="pref_delete_removes_from_queue_title">Eliminar quita da cola</string>
   <string name="pref_delete_removes_from_queue_sum">Eliminar automáticamente un episodio da cola cando se borra</string>
 

@@ -452,7 +452,7 @@
     <string name="pref_default_page_sum">La schermata da aprire quando avvii Podcini</string>
     <string name="pref_back_button_opens_drawer">Il tasto Indietro apre il menù</string>
     <string name="pref_back_button_opens_drawer_summary">Premendo il tasto indietro nella pagina predefinita viene aperto il menù di navigazione</string>
-    <string name="remember_last_page">Riapri l\'ultima pagina</string>
+
     <string name="pref_delete_removes_from_queue_title">Rimuovi dalla coda gli eliminati</string>
     <string name="pref_delete_removes_from_queue_sum">Rimuovi automaticamente un episodio dalla coda quando viene eliminato</string>
     <string name="pref_contribute">Contribuisci</string>

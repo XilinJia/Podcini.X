@@ -31,10 +31,11 @@ import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeAction
 import ac.mdiq.podcini.ui.actions.NoAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
+import ac.mdiq.podcini.ui.screens.FeedDetails
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
-import ac.mdiq.podcini.ui.screens.LocalNavController
-import ac.mdiq.podcini.ui.screens.Screens
+
 import ac.mdiq.podcini.ui.screens.handleBackSubScreens
+import ac.mdiq.podcini.ui.screens.navTo
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.formatDateTimeFlex
@@ -166,12 +167,9 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
     val scope = rememberCoroutineScope()
     var longPressIndex by remember { mutableIntStateOf(-1) }
     val context by rememberUpdatedState(LocalContext.current)
-    val navController = LocalNavController.current
     val textColor = MaterialTheme.colorScheme.onSurface
     val buttonColor = MaterialTheme.colorScheme.tertiary
     val localTime = remember { nowInMillis() }
-
-//    val currentEntry = navController.navController.currentBackStackEntryAsState().value
 
     fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
         return when (aboveOrBelow) {
@@ -352,7 +350,6 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                 onClick = {
                                     Logd(TAG, "clicked: ${episode.title}")
                                     if (selectMode) toggleSelected(episode)
-//                                    else navController.navigate("${Screens.EpisodeInfo.name}?episodeId=${episode.id}")
                                     else episodeForInfo = episode
                                 },
                                 onLongClick = {
@@ -491,7 +488,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                     Logd(TAG, "icon clicked!")
                                     when {
                                         selectMode -> toggleSelected(episode)
-                                        feed == null && episode.feed?.isSynthetic() != true -> navController.navigate("${Screens.FeedDetails.name}?feedId=${episode.feed!!.id}&modeName=${FeedScreenMode.Info.name}")
+                                        feed == null && episode.feed?.isSynthetic() != true -> navTo(FeedDetails(feedId = episode.feed!!.id, modeName = FeedScreenMode.Info.name))
                                         else -> episodeForInfo = episode
                                     }
                                 }) {

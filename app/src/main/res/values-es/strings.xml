@@ -451,7 +451,7 @@
     <string name="pref_default_page_sum">La pantalla que se abre al iniciar Podcini</string>
     <string name="pref_back_button_opens_drawer">El botón atrás abre el cajón</string>
     <string name="pref_back_button_opens_drawer_summary">Al pulsar el botón atrás en la página por defecto, se abre el cajón de navegación</string>
-    <string name="remember_last_page">Recordar última página</string>
+
     <string name="pref_delete_removes_from_queue_title">Eliminar quita de la cola</string>
     <string name="pref_delete_removes_from_queue_sum">Eliminar automáticamente un episodio de la cola cuando se borra</string>
     <string name="pref_contribute">Contribuir</string>

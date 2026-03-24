@@ -453,7 +453,7 @@
     <string name="pref_default_page_sum">Obrazovka, která se otevře při spuštění Podcini.</string>
     <string name="pref_back_button_opens_drawer">Tlačítko Zpět otevře menu</string>
     <string name="pref_back_button_opens_drawer_summary">Stisknutím tlačítka zpět na výchozí stránce se otevře navigační panel</string>
-    <string name="remember_last_page">Pamatovat si poslední stránku</string>
+
     <string name="pref_delete_removes_from_queue_title">Mazání také odstraňuje epizody z fronty</string>
     <string name="pref_delete_removes_from_queue_sum">Automaticky odstraní epizodu z fronty poté, co je smazána.</string>
     <string name="pref_contribute">Přispějte</string>

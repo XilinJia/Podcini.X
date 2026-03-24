@@ -3,7 +3,6 @@ package ac.mdiq.podcini.activity
 import ac.mdiq.podcini.ui.compose.AppThemes
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.appTheme
-import ac.mdiq.podcini.ui.screens.AppNavigator
 import ac.mdiq.podcini.ui.screens.PlayerUIScreen
 import ac.mdiq.podcini.utils.Logd
 import android.os.Bundle
@@ -18,10 +17,8 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.navigation.compose.rememberNavController
 
 private const val TAG = "PlayerUIActivity"
 class PlayerUIActivity : ComponentActivity() {
@@ -42,10 +39,10 @@ class PlayerUIActivity : ComponentActivity() {
 
         setContent {
             PodciniTheme(AppThemes.BLACK) {
-                val navController = rememberNavController()
-                val navigator = remember { AppNavigator(navController) { route -> Logd(TAG, "Navigated to: $route") } }
+//                val navController = rememberNavController()
+//                val navigator = remember { MyNavigator(navController) { route -> Logd(TAG, "Navigated to: $route") } }
                 Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBars)) {
-                    PlayerUIScreen(Modifier, navigator)
+                    PlayerUIScreen(Modifier)
                 }
             }
         }
