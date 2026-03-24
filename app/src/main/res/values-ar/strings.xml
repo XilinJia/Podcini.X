@@ -580,7 +580,6 @@
     <string name="pref_dont_ask_restricted_sum">طلب الحصول على إذن خلفية مقيد يتم في حالة عدم منح الإذن. هذا يعطل الطلبات. الرجاء التأكد من منح الإذن، وإلا ، الاستمرار في التشغيل والتحديثات في الخلفية لا تعمل بشكل صحيح.</string>
     <string name="restore_on_start">Restore on start</string>
     <string name="repeat_current_media">Repeat current media</string>
-    <string name="remember_last_page">تذكر الصفحة الأخيرة</string>
     <string name="pref_delete_removes_from_queue_title">حذف إزالة من قائمة الانتظار</string>
     <string name="pref_delete_removes_from_queue_sum">إزالة الحلقة تلقائياً من قائمة الانتظار عند حذفها</string>
     <string name="pref_contribute">المساهمة</string>
