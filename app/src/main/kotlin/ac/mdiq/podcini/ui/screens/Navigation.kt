@@ -33,7 +33,7 @@ fun navTo(key: NavKey, popMode: PopMode = PopMode.None) {
             val index = backStack.indexOfFirst { it.javaClass == key.javaClass }
             if (index >= 0) index else 0
         } else 0
-        val toKeep = backStack.subList(from, backStack.size).filter { it::class in setOf(Library::class, Queues::class) }
+        val toKeep = backStack.subList(from, backStack.size).filter { it::class in setOf(Library::class, Queues::class) }.toSet()
         backStack.subList(from, backStack.size).clear()
         backStack.addAll(toKeep)
     }
