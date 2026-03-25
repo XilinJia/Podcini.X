@@ -112,7 +112,6 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
-import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -173,6 +172,8 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
         feedSource = source
         isShared = shared
 
+        Logd(TAG, "OnlineFeedVM init feedUrl: $feedUrl")
+
         feedBuilder = gearbox.formFeedBuilder(feedUrl, feedSource) { message, details ->
             errorMessage = message ?: "No message"
             errorDetails = details
@@ -208,7 +209,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                     }
                     if (url != null) {
                         urlToLog = url
-                        Logd(TAG, "Successfully retrieve feed url")
+                        Logd(TAG, "Successfully retrieve feed url: $url")
                         isFeedFoundBySearch = true
                         gearbox.buildFeed(url, username?:"", password?:"", feedBuilder, handleFeed = { feed_, map -> handleFeed(feed_, map) }) { showTabsDialog = true }
                     } else {
@@ -310,6 +311,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     val drawerController = LocalDrawerController.current
     val context by rememberUpdatedState(LocalContext.current)
     val textColor = MaterialTheme.colorScheme.onSurface
+
     val vm: OnlineFeedVM = viewModel(key = url, factory = viewModelFactory { initializer { OnlineFeedVM(url, source, shared) } })
 
     var swipeActions by remember { mutableStateOf(SwipeActions(TAG)) }
@@ -497,7 +499,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 LazyRow(state = rememberLazyListState(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     items(vm.relatedFeeds) { feed ->
                         AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable {
-                            navTo(OnlineFeed(url=feed.feedUrl?.encodeURLParameter()?:"", source=feed.source))
+                            navTo(OnlineFeed(url=feed.feedUrl?:"", source=feed.source))
                         })
                     }
                 }

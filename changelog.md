@@ -1,3 +1,9 @@
+# 10.14.1
+
+* fixed wrong encoding of url when opening OnlineFeed screen
+* fixed screen mode not correctly updating in FeedDetails screen
+* ensure again archived feeds are excluded from auto-download/enqueue
+
 # 10.14.0
 
 * toast messages can be viewed in EpisodeInfo and AVPlayer screen

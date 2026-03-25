@@ -105,7 +105,7 @@ class AutoEnqueueAlgorithm {
 
 private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<Episode>, toReplace: MutableSet<Episode>, dl: Boolean = true, noRefreshing: Boolean = false) {
     val NM = 3
-    val feeds = feeds_ ?: allFeeds.filter { it.inNormalVolume }
+    val feeds = (feeds_ ?: allFeeds).filter { it.inNormalVolume }
     val eIdsAllQueues = realm.query(QueueEntry::class).query("queueId != $VIRTUAL_QUEUE_ID").find().map { it.episodeId }.toSet()
     feeds.forEach { f ->
         Logd(TAG, "assembleFeedsCandidates: autoDL: ${f.autoDownload} autoEQ: ${f.autoEnqueue} isLocal: ${f.isLocalFeed} ${f.title}")

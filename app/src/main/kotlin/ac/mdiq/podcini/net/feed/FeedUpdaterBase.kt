@@ -105,16 +105,16 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             val feedIds = appAttribs.feedIdsToRefresh
             if (feedIds.isNotEmpty()) {
                 Logt(TAG, "Partial refresh of ${feedIds.size} feeds")
-                feedsToUpdate = realm.query(Feed::class, "id IN $0", feedIds).find().toMutableList()
-            } else feedsToUpdate = getFeedList("keepUpdated == true").toMutableList()
+                feedsToUpdate = realm.query(Feed::class, "id IN $0", feedIds).find().filter { it.inNormalVolume }.toMutableList()
+            } else feedsToUpdate = getFeedList("keepUpdated == true").filter { it.inNormalVolume }.toMutableList()
         } else {
-            feedsToUpdate = feeds.toMutableList()
+            feedsToUpdate = feeds.filter { it.inNormalVolume }.toMutableList()
             force = true
         }
         val itr = feedsToUpdate.iterator()
         while (itr.hasNext()) {
             val feed = itr.next()
-            if ((!feed.keepUpdated || !feed.inNormalVolume) && !doItAnyway) {
+            if (!feed.keepUpdated && !doItAnyway) {
                 Logt(TAG, "feed set not to update, igored: ${feed.title}")
                 if (feed.autoEnqueue) feedsToOnlyEnqueue.add(feed)
                 else if (feed.autoDownload) feedsToOnlyDownload.add(feed)

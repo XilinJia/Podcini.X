@@ -248,7 +248,8 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     val context by rememberUpdatedState(LocalContext.current)
     val drawerController = LocalDrawerController.current
 
-    val vm: FeedDetailsVM = viewModel(key = feedId.toString(), factory = viewModelFactory { initializer { FeedDetailsVM(feedId, modeName) } })
+    val vm: FeedDetailsVM = viewModel(key = feedId.toString(), factory = viewModelFactory { initializer { FeedDetailsVM(feedId = feedId, modeName = modeName) } })
+
     val feed by vm.feedFlow.collectAsStateWithLifecycle()
     val screenMode by vm.screenModeFlow.collectAsStateWithLifecycle()
 
@@ -308,6 +309,8 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         Logd(TAG, "snapshotFlow { episodes.size }")
         vm.listInfoText = buildListInfo(episodes, vm.feedEpisodesSize)
     }
+
+    LaunchedEffect(modeName) { vm.screenModeFlow.value = (FeedScreenMode.valueOf(modeName)) }
 
     Logd(TAG, "in Composition")
     @Composable

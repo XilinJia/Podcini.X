@@ -81,7 +81,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -197,7 +196,7 @@ fun FindFeedsScreen() {
                         it.onlineSearchHistory.add(0, str)
                         if (it.onlineSearchHistory.size > SearchHistorySize+4) it.onlineSearchHistory.apply { subList(SearchHistorySize, size).clear() }
                     }
-                    if (str.matches("http[s]?://.*".toRegex())) navTo(OnlineFeed(url=str.encodeURLParameter()))
+                    if (str.matches("http[s]?://.*".toRegex())) navTo(OnlineFeed(url=str))
                     else vm.search(str)
                 }
             }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) } )

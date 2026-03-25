@@ -87,7 +87,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.await
-import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -390,7 +389,8 @@ class MainActivity : BaseActivity() {
             intent.hasExtra(Extras.fragment_feed_url.name) -> {
                 val feedurl = intent.getStringExtra(Extras.fragment_feed_url.name)
                 val isShared = intent.getBooleanExtra(Extras.isShared.name, false)
-                if (feedurl != null) navTo(OnlineFeed(url = feedurl.encodeURLParameter(), shared = isShared))
+                Logd(TAG, "handleNavIntent feedurl: $feedurl")
+                if (feedurl != null) navTo(OnlineFeed(url = feedurl, shared = isShared))
             }
             intent.hasExtra(Extras.search_string.name) -> {
                 setOnlineSearchTerms(query = intent.getStringExtra(Extras.search_string.name))

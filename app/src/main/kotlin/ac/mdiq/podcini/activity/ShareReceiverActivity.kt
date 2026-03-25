@@ -49,6 +49,7 @@ class ShareReceiverActivity : ComponentActivity() {
         const val ARG_FEEDURL: String = "arg.feedurl"
 
         fun receiveShared(sharedText: String, activity: ComponentActivity, finish: Boolean, mediaCB: ()->Unit) {
+            Logd(TAG, "receiveShared sharedText: $sharedText")
             val log = realm.query(ShareLog::class).query("url == $0", sharedText).first().find()
             when {
 //            plain text

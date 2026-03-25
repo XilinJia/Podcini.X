@@ -89,7 +89,6 @@ import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import io.github.xilinjia.krdb.notifications.ResultsChange
-import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -236,7 +235,7 @@ fun SearchScreen() {
                     Text(stringResource(R.string.search_online), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable {
                         val query = vm.queryText
                         if (query.matches("http[s]?://.*".toRegex())) {
-                            navTo(OnlineFeed(url=query.encodeURLParameter()))
+                            navTo(OnlineFeed(url=query))
                             return@clickable
                         }
                         setOnlineSearchTerms(query = query)
@@ -307,19 +306,16 @@ fun SearchScreen() {
                 val lazyListState = rememberLazyListState()
                 LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     itemsIndexed(vm.pafeeds, key = { _, feed -> feed.id }) { index, feed ->
-                        fun navToOnlineFeed() {
-                            if (feed.feedUrl.isNotBlank()) navTo(OnlineFeed(url=feed.feedUrl.encodeURLParameter()))
-                        }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover",
                                 modifier = Modifier.width(60.dp).height(60.dp).clickable {
                                     Logd(TAG, "feedUrl: ${feed.name} [${feed.feedUrl}] [$]")
-                                    navToOnlineFeed()
+                                    if (feed.feedUrl.isNotBlank()) navTo(OnlineFeed(url=feed.feedUrl))
                                 })
                             val textColor = MaterialTheme.colorScheme.onSurface
                             Column(Modifier.weight(1f).padding(start = 10.dp).clickable {
                                 Logd(TAG, "feedUrl: ${feed.name} [${feed.feedUrl}]")
-                                navToOnlineFeed()
+                                if (feed.feedUrl.isNotBlank()) navTo(OnlineFeed(url=feed.feedUrl))
                             }) {
                                 Text(feed.name, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
                                 Text(feed.author, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)

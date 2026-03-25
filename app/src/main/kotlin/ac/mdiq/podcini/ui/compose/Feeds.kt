@@ -19,7 +19,6 @@ import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.ui.screens.FeedDetails
 import ac.mdiq.podcini.ui.screens.OnlineFeed
 import ac.mdiq.podcini.ui.screens.navTo
-
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.formatLargeInteger
@@ -88,7 +87,6 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
-import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -190,7 +188,7 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
             if (feed.feedUrl != null) {
                 Logd(TAG, "feed.feedId: ${feed.feedId}")
                 if (feed.feedId > 0) navTo(FeedDetails(feedId = feed.feedId))
-                else navTo(OnlineFeed(url = feed.feedUrl.encodeURLParameter(), source = feed.source))
+                else navTo(OnlineFeed(url = feed.feedUrl, source = feed.source))
             } },
         onLongClick = { showSubscribeDialog.value = true })) {
         val textColor = MaterialTheme.colorScheme.onSurface
