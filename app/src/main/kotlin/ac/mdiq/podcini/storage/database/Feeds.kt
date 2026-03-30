@@ -24,6 +24,7 @@ import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logt
 import android.app.backup.BackupManager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -123,7 +124,6 @@ fun monitorFeeds() {
 }
 
 fun getFeed(feedId: Long, copy: Boolean = false): Feed? {
-//    val f = realm.query(Feed::class, "id == $feedId").first().find()
     val f = feedsMap[feedId]
     return if (f != null) {
         if (copy) realm.copyFromRealm(f) else f
@@ -190,7 +190,7 @@ fun addNewFeed(feed: Feed) {
 suspend fun deleteFeed(feedId: Long, preserve: Boolean = false) {
     Logd(TAG, "deleteFeed called")
     val feed = feedsMap[feedId]
-    val episodes = if (preserve && feed != null) feed.getUnworthyEpisodes() else getEpisodes(null, null, feedId=feedId, copy = false)
+    val episodes = if (preserve && feed != null) feed.unworthyEpisodes else getEpisodes(null, null, feedId=feedId, copy = false)
     removeFromAllQueuesQuiet(episodes.map { it.id }, false)
     eraseEpisodes(episodes)
 
@@ -254,8 +254,7 @@ fun createSynthetic(feedId: Long, name: String, video: Boolean = false): Feed {
     feed.author = "Yours Truly"
     feed.downloadUrl = null
     feed.hasVideoMedia = video
-//    feed.fileUrl = File(feedfilePath, feed.getFeedfileName()).toString()
-    feed.fileUrl =(cacheDir / feed.getFeedfileName()).absPath
+    feed.fileUrl = (cacheDir / feed.getFeedfileName()).absPath
     feed.keepUpdated = false
     feed.queueId = -2L
     return feed
@@ -282,11 +281,9 @@ fun addRemoteToMiscSyndicate(episode: Episode) {
     //            episode.origFeeddownloadUrl = episode.feed?.downloadUrl
     //            episode.origFeedlink = episode.feed?.link
     //        }
-//    episode.feed = feed
     episode.id = getId()
     episode.feedId = feed.id
     upsertBlk(episode) {}
-//    feed.episodes.add(episode)
     upsertBlk(feed) {}
     EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
 }
@@ -389,12 +386,12 @@ suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, 
         savedFeed.nextPageLink = newFeed.nextPageLink
     }
     Logd(TAG, "updateFeedFull savedFeed.isLocalFeed: ${savedFeed.isLocalFeed} savedFeed.prefStreamOverDownload: ${savedFeed.prefStreamOverDownload}")
-    val priorMostRecent = savedFeed.mostRecentItem
+    val priorMostRecent = realm.query(Episode::class).query("feedId == ${savedFeed.id} SORT (pubDate DESC)").first().find()
     val priorMostRecentDate = priorMostRecent?.pubDate
     var idLong = getId()
     Logd(TAG, "updateFeedFull building savedFeedAssistant")
     val savedFeedAssistant = FeedAssistant(savedFeed)
-    val oldestDate = savedFeed.oldestItem?.pubDate ?: 0L
+    val oldestDate = realm.query(Episode::class).query("feedId == ${savedFeed.id} SORT (pubDate ASC)").first().find()?.pubDate ?: 0L
     var nNew = 0
     var nUpdated = 0
     for (idx in newFeed.episodes.indices) {
@@ -489,7 +486,14 @@ suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, 
 
 suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = null) {
     Logd(TAG, "updateFeedSimple called")
-    val savedFeed = feedByIdentityOrID(newFeed, true) ?: return
+    val savedFeed = feedByIdentityOrID(newFeed, true)
+    if (savedFeed == null) {
+        downloadStatus?.let {
+            it.isSuccessful = false
+            it.addDetail("updateFeedSimple existing feed not found")
+        }
+        return
+    }
 
     Logd(TAG, "Feed with title " + newFeed.title + " already exists. Syncing new with existing one.")
     newFeed.episodes.sortedByDescending { it.pubDate }
@@ -502,8 +506,8 @@ suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = nu
         Logd(TAG, "New feed has a higher page number: ${newFeed.nextPageLink}")
         savedFeed.nextPageLink = newFeed.nextPageLink
     }
-    val priorMostRecents = savedFeed.mostRecentItems
-    val priorMostRecentDate = savedFeed.lastUpdateTime
+    val priorMostRecents = realm.query(Episode::class).query("feedId == ${savedFeed.id} SORT (pubDate DESC) LIMIT(5)").find()
+    val priorMostRecentDate = if (priorMostRecents.isNotEmpty()) priorMostRecents[0].pubDate else savedFeed.lastUpdateTime
     var idLong = getId()
     Logd(TAG, "updateFeedSimple building savedFeedAssistant")
 
@@ -511,7 +515,10 @@ suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = nu
     // Look for new or updated Items
     for (idx in newFeed.episodes.indices) {
         var episode = newFeed.episodes[idx]
-        if (episode.duration < 1000) continue
+        if (episode.duration < 1000) {
+            Logt(TAG, "new episode duration less than 1 second, ignored: ${episode.title}")
+            continue
+        }
         val pubDate = episode.pubDate
         if (pubDate <= priorMostRecentDate || episode.downloadUrl in priorMostRecents.map { it.downloadUrl} || episode.title in priorMostRecents.map { it.title }) continue
         nNew++
@@ -522,11 +529,9 @@ suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = nu
         if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(persist = false)
         if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
 
-        if (priorMostRecentDate < pubDate) {
-            Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
-            episode = upsert(episode) { it.setPlayState(EpisodeState.NEW) }
-            if (savedFeed.autoAddNewToQueue && savedFeed.queue != null) runOnIOScope { addToAssQueue(listOf(episode)) }
-        } else upsert(episode) {}
+        Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
+        episode = upsert(episode) { it.setPlayState(EpisodeState.NEW) }
+        if (savedFeed.autoAddNewToQueue && savedFeed.queue != null) runOnIOScope { addToAssQueue(listOf(episode)) }
     }
     downloadStatus?.addDetail("Added new episodes: $nNew")
 
@@ -549,7 +554,7 @@ suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = nu
 }
 
 // savedFeedId == 0L means saved feed
-class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L, private val isNew: Boolean = false) {
+class FeedAssistant(val feed: Feed, savedFeedId: Long = 0L, isNew: Boolean = false) {
     val map = mutableMapOf<String, MutableList<Episode>>()
     val tag: String = if (savedFeedId == 0L) "Saved feed" else "New feed"
 

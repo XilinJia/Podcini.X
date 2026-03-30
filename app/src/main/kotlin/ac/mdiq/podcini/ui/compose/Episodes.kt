@@ -65,7 +65,6 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
-import ac.mdiq.podcini.utils.error.DownloadErrorLabel.from
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.sessionLogs
@@ -513,7 +512,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                     if (!log.isSuccessful) {
                         Column(modifier = Modifier.padding(start = 10.dp)) {
                             Text(log.reasonDetailed)
-                            Text(stringResource(from(log.reason)))
+                            Text(stringResource(log.reason?.res ?: R.string.download_error_error_unknown))
                         }
                     }
                     Spacer(Modifier.width(4.dp))

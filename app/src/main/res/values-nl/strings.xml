@@ -214,7 +214,7 @@
     <string name="download_error_no_connection">Geen netwerkverbinding</string>
     <string name="download_error_unknown_host">De server kan niet worden bereikt. Controleer het adres en je internetverbinding.</string>
     <string name="download_error_unauthorized">Authenticatiefout. Zorg ervoor dat gebruikersnaam en wachtwoord correct zijn.</string>
-    <string name="download_error_file_type_type">Bestand type fout</string>
+    <string name="download_error_file_type">Bestand type fout</string>
     <string name="download_error_forbidden">De server van de podcast host reageert niet.</string>
     <string name="download_canceled_msg">Download afgebroken</string>
     <string name="download_error_wrong_size">De serververbinding werd verbroken voordat de download kon worden afgerond</string>

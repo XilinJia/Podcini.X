@@ -155,7 +155,7 @@
   <string name="download_error_connection_error">Tilkoblingsfeil</string>
   <string name="download_error_unknown_host">Kan ikke finne tjeneren. Sjekk at adressen er korrekt og at nettverkstilkoplingen din virker.</string>
   <string name="download_error_unauthorized">Autentifiseringsfeil. Sjekk at brukernavn og passordet er riktig.</string>
-  <string name="download_error_file_type_type">Filtype-feil</string>
+  <string name="download_error_file_type">Filtype-feil</string>
   <string name="download_error_forbidden">Verten til podcasten\'s tjener svarer ikke.</string>
   <string name="download_canceled_msg">Nedlasting avbrutt</string>
   <string name="download_error_wrong_size">Mistet tjenertilkoblingen før nedlastingen var ferdig</string>

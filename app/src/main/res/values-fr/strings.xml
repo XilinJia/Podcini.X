@@ -217,7 +217,7 @@
     <string name="download_error_no_connection">Aucune connexion</string>
     <string name="download_error_unknown_host">Serveur introuvable. Vérifier que l\'adresse soit correcte et que la connexion fonctionne.</string>
     <string name="download_error_unauthorized">Erreur d\'authentification. Assurez-vous que le nom d\'utilisateur et le mot de passe soient correctes.</string>
-    <string name="download_error_file_type_type">Erreur format de fichier</string>
+    <string name="download_error_file_type">Erreur format de fichier</string>
     <string name="download_error_forbidden">Le serveur du podcast refuse de répondre.</string>
     <string name="download_canceled_msg">Téléchargement annulé</string>
     <string name="download_error_wrong_size">La connexion au serveur a été coupée avant la fin du téléchargement</string>

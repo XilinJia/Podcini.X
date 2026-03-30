@@ -213,7 +213,7 @@
     <string name="download_error_no_connection">没有网络连接</string>
     <string name="download_error_unknown_host">找不到服务器。请检查地址是否正确，并检查您是否有工作网络连接。</string>
     <string name="download_error_unauthorized">身份验证错误。请确保用户名和密码正确。</string>
-    <string name="download_error_file_type_type">文件类型错误</string>
+    <string name="download_error_file_type">文件类型错误</string>
     <string name="download_error_forbidden">播客主机服务器拒绝响应。</string>
     <string name="download_canceled_msg">下载已取消</string>
     <string name="download_error_wrong_size">完成下载前服务器连接丢失</string>

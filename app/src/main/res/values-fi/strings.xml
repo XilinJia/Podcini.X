@@ -214,7 +214,7 @@
     <string name="download_error_no_connection">Ei verkkoyhteyttä</string>
     <string name="download_error_unknown_host">Palvelinta ei löytynyt. Tarkista, että osoite on kirjoitettu oikein ja verkkoyhteytesi toimii.</string>
     <string name="download_error_unauthorized">Tunnistautumisvirhe. Varmista, että käyttäjätunnus ja salasana ovat oikein.</string>
-    <string name="download_error_file_type_type">Tiedostotyyppivirhe</string>
+    <string name="download_error_file_type">Tiedostotyyppivirhe</string>
     <string name="download_error_forbidden">Podcastin palvelin ei vastaa.</string>
     <string name="download_canceled_msg">Lataus peruutettu</string>
     <string name="download_error_wrong_size">Palvelinyhteys katkesi ennen latauksen valmistumista</string>

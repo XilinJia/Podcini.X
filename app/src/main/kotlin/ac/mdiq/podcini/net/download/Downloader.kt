@@ -122,12 +122,15 @@ abstract class Downloader(val request: DownloadRequest) {
 
     protected fun onFail(reason: DownloadError, reasonDetailed: String?) {
         Logs(TAG, "onFail() called with: reason = [$reason], reasonDetailed = [$reasonDetailed]")
-        result.setFailed(reason, reasonDetailed?:"")
+        result.isSuccessful = false
+        result.reason = reason
+        result.addDetail(reasonDetailed?:"")
     }
 
     protected fun onCancelled() {
         Logd(TAG, "Download was cancelled")
-        result.setCancelled()
+        result.isSuccessful = false
+        result.reason = DownloadError.ERROR_DOWNLOAD_CANCELLED
         cancelled = true
     }
 

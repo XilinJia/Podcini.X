@@ -13,7 +13,7 @@ import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
-import ac.mdiq.podcini.utils.error.CrashReportWriter
+import ac.mdiq.podcini.utils.CrashReportWriter
 import ac.mdiq.podcini.utils.openInBrowser
 import ac.mdiq.podcini.utils.toastMassege
 import android.content.ClipData

@@ -168,7 +168,7 @@
   <string name="download_error_no_connection">Sen conexión á rede</string>
   <string name="download_error_unknown_host">Non se atopa o servidor. Comproba que o enderezo é correcto e que tes conexión á rede.</string>
   <string name="download_error_unauthorized">Erro de autenticación. Comproba que as credenciais son correctas.</string>
-  <string name="download_error_file_type_type">Erro no tipo de ficheiro</string>
+  <string name="download_error_file_type">Erro no tipo de ficheiro</string>
   <string name="download_error_forbidden">O servidor que hospeda o podcast non responde.</string>
   <string name="download_canceled_msg">Descarga cancelada</string>
   <string name="download_error_wrong_size">Perdeuse a conexión co servidor antes de completar a descarga</string>

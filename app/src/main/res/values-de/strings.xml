@@ -217,7 +217,7 @@
     <string name="download_error_no_connection">Keine Netzwerkverbindung</string>
     <string name="download_error_unknown_host">Konnte den Server nicht finden. Prüfe ob die Adresse richtig geschrieben ist und Du mit dem Netzwerk verbunden bist.</string>
     <string name="download_error_unauthorized">Authenfizierungsfehler. Bitte Benutzernamen und Passwort prüfen.</string>
-    <string name="download_error_file_type_type">Dateityp-Fehler</string>
+    <string name="download_error_file_type">Dateityp-Fehler</string>
     <string name="download_error_forbidden">Der Podcast-Server lehnt eine Antwort ab.</string>
     <string name="download_canceled_msg">Download abgebrochen</string>
     <string name="download_error_wrong_size">Die Serververbindung wurde unterbrochen bevor der Download fertiggestellt wurde</string>

@@ -171,17 +171,17 @@ class Feed : RealmObject {
     var sortInfo: String = ""
     // ============ filters and sorts    ==========================
 
-    @Ignore
-    val mostRecentItem: Episode?
-        get() = realm.query(Episode::class).query("feedId == $id SORT (pubDate DESC)").first().find()
+//    @Ignore
+//    val mostRecentItem: Episode?
+//        get() = realm.query(Episode::class).query("feedId == $id SORT (pubDate DESC)").first().find()
 
-    @Ignore
-    val mostRecentItems: List<Episode>
-        get() = realm.query(Episode::class).query("feedId == $id SORT (pubDate DESC) LIMIT(5)").find()
+//    @Ignore
+//    val mostRecentItems: List<Episode>
+//        get() = realm.query(Episode::class).query("feedId == $id SORT (pubDate DESC) LIMIT(5)").find()
 
-    @Ignore
-    val oldestItem: Episode?
-        get() = realm.query(Episode::class).query("feedId == $id SORT (pubDate ASC)").first().find()
+//    @Ignore
+//    val oldestItem: Episode?
+//        get() = realm.query(Episode::class).query("feedId == $id SORT (pubDate ASC)").first().find()
 
     @Ignore
     var title: String?
@@ -518,13 +518,13 @@ class Feed : RealmObject {
                 "OR clips.@count > 0" +
                 "OR marks.@count > 0"
 
-    fun getWorthyEpisodes(): List<Episode> {
-        return realm.query(Episode::class).query("feedId == $id AND ($isWorthyQuerryStr)").find()
-    }
+    @Ignore
+    val unworthyEpisodes: List<Episode>
+        get() = realm.query(Episode::class).query("feedId == $id AND !($isWorthyQuerryStr)").find()
 
-    fun getUnworthyEpisodes(): List<Episode> {
-        return realm.query(Episode::class).query("feedId == $id AND !($isWorthyQuerryStr)").find()
-    }
+    @Ignore
+    val worthyEpisodes: List<Episode>
+        get() = realm.query(Episode::class).query("feedId == $id AND ($isWorthyQuerryStr)").find()
 
     fun getFeedfileName(): String {
         var filename = downloadUrl

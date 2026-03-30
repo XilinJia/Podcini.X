@@ -155,7 +155,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
 //                                    }
 //                                }
                             }
-                            val worthyEps = f.getWorthyEpisodes()
+                            val worthyEps = f.worthyEpisodes
                             deleteFeed(f.id, saveImportant && worthyEps.isNotEmpty())
                         }
 //                        EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, feeds.map { it.id }))

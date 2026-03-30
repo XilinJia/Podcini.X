@@ -170,7 +170,7 @@
   <string name="download_error_no_connection">אין חיבור לאינטרנט</string>
   <string name="download_error_unknown_host">לא ניתן לאתר את השרת. יש לבדוק אם הכתובת הוקלדה כראוי ושחיבור הרשת שלך תקין.</string>
   <string name="download_error_unauthorized">שגיאת אימות. נא לוודא ששם המשתמש והסיסמה נכונים.</string>
-  <string name="download_error_file_type_type">שגיאת סוג קובץ</string>
+  <string name="download_error_file_type">שגיאת סוג קובץ</string>
   <string name="download_error_forbidden">השרת של מארח הפודקאסט מסרב להגיב.</string>
   <string name="download_canceled_msg">הורדה בוטלה</string>
   <string name="download_error_wrong_size">החיבור לשרת אבד לפני השלמת ההורדה</string>

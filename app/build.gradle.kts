@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 276
-        versionName = "10.14.1"
+        versionCode = 277
+        versionName = "10.14.2"
 
         ndkVersion = "29.0.14206865"
 
@@ -164,7 +164,7 @@ androidComponents {
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2026.03.00"))
+    implementation(platform("androidx.compose:compose-bom:2026.03.01"))
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.ui:ui")
@@ -181,18 +181,18 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.2.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
     implementation("androidx.webkit:webkit:1.15.0")
-    implementation("androidx.work:work-runtime:2.11.1")
+    implementation("androidx.work:work-runtime:2.11.2")
 
     implementation("androidx.lifecycle:lifecycle-viewmodel-navigation3:2.10.0")
     implementation("androidx.navigation3:navigation3-runtime:1.0.1")
     implementation("androidx.navigation3:navigation3-ui:1.0.1")
 
 
-    implementation("androidx.media3:media3-exoplayer:1.9.3")
-    implementation("androidx.media3:media3-datasource-okhttp:1.9.3")
-    implementation("androidx.media3:media3-ui:1.9.3")
-    implementation("androidx.media3:media3-common:1.9.3")
-    implementation("androidx.media3:media3-session:1.9.3")
+    implementation("androidx.media3:media3-exoplayer:1.10.0")
+    implementation("androidx.media3:media3-datasource-okhttp:1.10.0")
+    implementation("androidx.media3:media3-ui:1.10.0")
+    implementation("androidx.media3:media3-common:1.10.0")
+    implementation("androidx.media3:media3-session:1.10.0")
 
     implementation("com.google.android.material:material:1.13.0")
 
@@ -206,14 +206,14 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-compose:3.4.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.4.0")
 
-    implementation("io.ktor:ktor-http:3.4.1")
+    implementation("io.ktor:ktor-http:3.4.2")
 
     implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
 
-    implementation("io.ktor:ktor-client-core:3.4.1")
-    implementation("io.ktor:ktor-client-okhttp:3.4.1")
-    implementation("io.ktor:ktor-client-cio:3.4.1")
+    implementation("io.ktor:ktor-client-core:3.4.2")
+    implementation("io.ktor:ktor-client-okhttp:3.4.2")
+    implementation("io.ktor:ktor-client-cio:3.4.2")
 
     implementation("com.fleeksoft.ksoup:ksoup:0.2.6")
     implementation("com.fleeksoft.ksoup:ksoup-network:0.2.6")
@@ -232,8 +232,8 @@ dependencies {
     compileOnly("com.google.android.wearable:wearable:2.9.0")
 
     "freeImplementation"("org.conscrypt:conscrypt-android:2.5.3")
-    debugImplementation("androidx.compose.ui:ui-tooling:1.10.5")
-    debugImplementation("androidx.compose.ui:ui-tooling-preview:1.10.5")
+    debugImplementation("androidx.compose.ui:ui-tooling:1.10.6")
+    debugImplementation("androidx.compose.ui:ui-tooling-preview:1.10.6")
 
     "playImplementation"("com.google.android.play:core-ktx:1.8.1")
     "playImplementation"("com.google.android.gms:play-services-base:18.9.0")

@@ -213,7 +213,7 @@
     <string name="download_error_no_connection">No network connection</string>
     <string name="download_error_unknown_host">Tidak dapat menemukan server. Cek jika alamatnya diketik dengan benar dan jika Anda mempunyai jaringan internet yang bekerja.</string>
     <string name="download_error_unauthorized">Authentication error. Make sure that username and password are correct.</string>
-    <string name="download_error_file_type_type">File type error</string>
+    <string name="download_error_file_type">File type error</string>
     <string name="download_error_forbidden">Server host podcast menolak untuk merespon.</string>
     <string name="download_canceled_msg">Unduhan dibatalkan</string>
     <string name="download_error_wrong_size">Hubungan ke server terputus sebelum download selesai terunduh</string>

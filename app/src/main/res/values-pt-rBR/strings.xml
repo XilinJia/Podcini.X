@@ -160,7 +160,7 @@
   <string name="download_error_connection_error">Erro na conexão</string>
   <string name="download_error_unknown_host">Não foi possível encontrar o servidor. Verifique se o endereço foi digitado corretamente e se você tem uma conexão ativa com a Internet.</string>
   <string name="download_error_unauthorized">Erro na autenticação. Certifique-se de que o nome de usuário e a senha estão corretos.</string>
-  <string name="download_error_file_type_type">Erro no tipo de arquivo</string>
+  <string name="download_error_file_type">Erro no tipo de arquivo</string>
   <string name="download_error_forbidden">O servidor de hospedagem do podcast se recusa a responder.</string>
   <string name="download_canceled_msg">Download cancelado</string>
   <string name="download_error_wrong_size">A conexão com o servidor foi perdida antes de completar o download</string>

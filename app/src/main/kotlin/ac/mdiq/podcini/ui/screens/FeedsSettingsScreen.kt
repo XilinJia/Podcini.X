@@ -341,7 +341,7 @@ fun FeedsSettingsScreen() {
                 Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
                     Text(stringResource(R.string.preferred_languages), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                     var showIcon by remember { mutableStateOf(false) }
-                    var newName by remember { mutableStateOf(feedToSet.preferredLnaguages.ifEmpty { feedToSet.langSet }.joinToString(", ")) }
+                    var newName by remember { mutableStateOf(feedToSet.preferredLnaguages.joinToString(", ")) }
                     TextField(value = newName,
                         onValueChange = {
                             newName = it
@@ -359,7 +359,8 @@ fun FeedsSettingsScreen() {
                                     showIcon =  false
                                 }))
                         })
-//                    Text("", color = textColor, style = MaterialTheme.typography.bodySmall)
+                    val langs = remember { feedToSet.langSet.joinToString(", ") }
+                    Text("Candidates: $langs", color = textColor, style = MaterialTheme.typography.bodySmall)
                 }
             }
             if ((feedToSet.id >= MAX_NATURAL_SYNTHETIC_ID && feedToSet.hasVideoMedia) || feedsToSet.size > 1) {

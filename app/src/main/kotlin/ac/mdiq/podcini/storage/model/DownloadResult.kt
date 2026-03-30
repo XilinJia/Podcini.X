@@ -75,17 +75,6 @@ class DownloadResult : RealmObject {
         this.reason = DownloadError.SUCCESS
     }
 
-    fun setFailed(reason: DownloadError, reasonDetailed: String) {
-        this.isSuccessful = false
-        this.reason = reason
-        addDetail(reasonDetailed)
-    }
-
-    fun setCancelled() {
-        this.isSuccessful = false
-        this.reason = DownloadError.ERROR_DOWNLOAD_CANCELLED
-    }
-
     fun addDetail(detail: String) {
         if (reasonDetailed.isNotBlank()) reasonDetailed += "\n"
         reasonDetailed += detail

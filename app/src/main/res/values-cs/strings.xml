@@ -216,7 +216,7 @@
     <string name="download_error_no_connection">Žádné síťové připojení</string>
     <string name="download_error_unknown_host">Server nelze najít. Zkontrolujte, zda je adresa zadána správně a zda máte funkční síťové připojení.</string>
     <string name="download_error_unauthorized">Chyba autentikace. Ujistěte se, že uživatelské jméno a heslo jsou správné.</string>
-    <string name="download_error_file_type_type">Chyba typu souboru</string>
+    <string name="download_error_file_type">Chyba typu souboru</string>
     <string name="download_error_forbidden">Server podcastu nereaguje.</string>
     <string name="download_canceled_msg">Stahování zrušeno</string>
     <string name="download_error_wrong_size">Před dokončením stahování došlo ke ztrátě připojení k serveru</string>

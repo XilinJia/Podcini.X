@@ -23,7 +23,6 @@ import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
-import ac.mdiq.podcini.utils.error.DownloadErrorLabel.from
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.sessionLogs
 import android.content.ClipData
@@ -339,7 +338,7 @@ fun LogsScreen() {
             }
         }
         val message = if (!status.isSuccessful) status.reasonDetailed else context.getString(R.string.download_successful)
-        val messageFull = context.getString(R.string.download_log_details_message, context.getString(from(status.reason)), message, url)
+        val messageFull = context.getString(R.string.download_log_details_message, context.getString(status.reason?.res ?: R.string.download_error_error_unknown), message, url)
         CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
             Column(modifier = Modifier.padding(10.dp)) {
                 val textColor = MaterialTheme.colorScheme.onSurface
@@ -392,7 +391,7 @@ fun LogsScreen() {
                         }
                         Text(statusText, color = textColor)
                         if (!status.isSuccessful) {
-                            Text(stringResource(from(status.reason)), color = Color.Red)
+                            Text(stringResource(status.reason?.res ?: R.string.download_error_error_unknown), color = Color.Red)
                             Text(stringResource(R.string.download_error_tap_for_details), color = textColor)
                         }
                     }

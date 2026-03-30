@@ -219,7 +219,7 @@
     <string name="download_error_no_connection">لا يوجد اتصال بالشبكة</string>
     <string name="download_error_unknown_host">لم يتم العثور على الخادم. تأكد من كتابة العنوان بشكل صحيح و توفر اتصال بالشبكة.</string>
     <string name="download_error_unauthorized">لقد فشل التحقق. قم بالتأكد من صحة اسم المستخدم وكلمة المرور.</string>
-    <string name="download_error_file_type_type">خطأ في نوع الملف</string>
+    <string name="download_error_file_type">خطأ في نوع الملف</string>
     <string name="download_error_forbidden">خادم البودكاست يرفض الرد</string>
     <string name="download_canceled_msg">ألغي التنزيل</string>
     <string name="download_error_wrong_size">فقد الاتصال مع الخادم قبل الانتهاء من التنزيل</string>

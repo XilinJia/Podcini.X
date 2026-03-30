@@ -218,7 +218,7 @@
     <string name="download_error_no_connection">Brak połączenia sieciowego</string>
     <string name="download_error_unknown_host">Nie można znaleźć serwera. Sprawdź czy adres jest wpisany poprawnie i czy jest połączenie z internetem.</string>
     <string name="download_error_unauthorized">Błąd uwierzytelniania. Upewnij się, że nazwa użytkownika i hasło są poprawne.</string>
-    <string name="download_error_file_type_type">Błąd rodzaju pliku</string>
+    <string name="download_error_file_type">Błąd rodzaju pliku</string>
     <string name="download_error_forbidden">Serwer podcastu nie odpowiada.</string>
     <string name="download_canceled_msg">Pobieranie anulowane</string>
     <string name="download_error_wrong_size">Połączenie z serwerem zostało zerwane przed ukończeniem pobierania.</string>

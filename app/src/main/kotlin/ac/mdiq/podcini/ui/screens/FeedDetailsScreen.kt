@@ -55,7 +55,6 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
-import ac.mdiq.podcini.utils.error.DownloadErrorLabel.from
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.isCallable
@@ -576,7 +575,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                             }
                             Column(modifier = Modifier.padding(start = 10.dp)) {
                                 if (log.reasonDetailed.isNotBlank()) Text(log.reasonDetailed)
-                                if (!log.isSuccessful) Text(stringResource(from(log.reason)))
+                                if (!log.isSuccessful) Text(stringResource(log.reason?.res ?: R.string.download_error_error_unknown))
                             }
                             Spacer(Modifier.width(4.dp))
                         }

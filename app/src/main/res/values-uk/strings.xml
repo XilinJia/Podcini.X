@@ -216,7 +216,7 @@
     <string name="download_error_no_connection">Немає підключення до мережі</string>
     <string name="download_error_unknown_host">Не вдається знайти сервер. Перевірте, чи правильно введено адресу, і чи підключено мережеве з\'єднання.</string>
     <string name="download_error_unauthorized">Помилка автентифікації. Переконайтеся, що ім\'я користувача та пароль правильні.</string>
-    <string name="download_error_file_type_type">Помилка з типом файлу</string>
+    <string name="download_error_file_type">Помилка з типом файлу</string>
     <string name="download_error_forbidden">Сервер подкасту відмовляється відповідати.</string>
     <string name="download_canceled_msg">Завантаження скасоване</string>
     <string name="download_error_wrong_size">З\'єднання з сервером було втрачено перед завершенням завантаження</string>

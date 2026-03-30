@@ -214,7 +214,7 @@
     <string name="download_error_no_connection">Ingen nätverksanslutning</string>
     <string name="download_error_unknown_host">Kunde inte hitta servern. Kontrollera att adressen är korrekt och att nätverksanslutningen fungerar.</string>
     <string name="download_error_unauthorized">Autentiseringsfel. Se till att användarnamn och lösenord är korrekt.</string>
-    <string name="download_error_file_type_type">Filtypsfel</string>
+    <string name="download_error_file_type">Filtypsfel</string>
     <string name="download_error_forbidden">Podcastens server svarade inte.</string>
     <string name="download_canceled_msg">Nedladdning avbruten</string>
     <string name="download_error_wrong_size">Serveranslutningen förlorades innan nedladdningen var klar.</string>

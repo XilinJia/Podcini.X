@@ -67,6 +67,12 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
 
     var force = false
 
+    protected suspend fun onFail(feed: Feed, details: String,  reason: DownloadError = DownloadError.ERROR_MISC) {
+        Logd(TAG, details)
+        upsert(feed) { it.lastUpdateFailed = true }
+        addDownloadStatus(DownloadResult(feed, reason, false, details))
+    }
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     suspend fun startRefresh() {
         Logd(TAG, "startRefresh doItAnyway: $doItAnyway")
@@ -127,9 +133,9 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
 
     suspend fun doWork(): Boolean {
         withContext(Dispatchers.Main) { feedOperationText = context.getString(R.string.refreshing_label) }
-        if (Build.VERSION.SDK_INT >= 33 && ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+        if (Build.VERSION.SDK_INT >= 33 && ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
             Loge(TAG, "refreshFeeds: require POST_NOTIFICATIONS permission")
-        } else {
+        else {
             val titles = feedsToUpdate.map { it.title ?: "No title" }.toMutableList()
             val feedIdsToRefresh = feedsToUpdate.map { it.id }.toMutableList()
             var i = 0
@@ -143,10 +149,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
                         else -> refreshFeed(feed)
                     }
                 } catch (e: Exception) {
-                    Loge(TAG, "refreshFeeds: update failed ${feed.title} ${e.message}")
-                    upsert(feed) { it.lastUpdateFailed = true }
-                    val status = DownloadResult(feed, DownloadError.ERROR_IO_ERROR, false, e.message ?: "")
-                    addDownloadStatus(status)
+                    onFail(feed, "refreshFeeds: update failed ${feed.title} ${e.message}")
                 }
                 titles.removeAt(0)
                 feedIdsToRefresh.removeAt(0)
@@ -236,10 +239,8 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             if (isSuccessful) {
                 downloadStatus = DownloadResult(feedToParse, DownloadError.SUCCESS, true, "")
             } else {
-                downloadStatus = DownloadResult(feedToParse, reason ?: DownloadError.ERROR_NOT_FOUND, false, reasonDetailed ?: "")
+                onFail(feedToParse, reasonDetailed ?: "", reason ?: DownloadError.ERROR_NOT_FOUND)
                 Logt(TAG, "refreshFeed: feed update failed: unsuccessful: ${feed.title}")
-                upsert(feed) { it.lastUpdateFailed = true }
-                addDownloadStatus(downloadStatus)
                 return@download
             }
 

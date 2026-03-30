@@ -3,7 +3,7 @@ package ac.mdiq.podcini
 import ac.mdiq.podcini.activity.MainActivity
 import ac.mdiq.podcini.config.ClientConfig
 import ac.mdiq.podcini.storage.database.realm
-import ac.mdiq.podcini.utils.error.CrashReportWriter
+import ac.mdiq.podcini.utils.CrashReportWriter
 import ac.mdiq.podcini.utils.startTiming
 import android.app.Application
 import android.content.Context

@@ -150,7 +150,7 @@ suspend fun deleteVolumeTree(volume: Volume) {
     Logd(TAG, "deleteVolumeTree volume: ${volume.name}")
     val feeds_ = realm.query(Feed::class).query("volumeId == ${volume.id}").find()
     for (f in feeds_) {
-        val worthyEps = f.getWorthyEpisodes()
+        val worthyEps = f.worthyEpisodes
         deleteFeed(f.id, worthyEps.isNotEmpty())
     }
 

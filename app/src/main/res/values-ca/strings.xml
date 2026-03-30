@@ -156,7 +156,7 @@
   <string name="download_error_no_connection">Sense connexió de xarxa</string>
   <string name="download_error_unknown_host">No es pot trobar el servidor. Comproveu si l\'adreça s\'ha escrit correctament i si teniu una connexió de xarxa activa.</string>
   <string name="download_error_unauthorized">Error d\'autenticació. Comprova que l\'usuari i la contrassenya són correctes</string>
-  <string name="download_error_file_type_type">Tipus d\'arxiu erroni</string>
+  <string name="download_error_file_type">Tipus d\'arxiu erroni</string>
   <string name="download_error_forbidden">El servidor de l\'amfitrió del podcast no respon.</string>
   <string name="download_canceled_msg">S\'ha cancel·lat la baixada</string>
   <string name="download_error_wrong_size">La connexió del servidor s\'ha perdut abans de completar la descàrrega</string>

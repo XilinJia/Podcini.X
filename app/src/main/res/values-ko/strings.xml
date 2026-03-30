@@ -213,7 +213,7 @@
     <string name="download_error_no_connection">No network connection</string>
     <string name="download_error_unknown_host">서버를 찾을 수 없습니다. 주소를 올바르게 입력했는지 및 네트워크 연결이 동작하는지 확인하십시오.</string>
     <string name="download_error_unauthorized">인증 오류. 사용자 이름과 비밀번호가 올바른지 확인하십시오.</string>
-    <string name="download_error_file_type_type">파일 종류 오류</string>
+    <string name="download_error_file_type">파일 종류 오류</string>
     <string name="download_error_forbidden">팟캐스트 호스트 서버에서 응답을 거부했습니다.</string>
     <string name="download_canceled_msg">다운로드 취소함</string>
     <string name="download_error_wrong_size">다운로드를 마치기 전에 서버 연결이 끊겼습니다</string>

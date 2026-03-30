@@ -215,7 +215,7 @@
     <string name="download_error_no_connection">Nu există o conexiune la rețea</string>
     <string name="download_error_unknown_host">Nu se poate găsi serverul. Vă rugăm verificați dacă adresa introdusă este corectă și dacă aveți o conexiune funcțională la internet.</string>
     <string name="download_error_unauthorized">Eroare de autentificare. Trebuie să vă asigurați că numele de utilizator și parola sunt corecte.</string>
-    <string name="download_error_file_type_type">Eroare fișier</string>
+    <string name="download_error_file_type">Eroare fișier</string>
     <string name="download_error_forbidden">Serverul podcastului refuză să răspundă.</string>
     <string name="download_canceled_msg">Descărcare anulată</string>
     <string name="download_error_wrong_size">Conexiunea cu serverul a fost pierdută înainte să se termine descărcarea.</string>

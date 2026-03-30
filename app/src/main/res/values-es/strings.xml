@@ -216,7 +216,7 @@
     <string name="download_error_no_connection">Sin conexión</string>
     <string name="download_error_unknown_host">Servidor no encontrado. Verifique su conexión de red y que la dirección este escrita correctamente. </string>
     <string name="download_error_unauthorized">Error de autenticación. Comprueba el usuario y la contarseña.</string>
-    <string name="download_error_file_type_type">Tipo de archivo erróneo</string>
+    <string name="download_error_file_type">Tipo de archivo erróneo</string>
     <string name="download_error_forbidden">El servidor del host del podcast se niega a responder.</string>
     <string name="download_canceled_msg">Descarga cancelada</string>
     <string name="download_error_wrong_size">Descarga incompleta por perdida de conexión con el servidor.</string>
