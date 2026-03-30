@@ -282,6 +282,9 @@
     <string name="download_error_insufficient_space">لا توجد مساحة كافية على جهازك.</string>
     <string name="download_error_http_data_error">خطأ في بيانات HTTP</string>
     <string name="download_error_error_unknown">خطأ غير معروف</string>
+    <string name="download_error_malformed_url">Malformed url</string>
+    <string name="download_error_file_exist">File exists</string>
+    <string name="download_error_misc">Misc error</string>
     <string name="download_error_parser_exception">قام خادم مضيف podcast بإرسال تغذية podcast معطلة.</string>
     <string name="download_error_unsupported_type">نوع الخلاصة غير معتمد</string>
     <string name="download_error_unsupported_type_html">قام خادم مضيف podcast بإرسال موقع على شبكة الإنترنت، وليس بث podcast.</string>
@@ -290,7 +293,7 @@
     <string name="download_error_no_connection">لا يوجد اتصال بالشبكة</string>
     <string name="download_error_unknown_host">لا يمكن العثور على الخادم. تحقق مما إذا كان العنوان مكتوب بشكل صحيح وما إذا كان لديك اتصال بشبكة عمل.</string>
     <string name="download_error_unauthorized">خطأ المصادقة. تأكد من صحة اسم المستخدم وكلمة المرور.</string>
-    <string name="download_error_file_type_type">خطأ في نوع الملف</string>
+    <string name="download_error_file_type">File type error</string>
     <string name="download_error_forbidden">سيرفر مضيف podcast يرفض الاستجابة.</string>
     <string name="download_canceled_msg">تم إلغاء التحميل</string>
     <string name="download_error_wrong_size">تم فقدان اتصال الخادم قبل إكمال التحميل</string>
