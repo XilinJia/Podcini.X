@@ -2,7 +2,6 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.queuesLive
@@ -20,6 +19,7 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.volumes
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.FeedAutoDownloadFilter
+import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.playActions
@@ -91,13 +91,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
@@ -127,7 +125,7 @@ var feedsToSet: List<Feed> = listOf()
 @Composable
 fun FeedsSettingsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val context by rememberUpdatedState(LocalContext.current)
+//    val context by rememberUpdatedState(LocalContext.current)
     val drawerController = LocalDrawerController.current
 
     var feedFlow by remember { mutableStateOf<Flow<SingleQueryChange<Feed>>>(emptyFlow()) }
@@ -137,8 +135,6 @@ fun FeedsSettingsScreen() {
 
     var audioQuality by remember { mutableStateOf(feedToSet.audioQualitySetting.tag) }
     var videoQuality by remember { mutableStateOf(feedToSet.videoQualitySetting.tag) }
-
-    var autoUpdate by remember { mutableStateOf(feedToSet.keepUpdated) }
 
     var autoDeleteSummaryResId by remember { mutableIntStateOf(R.string.global_default) }
     var curPrefQueue by remember { mutableStateOf(feedToSet.queueTextExt) }
@@ -636,7 +632,6 @@ fun FeedsSettingsScreen() {
                         @Composable
                         fun AuthenticationDialog(onDismiss: () -> Unit) {
                             CommonPopupCard(onDismissRequest = onDismiss) {
-                                val context = LocalContext.current
                                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     val oldName = feedToSet.username?:""
                                     var newName by remember { mutableStateOf(oldName) }
@@ -881,9 +876,15 @@ fun FeedsSettingsScreen() {
             }
             if ((feedToSet.inNormalVolume && feedToSet.id > MAX_SYNTHETIC_ID) || feedsToSet.size > 1) {
                 //                    refresh
+                var autoUpdate by remember { mutableStateOf(feedToSet.keepUpdated) }
                 TitleSummarySwitch(R.string.keep_updated, R.string.keep_updated_summary, R.drawable.ic_refresh, autoUpdate) {
                     autoUpdate = it
                     runOnIOScope { realm.write { for (f in feedsToSet) { if (f.id > MAX_SYNTHETIC_ID) findLatest(f)?.keepUpdated = autoUpdate } } }
+                }
+                var acceptTiny by remember { mutableStateOf(feedToSet.acceptTinyEpisodes) }
+                TitleSummarySwitch(R.string.accept_tiny_episodes, R.string.accept_tiny_episodes_sum, R.drawable.ic_refresh, acceptTiny) {
+                    acceptTiny = it
+                    runOnIOScope { realm.write { for (f in feedsToSet) { if (f.id > MAX_SYNTHETIC_ID) findLatest(f)?.acceptTinyEpisodes = acceptTiny } } }
                 }
             }
             if (curPrefQueue != "None" || feedsToSet.size > 1) {

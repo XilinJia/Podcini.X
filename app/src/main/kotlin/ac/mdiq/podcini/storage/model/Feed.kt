@@ -201,6 +201,8 @@ class Feed : RealmObject {
 
     var keepUpdated: Boolean = true
 
+    var acceptTinyEpisodes: Boolean = false
+
     var username: String? = null
     var password: String? = null
 

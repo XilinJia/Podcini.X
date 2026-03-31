@@ -20,6 +20,7 @@ import io.ktor.http.URLBuilder
 import io.ktor.http.URLProtocol
 import io.ktor.http.Url
 import io.ktor.http.isSuccess
+import io.ktor.http.toURI
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -28,11 +29,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.net.Inet4Address
-import java.net.MalformedURLException
 import java.net.NetworkInterface
 import java.net.URI
-import java.net.URISyntaxException
-import java.net.URL
 import java.util.regex.Pattern
 
 @SuppressLint("StaticFieldLeak")
@@ -110,7 +108,7 @@ object NetworkUtils {
     }
 
     suspend fun fetchHtmlSource(urlString: String): String = withContext(Dispatchers.IO) {
-        val url = try { URL(urlString) } catch (e: MalformedURLException) {
+        val url = try { Url(urlString) } catch (e: Exception) {
             Loge(TAG, "fetchHtmlSource urlString invalid: $urlString")
             return@withContext ""
         }
@@ -119,14 +117,9 @@ object NetworkUtils {
 
     fun getURIFromRequestUrl(source: String): URI {
         // try without encoding the URI
-        try { return URI(source) } catch (e: URISyntaxException) { Logs(TAG, e, "Source is not encoded, encoding now") }
-        try {
-            val url = URL(source)
-            return URI(url.protocol, url.userInfo, url.host, url.port, url.path, url.query, url.ref)
-        } catch (e: MalformedURLException) {
-            Logs(TAG, e, "source: $source")
-            throw IllegalArgumentException(e)
-        } catch (e: URISyntaxException) {
+        try { return URI(source) } catch (e: Exception) { Logs(TAG, e, "Source is not encoded, encoding now") }
+        try { return Url(source).toURI()
+        } catch (e: Exception) {
             Logs(TAG, e, "source: $source")
             throw IllegalArgumentException(e)
         }

@@ -27,7 +27,6 @@ import okhttp3.RequestBody
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-import java.net.MalformedURLException
 import kotlin.math.min
 
 class NextcloudSyncService(private val httpClient: HttpClient, baseHosturl: String?, private val username: String, private val password: String) : ISyncService {
@@ -44,7 +43,6 @@ class NextcloudSyncService(private val httpClient: HttpClient, baseHosturl: Stri
             val json = JSONObject(runBlocking { performRequest(url, "GET", null) })
             return readSubscriptionChangesFromJsonObject(json)
         } catch (e: JSONException) { throw SyncServiceException(e)
-        } catch (e: MalformedURLException) { throw SyncServiceException(e)
         } catch (e: Exception) { throw SyncServiceException(e) }
     }
 
@@ -71,7 +69,6 @@ class NextcloudSyncService(private val httpClient: HttpClient, baseHosturl: Stri
             val json = JSONObject(runBlocking { performRequest(uri, "GET", null) })
             return readEpisodeActionsFromJsonObject(json)
         } catch (e: JSONException) { throw SyncServiceException(e)
-        } catch (e: MalformedURLException) { throw SyncServiceException(e)
         } catch (e: Exception) { throw SyncServiceException(e) }
     }
 

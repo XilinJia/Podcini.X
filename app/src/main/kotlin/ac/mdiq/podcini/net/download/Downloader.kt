@@ -1,6 +1,8 @@
 package ac.mdiq.podcini.net.download
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.net.download.PodciniHttpClient.DownloadRequestKey
+import ac.mdiq.podcini.net.download.PodciniHttpClient.getKtorClient
 import ac.mdiq.podcini.net.utils.NetworkUtils.getURIFromRequestUrl
 import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkUrl
 import ac.mdiq.podcini.net.utils.NetworkUtils.wasDownloadBlocked
@@ -28,7 +30,6 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentLength
 import io.ktor.http.isSuccess
-import io.ktor.util.AttributeKey
 import io.ktor.util.network.UnresolvedAddressException
 import io.ktor.utils.io.asSource
 import io.ktor.utils.io.readAvailable
@@ -154,7 +155,7 @@ abstract class Downloader(val request: DownloadRequest) {
 class FeedDownloader(request: DownloadRequest): Downloader(request) {
     override suspend fun download(cb: suspend (Source)->Unit) {
         Logd(TAG, "starting downloadFeed() source: ${request.source} dest: ${request.destination}")
-        if (request.source == null || request.destination == null) return
+        if (request.source == null) return
 
         val destFile = request.destination.toUF()
         val fileExists = destFile.exists()
@@ -163,9 +164,8 @@ class FeedDownloader(request: DownloadRequest): Downloader(request) {
         var startPosition = 0L
         try {
             val uri = getURIFromRequestUrl(request.source)
-            val DownloadRequestKey = AttributeKey<DownloadRequest>("DownloadRequest")
-
-            PodciniHttpClient.getKtorClient().prepareGet(uri.toString()){
+//            val DownloadRequestKey = AttributeKey<DownloadRequest>("DownloadRequest")
+            getKtorClient().prepareGet(uri.toString()){
                 attributes.put(DownloadRequestKey, request)
                 header(HttpHeaders.CacheControl, "no-store")
                 if (uri.scheme == "http") header("Upgrade-Insecure-Requests", "1")
@@ -291,7 +291,7 @@ class EpisodeDownloader(request: DownloadRequest): Downloader(request) {
     override suspend fun download() {
         withContext(downloadDispatcher) {
             Logd(TAG, "starting downloadEpisode(): destination: ${request.destination}")
-            if (request.source == null || request.destination == null) return@withContext
+            if (request.source == null) return@withContext
             startTiming()
             downloadStates[request.source] = DownloadStatus(DownloadStatus.State.QUEUED.ordinal, 5)
             timeIt("$TAG start")
@@ -338,8 +338,8 @@ class EpisodeDownloader(request: DownloadRequest): Downloader(request) {
                     return contentType != null && contentType.startsWith("text/") && contentLength < 100 * 1024
                 }
 
-                val DownloadRequestKey = AttributeKey<DownloadRequest>("DownloadRequest")
-                PodciniHttpClient.getKtorClient().prepareGet(uri.toString()) {
+//                val DownloadRequestKey = AttributeKey<DownloadRequest>("DownloadRequest")
+                getKtorClient().prepareGet(uri.toString()) {
                     onDownload { bytesSentTotal, contentLength ->
                         if ((contentLength?:0) > 0) {
                             val progress = (100 * bytesSentTotal / contentLength!!).toInt()

@@ -1,11 +1,13 @@
 package ac.mdiq.podcini.playback.base
 
 import ac.mdiq.podcini.config.ClientConfig
-import ac.mdiq.podcini.net.download.PodciniHttpClient.BasicAuthorizationInterceptor
+import ac.mdiq.podcini.net.download.DownloadRequest
 import ac.mdiq.podcini.net.download.PodciniHttpClient.CONNECTION_TIMEOUT
 import ac.mdiq.podcini.net.download.PodciniHttpClient.READ_TIMEOUT
-import ac.mdiq.podcini.net.download.PodciniHttpClient.installCertificates
 import ac.mdiq.podcini.net.download.PodciniHttpClient.proxyConfig
+import ac.mdiq.podcini.net.utils.NetworkUtils.getURIFromRequestUrl
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.ProxyConfig
 import ac.mdiq.podcini.utils.Logd
 import android.net.TrafficStats
@@ -17,11 +19,15 @@ import okhttp3.Interceptor.Chain
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.OkHttpClient.Builder
+import okhttp3.Request
 import okhttp3.Response
 import okhttp3.Route
+import okio.ByteString
 import java.io.File
+import java.io.UnsupportedEncodingException
 import java.net.CookieManager
 import java.net.CookiePolicy
+import java.net.HttpURLConnection
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.SocketAddress
@@ -100,9 +106,91 @@ object OKHTTP {
                 }
             }
         }
-
-        installCertificates(builder)
         return builder
     }
 
+    fun encodeCredentials(username: String, password: String, charset: String?): String {
+        try {
+            val credentials = "$username:$password"
+            val bytes = credentials.toByteArray(charset(charset!!))
+            val encoded: String = ByteString.of(*bytes).base64()
+            return "Basic $encoded"
+        } catch (e: UnsupportedEncodingException) { throw AssertionError(e) }
+    }
+
+    class BasicAuthorizationInterceptor : Interceptor {
+        @Throws(IOException::class)
+        override fun intercept(chain: Chain): Response {
+            TrafficStats.setThreadStatsTag(Thread.currentThread().id.toInt())
+
+            val request: Request = chain.request()
+            var response: Response = chain.proceed(request)
+
+            if (response.code != HttpURLConnection.HTTP_UNAUTHORIZED) return response
+
+            val newRequest: Request.Builder = request.newBuilder()
+            if (response.request.url.toString() != request.url.toString()) {
+                // Redirect detected. OkHTTP does not re-add the headers on redirect, so calling the new location directly.
+                newRequest.url(response.request.url)
+
+                val authorizationHeaders = request.headers.values(HEADER_AUTHORIZATION)
+                if (authorizationHeaders.isNotEmpty() && authorizationHeaders[0].isNotEmpty()) {
+                    // Call already had authorization headers. Try again with the same credentials.
+                    newRequest.header(HEADER_AUTHORIZATION, authorizationHeaders[0])
+                    return chain.proceed(newRequest.build())
+                }
+            }
+
+            var userInfo = ""
+            if (request.tag() is DownloadRequest) {
+                val downloadRequest = request.tag() as? DownloadRequest
+                if (downloadRequest?.source != null) {
+                    userInfo = getURIFromRequestUrl(downloadRequest.source).userInfo
+                    if (userInfo.isEmpty() && (!downloadRequest.username.isNullOrEmpty() || !downloadRequest.password.isNullOrEmpty()))
+                        userInfo = downloadRequest.username + ":" + downloadRequest.password
+                }
+            } else userInfo = getImageAuthentication(request.url.toString())
+
+            if (userInfo.isEmpty()) {
+                Logd(TAG, "no credentials for '" + request.url + "'")
+                return response
+            }
+
+            if (!userInfo.contains(":")) {
+                Logd(TAG, "Invalid credentials for '" + request.url + "'")
+                return response
+            }
+            val username = userInfo.substringBefore(':')
+            val password = userInfo.substring(userInfo.indexOf(':') + 1)
+
+            Logd(TAG, "Authorization failed, re-trying with ISO-8859-1 encoded credentials")
+            newRequest.header(HEADER_AUTHORIZATION, encodeCredentials(username, password, "ISO-8859-1"))
+            response = chain.proceed(newRequest.build())
+
+            if (response.code != HttpURLConnection.HTTP_UNAUTHORIZED) return response
+
+            Logd(TAG, "Authorization failed, re-trying with UTF-8 encoded credentials")
+            newRequest.header(HEADER_AUTHORIZATION, encodeCredentials(username, password, "UTF-8"))
+            return chain.proceed(newRequest.build())
+        }
+
+        /**
+         * Returns credentials based on image URL
+         * @param imageUrl The URL of the image
+         * @return Credentials in format "Username:Password", empty String if no authorization given
+         */
+        private fun getImageAuthentication(imageUrl: String): String {
+            Logd(TAG, "getImageAuthentication() called with: imageUrl = [$imageUrl]")
+            val episode = realm.query(Episode::class).query("imageUrl == $0", imageUrl).first().find() ?: return ""
+            val username = episode.feed?.username
+            val password = episode.feed?.password
+            if (username != null && password != null) return "$username:$password"
+            return ""
+        }
+
+        companion object {
+            private val TAG: String = BasicAuthorizationInterceptor::class.simpleName ?: "Anonymous"
+            private const val HEADER_AUTHORIZATION = "Authorization"
+        }
+    }
 }

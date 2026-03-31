@@ -45,14 +45,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.Calendar
-import java.util.GregorianCalendar
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 abstract class MediaPlayerBase {
     private var oldStatus: PlayerStatus? = null
@@ -421,9 +422,9 @@ abstract class MediaPlayerBase {
                 val fromSetting = autoEnableFrom
                 val toSetting = autoEnableTo
                 if (fromSetting != toSetting) {
-                    val now: Calendar = GregorianCalendar()
-                    now.timeInMillis = nowInMillis()
-                    val currentHour = now[Calendar.HOUR_OF_DAY]
+                    val instant = Instant.fromEpochMilliseconds(nowInMillis())
+                    val now = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+                    val currentHour = now.hour
                     autoEnableByTime = isInTimeRange(fromSetting, toSetting, currentHour)
                 }
                 if (oldStatus != null && sleepPrefs.AutoEnable && autoEnableByTime && sleepManager?.isSleepTimerActive != true) {

@@ -1,10 +1,16 @@
+# 10.14.3
+
+* added authentication in ktor client
+* adopt modern security handling and removed old security codes
+* added acceptTinyEpisodes setting in FeedsSettings, enabling accepting episodes shorter than 1 second
+* some minor migration away from Java
+
 # 10.14.2
 
 * amended updateFeedSimple to include new episodes with pubDates older than last feed update time, likely fixed missing episodes issue
 * added some messages in feed refresh
 * corrected preferred languages setting in FeedSettings
 * upped Kotlin to 2.3.20, krdb to 3.3.3, and other dependencies
-* media3 and other dependencies updated
 * some code refactoring
 
 # 10.14.1

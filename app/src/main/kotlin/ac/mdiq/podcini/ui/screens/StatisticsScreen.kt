@@ -10,12 +10,14 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.utils.durationStringShort
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.format
 import android.text.format.Formatter
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -94,6 +96,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
@@ -108,16 +111,10 @@ import kotlinx.datetime.daysUntil
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
-import java.time.YearMonth
-import java.time.ZoneOffset
-import java.util.Calendar
 import kotlin.math.max
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.jvmErasure
-import ac.mdiq.podcini.storage.utils.nowInMillis
-import ac.mdiq.podcini.utils.format
-import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -450,9 +447,9 @@ fun StatisticsScreen() {
         fun loadMongthStats() {
             val medias = realm.query(Episode::class).query(getStatsQueryText(vm.timeFilterFrom, vm.timeFilterTo)).find()
             val groupdMedias = medias.groupBy {
-                val calendar = Calendar.getInstance()
-                calendar.timeInMillis = if (it.lastPlayedTime > 0L) it.lastPlayedTime else it.playStateSetTime
-                "${calendar.get(Calendar.YEAR)}-${calendar.get(Calendar.MONTH) + 1}"
+                val millis = if (it.lastPlayedTime > 0L) it.lastPlayedTime else it.playStateSetTime
+                val dateTime = Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault())
+                "${dateTime.year}-${dateTime.month}"
             }
             val orderedGroupedItems = groupdMedias.toList().sortedBy {
                 val (key, _) = it
@@ -518,9 +515,13 @@ fun StatisticsScreen() {
         fun onMonthClicked(index: Int) {
             val year = vm.monthStats[index].year
             val month = vm.monthStats[index].month
-            val yearMonth = YearMonth.of(year, month)
-            val start = yearMonth.atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
-            val end = yearMonth.atEndOfMonth().atTime(23, 59, 59).toInstant(ZoneOffset.UTC).toEpochMilli()
+            val startOfMonth = LocalDate(year, month, 1)
+            val start = startOfMonth.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+            val nextMonth = if (month == 12) LocalDate(year + 1, 1, 1) else LocalDate(year, month + 1, 1)
+            val endOfNextMonth = nextMonth.atStartOfDayIn(TimeZone.UTC)
+
+            // Subtract 1 second (or 1 millisecond) to get the end of the current month
+            val end = endOfNextMonth.toEpochMilliseconds() - 1000 // Or -1 for exact millisecond
             val data = getStatistics(start, end)
             episodes.clear()
             episodes.addAll(data.episodes)

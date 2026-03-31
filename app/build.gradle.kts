@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 277
-        versionName = "10.14.2"
+        versionCode = 278
+        versionName = "10.14.3"
 
         ndkVersion = "29.0.14206865"
 
@@ -206,14 +206,15 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-compose:3.4.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.4.0")
 
-    implementation("io.ktor:ktor-http:3.4.2")
 
     implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
 
+    implementation("io.ktor:ktor-http:3.4.2")
     implementation("io.ktor:ktor-client-core:3.4.2")
     implementation("io.ktor:ktor-client-okhttp:3.4.2")
     implementation("io.ktor:ktor-client-cio:3.4.2")
+    implementation("io.ktor:ktor-utils:3.4.2")
 
     implementation("com.fleeksoft.ksoup:ksoup:0.2.6")
     implementation("com.fleeksoft.ksoup:ksoup-network:0.2.6")

@@ -236,9 +236,8 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             }
 
             var downloadStatus: DownloadResult
-            if (isSuccessful) {
-                downloadStatus = DownloadResult(feedToParse, DownloadError.SUCCESS, true, "")
-            } else {
+            if (isSuccessful) downloadStatus = DownloadResult(feedToParse, DownloadError.SUCCESS, true, "")
+            else {
                 onFail(feedToParse, reasonDetailed ?: "", reason ?: DownloadError.ERROR_NOT_FOUND)
                 Logt(TAG, "refreshFeed: feed update failed: unsuccessful: ${feed.title}")
                 return@download

@@ -265,7 +265,6 @@ fun addRemoteToMiscSyndicate(episode: Episode) {
         val feedId: Long = 11
         var feed = getFeed(feedId, true)
         if (feed != null) return feed
-
         feed = createSynthetic(feedId, "Misc Syndicate")
         feed.type = Feed.FeedType.RSS.name
         upsertBlk(feed) {}
@@ -446,7 +445,6 @@ suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, 
     if (removeUnlistedItems) {
         Logd(TAG, "updateFeedFull building newFeedAssistant")
         val newFeedAssistant = FeedAssistant(newFeed, savedFeed.id, isNew = true)
-
         val iterator = getEpisodes(null, null, feedId=savedFeed.id, copy = false).toMutableList().iterator()
         while (iterator.hasNext()) {
             val feedItem = iterator.next()
@@ -515,8 +513,9 @@ suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = nu
     // Look for new or updated Items
     for (idx in newFeed.episodes.indices) {
         var episode = newFeed.episodes[idx]
-        if (episode.duration < 1000) {
-            Logt(TAG, "new episode duration less than 1 second, ignored: ${episode.title}")
+        if (episode.duration < 1000 && !savedFeed.acceptTinyEpisodes) {
+            Logt(TAG, "new episode duration less than 1 second, ignored: ${episode.title} in Feed: ${newFeed.title}")
+            downloadStatus?.addDetail("new episode duration less than 1 second, ignored: ${episode.title}")
             continue
         }
         val pubDate = episode.pubDate

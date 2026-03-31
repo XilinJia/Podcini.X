@@ -966,7 +966,6 @@ class FeedHandler {
 
         /**
          * Takes a string of the form [HH:]MM:SS[.mmm] and converts it to milliseconds.
-         * @throws java.lang.NumberFormatException if the number segments contain invalid numbers.
          */
         fun parseTimeString(time: String): Long {
             val parts = time.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()

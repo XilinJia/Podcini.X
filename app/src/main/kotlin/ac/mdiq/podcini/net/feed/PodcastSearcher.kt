@@ -26,7 +26,6 @@ import kotlinx.io.IOException
 import org.json.JSONException
 import org.json.JSONObject
 import java.security.MessageDigest
-import java.util.Locale
 import java.util.regex.Pattern
 
 private const val TAG = "PodcastSearcher"

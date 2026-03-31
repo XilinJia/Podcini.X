@@ -19,6 +19,7 @@ import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.utils.EventFlow
@@ -49,9 +50,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.Calendar
 import java.util.concurrent.TimeUnit
-import ac.mdiq.podcini.storage.utils.nowInMillis
 import kotlin.time.Duration.Companion.minutes
 
 class FeedUpdateWorkerBase(context: Context, private val params: WorkerParameters) : CoroutineWorker(context, params) {
@@ -160,8 +159,8 @@ object FeedUpdateManager {
         val lastUpdateTime = appAttribs.prefLastFullUpdateTime
         Logd(TAG, "lastUpdateTime: $lastUpdateTime updateInterval: $intervalInMillis")
         nextRefreshTime = if (lastUpdateTime == 0L) {
-            if (initialDelay != 0L) fullDateTimeString(Calendar.getInstance().timeInMillis + initialDelay + intervalInMillis)
-            else getAppContext().getString(R.string.before) + fullDateTimeString(Calendar.getInstance().timeInMillis + intervalInMillis)
+            if (initialDelay != 0L) fullDateTimeString(nowInMillis() + initialDelay + intervalInMillis)
+            else getAppContext().getString(R.string.before) + fullDateTimeString(nowInMillis() + intervalInMillis)
         } else fullDateTimeString(lastUpdateTime + intervalInMillis)
 
         return initialDelay

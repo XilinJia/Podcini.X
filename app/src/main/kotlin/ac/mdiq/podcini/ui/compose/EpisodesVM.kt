@@ -114,7 +114,6 @@ import coil3.request.ImageRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.net.MalformedURLException
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -727,10 +726,8 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                 CoroutineScope(Dispatchers.IO).launch {
                                     ytUrls.clear()
                                     for (e in selected) {
-                                        try {
-                                            if (gearbox.isGearUrl(e.downloadUrl ?: "")) ytUrls.add(e.downloadUrl!!)
-                                            else addRemoteToMiscSyndicate(e)
-                                        } catch (ex: MalformedURLException) { Loge(TAG, "episode downloadUrl not valid: ${e.title} : ${e.downloadUrl}") }
+                                        if (gearbox.isGearUrl(e.downloadUrl ?: "")) ytUrls.add(e.downloadUrl!!)
+                                        else addRemoteToMiscSyndicate(e)
                                     }
                                 }
                             }, verticalAlignment = Alignment.CenterVertically) {

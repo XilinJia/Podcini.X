@@ -3,6 +3,7 @@ package ac.mdiq.podcini.net.feed
 import ac.mdiq.podcini.net.download.DownloadRequest.Companion.requestFor
 import ac.mdiq.podcini.net.download.Downloader
 import ac.mdiq.podcini.net.download.Downloader.Companion.downloaderFor
+import ac.mdiq.podcini.net.download.PodciniHttpClient.getKtorClient
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
 import ac.mdiq.podcini.storage.database.addNewFeed
 import ac.mdiq.podcini.storage.database.feedByIdentityOrID
@@ -14,15 +15,14 @@ import ac.mdiq.podcini.utils.Logt
 import com.fleeksoft.ksoup.Ksoup
 import com.fleeksoft.ksoup.network.parseGetRequest
 import io.github.xilinjia.krdb.ext.toRealmList
+import io.ktor.client.request.head
+import io.ktor.client.statement.HttpResponse
+import io.ktor.http.contentType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.io.IOException
-import java.net.HttpURLConnection
-import java.net.MalformedURLException
-import java.net.URL
 import kotlin.math.min
 
 open class FeedBuilderBase(val showError: (String?, String)->Unit) {
@@ -75,23 +75,39 @@ open class FeedBuilderBase(val showError: (String?, String)->Unit) {
         }
     }
 
-    private fun htmlOrXml(url: String): String? {
-        val connection = try { URL(url).openConnection() as HttpURLConnection } catch (e: MalformedURLException) {
-            Loge(TAG, "htmlOrXml url not valid: $url")
-            showError(e.message, "")
-            return null
-        }
-        var type: String? = null
-        try { type = connection.contentType } catch (e: IOException) {
+//    private fun htmlOrXml(url: String): String? {
+//        val connection = try { URL(url).openConnection() as HttpURLConnection } catch (e: MalformedURLException) {
+//            Loge(TAG, "htmlOrXml url not valid: $url")
+//            showError(e.message, "")
+//            return null
+//        }
+//        var type: String? = null
+//        try { type = connection.contentType } catch (e: IOException) {
+//            Loge(TAG, "Error connecting to URL. ${e.message}")
+//            showError(e.message, "")
+//        } finally { connection.disconnect() }
+//        if (type == null) return null
+//        Logd(TAG, "htmlOrXml connection type: $type")
+//        return when {
+//            type.contains("html", ignoreCase = true) -> "HTML"
+//            type.contains("xml", ignoreCase = true) -> "XML"
+//            else -> type
+//        }
+//    }
+
+    private suspend fun htmlOrXml(url: String): String? {
+        return try {
+            val response: HttpResponse = getKtorClient().head(url)
+            val type = response.contentType()?.toString() ?: return null
+            Logd(TAG, "htmlOrXml connection type: $type")
+            when {
+                type.contains("html", ignoreCase = true) -> "HTML"
+                type.contains("xml", ignoreCase = true) -> "XML"
+                else -> type
+            }
+        } catch (e: Exception) {
             Loge(TAG, "Error connecting to URL. ${e.message}")
-            showError(e.message, "")
-        } finally { connection.disconnect() }
-        if (type == null) return null
-        Logd(TAG, "htmlOrXml connection type: $type")
-        return when {
-            type.contains("html", ignoreCase = true) -> "HTML"
-            type.contains("xml", ignoreCase = true) -> "XML"
-            else -> type
+            null
         }
     }
 

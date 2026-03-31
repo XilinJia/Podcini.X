@@ -2,7 +2,6 @@ package ac.mdiq.podcini.playback.base
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.net.download.PodciniHttpClient.encodeCredentials
 import ac.mdiq.podcini.playback.SegmentSavingDataSourceFactory
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
@@ -10,6 +9,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.playback.base.InTheatre.setAsCurEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.tempSkipSilence
+import ac.mdiq.podcini.playback.base.OKHTTP.encodeCredentials
 import ac.mdiq.podcini.playback.base.OKHTTP.getOKHttpClient
 import ac.mdiq.podcini.receiver.PodciniWidget
 import ac.mdiq.podcini.storage.database.fastForwardSecs
