@@ -751,6 +751,8 @@
     <string name="use_episode_image_summary">When both this and use episode cover in global setting are set, episode image is shown on episodes lists.</string>
     <string name="keep_updated">Keep updated</string>
     <string name="keep_updated_summary">Include this podcast when (auto-)refreshing all podcasts</string>
+    <string name="accept_tiny_episodes">Accept tiny episodes</string>
+    <string name="accept_tiny_episodes_sum">Some episodes can have duration less than 1 second. These are normally rejected during feed updates. Turning on this will accept them.</string>
     <string name="audo_add_new_queue">Auto add new to queue</string>
     <string name="audo_add_new_queue_summary">Automatically add new episodes in this podcast to the designated queue when (auto-)refreshing</string>
     <string name="auto_download_disabled_sum">Auto download here can be enabled when auto-download is enabled in the global settings and streaming is not preferred in the feed.</string>
