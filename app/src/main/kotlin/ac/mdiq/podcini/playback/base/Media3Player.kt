@@ -12,6 +12,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.tempSkipSilence
 import ac.mdiq.podcini.playback.base.OKHTTP.encodeCredentials
 import ac.mdiq.podcini.playback.base.OKHTTP.getOKHttpClient
 import ac.mdiq.podcini.receiver.PodciniWidget
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.fastForwardSecs
 import ac.mdiq.podcini.storage.database.getNextInQueue
 import ac.mdiq.podcini.storage.database.isSkipSilence
@@ -29,13 +30,15 @@ import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logpe
-import ac.mdiq.podcini.utils.Logpt
 import ac.mdiq.podcini.utils.Logps
+import ac.mdiq.podcini.utils.Logpt
 import ac.mdiq.podcini.utils.timeIt
 import android.app.UiModeManager
 import android.content.Context
 import android.content.res.Configuration
+import android.media.RingtoneManager
 import android.media.audiofx.LoudnessEnhancer
+import androidx.core.net.toUri
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
@@ -540,7 +543,6 @@ class Media3Player : MediaPlayerBase() {
     private fun setSource() {
         Logd(TAG, "setSource() called")
         if (mediaSource == null && mediaItem == null) return
-
         if (needChangeOffload) {
             val enabled = speedEnablesOffload && silenceEnablesOffload
             if (enabled != offloadEnabled) {
@@ -550,7 +552,19 @@ class Media3Player : MediaPlayerBase() {
             }
             needChangeOffload = false
         }
-
+//        val ringtoneUri = if (appPrefs.useRingTone && !appPrefs.ringToneUriString.isNullOrBlank()) appPrefs.ringToneUriString!!.toUri() else null
+//        Logd(TAG, "ringtoneUri: $ringtoneUri")
+//        if (mediaSource != null) {
+//            val ringtoneSource = if (ringtoneUri != null) ProgressiveMediaSource.Factory(DefaultDataSource.Factory(context)).createMediaSource(MediaItem.fromUri(ringtoneUri)) else null
+//            Logd(TAG, "ringtoneSource: ${ringtoneSource != null}")
+//            val playlist = if (ringtoneSource != null) listOf(mediaSource!!, ringtoneSource!!) else listOf(mediaSource!!)
+//            exoPlayer?.setMediaSources(playlist, false)
+//        } else {
+//            val ringtoneItem = if (ringtoneUri != null) MediaItem.fromUri(ringtoneUri) else null
+//            Logd(TAG, "ringtoneItem: ${ringtoneItem != null}")
+//            val playlist = if (ringtoneItem != null) listOf(mediaItem!!, ringtoneItem!!) else listOf(mediaItem!!)
+//            exoPlayer?.setMediaItems(playlist)
+//        }
         if (mediaSource != null) exoPlayer?.setMediaSource(mediaSource!!, false)
         else exoPlayer?.setMediaItem(mediaItem!!)
         exoPlayer?.prepare()
@@ -560,7 +574,6 @@ class Media3Player : MediaPlayerBase() {
         Logd(TAG, "play(): status: $status exoPlayer?.playbackState: ${exoPlayer?.playbackState}")
         if (isPaused || isPrepared) {
             Logd(TAG, "Resuming/Starting playback")
-//            acquireWifiLockIfNecessary()
             setPlaybackParams(prefSpeedOf(curEpisode))
             setRepeat(shouldRepeat)
             setSkipSilence()
@@ -579,7 +592,6 @@ class Media3Player : MediaPlayerBase() {
     }
 
     override fun pause(reinit: Boolean) {
-//        releaseWifiLockIfNecessary()
         if (isPlaying || isError) {
             Logd(TAG, "Pausing playback $reinit")
             exoPlayer?.pause()
@@ -615,7 +627,6 @@ class Media3Player : MediaPlayerBase() {
 
     override fun reinit() {
         Logd(TAG, "reinit() called")
-//        releaseWifiLockIfNecessary()
         when {
             curEpisode != null -> prepareMedia(playable = curEpisode!!, streaming = isStreaming, startWhenPrepared = startWhenPrepared.get(), prepareImmediately = false, forceReset = true, doPostPlayback = true)
             else -> Logd(TAG, "Call to reinit: media and mediaPlayer were null, ignored")
@@ -728,20 +739,7 @@ class Media3Player : MediaPlayerBase() {
         } catch (e: Exception) { Logps(TAG, e) }
         release()
         status = PlayerStatus.STOPPED
-//        releaseWifiLockIfNecessary()
     }
-
-//    override fun setVideoSurface(surface: SurfaceHolder?) {
-//        exoPlayer?.setVideoSurfaceHolder(surface)
-//    }
-
-//    override fun resetVideoSurface() {
-//        if (mediaType == MediaType.VIDEO) {
-//            Logd(TAG, "Resetting video surface")
-//            exoPlayer?.setVideoSurfaceHolder(null)
-//            reinit()
-//        } else Logpt(TAG, "Resetting video surface for media of Audio type")
-//    }
 
     /**
      * Return width and height of the currently playing video as a pair.
@@ -811,7 +809,6 @@ class Media3Player : MediaPlayerBase() {
     override fun endPlayback(hasEnded: Boolean, wasSkipped: Boolean, shouldContinue: Boolean) {
         if (curEpisode == null) {
             Logd(TAG, "endPlayback curEpisode is null, return")
-//            releaseWifiLockIfNecessary()
             return
         }
 
@@ -824,7 +821,6 @@ class Media3Player : MediaPlayerBase() {
         fun stopPlayer() {
             Logd(TAG, "endPlayback stopPlayer is called")
             onPlaybackEnded(true)
-//            releaseWifiLockIfNecessary()
             setAsCurEpisode(null)
             exoPlayer?.stop()
             if (isUnknown) setPlayerStatus(PlayerStatus.STOPPED, null)
@@ -843,6 +839,8 @@ class Media3Player : MediaPlayerBase() {
                     Logd(TAG, "endPlayback has nextMedia. call callback.onPlaybackEnded false")
                     if (wasSkipped) setPlayerStatus(PlayerStatus.INDETERMINATE, null)
                     onPlaybackEnded(true)
+                    Logd(TAG, "useRingTone: ${appPrefs.useRingTone} ringToneUriString: ${appPrefs.ringToneUriString}")
+                    if (appPrefs.useRingTone && !appPrefs.ringToneUriString.isNullOrBlank()) RingtoneManager.getRingtone(context, appPrefs.ringToneUriString!!.toUri()).play()
                     val needStreaming = (nextMedia.feed?.isLocalFeed != true && nextMedia.fileUrl.isNullOrBlank())
                     if (needStreaming) {
                         if (!isStreamingCapable(nextMedia)) {
@@ -873,7 +871,6 @@ class Media3Player : MediaPlayerBase() {
             }
             isPlaying -> {
                 Logd(TAG, "endPlayback isPlaying")
-//                releaseWifiLockIfNecessary()
                 onPlaybackPause(currentMedia, currentMedia?.position?: 0)
             }
             else -> {

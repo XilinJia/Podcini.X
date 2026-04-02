@@ -31,13 +31,12 @@ import kotlinx.coroutines.withContext
 import java.net.Inet4Address
 import java.net.NetworkInterface
 import java.net.URI
-import java.util.regex.Pattern
 
 @SuppressLint("StaticFieldLeak")
 object NetworkUtils {
     private const val TAG = "NetworkUtils"
 
-    private const val REGEX_PATTERN_IP_ADDRESS = "([0-9]{1,3}[\\.]){3}[0-9]{1,3}"
+    private val REGEX_PATTERN_IP_ADDRESS = Regex("([0-9]{1,3}[\\.]){3}[0-9]{1,3}")
 
     var mobileAllowStreaming: Boolean
         get() = isAllowedOnMobile(MobileUpdateOptions.streaming.name)
@@ -96,12 +95,17 @@ object NetworkUtils {
     fun wasDownloadBlocked(throwable: Throwable?): Boolean {
         val message = throwable!!.message
         if (message != null) {
-            val pattern = Pattern.compile(REGEX_PATTERN_IP_ADDRESS)
-            val matcher = pattern.matcher(message)
-            if (matcher.find()) {
-                val ip = matcher.group()
-                return ip.startsWith("127.") || ip.startsWith("0.")
-            }
+//            val pattern = Pattern.compile(REGEX_PATTERN_IP_ADDRESS)
+//            val matcher = pattern.matcher(message)
+//            if (matcher.find()) {
+//                val ip = matcher.group()
+//                return ip.startsWith("127.") || ip.startsWith("0.")
+//            }
+            val match = REGEX_PATTERN_IP_ADDRESS.find(message)
+            return if (match != null) {
+                val ip = match.value
+                ip.startsWith("127.") || ip.startsWith("0.")
+            } else { false }
         }
         if (throwable.cause != null) return wasDownloadBlocked(throwable.cause)
         return false
@@ -160,8 +164,6 @@ object NetworkUtils {
 //                    prepareUrl(removedWebsite)
 //                }
 //            }
-//            TODO: test
-//            !(lowerCaseUrl.startsWith("http://") || lowerCaseUrl.startsWith("https://")) ->  "http://$url"
             !(lowerCaseUrl.startsWith("http://") || lowerCaseUrl.startsWith("https://")) ->  "https://$url"
             else ->  url
         }

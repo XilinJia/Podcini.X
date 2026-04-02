@@ -2,17 +2,15 @@ package ac.mdiq.podcini.utils
 
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import android.content.Context
 import android.view.KeyEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
-
 import kotlin.math.abs
 import kotlin.math.max
-import ac.mdiq.podcini.storage.utils.nowInMillis
 
 sealed class FlowEvent {
     val TAG = this::class.simpleName ?: "FlowEvent"
@@ -56,14 +54,6 @@ sealed class FlowEvent {
             fun cancelled(): SleepTimerUpdatedEvent = SleepTimerUpdatedEvent(CANCELLED)
         }
     }
-
-//    data class FeedListEvent(val action: Action, val feedIds: List<Long> = emptyList()) : FlowEvent() {
-//        enum class Action { ADDED, REMOVED, ERROR, UNKNOWN }
-//
-//        constructor(action: Action, feedId: Long) : this(action, listOf(feedId))
-//
-//        fun contains(feed: Feed): Boolean = feedIds.contains(feed.id)
-//    }
 
     // TODO: perhaps FeedDetails Settings need to post this?
 //    data class FeedChangeEvent(val feed: Feed, val changedFields: Array<String>) : FlowEvent()

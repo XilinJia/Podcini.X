@@ -3,7 +3,6 @@ package ac.mdiq.podcini.ui.screens.prefscreens
 import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.fallbackSpeed
@@ -16,6 +15,7 @@ import ac.mdiq.podcini.storage.database.speedforwardSpeed
 import ac.mdiq.podcini.storage.database.streamingCacheSizeMB
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.NumberEditor
@@ -25,7 +25,13 @@ import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.VideoModeDialog
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.utils.Logd
+import android.app.Activity
+import android.content.Intent
+import android.media.RingtoneManager
+import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -59,6 +65,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.IntentCompat
+import androidx.core.net.toUri
 import kotlin.math.round
 
 enum class PrefHardwareForwardButton(val res: Int, val res1: Int) {
@@ -68,11 +76,29 @@ enum class PrefHardwareForwardButton(val res: Int, val res1: Int) {
     START(R.string.button_action_restart_episode, R.string.keycode_media_previous);
 }
 
+private const val TAG = "PlaybackScreen"
 @Composable
 fun PlaybackScreen() {
     val context by rememberUpdatedState(LocalContext.current)
     val textColor = MaterialTheme.colorScheme.onSurface
     BackHandler(enabled = true) { pfBackStack.removeLastOrNull() }
+
+    var selectedRingtoneUri by remember { mutableStateOf(appPrefs.ringToneUriString?.toUri()) }
+    var ringtoneName by remember { mutableStateOf(appPrefs.ringToneName) }
+    val ringtonePickerLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val intent = result.data ?: return@rememberLauncherForActivityResult
+            val uri = IntentCompat.getParcelableExtra(intent, RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java) ?: return@rememberLauncherForActivityResult
+//            context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            selectedRingtoneUri = uri
+            ringtoneName = RingtoneManager.getRingtone(context, uri).getTitle(context) ?: "Silent"
+            upsertBlk(appPrefs) {
+                it.ringToneName = ringtoneName
+                it.ringToneUriString = uri.toString()
+            }
+            Logd(TAG, "ringtoneName $ringtoneName")
+        }
+    }
 
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
         Text(stringResource(R.string.interruptions), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -112,6 +138,25 @@ fun PlaybackScreen() {
                             }))
                     })
                 Text("", color = textColor, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        TitleSummarySwitchRow(R.string.use_ring_tone, R.string.use_ring_tone_sum, appPrefs.useRingTone) {
+            upsertBlk(appPrefs) { p-> p.useRingTone = it }
+        }
+        if (appPrefs.useRingTone) {
+            Column(Modifier.padding(start = 10.dp)) {
+                Text("Ringtone: $ringtoneName", modifier = Modifier.padding(start = 16.dp))
+                TitleSummaryActionColumn(R.string.select_ring_tone, R.string.select_ring_tone_sum) {
+                    val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                        putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+                        putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Select Tone")
+                        putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, selectedRingtoneUri)
+                        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+                    }
+                    ringtonePickerLauncher.launch(intent)
+                }
             }
         }
 

@@ -171,18 +171,6 @@ class Feed : RealmObject {
     var sortInfo: String = ""
     // ============ filters and sorts    ==========================
 
-//    @Ignore
-//    val mostRecentItem: Episode?
-//        get() = realm.query(Episode::class).query("feedId == $id SORT (pubDate DESC)").first().find()
-
-//    @Ignore
-//    val mostRecentItems: List<Episode>
-//        get() = realm.query(Episode::class).query("feedId == $id SORT (pubDate DESC) LIMIT(5)").find()
-
-//    @Ignore
-//    val oldestItem: Episode?
-//        get() = realm.query(Episode::class).query("feedId == $id SORT (pubDate ASC)").first().find()
-
     @Ignore
     var title: String?
         get() = if (!customTitle.isNullOrEmpty()) customTitle else eigenTitle

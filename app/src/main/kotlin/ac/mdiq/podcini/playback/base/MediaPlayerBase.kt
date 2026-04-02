@@ -430,7 +430,7 @@ abstract class MediaPlayerBase {
                 if (oldStatus != null && sleepPrefs.AutoEnable && autoEnableByTime && sleepManager?.isSleepTimerActive != true) {
                     sleepManager?.setSleepTimer(lastTimerValue.minutes.inWholeMilliseconds)
                     // TODO: what to do?
-//                    EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.sleep_timer_enabled_label), { taskManager?.disableSleepTimer() }, context.getString(R.string.undo)))
+//                    EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.sleep_timer_enabled_label), { sleepManager?.disableSleepTimer() }, context.getString(R.string.undo)))
                 }
             }
             isError -> {

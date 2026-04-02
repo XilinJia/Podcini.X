@@ -18,6 +18,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.net.Proxy
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -52,7 +53,7 @@ fun initAppPrefs() {
                     appPrefs = changes.obj
                 }
                 is UpdatedObject -> {
-                    Logd(TAG, "appPrefsJob UpdatedObject ")
+                    Logd(TAG, "appPrefsJob UpdatedObject ${changes.obj.ringToneName}")
                     appPrefs = changes.obj
                 }
                 is DeletedObject -> {}
@@ -69,11 +70,11 @@ fun initAppPrefs() {
             when (changes) {
                 is InitialObject -> {
                     Logd(TAG, "appAttribsJob InitialObject ")
-                    appAttribs = changes.obj
+                    withContext(Dispatchers.Main) {  appAttribs = changes.obj }
                 }
                 is UpdatedObject -> {
                     Logd(TAG, "appAttribsJob UpdatedObject ")
-                    appAttribs = changes.obj
+                    withContext(Dispatchers.Main) {  appAttribs = changes.obj }
                 }
                 is DeletedObject -> {}
                 is PendingObject -> {}

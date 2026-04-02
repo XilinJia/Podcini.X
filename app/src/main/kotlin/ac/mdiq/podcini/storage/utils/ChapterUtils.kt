@@ -9,7 +9,6 @@ import ac.mdiq.podcini.storage.parser.FrameHeader
 import ac.mdiq.podcini.storage.parser.ID3Reader
 import ac.mdiq.podcini.storage.parser.VorbisCommentReader
 import ac.mdiq.podcini.storage.parser.VorbisCommentReaderException
-import ac.mdiq.podcini.storage.specs.EmbeddedChapterImage
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
@@ -180,12 +179,10 @@ class ChapterReader(input: CountingSource) : ID3Reader(input) {
                         } else {
                             val alreadyConsumed = position - frameStartPosition
                             val rawImageDataLength = subFrameHeader.size - alreadyConsumed
-                            if (chapter.imageUrl.isNullOrEmpty() || type.toInt() == IMAGE_TYPE_COVER) chapter.imageUrl = EmbeddedChapterImage.makeUrl(position.toInt(), rawImageDataLength.toInt())
+                            if (chapter.imageUrl.isNullOrEmpty() || type.toInt() == IMAGE_TYPE_COVER) chapter.imageUrl = "embedded-image://$position/$rawImageDataLength"
                         }
                     }
-                    else -> {
-                        Logd(TAG, "Unknown chapter sub-frame ${subFrameHeader.id}")
-                    }
+                    else -> Logd(TAG, "Unknown chapter sub-frame ${subFrameHeader.id}")
                 }
                 // Skip garbage to fill frame completely
                 // This also asserts that we are not reading too many bytes from this frame.

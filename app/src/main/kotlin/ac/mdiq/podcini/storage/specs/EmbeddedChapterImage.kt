@@ -1,22 +1,18 @@
 package ac.mdiq.podcini.storage.specs
 
 import ac.mdiq.podcini.storage.model.Episode
-import java.util.regex.Pattern
 
-class EmbeddedChapterImage( val media: Episode, private val imageUrl: String) {
-    
+class EmbeddedChapterImage(val media: Episode, private val imageUrl: String) {
+
     var position: Int = 0
-    
     var length: Int = 0
 
     init {
-        val m = EMBEDDED_IMAGE_MATCHER.matcher(imageUrl)
-        if (m.find()) {
-            this.position = m.group(1)?.toInt() ?: 0
-            this.length = m.group(2)?.toInt() ?: 0
-        } else {
-            throw IllegalArgumentException("Not an embedded chapter")
-        }
+        val match = EMBEDDED_IMAGE_MATCHER.find(imageUrl)
+        if (match != null) {
+            this.position = match.groups[1]?.value?.toIntOrNull() ?: 0
+            this.length = match.groups[2]?.value?.toIntOrNull() ?: 0
+        } else throw IllegalArgumentException("Not an embedded chapter: $imageUrl")
     }
 
     override fun equals(other: Any?): Boolean {
@@ -33,21 +29,13 @@ class EmbeddedChapterImage( val media: Episode, private val imageUrl: String) {
     }
 
     companion object {
-        private val EMBEDDED_IMAGE_MATCHER: Pattern = Pattern.compile("embedded-image://(\\d+)/(\\d+)")
+        private val EMBEDDED_IMAGE_MATCHER = Regex("embedded-image://(\\d+)/(\\d+)")
 
-
-        fun makeUrl(position: Int, length: Int): String {
-            return "embedded-image://$position/$length"
-        }
-
-        private fun isEmbeddedChapterImage(imageUrl: String): Boolean {
-            return EMBEDDED_IMAGE_MATCHER.matcher(imageUrl).matches()
-        }
-
+        // TODO: need to check this ???
         fun getModelFor(media: Episode, chapter: Int): Any? {
             if (media.chapters.isEmpty()) return null
             val imageUrl = media.chapters[chapter].imageUrl
-            return if (imageUrl != null && isEmbeddedChapterImage(imageUrl)) EmbeddedChapterImage(media, imageUrl) else  imageUrl
+            return if (imageUrl != null && EMBEDDED_IMAGE_MATCHER.matches(imageUrl)) EmbeddedChapterImage(media, imageUrl) else imageUrl
         }
     }
 }

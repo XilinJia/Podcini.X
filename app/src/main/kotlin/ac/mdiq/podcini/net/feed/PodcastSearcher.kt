@@ -18,6 +18,8 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.encodeURLParameter
 import io.ktor.http.isSuccess
+import io.ktor.util.hex
+import io.ktor.util.sha1
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -25,8 +27,6 @@ import kotlinx.coroutines.supervisorScope
 import kotlinx.io.IOException
 import org.json.JSONException
 import org.json.JSONObject
-import java.security.MessageDigest
-import java.util.regex.Pattern
 
 private const val TAG = "PodcastSearcher"
 
@@ -111,20 +111,9 @@ class PodcastIndexPodcastSearcher : PodcastSearcher {
         private const val SEARCH_API_URL = "https://api.podcastindex.org/api/1.0/search/byterm?q=%s"
 
         private fun sha1(clearString: String): String? {
-            try {
-                val messageDigest = MessageDigest.getInstance("SHA-1")
-                messageDigest.update(clearString.toByteArray(charset("UTF-8")))
-                return toHex(messageDigest.digest())
-            } catch (ignored: Exception) {
-                Logd("PodcastIndexPodcastSearcher", ignored.message ?: "sha1 error")
-                return null
-            }
-        }
-
-        private fun toHex(bytes: ByteArray): String {
-            val buffer = StringBuilder()
-            for (b in bytes) buffer.append(b.toHexString())
-            return buffer.toString()
+            val bytes = clearString.toByteArray(Charsets.UTF_8)
+            val digest = sha1(bytes)
+            return hex(digest)
         }
     }
 }
@@ -166,9 +155,7 @@ class ItunesPodcastSearcher : PodcastSearcher {
     }
 
     override suspend fun lookupUrl(url: String): String {
-        val pattern = Pattern.compile(PATTERN_BY_ID)
-        val matcher = pattern.matcher(url)
-        val lookupUrl = if (matcher.find()) "https://itunes.apple.com/lookup?id=" + matcher.group(1) else url
+        val lookupUrl = PATTERN_BY_ID.find(url)?.let { match -> "https://itunes.apple.com/lookup?id=${match.groups[1]?.value}" } ?: url
         val resultString = try {
             val response = getKtorClient().get(lookupUrl) { header(HttpHeaders.CacheControl, "max-stale=86400") }
             if (response.status.isSuccess()) response.bodyAsText()
@@ -194,7 +181,7 @@ class ItunesPodcastSearcher : PodcastSearcher {
     override fun urlNeedsLookup(url: String): Boolean {
         Logd(TAG, "urlNeedsLookup url: $url")
         // TODO: may also need to check podcasts.apple.com?
-        return url.contains("//itunes.apple.com") || url.matches(PATTERN_BY_ID.toRegex())
+        return url.contains("//itunes.apple.com") || url.matches(PATTERN_BY_ID)
     }
 
     override val name: String
@@ -202,7 +189,7 @@ class ItunesPodcastSearcher : PodcastSearcher {
 
     companion object {
         private const val ITUNES_API_URL = "https://itunes.apple.com/search?media=podcast&term=%s"
-        private const val PATTERN_BY_ID = ".*/podcasts\\.apple\\.com/.*/podcast/.*/id(\\d+).*"
+        private val PATTERN_BY_ID = Regex(".*/podcasts\\.apple\\.com/.*/podcast/.*/id(\\d+).*")
     }
 }
 

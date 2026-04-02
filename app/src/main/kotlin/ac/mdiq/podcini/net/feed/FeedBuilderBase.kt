@@ -34,7 +34,21 @@ open class FeedBuilderBase(val showError: (String?, String)->Unit) {
 
     suspend fun buildPodcast(url: String, username: String?, password: String?, handleFeed: (Feed, Map<String, String>)->Unit) {
         Logd(TAG, "buildPodcast: $url")
-        when (val urlType = htmlOrXml(url)) {
+        val urlType = try {
+            val response: HttpResponse = getKtorClient().head(url)
+            val type = response.contentType()?.toString()
+            Logd(TAG, "htmlOrXml connection type: $type")
+            when {
+                type == null -> null
+                type.contains("html", ignoreCase = true) -> "HTML"
+                type.contains("xml", ignoreCase = true) -> "XML"
+                else -> type
+            }
+        } catch (e: Exception) {
+            Loge(TAG, "htmlOrXml Error connecting to URL. ${e.message}")
+            null
+        }
+        when (urlType) {
             "HTML" -> {
                 try {
                     val doc = Ksoup.parseGetRequest(url)
@@ -50,8 +64,8 @@ open class FeedBuilderBase(val showError: (String?, String)->Unit) {
             }
             "XML" -> {}
             else -> {
-                Loge(TAG, "unknown url type $urlType")
-                showError("unknown url type $urlType", "")
+                Loge(TAG, "buildPodcast unknown url type $urlType")
+                showError("buildPodcast unknown url type $urlType", "")
                 return
             }
         }
@@ -70,44 +84,8 @@ open class FeedBuilderBase(val showError: (String?, String)->Unit) {
                 }
             } catch (e: Throwable) {
                 Logs(TAG, e)
-                withContext(Dispatchers.Main) { showError(e.message, "") }
+                withContext(Dispatchers.Main) { showError("buildPodcast ${e.message}", "") }
             }
-        }
-    }
-
-//    private fun htmlOrXml(url: String): String? {
-//        val connection = try { URL(url).openConnection() as HttpURLConnection } catch (e: MalformedURLException) {
-//            Loge(TAG, "htmlOrXml url not valid: $url")
-//            showError(e.message, "")
-//            return null
-//        }
-//        var type: String? = null
-//        try { type = connection.contentType } catch (e: IOException) {
-//            Loge(TAG, "Error connecting to URL. ${e.message}")
-//            showError(e.message, "")
-//        } finally { connection.disconnect() }
-//        if (type == null) return null
-//        Logd(TAG, "htmlOrXml connection type: $type")
-//        return when {
-//            type.contains("html", ignoreCase = true) -> "HTML"
-//            type.contains("xml", ignoreCase = true) -> "XML"
-//            else -> type
-//        }
-//    }
-
-    private suspend fun htmlOrXml(url: String): String? {
-        return try {
-            val response: HttpResponse = getKtorClient().head(url)
-            val type = response.contentType()?.toString() ?: return null
-            Logd(TAG, "htmlOrXml connection type: $type")
-            when {
-                type.contains("html", ignoreCase = true) -> "HTML"
-                type.contains("xml", ignoreCase = true) -> "XML"
-                else -> type
-            }
-        } catch (e: Exception) {
-            Loge(TAG, "Error connecting to URL. ${e.message}")
-            null
         }
     }
 

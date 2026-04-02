@@ -12,11 +12,8 @@ import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.IconTitleSummaryActionRow
 import ac.mdiq.podcini.ui.screens.LocalDrawerController
 import ac.mdiq.podcini.ui.screens.PopMode
-import ac.mdiq.podcini.ui.screens.backStack
 import ac.mdiq.podcini.ui.screens.defaultNavKey
-import ac.mdiq.podcini.ui.screens.navBack
 import ac.mdiq.podcini.ui.screens.navTo
-
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.openInBrowser
@@ -89,6 +86,15 @@ private const val TAG = "PrefsMainScreen"
 
 val pfBackStack = mutableStateListOf<PFNavKey>(PFNav.Portal)
 
+fun pfNavBack(): Boolean {
+    if (pfBackStack.size > 1) {
+        pfBackStack.removeLastOrNull()
+        return true
+    }
+    return false
+}
+
+
 @Serializable
 sealed class PFNavKey
 
@@ -137,14 +143,14 @@ val pfAnyEntryProvider: (Any) -> NavEntry<Any> = { key ->
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrefsScreen() {
-    var topAppBarTitle by remember { mutableStateOf("Home") }
+    var topAppBarTitle by remember { mutableStateOf("Settings") }
     val viewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current) { "No ViewModelStoreOwner was provided via LocalViewModelStoreOwner" }
     val drawerController = LocalDrawerController.current
 
     Scaffold(topBar = { TopAppBar(title = { Text(topAppBarTitle) },
-        navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "Back", modifier = Modifier.padding(7.dp).clickable { if (!navBack()) drawerController?.open() } ) }) }) { innerPadding ->
+        navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "Back", modifier = Modifier.padding(7.dp).clickable { if (!pfNavBack()) drawerController?.open() } ) }) }) { innerPadding ->
         CompositionLocalProvider(LocalViewModelStoreOwner provides viewModelStoreOwner) {
-            NavDisplay(backStack = pfBackStack, onBack = { navBack() }, entryProvider = pfAnyEntryProvider, modifier = Modifier.padding(innerPadding))
+            NavDisplay(backStack = pfBackStack, onBack = { pfNavBack() }, entryProvider = pfAnyEntryProvider, modifier = Modifier.padding(innerPadding))
         }
     }
 }

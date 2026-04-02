@@ -5,12 +5,10 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.utils.durationStringLongToMs
 import ac.mdiq.podcini.storage.utils.durationStringShortToMs
 import ac.mdiq.podcini.ui.compose.isLightTheme
-import android.util.TypedValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.fleeksoft.ksoup.Ksoup
 import com.fleeksoft.ksoup.nodes.Document
-import java.util.regex.Pattern
 
 /**
  * Cleans up and prepares shownotes:
@@ -27,8 +25,7 @@ class ShownotesCleaner {
 
         val colorPrimary = (if (isLightMode) Color(0xFF000000) else Color(0xFFFFFFFF) ).toHtmlRgba()
         val colorAccent = (if (isLightMode) Color(0xFF6200EE) else Color(0xFFBB86FC) ).toHtmlRgba()
-        val margin = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8f, getAppContext().resources.displayMetrics).toInt()
-        webviewStyle = getHtmlStyle(colorPrimary, colorAccent, margin)
+        webviewStyle = getHtmlStyle(colorPrimary, colorAccent, 0)
         timeIt("$TAG end of init")
     }
 
@@ -54,7 +51,7 @@ class ShownotesCleaner {
                  height: auto;
             }
             body {
-                 padding: ${padding}px ${padding}px ${padding}px ${padding}px;
+                 padding: 0.5rem;
             }
             p#apNoShownotes {
                 position: fixed;
@@ -93,7 +90,7 @@ class ShownotesCleaner {
         }
 
         // replace ASCII line breaks with HTML ones if shownotes don't contain HTML line breaks already
-        if (!LINE_BREAK_REGEX.matcher(shownotes).find() && !shownotes.contains("<p>")) shownotes = shownotes.replace("\n", "<br />")
+        if (!LINE_BREAK_REGEX.containsMatchIn(shownotes) && !shownotes.contains("<p>")) shownotes = shownotes.replace("\n", "<br />")
         val document = Ksoup.parse(shownotes)   // TODO: this is time consuming
         cleanCss(document)
         document.head().appendElement("style").attr("type", "text/css").text(webviewStyle)
@@ -102,7 +99,7 @@ class ShownotesCleaner {
     }
 
     private fun addTimecodes(document: Document, playableDuration: Int) {
-        val elementsWithTimeCodes = document.body().getElementsMatchingOwnText(TIMECODE_REGEX.toRegex())
+        val elementsWithTimeCodes = document.body().getElementsMatchingOwnText(TIMECODE_REGEX)
         Logd(TAG, "Recognized " + elementsWithTimeCodes.size + " timecodes")
         if (elementsWithTimeCodes.isEmpty()) return  // No elements with timecodes
 
@@ -111,40 +108,28 @@ class ShownotesCleaner {
             // We need to decide if we are going to treat short timecodes as HH:MM or MM:SS. To do
             // so we will parse all the short timecodes and see if they fit in the duration. If one
             // does not we will use MM:SS, otherwise all will be parsed as HH:MM.
-
-            for (element in elementsWithTimeCodes) {
-                val matcherForElement = TIMECODE_REGEX.matcher(element.html())
-                while (matcherForElement.find()) {
-                    // We only want short timecodes right now.
-                    if (matcherForElement.group(1) == null) {
-                        val time = durationStringShortToMs(matcherForElement.group(0)!!, true)
-                        // If the parsed timecode is greater then the duration then we know we need to
-                        // use the minute format so we are done.
+            elementsWithTimeCodes.forEach { element ->
+                val matches = TIMECODE_REGEX.findAll(element.html())
+                for (match in matches) {
+                    if (match.groups[1] == null) {
+                        val time = durationStringShortToMs(match.value, true)
                         if (time > playableDuration) {
                             useHourFormat = false
                             break
                         }
                     }
                 }
-                if (!useHourFormat) break
+                if (!useHourFormat) return@forEach
             }
         }
-
         for (element in elementsWithTimeCodes) {
-            val matcherForElement = TIMECODE_REGEX.matcher(element.html())
-            val buffer = StringBuffer()
-
-            while (matcherForElement.find()) {
-                val group = matcherForElement.group(0) ?: continue
-                val time = if (matcherForElement.group(1) != null) durationStringLongToMs(group)
-                else durationStringShortToMs(group, useHourFormat)
-                var replacementText = group
-                if (time < playableDuration) replacementText = "<a class=\"timecode\" href=\"podcini://timecode/$time\">$group</a>"
-                matcherForElement.appendReplacement(buffer, replacementText)
+            val originalHtml = element.html()
+            val newHtml = TIMECODE_REGEX.replace(originalHtml) { match ->
+                val group = match.value
+                val time = if (match.groups[1] != null) durationStringLongToMs(group) else durationStringShortToMs(group, useHourFormat)
+                if (time < playableDuration) """<a class="timecode" href="podcini://timecode/$time">$group</a>""" else group
             }
-
-            matcherForElement.appendTail(buffer)
-            element.html(buffer.toString())
+            element.html(newHtml)
         }
     }
 
@@ -161,25 +146,25 @@ class ShownotesCleaner {
     companion object {
         private val TAG: String = ShownotesCleaner::class.simpleName ?: "Anonymous"
 
-        private val TIMECODE_LINK_REGEX: Pattern = Pattern.compile("podcini://timecode/(\\d+)")
+        private val TIMECODE_LINK_REGEX = Regex("podcini://timecode/(\\d+)")
 
-        private val HTTP_TIMECODE_LINK_REGEX: Pattern = Pattern.compile("^https?://[^\\s]+[?&]t=(\\d+)")
+        private val HTTP_TIMECODE_LINK_REGEX = Regex("^https?://[^\\s]+[?&]t=(\\d+)")
 
         private const val TIMECODE_LINK = "<a class=\"timecode\" href=\"podcini://timecode/%d\">%s</a>"
-        private val TIMECODE_REGEX: Pattern = Pattern.compile("\\b((\\d+):)?(\\d+):(\\d{2})\\b")
-        private val LINE_BREAK_REGEX: Pattern = Pattern.compile("<br */?>")
+        private val TIMECODE_REGEX = Regex("\\b((\\d+):)?(\\d+):(\\d{2})\\b")
+        private val LINE_BREAK_REGEX = Regex("<br */?>")
         private const val CSS_COLOR = "(?<=(\\s|;|^))color\\s*:([^;])*;"
         private const val CSS_COMMENT = "/\\*.*?\\*/"
 
         fun isTimecodeLink(link: String?): Boolean {
             if (link == null) return false
-            if(link.matches(TIMECODE_LINK_REGEX.pattern().toRegex())) return true
+            if(TIMECODE_LINK_REGEX.matches(link)) return true
             return false
         }
 
         fun isHTTPTimecodeLink(link: String?): Boolean {
             if (link == null) return false
-            if (link.matches(HTTP_TIMECODE_LINK_REGEX.pattern().toRegex())) return true
+            if (HTTP_TIMECODE_LINK_REGEX.matches(link)) return true
             return false
         }
 
@@ -189,12 +174,12 @@ class ShownotesCleaner {
          */
         fun getTimecodeLinkTime(link: String?): Int {
             if (isTimecodeLink(link)) {
-                val m = TIMECODE_LINK_REGEX.matcher(link!!)
-                try { if (m.find()) return m.group(1)?.toInt()?:0 } catch (e: NumberFormatException) { Logs(TAG, e) }
+                val match = TIMECODE_LINK_REGEX.find(link!!)
+                if (match != null) try { return match.groupValues[1].toInt() } catch (e: Exception) { Logs(TAG, e) }
             }
             if (isHTTPTimecodeLink(link)) {
-                val m = HTTP_TIMECODE_LINK_REGEX.matcher(link!!)
-                try { if (m.find()) return (m.group(1)?.toInt()?:0) * 1000 } catch (e: NumberFormatException) { Logs(TAG, e) }
+                val match = HTTP_TIMECODE_LINK_REGEX.find(link!!)
+                if (match != null) try { return match.groupValues[1].toInt() * 1000 } catch (e: Exception) { Logs(TAG, e) }
             }
             return -1
         }

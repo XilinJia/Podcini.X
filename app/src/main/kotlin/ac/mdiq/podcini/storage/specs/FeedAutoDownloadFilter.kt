@@ -1,18 +1,19 @@
 package ac.mdiq.podcini.storage.specs
 
-import java.io.Serializable
-import java.util.Locale
-import java.util.regex.Pattern
+import kotlinx.serialization.Serializable
+
+private val FILTER_REGEX = Regex("""([^"]\S*|".+?")\s*""")
 
 // We're storing the strings and not the parsed terms because
 // 1. It's easier to show the user exactly what they typed in this way (we don't have to recreate it)
 // 2. We don't know if we'll actually be asked to parse anything anyways.
+@Serializable
 class FeedAutoDownloadFilter(
         val includeFilterRaw: String? = "",
         val excludeFilterRaw: String? = "",
         val minDurationFilter: Int = 0,    // in seconds
         val maxDurationFilter: Int = 0,    // in seconds
-        val markExcludedPlayed: Boolean = false) : Serializable {
+        val markExcludedPlayed: Boolean = false) {
 
     val includeTerms: List<String> by lazy { parseTerms(includeFilterRaw ?: "") }
     val excludeTerms: List<String> by lazy { parseTerms(excludeFilterRaw ?: "") }
@@ -24,10 +25,11 @@ class FeedAutoDownloadFilter(
      * @return list of terms
      */
     private fun parseTerms(filter: String): List<String> {
-        // from http://stackoverflow.com/questions/7804335/split-string-on-spaces-in-java-except-if-between-quotes-i-e-treat-hello-wor
-        val list: MutableList<String> = mutableListOf()
-        val m = Pattern.compile("([^\"]\\S*|\".+?\")\\s*").matcher(filter)
-        while (m.find()) if (!m.group(1).isNullOrBlank()) list.add(m.group(1)!!.replace("\"", ""))
+        val list = FILTER_REGEX.findAll(filter)
+            .mapNotNull { it.groups[1]?.value }
+            .filter { it.isNotBlank() }
+            .map { it.replace("\"", "") }
+            .toList()
         return list
     }
 

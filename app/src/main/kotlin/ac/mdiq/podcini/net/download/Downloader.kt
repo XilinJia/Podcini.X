@@ -20,7 +20,9 @@ import ac.mdiq.podcini.utils.startTiming
 import ac.mdiq.podcini.utils.timeIt
 import androidx.compose.runtime.mutableStateMapOf
 import io.ktor.client.network.sockets.SocketTimeoutException
+import io.ktor.client.plugins.HttpTimeoutConfig
 import io.ktor.client.plugins.onDownload
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.header
 import io.ktor.client.request.prepareGet
 import io.ktor.client.statement.HttpResponse
@@ -64,31 +66,6 @@ abstract class Downloader(val request: DownloadRequest) {
 
     fun cancel() {
         cancelled = true
-    }
-
-    protected fun checkResults(isGzip: Boolean, response: HttpResponse): Boolean {
-        if (cancelled) onCancelled()
-        else {
-            // check if size specified in the response header is the same as the size of the
-            // written file. This check cannot be made if compression was used
-            when {
-                !isGzip && request.size != DownloadResult.SIZE_UNKNOWN.toLong() && request.soFar != request.size -> {
-                    onFail(DownloadError.ERROR_IO_WRONG_SIZE, "Download completed but size: ${request.soFar} does not equal expected size ${request.size}")
-                    return false
-                }
-                request.size > 0 && request.soFar == 0L -> {
-                    onFail(DownloadError.ERROR_IO_ERROR, "Download completed, but nothing was read")
-                    return false
-                }
-                else -> {
-                    val lastModified = response.headers[HttpHeaders.LastModified]
-                    if (lastModified != null) request.lastModified = lastModified
-                    else request.lastModified = response.headers[HttpHeaders.ETag]
-                    result.setSuccessful()
-                }
-            }
-        }
-        return true
     }
 
     protected fun callOnFailByResponseCode(response: HttpResponse) {
@@ -161,10 +138,8 @@ class FeedDownloader(request: DownloadRequest): Downloader(request) {
         val fileExists = destFile.exists()
         Logd(TAG, "destination: ${request.destination} fileExists: $fileExists")
 
-        var startPosition = 0L
         try {
             val uri = getURIFromRequestUrl(request.source)
-//            val DownloadRequestKey = AttributeKey<DownloadRequest>("DownloadRequest")
             getKtorClient().prepareGet(uri.toString()){
                 attributes.put(DownloadRequestKey, request)
                 header(HttpHeaders.CacheControl, "no-store")
@@ -211,16 +186,14 @@ class FeedDownloader(request: DownloadRequest): Downloader(request) {
                         return@execute
                     }
                     response.status == HttpStatusCode.PartialContent -> {
+                        // TODO: this appears not needed
                         val contentRangeHeader = if (fileExists) response.headers[HttpHeaders.ContentRange] else null
                         if (fileExists && response.status == HttpStatusCode.PartialContent && !contentRangeHeader.isNullOrEmpty()) {
                             val start = contentRangeHeader.removePrefix("bytes ").substringBefore('-').toLong()
                             if (start != request.soFar) {
                                 Logt(TAG, "Unexpected resume offset $start, restarting download")
                                 destFile.delete()
-                            } else {
-                                Logd(TAG, "Resuming download at $start")
-                                startPosition = start
-                            }
+                            } else Logd(TAG, "Resuming download at $start")
                             val remaining = response.contentLength()
                             request.size = if (remaining != null) remaining + request.soFar else DownloadResult.SIZE_UNKNOWN.toLong()
                         }
@@ -242,7 +215,6 @@ class FeedDownloader(request: DownloadRequest): Downloader(request) {
                 }
                 checkIfRedirect(response)
 
-                //            val buffer = ByteArray(BUFFER_SIZE)
                 request.statusMsg = (R.string.download_running)
                 Logd(TAG, "Getting size of download")
                 val contentLength = response.contentLength()
@@ -274,10 +246,8 @@ class FeedDownloader(request: DownloadRequest): Downloader(request) {
                 return
             }
             onFail(DownloadError.ERROR_IO_ERROR, e.message)
-        } catch (e: NullPointerException) {
-            onFail(DownloadError.ERROR_CONNECTION_ERROR, request.source)    // might be thrown by connection.getInputStream()
-        } catch (e: Throwable) {
-            onFail(DownloadError.ERROR_NOT_FOUND, e.message)
+        } catch (e: NullPointerException) { onFail(DownloadError.ERROR_CONNECTION_ERROR, request.source)
+        } catch (e: Throwable) { onFail(DownloadError.ERROR_NOT_FOUND, e.message)
         } finally { }
     }
 
@@ -338,8 +308,11 @@ class EpisodeDownloader(request: DownloadRequest): Downloader(request) {
                     return contentType != null && contentType.startsWith("text/") && contentLength < 100 * 1024
                 }
 
-//                val DownloadRequestKey = AttributeKey<DownloadRequest>("DownloadRequest")
                 getKtorClient().prepareGet(uri.toString()) {
+                    timeout {
+                        requestTimeoutMillis = HttpTimeoutConfig.INFINITE_TIMEOUT_MS
+                        socketTimeoutMillis = 30_000
+                    }
                     onDownload { bytesSentTotal, contentLength ->
                         if ((contentLength?:0) > 0) {
                             val progress = (100 * bytesSentTotal / contentLength!!).toInt()
@@ -441,7 +414,17 @@ class EpisodeDownloader(request: DownloadRequest): Downloader(request) {
 
                     writeBody(response)
                     timeIt("$TAG after writeBody")
-                    if (!checkResults(isGzip, response)) return@execute
+                    when {
+                        cancelled -> onCancelled()
+                        !isGzip && request.size != DownloadResult.SIZE_UNKNOWN.toLong() && request.soFar != request.size -> onFail(DownloadError.ERROR_IO_WRONG_SIZE, "Download completed but size: ${request.soFar} does not equal expected size ${request.size}")
+                        request.size > 0 && request.soFar == 0L -> onFail(DownloadError.ERROR_IO_ERROR, "Download completed, but nothing was read")
+                        else -> {
+                            val lastModified = response.headers[HttpHeaders.LastModified]
+                            if (lastModified != null) request.lastModified = lastModified
+                            else request.lastModified = response.headers[HttpHeaders.ETag]
+                            result.setSuccessful()
+                        }
+                    }
                     timeIt("$TAG after checkResults")
                 }
             } catch (e: IllegalArgumentException) { onFail(DownloadError.ERROR_MALFORMED_URL, e.message)

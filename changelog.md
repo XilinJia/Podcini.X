@@ -1,3 +1,12 @@
+# 10.14.4
+
+* reduced network connection and socket timeout to 15 seconds
+* episode download timeout set to infinite (when frozen, socket timeout takes effect)
+* added enabling and choosing a ringtone in Settings->Playback
+	* once enabled and chosen, the ringtone is played before playing the next episode in queue (not working on cast speaker)
+* adjusted navigation in Settings
+* some minor migration away from Java 
+
 # 10.14.3
 
 * added authentication in ktor client

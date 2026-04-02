@@ -24,8 +24,10 @@ import kotlin.io.encoding.Base64
  */
 object PodciniHttpClient {
     private val TAG: String = PodciniHttpClient::class.simpleName ?: "Anonymous"
-    const val CONNECTION_TIMEOUT = 20000
+    const val CONNECTION_TIMEOUT = 15000
     const val READ_TIMEOUT = 30000
+    const val SOCKET_TIMEOUT = 15000
+
     var proxyConfig: ProxyConfig? = null
 
     private var ktorClient: HttpClient? = null
@@ -62,7 +64,7 @@ object PodciniHttpClient {
             install(HttpTimeout) {
                 connectTimeoutMillis = CONNECTION_TIMEOUT.toLong()
                 requestTimeoutMillis = READ_TIMEOUT.toLong()
-                socketTimeoutMillis = READ_TIMEOUT.toLong()
+                socketTimeoutMillis = SOCKET_TIMEOUT.toLong()
             }
             install(HttpCache)
             engine {

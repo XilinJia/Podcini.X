@@ -1,7 +1,6 @@
 package ac.mdiq.podcini.net.sync
 
-import java.net.IDN
-import java.util.regex.Pattern
+import io.ktor.http.Url
 
 class HostnameParser(hosturl: String?) {
     
@@ -13,20 +12,28 @@ class HostnameParser(hosturl: String?) {
     
     var subfolder: String? = null
 
+    private val URL_PATTERN = Regex("""(?:(https?)://)?([^:/]+)(?::(\d+))?(.+)?""")
+
     init {
-        val m = URLSPLIT_REGEX.matcher(hosturl?:"")
-        if (m.matches()) {
-            scheme = m.group(1)
-            host = IDN.toASCII(m.group(2))
-            // regex -> can only be digits
-            port = m.group(3)?.toInt() ?: -1
-            val mg4 = m.group(4)
-            subfolder = mg4?.trimEnd('/') ?: ""
+        val input = hosturl ?: ""
+        val match = URL_PATTERN.matchEntire(input)
+
+        if (match != null) {
+            val groups = match.groups
+            scheme = groups[1]?.value
+//            host = IDN.toASCII(groups[2]?.value ?: "")
+            val url = Url("https://${groups[2]?.value ?: ""}")
+            host = url.host
+            port = groups[3]?.value?.toIntOrNull() ?: -1
+            val path = groups[4]?.value
+            subfolder = path?.trimEnd('/') ?: ""
         } else {
-            // URL does not match regex: use it anyway -> this will cause an exception on connect
             scheme = "https"
-            host = IDN.toASCII(hosturl)
+//            host = IDN.toASCII(input)
+            val url = Url("https://$input")
+            host = url.host
             port = 443
+            subfolder = ""
         }
 
         when (scheme) {
@@ -37,10 +44,5 @@ class HostnameParser(hosturl: String?) {
             "https" if port == -1 -> port = 443
             "http" if port == -1 -> port = 80
         }
-    }
-
-    companion object {
-        // split into schema, host and port - missing parts are null
-        private val URLSPLIT_REGEX: Pattern = Pattern.compile("(?:(https?)://)?([^:/]+)(?::(\\d+))?(.+)?")
     }
 }

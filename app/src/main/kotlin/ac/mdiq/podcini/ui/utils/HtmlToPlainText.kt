@@ -6,8 +6,7 @@ import com.fleeksoft.ksoup.nodes.Element
 import com.fleeksoft.ksoup.nodes.Node
 import com.fleeksoft.ksoup.nodes.TextNode
 import com.fleeksoft.ksoup.select.NodeTraversor
-import com.fleeksoft.ksoup.select.NodeVisitor 
-import java.util.regex.Pattern
+import com.fleeksoft.ksoup.select.NodeVisitor
 
 /**
  * This class is based on `HtmlToPlainText` from jsoup's examples package.
@@ -96,8 +95,7 @@ class HtmlToPlainText {
          * @return **True** if text contains any HTML tags<br></br>**False** is no HTML tag is found
          */
         private fun isHtml(str: String?): Boolean {
-            val htmlTagPattern = "<(\"[^\"]*\"|'[^']*'|[^'\">])*>"
-            return Pattern.compile(htmlTagPattern).matcher(str.toString()).find()
+            return Regex("<(\"[^\"]*\"|'[^']*'|[^'\">])*>").containsMatchIn(str.toString())
         }
     }
 }

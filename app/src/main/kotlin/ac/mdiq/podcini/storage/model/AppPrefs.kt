@@ -63,6 +63,11 @@ class AppPrefs: RealmObject {
     var autoDeleteLocal: Boolean = false
     var playbackSpeedArray: String? = null
     var fallbackSpeed: Float = 0.0f
+
+    var useRingTone: Boolean = false
+    var ringToneName: String? = null
+    var ringToneUriString: String? = null
+
     var streamOverDownload: Boolean = false
     var lowQualityOnMobile: Boolean = false
     var speedforwardSpeed: Float = 0.0f
@@ -146,8 +151,12 @@ class AppPrefs: RealmObject {
         if (customFolderUnavailable != other.customFolderUnavailable) return false
         if (autoDelete != other.autoDelete) return false
         if (autoDeleteLocal != other.autoDeleteLocal) return false
+        if (fallbackSpeed != other.fallbackSpeed) return false
+        if (useRingTone != other.useRingTone) return false
         if (streamOverDownload != other.streamOverDownload) return false
         if (lowQualityOnMobile != other.lowQualityOnMobile) return false
+        if (speedforwardSpeed != other.speedforwardSpeed) return false
+        if (skipforwardSpeed != other.skipforwardSpeed) return false
         if (useAdaptiveProgressUpdate != other.useAdaptiveProgressUpdate) return false
         if (enqueueDownloaded != other.enqueueDownloaded) return false
         if (checkAvailableSpace != other.checkAvailableSpace) return false
@@ -158,6 +167,7 @@ class AppPrefs: RealmObject {
         if (proxyPort != other.proxyPort) return false
         if (gpodnet_notifications != other.gpodnet_notifications) return false
         if (deleteRemovesFromQueue != other.deleteRemovesFromQueue) return false
+        if (playbackSpeed != other.playbackSpeed) return false
         if (skipSilence != other.skipSilence) return false
         if (fastForwardSecs != other.fastForwardSecs) return false
         if (rewindSecs != other.rewindSecs) return false
@@ -173,9 +183,8 @@ class AppPrefs: RealmObject {
         if (autoBackupFolder != other.autoBackupFolder) return false
         if (customMediaUri != other.customMediaUri) return false
         if (playbackSpeedArray != other.playbackSpeedArray) return false
-        if (fallbackSpeed != other.fallbackSpeed) return false
-        if (speedforwardSpeed != other.speedforwardSpeed) return false
-        if (skipforwardSpeed != other.skipforwardSpeed) return false
+        if (ringToneName != other.ringToneName) return false
+        if (ringToneUriString != other.ringToneUriString) return false
         if (mobileUpdateTypes.size != other.mobileUpdateTypes.size) return false
         if (episodeCleanup != other.episodeCleanup) return false
         if (proxyType != other.proxyType) return false
@@ -183,7 +192,6 @@ class AppPrefs: RealmObject {
         if (proxyUser != other.proxyUser) return false
         if (proxyPassword != other.proxyPassword) return false
         if (nextcloud_server_address != other.nextcloud_server_address) return false
-        if (playbackSpeed != other.playbackSpeed) return false
         if (recaptcha_cookies != other.recaptcha_cookies) return false
         if (content_country != other.content_country) return false
 
@@ -219,8 +227,12 @@ class AppPrefs: RealmObject {
         result = 31 * result + customFolderUnavailable.hashCode()
         result = 31 * result + autoDelete.hashCode()
         result = 31 * result + autoDeleteLocal.hashCode()
+        result = 31 * result + fallbackSpeed.hashCode()
+        result = 31 * result + useRingTone.hashCode()
         result = 31 * result + streamOverDownload.hashCode()
         result = 31 * result + lowQualityOnMobile.hashCode()
+        result = 31 * result + speedforwardSpeed.hashCode()
+        result = 31 * result + skipforwardSpeed.hashCode()
         result = 31 * result + useAdaptiveProgressUpdate.hashCode()
         result = 31 * result + enqueueDownloaded.hashCode()
         result = 31 * result + checkAvailableSpace.hashCode()
@@ -231,6 +243,7 @@ class AppPrefs: RealmObject {
         result = 31 * result + proxyPort
         result = 31 * result + gpodnet_notifications.hashCode()
         result = 31 * result + deleteRemovesFromQueue.hashCode()
+        result = 31 * result + playbackSpeed.hashCode()
         result = 31 * result + skipSilence.hashCode()
         result = 31 * result + fastForwardSecs
         result = 31 * result + rewindSecs
@@ -246,9 +259,8 @@ class AppPrefs: RealmObject {
         result = 31 * result + (autoBackupFolder?.hashCode() ?: 0)
         result = 31 * result + customMediaUri.hashCode()
         result = 31 * result + (playbackSpeedArray?.hashCode() ?: 0)
-        result = 31 * result + fallbackSpeed.hashCode()
-        result = 31 * result + speedforwardSpeed.hashCode()
-        result = 31 * result + skipforwardSpeed.hashCode()
+        result = 31 * result + (ringToneName?.hashCode() ?: 0)
+        result = 31 * result + (ringToneUriString?.hashCode() ?: 0)
         result = 31 * result + mobileUpdateTypes.size
         result = 31 * result + episodeCleanup.hashCode()
         result = 31 * result + proxyType.hashCode()
@@ -256,9 +268,9 @@ class AppPrefs: RealmObject {
         result = 31 * result + (proxyUser?.hashCode() ?: 0)
         result = 31 * result + (proxyPassword?.hashCode() ?: 0)
         result = 31 * result + nextcloud_server_address.hashCode()
-        result = 31 * result + playbackSpeed.hashCode()
         result = 31 * result + recaptcha_cookies.hashCode()
         result = 31 * result + (content_country?.hashCode() ?: 0)
         return result
     }
+
 }

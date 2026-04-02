@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 278
-        versionName = "10.14.3"
+        versionCode = 279
+        versionName = "10.14.4"
 
         ndkVersion = "29.0.14206865"
 
@@ -225,8 +225,8 @@ dependencies {
 
 
     implementation("com.squareup.okhttp3:okhttp:5.3.2")
-    implementation("com.squareup.okio:okio:3.17.0")
     implementation("com.squareup.okhttp3:okhttp-urlconnection:5.3.2")
+    implementation("com.squareup.okio:okio:3.17.0")
 
     implementation("net.dankito.readability4j:readability4j:1.0.8")
 
