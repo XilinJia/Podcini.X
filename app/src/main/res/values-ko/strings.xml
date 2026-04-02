@@ -474,8 +474,6 @@
     <string name="pref_automatic_download_sum">Configure the automatic download of episodes</string>
     <string name="pref_automatic_download_on_battery_title">Download when not charging</string>
     <string name="pref_automatic_download_on_battery_sum">Allow automatic download when the battery is not charging</string>
-    <string name="pref_disable_wifilock_title">Disable using WifiLock</string>
-    <string name="pref_disable_wifilock_sum">WifiLock routines are deprecated and not functional on modern Android. Try disable it.</string>
     <string name="pref_watch_storage_title">Watch available space</string>
     <string name="pref_watch_storage_sum">Specifies if available space is ensured at download time. If you don\'t have a tight storage, this is better set to false.</string>
     <string name="pref_autodl_queue_empty_title">Launch when queue gets empty</string>
@@ -845,6 +843,10 @@
     <string name="audio_controls">Audio controls</string>
     <string name="playback_speed">Playback speed</string>
     <string name="player_switch_to_audio_only">Audio only</string>
+    <string name="use_ring_tone">Use a ring tone</string>
+    <string name="use_ring_tone_sum">When enabled, the chosen ring tone is played when starting a new episode in queue.</string>
+    <string name="select_ring_tone">Select a ring tone</string>
+    <string name="select_ring_tone_sum">The ring tone is played when starting a new episode in queue.</string>
     <!-- proxy settings -->
     <string name="proxy_type_label">Type</string>
     <string name="host_label">Host</string>
