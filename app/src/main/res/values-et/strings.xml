@@ -60,7 +60,7 @@
   <string name="no">Ei</string>
   <string name="reset">Nulli</string>
   <string name="global_default">Üldine vaikeväärtus</string>
-  <string name="url_label">URL</string>
+
   <string name="support_funding_label">Toeta</string>
   <string name="support_podcast">Toeta seda taskuhäälingut</string>
   <string name="error_label">Viga</string>

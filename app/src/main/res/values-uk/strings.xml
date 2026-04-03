@@ -66,7 +66,7 @@
     <string name="no">Ні</string>
     <string name="reset">Перезапуск</string>
     <string name="global_default">Глобальне налаштування за замовчуванням</string>
-    <string name="url_label">Посилання</string>
+
     <string name="support_funding_label">Підтримка</string>
     <string name="support_podcast">Підтримати цей подкаст</string>
     <string name="error_label">Помилка</string>

@@ -66,7 +66,7 @@
     <string name="no">Ei</string>
     <string name="reset">Resetoi</string>
     <string name="global_default">Globaali oletus</string>
-    <string name="url_label">URL-osoite</string>
+
     <string name="support_funding_label">Tue</string>
     <string name="support_podcast">Tue tätä podcastia</string>
     <string name="error_label">Virhe</string>

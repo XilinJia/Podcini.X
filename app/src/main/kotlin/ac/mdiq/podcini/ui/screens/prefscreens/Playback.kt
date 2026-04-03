@@ -102,12 +102,10 @@ fun PlaybackScreen() {
 
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
         Text(stringResource(R.string.interruptions), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        var prefUnpauseOnHeadsetReconnect by remember { mutableStateOf(appPrefs.pauseOnHeadsetDisconnect) }
         TitleSummarySwitchRow(R.string.pref_pauseOnHeadsetDisconnect_title, R.string.pref_pauseOnDisconnect_sum, appPrefs.pauseOnHeadsetDisconnect) {
-            prefUnpauseOnHeadsetReconnect = it
             upsertBlk(appPrefs) { p-> p.pauseOnHeadsetDisconnect = it }
         }
-        if (prefUnpauseOnHeadsetReconnect) {
+        if (appPrefs.pauseOnHeadsetDisconnect) {
             TitleSummarySwitchRow(R.string.pref_unpauseOnHeadsetReconnect_title, R.string.pref_unpauseOnHeadsetReconnect_sum, appPrefs.unpauseOnHeadsetReconnect) {
                 upsertBlk(appPrefs) { p-> p.unpauseOnHeadsetReconnect = it }
             }

@@ -68,7 +68,7 @@
     <string name="no">Nu</string>
     <string name="reset">Restablecer</string>
     <string name="global_default">Global predeterminado</string>
-    <string name="url_label">URL</string>
+
     <string name="support_funding_label">Apoyo</string>
     <string name="support_podcast">Apoyar a este pódcast</string>
     <string name="error_label">Error</string>

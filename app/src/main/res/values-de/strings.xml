@@ -69,7 +69,7 @@
     <string name="no">Nein</string>
     <string name="reset">Reset</string>
     <string name="global_default">Globaler Standard</string>
-    <string name="url_label">URL</string>
+
     <string name="support_funding_label">Unterstützen</string>
     <string name="support_podcast">Diesen Podcast unterstützen</string>
     <string name="error_label">Fehler</string>

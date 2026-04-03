@@ -335,14 +335,12 @@ fun ImportExportScreen() {
         )
     }
 
-    var backupFolder by remember { mutableStateOf(appPrefs.autoBackupFolder ?: context.getString(R.string.pref_auto_backup_folder_sum)) }
     val selectAutoBackupDirLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == RESULT_OK) {
             val uri: Uri? = it.data?.data
             if (uri != null) {
                 persistedTrees.add(uri)
                 getAppContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                backupFolder = uri.toString()
                 upsertBlk(appPrefs) { p-> p.autoBackupFolder = uri.toString() }
             }
         }
@@ -452,21 +450,17 @@ fun ImportExportScreen() {
         TitleSummarySwitchRow(R.string.pref_backup_on_google_title, R.string.pref_backup_on_google_sum, appPrefs.OPMLBackup) {
             upsertBlk(appPrefs) { p -> p.OPMLBackup = it}
         }
-        var isAutoBackup by remember { mutableStateOf(appPrefs.autoBackup) }
         TitleSummarySwitchRow(R.string.pref_auto_backup_title, R.string.pref_auto_backup_sum, appPrefs.autoBackup) {
-            isAutoBackup = it
             upsertBlk(appPrefs) { p -> p.autoBackup = it}
             appPrefs.autoBackupFolder?.toSafeUri()?.let { uri->
                 try { getAppContext().contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION) } catch (e: Exception) { Logd(TAG, "uri can not be released: $uri")}
             }
         }
-        if (isAutoBackup) {
+        if (appPrefs.autoBackup) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
                 Text(stringResource(R.string.pref_auto_backup_interval), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                var interval by remember { mutableStateOf(appPrefs.autoBackupIntervall.toString()) }
-                NumberEditor(interval.toInt(), label = "hours", nz = false, modifier = Modifier.weight(0.5f)) {
-                    interval = it.toString()
-                    upsertBlk(appPrefs) { p-> p.autoBackupIntervall = interval.toIntOrNull()?:0 }
+                NumberEditor(appPrefs.autoBackupIntervall, label = "hours", nz = false, modifier = Modifier.weight(0.5f)) {
+                    upsertBlk(appPrefs) { p-> p.autoBackupIntervall = it }
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
@@ -497,7 +491,7 @@ fun ImportExportScreen() {
                 selectAutoBackupDirLauncher.launch(intent)
             }) {
                 Text(stringResource(R.string.pref_auto_backup_folder), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
-                Text(backupFolder, color = textColor, style = MaterialTheme.typography.bodySmall)
+                Text(appPrefs.autoBackupFolder ?: stringResource(R.string.pref_auto_backup_folder_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
             }
         }
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))

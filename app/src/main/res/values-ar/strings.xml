@@ -67,7 +67,7 @@
     <string name="no">لا</string>
     <string name="reset">إعادة التعيين</string>
     <string name="global_default">الاعدادات الافتراضية</string>
-    <string name="url_label">عنوان الموقع</string>
+
     <string name="support_funding_label">إدعم</string>
     <string name="support_podcast">إدعم هذا البودكاست</string>
     <string name="error_label">خطأ</string>

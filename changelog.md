@@ -1,3 +1,12 @@
+# 10.14.5
+
+* amended FeedDetails screen
+	* merged top bar, header, and info bar
+	* enhanced background image display 
+	* in List view, shrinking/expanding the header on scroll is enhanced
+	* in Info view, added a large image of the feed
+* removed unnecessary state variables in Settings
+
 # 10.14.4
 
 * reduced network connection and socket timeout to 15 seconds

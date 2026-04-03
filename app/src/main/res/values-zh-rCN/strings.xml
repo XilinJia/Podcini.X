@@ -66,7 +66,7 @@
     <string name="no">否</string>
     <string name="reset">Reset</string>
     <string name="global_default">全局默认</string>
-    <string name="url_label">网址</string>
+
     <string name="support_funding_label">支持</string>
     <string name="support_podcast">支持这个播客</string>
     <string name="error_label">错误</string>

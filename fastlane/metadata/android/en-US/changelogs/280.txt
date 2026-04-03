@@ -1,0 +1,6 @@
+* amended FeedDetails screen
+	* merged top bar, header, and info bar
+	* enhanced background image display
+	* in List view, shrinking/expanding the header on scroll is enhanced
+	* in Info view, added a large image of the feed
+* removed unnecessary state variables in Settings

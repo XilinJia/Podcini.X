@@ -34,7 +34,7 @@
   <string name="yes">Sí</string>
   <string name="no">Non</string>
   <string name="reset">Reafitar</string>
-  <string name="url_label">URL</string>
+
   <string name="error_label">Fallu</string>
   <string name="error_msg_prefix">Asocedió un fallu:</string>
   <string name="refresh_label">Refrescar</string>

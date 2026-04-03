@@ -66,7 +66,7 @@
     <string name="no">Ne</string>
     <string name="reset">Reset</string>
     <string name="global_default">Globální výchozí nastavení</string>
-    <string name="url_label">URL</string>
+
     <string name="support_funding_label">Podpořit</string>
     <string name="support_podcast">Podpořit tento podcast</string>
     <string name="error_label">Chyba</string>

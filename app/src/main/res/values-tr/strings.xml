@@ -91,7 +91,7 @@
     <string name="no">Hayır</string>
     <string name="reset">Sıfırla</string>
     <string name="global_default">Küresel varsayılan</string>
-    <string name="url_label">URL</string>
+
     <string name="support_funding_label">Destek</string>
     <string name="support_podcast">Bu podcast\'i destekle</string>
     <string name="error_label">Hata</string>

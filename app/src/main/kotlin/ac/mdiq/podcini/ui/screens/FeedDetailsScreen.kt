@@ -82,30 +82,29 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -117,13 +116,19 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
@@ -132,8 +137,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.constraintlayout.compose.Dimension
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
@@ -246,6 +249,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
     val drawerController = LocalDrawerController.current
+    val textColor = MaterialTheme.colorScheme.onSurface
 
     val vm: FeedDetailsVM = viewModel(key = feedId.toString(), factory = viewModelFactory { initializer { FeedDetailsVM(feedId = feedId, modeName = modeName) } })
 
@@ -371,55 +375,36 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         } else if (curEpisode?.feedId != null) navTo(FeedDetails(feedId = curEpisode!!.feedId!!))
     }
 
-    @Composable
-    fun FeedDetailsHeader() {
-        val textColor = MaterialTheme.colorScheme.onSurface
-        ConstraintLayout(modifier = Modifier.fillMaxWidth().height(60.dp)) {
-            val (bgImage, bgColor, imgvCover, rating) = createRefs()
-            AsyncImage(model = feed?.imageUrl?:"", contentDescription = "bgImage", contentScale = ContentScale.FillBounds, error = painterResource(R.drawable.teaser),
-                modifier = Modifier.fillMaxSize().blur(radiusX = 15.dp, radiusY = 15.dp).constrainAs(bgImage) {
-                    bottom.linkTo(parent.bottom)
-                    top.linkTo(parent.top)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end) })
-            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)).constrainAs(bgColor) {
-                bottom.linkTo(parent.bottom)
-                top.linkTo(parent.top)
-                start.linkTo(parent.start)
-                end.linkTo(parent.end) })
-            Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().constrainAs(imgvCover) {
-                top.linkTo(parent.top)
-                start.linkTo(parent.start)
-                end.linkTo(parent.end)
-                bottom.linkTo(parent.bottom)
-                width = Dimension.fillToConstraints
-            }) {
-                AsyncImage(model = feed?.imageUrl ?: "", alignment = Alignment.TopStart, contentDescription = "imgvCover", error = painterResource(R.drawable.ic_launcher_foreground),
-                    colorFilter = if (feed?.inNormalVolume != true) ColorFilter.tint(color = Color.Gray.copy(alpha = 0.5f), blendMode = BlendMode.SrcAtop) else null,
-                    modifier = Modifier.width(60.dp).height(60.dp).combinedClickable(
-                        onClick = { if (feed != null) vm.screenModeFlow.value = (if (screenMode == FeedScreenMode.Info) FeedScreenMode.List else FeedScreenMode.Info) },
-                        onLongClick = { onImgLongClick() }))
-                if (feed != null) Text(feed?.title ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 4.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
-            }
-            if (feed != null) {
-                val ratingIconRes = remember(feed?.rating) {  Rating.fromCode(feed?.rating?:0).res }
-                Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.padding(end = 10.dp, bottom = 5.dp).background(MaterialTheme.colorScheme.tertiaryContainer).clickable { showChooseRatingDialog = true }.constrainAs(rating) {
-                        end.linkTo(parent.end)
-                        bottom.linkTo(parent.bottom)
-                    })
+    val maxHeaderHeight = 60.dp
+    val density = LocalDensity.current
+    val maxHeaderPx = with(density) { maxHeaderHeight.toPx() }
+    val minHeaderPx = with(density) { 0.dp.toPx() }
+    val headerHeightPx = remember { mutableStateOf(maxHeaderPx) }
+    val currentHeaderDp = with(density) { headerHeightPx.value.toDp() }
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                val newHeight = headerHeightPx.value + delta
+                headerHeightPx.value = newHeight.coerceIn(minHeaderPx, maxHeaderPx)
+                return if (headerHeightPx.value > minHeaderPx && headerHeightPx.value < maxHeaderPx) Offset(x = 0f, y = delta) else { Offset.Zero }
             }
         }
     }
 
     @Composable
-    fun MyTopAppBar() {
+    fun TopHeader() {
         var expanded by remember { mutableStateOf(false) }
-        val textColor = MaterialTheme.colorScheme.onSurface
         val buttonColor = Color(0xDDFFD700)
         val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
-        Box {
-            TopAppBar(title = { Text("") }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { if (!navBack()) drawerController?.open() } )  },
-                actions = {
+
+        Box(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
+            AsyncImage(model = feed?.imageUrl?:"", contentDescription = "bgImage", contentScale = ContentScale.FillBounds, error = painterResource(R.drawable.teaser), modifier = Modifier.matchParentSize().blur(radiusX = 5.dp, radiusY = 5.dp))
+            Box(modifier = Modifier.matchParentSize().background(Brush.verticalGradient(colors = listOf(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)))))
+            Column {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { if (!navBack()) drawerController?.open() } )
+                    Spacer(Modifier.weight(1f))
                     if (screenMode == FeedScreenMode.List) {
                         val isFiltered = remember(feed?.filterString, feed?.episodeFilter?.propertySet) { !feed?.filterString.isNullOrBlank() && !feed?.episodeFilter?.propertySet.isNullOrEmpty() }
                         IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort") }
@@ -444,66 +429,93 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.playlist_play), contentDescription = "queue") }
                     IconButton(onClick = { navTo(Search) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                     if (feed != null) {
-                        IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                        DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
-                            DropdownMenuItem(text = { Text(stringResource(R.string.settings_label)) }, onClick = {
-                                feedsToSet = listOf(feed!!)
-                                navTo(FeedsSettings)
-                                expanded = false
-                            })
-                            if (!feed?.downloadUrl.isNullOrBlank()) DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
-                                shareLink(context, feed?.downloadUrl ?: "")
-                                expanded = false
-                            })
-                            if (!feed?.link.isNullOrBlank()) DropdownMenuItem(text = { Text(stringResource(R.string.visit_website_label)) }, onClick = {
-                                val isCallable = if (!feed?.link.isNullOrEmpty()) isCallable(Intent(Intent.ACTION_VIEW, feed!!.link!!.toSafeUri())) else false
-                                if (isCallable) openInBrowser(feed!!.link!!)
-                                else Loge(TAG, "feed link is not valid: ${feed?.link}")
-                                expanded = false
-                            })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.transfer_to_device)) }, onClick = {
-                                showToDeviceDialog = true
-                                expanded = false
-                            })
-                            if (feed?.isLocalFeed == true) DropdownMenuItem(text = { Text(stringResource(R.string.reconnect_local_folder)) }, onClick = {
-                                showConnectLocalFolderConfirm.value = true
-                                expanded = false
-                            })
-                            if (vm.feedEpisodesSize > 0 && feed?.downloadUrl != null && !gearbox.isGearFeed(feed!!.downloadUrl!!)) DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {
-                                feedOperationText = context.getString(R.string.fetch_size)
-                                scope.launch(Dispatchers.IO) {
-                                    val feedEpisodes = getEpisodes(null, null, feedId, copy = false)
-                                    for (e in feedEpisodes) e.fetchMediaSize(force = true)
-                                    withContext(Dispatchers.Main) { feedOperationText = "" }
-                                }
-                                expanded = false
-                            })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.clean_up)) }, onClick = {
-                                feedOperationText = context.getString(R.string.clean_up)
-                                runOnIOScope {
-                                    val f = realm.copyFromRealm(feed!!)
-                                    FeedAssistant(f).clear()
-                                    upsert(f) {}
-                                    withContext(Dispatchers.Main) { feedOperationText = "" }
-                                }
-                                expanded = false
-                            })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
-                                runOnIOScope { gearbox.feedUpdater(listOf(feed!!), doItAnyway = true).startRefresh() }
-                                expanded = false
-                            })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
-                                runOnIOScope { gearbox.feedUpdater(listOf(feed!!), fullUpdate = true, doItAnyway = true, removeUnlisted = true).startRefresh() }
-                                expanded = false
-                            })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.remove_feed_label)) }, onClick = {
-                                showRemoveFeedDialog = true
-                                expanded = false
-                            })
+                        Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
+                            IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
+                            DropdownMenu(expanded = expanded, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
+                                DropdownMenuItem(text = { Text(stringResource(R.string.settings_label)) }, onClick = {
+                                    feedsToSet = listOf(feed!!)
+                                    navTo(FeedsSettings)
+                                    expanded = false
+                                })
+                                if (!feed?.downloadUrl.isNullOrBlank()) DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
+                                    shareLink(context, feed?.downloadUrl ?: "")
+                                    expanded = false
+                                })
+                                if (!feed?.link.isNullOrBlank()) DropdownMenuItem(text = { Text(stringResource(R.string.visit_website_label)) }, onClick = {
+                                    val isCallable = if (!feed?.link.isNullOrEmpty()) isCallable(Intent(Intent.ACTION_VIEW, feed!!.link!!.toSafeUri())) else false
+                                    if (isCallable) openInBrowser(feed!!.link!!)
+                                    else Loge(TAG, "feed link is not valid: ${feed?.link}")
+                                    expanded = false
+                                })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.transfer_to_device)) }, onClick = {
+                                    showToDeviceDialog = true
+                                    expanded = false
+                                })
+                                if (feed?.isLocalFeed == true) DropdownMenuItem(text = { Text(stringResource(R.string.reconnect_local_folder)) }, onClick = {
+                                    showConnectLocalFolderConfirm.value = true
+                                    expanded = false
+                                })
+                                if (vm.feedEpisodesSize > 0 && feed?.downloadUrl != null && !gearbox.isGearFeed(feed!!.downloadUrl!!)) DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {
+                                    feedOperationText = context.getString(R.string.fetch_size)
+                                    scope.launch(Dispatchers.IO) {
+                                        val feedEpisodes = getEpisodes(null, null, feedId, copy = false)
+                                        for (e in feedEpisodes) e.fetchMediaSize(force = true)
+                                        withContext(Dispatchers.Main) { feedOperationText = "" }
+                                    }
+                                    expanded = false
+                                })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.clean_up)) }, onClick = {
+                                    feedOperationText = context.getString(R.string.clean_up)
+                                    runOnIOScope {
+                                        val f = realm.copyFromRealm(feed!!)
+                                        FeedAssistant(f).clear()
+                                        upsert(f) {}
+                                        withContext(Dispatchers.Main) { feedOperationText = "" }
+                                    }
+                                    expanded = false
+                                })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
+                                    runOnIOScope { gearbox.feedUpdater(listOf(feed!!), doItAnyway = true).startRefresh() }
+                                    expanded = false
+                                })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
+                                    runOnIOScope { gearbox.feedUpdater(listOf(feed!!), fullUpdate = true, doItAnyway = true, removeUnlisted = true).startRefresh() }
+                                    expanded = false
+                                })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.remove_feed_label)) }, onClick = {
+                                    showRemoveFeedDialog = true
+                                    expanded = false
+                                })
+                            }
                         }
                     }
-                })
-            HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
+                }
+                Box(modifier = Modifier.fillMaxWidth().height(currentHeaderDp)) {
+                    Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
+                        AsyncImage(model = feed?.imageUrl ?: "", alignment = Alignment.TopStart, contentDescription = "imgvCover", error = painterResource(R.drawable.ic_launcher_foreground), colorFilter = if (feed?.inNormalVolume != true) ColorFilter.tint(color = Color.Gray.copy(alpha = 0.5f), blendMode = BlendMode.SrcAtop) else null, modifier = Modifier.width(60.dp).height(60.dp).combinedClickable(onClick = { if (feed != null) vm.screenModeFlow.value = (if (screenMode == FeedScreenMode.Info) FeedScreenMode.List else FeedScreenMode.Info) }, onLongClick = { onImgLongClick() }))
+                        if (feed != null) Text(feed?.title ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 4.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
+                    if (feed != null) {
+                        val ratingIconRes = remember(feed?.rating) {  Rating.fromCode(feed?.rating?:0).res }
+                        Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.align(Alignment.BottomEnd).padding(end = 10.dp, bottom = 5.dp).background(MaterialTheme.colorScheme.tertiaryContainer).clickable { showChooseRatingDialog = true })
+                    }
+                }
+                if (screenMode != FeedScreenMode.Info) InforBar(swipeActions) {
+                    if (feedOperationText.isNotBlank()) Text(feedOperationText, style = MaterialTheme.typography.bodyMedium)
+                    else {
+                        val scoreText = remember(feed?.score, feed?.scoreCount) { if (feed != null) (feed!!.score).toString() + " (" + feed!!.scoreCount + ") " else "" }
+                        if (scoreText.isNotBlank()) {
+                            Text(scoreText, style = MaterialTheme.typography.bodyMedium)
+                            Spacer(modifier = Modifier.weight(0.1f))
+                        }
+                        AsyncImage(model = feed?.imageUrl ?: "", alignment = Alignment.TopStart, contentDescription = "imgvCover", error = painterResource(R.drawable.ic_launcher_foreground), modifier = Modifier.width(24.dp).height(24.dp).combinedClickable(
+                            onClick = { if (feed != null) vm.screenModeFlow.value = (if (screenMode == FeedScreenMode.Info) FeedScreenMode.List else FeedScreenMode.Info) },
+                            onLongClick = { onImgLongClick() }))
+                        Spacer(modifier = Modifier.weight(0.1f))
+                        Text(vm.listInfoText, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
         }
     }
 
@@ -525,7 +537,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         if (showFeedStats) FeedStatisticsDialog(feed?.title?: "No title", feed?.id?:0, 0, Long.MAX_VALUE) { showFeedStats = false }
 
         Column(modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp)) {
-            val textColor = MaterialTheme.colorScheme.onSurface
             SelectionContainer {
                 Column {
                     Text(feed?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp))
@@ -581,7 +592,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         }
                     }
                 }
-                Text(stringResource(R.string.url_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+                AsyncImage(model = feed?.imageUrl ?: "", contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(10.dp))
                 Text(text = feed?.downloadUrl ?: "", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 15.dp).combinedClickable(
                     onClick = { if (!feed?.downloadUrl.isNullOrBlank()) openInBrowser(feed!!.downloadUrl!!) },
                     onLongClick = {
@@ -646,27 +657,9 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     OpenDialogs()
 
     if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesFlow)
-    else Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
+    else Scaffold(topBar = { TopHeader() }) { innerPadding ->
         if (screenMode in listOf(FeedScreenMode.List, FeedScreenMode.History)) {
-            Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-                val isHeaderVisible by remember { derivedStateOf { lazyListState.firstVisibleItemIndex < 2 } }
-                Logd(TAG, "vm.showHeader: ${vm.showHeader} isHeaderVisible: $isHeaderVisible")
-                if (vm.showHeader && (isHeaderVisible || episodes.size < 10)) FeedDetailsHeader()
-                InforBar(swipeActions) {
-                    if (feedOperationText.isNotBlank()) Text(feedOperationText, style = MaterialTheme.typography.bodyMedium)
-                    else {
-                        val scoreText = remember(feed?.score, feed?.scoreCount) { if (feed != null) (feed!!.score).toString() + " (" + feed!!.scoreCount + ") " else "" }
-                        if (scoreText.isNotBlank()) {
-                            Text(scoreText, style = MaterialTheme.typography.bodyMedium)
-                            Spacer(modifier = Modifier.weight(0.1f))
-                        }
-                        AsyncImage(model = feed?.imageUrl ?: "", alignment = Alignment.TopStart, contentDescription = "imgvCover", error = painterResource(R.drawable.ic_launcher_foreground), modifier = Modifier.width(24.dp).height(24.dp).combinedClickable(
-                            onClick = { if (feed != null) vm.screenModeFlow.value = (if (screenMode == FeedScreenMode.Info) FeedScreenMode.List else FeedScreenMode.Info) },
-                            onLongClick = { onImgLongClick() }))
-                        Spacer(modifier = Modifier.weight(0.1f))
-                        Text(vm.listInfoText, style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
+            Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface).nestedScroll(nestedScrollConnection)) {
                 var scrollToOnStart by remember(episodes.size, curEpisode?.id, vm.cameBack, screenMode) { mutableIntStateOf(
                     when {
                         screenMode == FeedScreenMode.History || screenMode == FeedScreenMode.Info -> -1
@@ -687,8 +680,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     } }
                 Logd(TAG, "actionButtonName: $actionButtonName")
                 EpisodeLazyColumn(episodes, feed = feed, layoutMode = if (feed?.useWideLayout == true) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal,
-                    swipeActions = swipeActions,
-                    lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
+                    swipeActions = swipeActions, lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
                     refreshCB = {
                         when {
                             feed == null -> Logt(TAG, "feed is null, can not refresh")
@@ -718,12 +710,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     },
                 )
             }
-        } else {
-            Column(modifier = Modifier.padding(innerPadding).fillMaxSize().verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
-                FeedDetailsHeader()
-                DetailUI()
-            }
-        }
+        } else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) { DetailUI() }
     }
 }
 

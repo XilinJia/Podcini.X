@@ -68,7 +68,7 @@
     <string name="no">いいえ</string>
     <string name="reset">リセット</string>
     <string name="global_default">グローバルデフォルト</string>
-    <string name="url_label">URL</string>
+
     <string name="support_funding_label">サポート</string>
     <string name="support_podcast">このポッドキャストをサポートする</string>
     <string name="error_label">エラー</string>

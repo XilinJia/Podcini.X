@@ -66,7 +66,7 @@
     <string name="no">Nee</string>
     <string name="reset">Standaardwaarden</string>
     <string name="global_default">Standaardinstelling</string>
-    <string name="url_label">URL</string>
+
     <string name="support_funding_label">Draag bij</string>
     <string name="support_podcast">Steun deze podcast</string>
     <string name="error_label">Fout</string>

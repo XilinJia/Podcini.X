@@ -41,7 +41,7 @@
   <string name="yes">Taip</string>
   <string name="no">Ne</string>
   <string name="reset">Nustatyti iš naujo</string>
-  <string name="url_label">URL</string>
+
   <string name="support_funding_label">Parama</string>
   <string name="error_label">Klaida</string>
   <string name="error_msg_prefix">Įvyko klaida:</string>

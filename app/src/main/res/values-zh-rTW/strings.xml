@@ -43,7 +43,7 @@
   <string name="yes">是</string>
   <string name="no">否</string>
   <string name="reset">重置</string>
-  <string name="url_label">網址</string>
+
   <string name="error_label">錯誤</string>
   <string name="error_msg_prefix">發生錯誤：</string>
   <string name="refresh_label">刷新</string>

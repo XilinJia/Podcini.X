@@ -304,9 +304,6 @@ fun NetworkStorageScreen() {
 
     var showProxyDialog by remember { mutableStateOf(false) }
     if (showProxyDialog) ProxyDialog {showProxyDialog = false }
-
-    var useCustomMediaDir by remember { mutableStateOf(appPrefs.useCustomMediaFolder) }
-
     val showImporSuccessDialog = remember { mutableStateOf(false) }
     ComfirmDialog(titleRes = R.string.successful_import_label, message = stringResource(R.string.import_ok), showDialog = showImporSuccessDialog, cancellable = false) { forceRestart() }
 
@@ -323,7 +320,6 @@ fun NetworkStorageScreen() {
     }
 
     Logd(TAG, "useCustomMediaFolder: ${appPrefs.useCustomMediaFolder} customMediaUri: ${appPrefs.customMediaUri}")
-    var customMediaFolderUriString by remember { mutableStateOf(appPrefs.customMediaUri) }
     val selectCustomMediaDirLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == RESULT_OK) {
             val uri: Uri? = it.data?.data
@@ -341,12 +337,9 @@ fun NetworkStorageScreen() {
                     val mediaDir_ = uri.toUF().createDirectory("Podcini.media")
                     MediaFilesTransporter("Podcini.media").fromMediaDirToUF(mediaDir_, move = true, useSubDir = false)
                     deleteDirectoryRecursively(mediaDir)
-                    customMediaFolderUriString = mediaDir_.toAndroidUri().toString()
-                    Logd(TAG, "selectCustomMediaDirLauncher uri string: $customMediaFolderUriString")
-                    useCustomMediaDir = true
                     upsert(appPrefs) { ap ->
                         ap.useCustomMediaFolder = true
-                        ap.customMediaUri = customMediaFolderUriString
+                        ap.customMediaUri = mediaDir_.toAndroidUri().toString()
                         ap.customFolderUnavailable = false
                     }
                     showProgress = false
@@ -357,9 +350,7 @@ fun NetworkStorageScreen() {
     }
 
     var refreshInterval by remember { mutableStateOf(appPrefs.autoUpdateInterval.toString()) }
-    LaunchedEffect(Unit) {
-        getInitialDelay()
-    }
+    LaunchedEffect(Unit) { getInitialDelay() }
 
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
@@ -405,8 +396,7 @@ fun NetworkStorageScreen() {
                     TextButton(onClick = {
                         showProgress = true
                         CoroutineScope(Dispatchers.IO).launch {
-                            val uf = customMediaFolderUriString.toUF()
-                            useCustomMediaDir = false
+                            val uf = appPrefs.customMediaUri.toUF()
                             upsert(appPrefs) {
                                 it.useCustomMediaFolder = false
                                 it.customMediaUri = ""
@@ -414,10 +404,9 @@ fun NetworkStorageScreen() {
                             }
                             MediaFilesTransporter("").fromUFToMediaDir(uf, move = true, verify = false)
                             deleteDirectoryRecursively(uf)
-                            findRootForUri(customMediaFolderUriString.toSafeUri())?.let {
+                            findRootForUri(appPrefs.customMediaUri.toSafeUri())?.let {
                                 try { getAppContext().contentResolver.releasePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION) } catch (e: Exception) { Logd(TAG, "uri can not be released: $it")}
                             }
-                            customMediaFolderUriString = ""
                             showProgress = false
                             showImporSuccessDialog.value = true
                             showResetCustomFolderDialog = false
@@ -429,7 +418,7 @@ fun NetworkStorageScreen() {
         }
         var showSetCustomFolderDialog by remember { mutableStateOf(false) }
         if (showSetCustomFolderDialog) {
-            val sumTextRes = if (useCustomMediaDir) R.string.pref_custom_media_dir_sum1 else R.string.pref_custom_media_dir_sum
+            val sumTextRes = if (appPrefs.useCustomMediaFolder) R.string.pref_custom_media_dir_sum1 else R.string.pref_custom_media_dir_sum
             AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { showSetCustomFolderDialog = false },
                 title = { Text(stringResource(R.string.pref_custom_media_dir_title), style = CustomTextStyles.titleCustom) },
                 text = { Text(stringResource(sumTextRes), color = textColor, style = MaterialTheme.typography.bodySmall) },
@@ -448,24 +437,20 @@ fun NetworkStorageScreen() {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Column(modifier = Modifier.weight(1f).clickable { showSetCustomFolderDialog = true }) {
                 Text(stringResource(R.string.pref_custom_media_dir_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
-                Text(customMediaFolderUriString.ifBlank { stringResource(R.string.pref_custom_media_dir_sum) }, color = textColor, style = MaterialTheme.typography.bodySmall)
+                Text(appPrefs.customMediaUri.ifBlank { stringResource(R.string.pref_custom_media_dir_sum) }, color = textColor, style = MaterialTheme.typography.bodySmall)
             }
-            if (useCustomMediaDir) TextButton(onClick = { showResetCustomFolderDialog = true }) { Text(stringResource(R.string.reset)) }
+            if (appPrefs.useCustomMediaFolder) TextButton(onClick = { showResetCustomFolderDialog = true }) { Text(stringResource(R.string.reset)) }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
-        var isEnabled by remember { mutableStateOf(appPrefs.enableAutoDl) }
         TitleSummarySwitchRow(R.string.pref_automatic_download_title, R.string.pref_automatic_download_sum, appPrefs.enableAutoDl) {
-            isEnabled = it
             upsertBlk(appPrefs) { p -> p.enableAutoDl = it }
         }
-        if (isEnabled) {
+        if (appPrefs.enableAutoDl) {
             Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.pref_episode_cache_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    var interval by remember { mutableStateOf(appPrefs.episodeCacheSize) }
-                    NumberEditor(interval, label = "integer", nz = false, modifier = Modifier.weight(0.5f)) {
-                        interval = it
-                        upsertBlk(appPrefs) { p-> p.episodeCacheSize = interval}
+                    NumberEditor(appPrefs.episodeCacheSize, label = "integer", nz = false, modifier = Modifier.weight(0.5f)) {
+                        upsertBlk(appPrefs) { p-> p.episodeCacheSize = it}
                     }
                 }
                 Text(stringResource(R.string.pref_episode_cache_summary), color = textColor, style = MaterialTheme.typography.bodySmall)
@@ -512,7 +497,6 @@ fun NetworkStorageScreen() {
         var showMeteredNetworkOptions by remember { mutableStateOf(false) }
         TitleSummaryActionColumn(R.string.pref_metered_network_title, R.string.pref_mobileUpdate_sum) { showMeteredNetworkOptions = true }
         if (showMeteredNetworkOptions) {
-            val initMobileOptions = remember { appPrefs.mobileUpdateTypes }
             var tempSelectedOptions by remember { mutableStateOf(appPrefs.mobileUpdateTypes.toSet()) }
             fun updateSepections(option: MobileUpdateOptions) {
                 tempSelectedOptions = if (tempSelectedOptions.contains(option.name)) tempSelectedOptions - option.name else tempSelectedOptions + option.name
@@ -541,7 +525,7 @@ fun NetworkStorageScreen() {
                 confirmButton = {
                     TextButton(onClick = {
                         upsertBlk(appPrefs) { it.mobileUpdateTypes = tempSelectedOptions.toRealmSet() }
-                        val optionsDiff = (tempSelectedOptions - initMobileOptions) + (initMobileOptions - tempSelectedOptions)
+                        val optionsDiff = (tempSelectedOptions - appPrefs.mobileUpdateTypes) + (appPrefs.mobileUpdateTypes - tempSelectedOptions)
                         if (optionsDiff.contains(MobileUpdateOptions.feed_refresh.name) || optionsDiff.contains(MobileUpdateOptions.auto_download.name))
                             checkAndScheduleUpdateTaskOnce(replace = true, force = true)
                         showMeteredNetworkOptions = false

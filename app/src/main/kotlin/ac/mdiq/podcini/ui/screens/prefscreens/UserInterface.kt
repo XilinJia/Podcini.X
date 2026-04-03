@@ -104,7 +104,6 @@ fun UserInterfaceScreen() {
                                 Text(stringResource(option.res), modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodyMedium)
                             }
                         }
-
                     }
                 },
                 confirmButton = {
