@@ -18,7 +18,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.format
-import android.text.format.Formatter
+import ac.mdiq.podcini.utils.formatShortFileSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -109,6 +109,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.minus
+import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.max
@@ -289,9 +290,7 @@ fun StatisticsScreen() {
             itemsIndexed(statisticsData.feedStats, key = { _, item -> item.feed.id }) { index, feedStats ->
                 Row(Modifier.background(MaterialTheme.colorScheme.surface).fillMaxWidth()) {
                     AsyncImage(model = ImageRequest.Builder(context).data(feedStats.feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), contentDescription = "imgvCover", placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentScale = ContentScale.FillBounds,
-                        modifier = Modifier.width(40.dp).height(90.dp).padding(end = 5.dp).clickable {
-                            navTo(FeedDetails(feedId=feedStats.feed.id, modeName=FeedScreenMode.Info.name))
-                        })
+                        modifier = Modifier.width(40.dp).height(90.dp).padding(end = 5.dp).clickable { navTo(FeedDetails(feedId=feedStats.feed.id, modeName=FeedScreenMode.Info.name)) })
                     Column(modifier = Modifier.clickable {
                         feedId = feedStats.feed.id
                         feedTitle = feedStats.feed.title ?: "No title"
@@ -406,8 +405,7 @@ fun StatisticsScreen() {
                     if (vm.date < Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) {
                         vm.date = vm.date.plus(1, DateTimeUnit.DAY)
                         vm.loadDailyStats()
-                    }
-                }) {
+                    } }) {
                     val plusText = remember(vm.date) { if (vm.date >= Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) "" else "+" }
                     Text(plusText, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 }
@@ -416,8 +414,7 @@ fun StatisticsScreen() {
                     if (vm.date.plus(6, DateTimeUnit.DAY) < Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) {
                         vm.date = vm.date.plus(7, DateTimeUnit.DAY)
                         vm.loadDailyStats()
-                    }
-                }) {
+                    } }) {
                     val plusText = remember(vm.date) { if (vm.date.plus(6, DateTimeUnit.DAY) >= Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) "" else "+7" }
                     Text(plusText, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 }
@@ -449,7 +446,7 @@ fun StatisticsScreen() {
             val groupdMedias = medias.groupBy {
                 val millis = if (it.lastPlayedTime > 0L) it.lastPlayedTime else it.playStateSetTime
                 val dateTime = Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault())
-                "${dateTime.year}-${dateTime.month}"
+                "${dateTime.year}-${dateTime.month.number}"
             }
             val orderedGroupedItems = groupdMedias.toList().sortedBy {
                 val (key, _) = it
@@ -478,17 +475,17 @@ fun StatisticsScreen() {
             val totalContentWidth = remember { bars.size * (barWidth + spaceBetweenBars).toInt() }
             val screenWidth = with(LocalDensity.current) { getAppContext().resources.displayMetrics.widthPixels.toDp() }
             val barColor = MaterialTheme.colorScheme.tertiary
-            Canvas(modifier = Modifier.horizontalScroll(rememberScrollState()).width(if (totalContentWidth.dp > screenWidth) totalContentWidth.dp else screenWidth).height(150.dp).padding(start = 10.dp, end = 10.dp)
-                .border(1.dp, barColor).pointerInput(Unit) {
-                detectTapGestures { offset ->
-                    barRects.forEachIndexed { index, rect ->
-                        if (rect.contains(offset)) {
-                            onBarClick(index)
-                            return@detectTapGestures
+            Canvas(modifier = Modifier.horizontalScroll(rememberScrollState()).width(if (totalContentWidth.dp > screenWidth) totalContentWidth.dp else screenWidth).height(150.dp).padding(start = 10.dp, end = 10.dp).border(1.dp, barColor)
+                .pointerInput(Unit) {
+                    detectTapGestures { offset ->
+                        barRects.forEachIndexed { index, rect ->
+                            if (rect.contains(offset)) {
+                                onBarClick(index)
+                                return@detectTapGestures
+                            }
                         }
                     }
-                }
-            }) {
+                }) {
                 val maxHeight = size.height
                 val textOffsetY = maxHeight.toInt() + 20.dp.toPx()
                 barRects.clear()
@@ -566,12 +563,12 @@ fun StatisticsScreen() {
         val textColor = MaterialTheme.colorScheme.onSurface
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(stringResource(R.string.total_size_downloaded_podcasts), color = textColor, modifier = Modifier.padding(top = 20.dp, bottom = 10.dp))
-            Text(Formatter.formatShortFileSize(context, vm.downloadChartData!!.sum.toLong()), color = textColor)
+            Text(formatShortFileSize(vm.downloadChartData!!.sum.toLong()), color = textColor)
             Spacer(Modifier.height(5.dp))
             if (vm.downloadChartData != null) HorizontalLineChart(vm.downloadChartData!!)
             Spacer(Modifier.height(5.dp))
             if (vm.downloadstatsData != null && vm.downloadChartData != null) FeedsList(vm.downloadstatsData!!, vm.downloadChartData!!) { stat ->
-                val info = ("${Formatter.formatShortFileSize(context, stat.item.totalDownloadSize)} • " + "${stat.item.episodesDownloadCount}"+context.getString(R.string.episodes_suffix))
+                val info = ("${formatShortFileSize(stat.item.totalDownloadSize)} • " + "${stat.item.episodesDownloadCount}"+context.getString(R.string.episodes_suffix))
                 Text(info, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 2.dp))
             }
         }
@@ -872,7 +869,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
                 }
                 Row {
                     Text(stringResource(R.string.statistics_space_used), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(Formatter.formatShortFileSize(context, fStat?.item?.totalDownloadSize ?: 0), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
+                    Text(formatShortFileSize(fStat?.item?.totalDownloadSize ?: 0), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
                 Box(modifier = Modifier.weight(1f)) { EpisodeLazyColumn(episodes, showCoverImage = false, showActionButtons = false) }
             }

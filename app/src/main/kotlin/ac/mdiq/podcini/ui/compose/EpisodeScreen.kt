@@ -38,9 +38,9 @@ import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.ShownotesCleaner
 import ac.mdiq.podcini.utils.formatDateTimeFlex
+import ac.mdiq.podcini.utils.formatShortFileSize
 import ac.mdiq.podcini.utils.openInBrowser
 import android.speech.tts.TextToSpeech
-import android.text.format.Formatter.formatShortFileSize
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -272,11 +272,11 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                             LaunchedEffect(episode.id) {
                                 Logd(TAG, "LaunchedEffect(episode.id)")
                                 when {
-                                    episode.size > 0 -> txtvSize = formatShortFileSize(context, episode.size)
+                                    episode.size > 0 -> txtvSize = formatShortFileSize(episode.size)
                                     isImageDownloadAllowed && gearbox.canCheckMediaSize(episode) && !episode.isSizeSetUnknown() ->
                                         runOnIOScope {
                                             val sizeValue = if (episodeFeed?.prefStreamOverDownload == false) episode.fetchMediaSize() else 0L
-                                            txtvSize = if (sizeValue <= 0) "" else formatShortFileSize(context, sizeValue)
+                                            txtvSize = if (sizeValue <= 0) "" else formatShortFileSize(sizeValue)
                                         }
                                     else -> txtvSize = ""
                                 }

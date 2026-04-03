@@ -363,3 +363,16 @@ fun Float.format(digits: Int): String {
     val rounded = (this * multiplier).roundToInt() / multiplier
     return rounded.toString()
 }
+
+fun formatShortFileSize(bytes: Long): String {
+    if (bytes < 1000) return "$bytes B"
+    val units = listOf("KB", "MB", "GB", "TB", "PB", "EB")
+    var value = bytes.toDouble()
+    var unitIndex = -1
+    do {
+        value /= 1000
+        unitIndex++
+    } while (value >= 1000 && unitIndex < units.lastIndex)
+    val formatted = if (value >= 10) value.toInt().toString() else "%.1f".format(value)
+    return "$formatted ${units[unitIndex]}"
+}

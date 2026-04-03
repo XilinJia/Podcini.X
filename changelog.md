@@ -1,3 +1,7 @@
+# 10.14.6
+
+* fixed crash when opening Months tab in Statistics
+
 # 10.14.5
 
 * amended FeedDetails screen

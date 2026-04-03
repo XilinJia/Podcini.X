@@ -33,15 +33,13 @@ import ac.mdiq.podcini.ui.actions.NoAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.screens.FeedDetails
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
-
 import ac.mdiq.podcini.ui.screens.handleBackSubScreens
 import ac.mdiq.podcini.ui.screens.navTo
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.formatLargeInteger
+import ac.mdiq.podcini.utils.formatShortFileSize
 import ac.mdiq.podcini.utils.stripDateTimeLines
-import android.text.format.Formatter
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -283,7 +281,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                         Logd(TAG, "Screen on, triggered scroll for recomposition")
                     }
                     scrollToOnStart >= 0 -> {
-                         if (scrollToOnStart >= 0) lazyListState.scrollToItem(scrollToOnStart)
+                        lazyListState.scrollToItem(scrollToOnStart)
                         Logd(TAG, "on start, triggered scroll for recomposition: $scrollToOnStart")
                     }
                 }
@@ -410,7 +408,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                         if (episode.getMediaType() == MediaType.VIDEO) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_videocam), tint = textColor, contentDescription = "isVideo", modifier = Modifier.width(16.dp).height(16.dp))
                                         val dateSizeText = remember(episode.id) {
                                             " · " + formatDateTimeFlex(episode.pubDate) + " · " + durationStringFull(episode.duration) +
-                                                    (if (episode.size > 0) " · " + Formatter.formatShortFileSize(context, episode.size) else "") +
+                                                    (if (episode.size > 0) " · " + formatShortFileSize(episode.size) else "") +
                                                     (if (episode.viewCount > 0) " · " + formatLargeInteger(episode.viewCount) else "") +
                                                     (if (episode.likeCount > 0) " · " + formatLargeInteger(episode.likeCount) else "")
                                         }
@@ -432,7 +430,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                             Icon(imageVector = ImageVector.vectorResource(playState.res), tint = playState.color ?: MaterialTheme.colorScheme.tertiary, contentDescription = "playState", modifier = Modifier.background(if (episode.playState >= EpisodeState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
                                             if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
                                             if (episode.getMediaType() == MediaType.VIDEO) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_videocam), tint = textColor, contentDescription = "isVideo", modifier = Modifier.width(16.dp).height(16.dp))
-                                            val dateSizeText = remember { " · " + durationStringFull(episode.duration) + (if (episode.size > 0) " · " + Formatter.formatShortFileSize(context, episode.size) else "") }
+                                            val dateSizeText = remember { " · " + durationStringFull(episode.duration) + (if (episode.size > 0) " · " + formatShortFileSize(episode.size) else "") }
                                             Text(dateSizeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         }
                                         Row(verticalAlignment = Alignment.CenterVertically) {

@@ -648,17 +648,12 @@ fun LibraryScreen() {
                 } },
                 navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) } ,
                 actions = {
-                    if (!vm.isViewGarden) IconButton(onClick = {
-                        navTo(Search)
-//                        navigator.navigate(Search)
-//                        navController.navigate(Screens.Search.name)
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
+                    if (!vm.isViewGarden) IconButton(onClick = { navTo(Search) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                     if (!vm.isViewGarden) IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (isFiltered) buttonAltColor else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
                     IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
                     if (!vm.isViewGarden) IconButton(onClick = {
                         facetsCustomTag = "Subscriptions"
                         facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", feedList.map { it.id })
-//                        navController.navigate("${Screens.Facets.name}?modeName=${QuickAccess.Custom.name}")
                         navTo(Facets(modeName = QuickAccess.Custom.name))
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "facets") }
                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
@@ -688,7 +683,6 @@ fun LibraryScreen() {
                             })
                             DropdownMenuItem(text = { Text(stringResource(R.string.add_feed_label)) }, onClick = {
                                 navTo(FindFeeds)
-//                                navController.navigate(Screens.FindFeeds.name)
                                 expanded = false
                             })
                             DropdownMenuItem(text = { Text(stringResource(R.string.receive_contents)) }, onClick = {
@@ -778,7 +772,6 @@ fun LibraryScreen() {
                 Text(stringResource(id = R.string.pref_parent_volume)) } },
             "FullSettings" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 feedsToSet = feedsSelected
-//                navController.navigate(Screens.FeedsSettings.name)
                 navTo(FeedsSettings)
                 exitSelectMode()
             }) {
@@ -1080,10 +1073,7 @@ fun LibraryScreen() {
                                 Logd(TAG, "clicked: ${feed.title}")
                                 if (!feed.isBuilding) {
                                     if (selectMode) toggleSelected()
-                                    else {
-//                                        navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
-                                        navTo(FeedDetails(feedId = feed.id))
-                                    }
+                                    else navTo(FeedDetails(feedId = feed.id))
                                 } },
                             onLongClick = {
                                 if (!feed.isBuilding) {
@@ -1204,10 +1194,7 @@ fun LibraryScreen() {
                                         Logd(TAG, "icon clicked!")
                                         if (!feed.isBuilding) {
                                             if (selectMode) toggleSelected()
-                                            else {
-//                                                navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}&modeName=${FeedScreenMode.Info.name}")
-                                                navTo(FeedDetails(feedId = feed.id, modeName = FeedScreenMode.Info.name))
-                                            }
+                                            else navTo(FeedDetails(feedId = feed.id, modeName = FeedScreenMode.Info.name))
                                         }
                                     })
                                 if (feed.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = buttonColor, contentDescription = "rating", modifier = Modifier.size((imageSize/4).dp).align(Alignment.BottomStart).background(MaterialTheme.colorScheme.tertiaryContainer.copy(0.8f)))
@@ -1215,10 +1202,7 @@ fun LibraryScreen() {
                             Box(Modifier.weight(1f).fillMaxHeight().padding(start = 10.dp).combinedClickable(onClick = {
                                 if (!feed.isBuilding) {
                                     if (selectMode) toggleSelected()
-                                    else {
-//                                        navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
-                                        navTo(FeedDetails(feedId = feed.id))
-                                    }
+                                    else navTo(FeedDetails(feedId = feed.id))
                                 }
                             }, onLongClick = {
                                 if (!feed.isBuilding) {

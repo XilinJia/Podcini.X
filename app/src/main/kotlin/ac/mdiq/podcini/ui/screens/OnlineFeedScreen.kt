@@ -499,8 +499,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 LazyRow(state = rememberLazyListState(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     items(vm.relatedFeeds) { feed ->
                         AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable {
-                            navTo(OnlineFeed(url=feed.feedUrl?:"", source=feed.source))
-                        })
+                            navTo(OnlineFeed(url=feed.feedUrl?:"", source=feed.source)) })
                     }
                 }
                 val info = remember(vm.feed) {

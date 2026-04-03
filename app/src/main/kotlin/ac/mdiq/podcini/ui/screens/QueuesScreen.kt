@@ -509,7 +509,7 @@ fun QueuesScreen(id: Long = -1L) {
                             facetsMode = QuickAccess.Custom
                             facetsCustomTag = vm.spinnerTexts[vm.curIndex]
                             facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", vm.feedsAssociated.map { it.id })
-                                navTo(Facets(modeName=QuickAccess.Custom.name))
+                            navTo(Facets(modeName=QuickAccess.Custom.name))
                         }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "facets") }
                         IconButton(onClick = {
                             feedIdsToUse.clear()

@@ -350,10 +350,9 @@ fun AssociatedFeedsGrid(feedsAssociated: List<Feed>) {
                             top.linkTo(parent.top)
                             bottom.linkTo(parent.bottom)
                             start.linkTo(parent.start)
-                        }.combinedClickable(onClick = {
-                            Logd(TAG, "clicked: ${feed.title}")
-                            navTo(FeedDetails(feedId = feed.id))
-                        }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
+                        }.combinedClickable(
+                            onClick = { navTo(FeedDetails(feedId = feed.id)) },
+                            onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
                 )
                 val numEpisodes by remember(feed.episodesCount) { mutableIntStateOf(feed.episodesCount) }
                 Text(formatWithGrouping(numEpisodes.toLong()), color = Color.Green,

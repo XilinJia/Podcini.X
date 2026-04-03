@@ -265,10 +265,7 @@ fun SearchScreen() {
                                 if (!feed.isBuilding) navTo(FeedDetails(feedId=feed.id, modeName=FeedScreenMode.Info.name))
                             })
                         val textColor = MaterialTheme.colorScheme.onSurface
-                        Column(Modifier.weight(1f).padding(start = 10.dp).clickable {
-                            Logd(TAG, "clicked: ${feed.title}")
-                            if (!feed.isBuilding) navTo(FeedDetails(feedId=feed.id))
-                        }) {
+                        Column(Modifier.weight(1f).padding(start = 10.dp).clickable { if (!feed.isBuilding) navTo(FeedDetails(feedId=feed.id)) }) {
                             Row {
                                 if (feed.rating != Rating.UNRATED.code)
                                     Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.width(20.dp).height(20.dp).background(MaterialTheme.colorScheme.tertiaryContainer))
@@ -308,15 +305,9 @@ fun SearchScreen() {
                     itemsIndexed(vm.pafeeds, key = { _, feed -> feed.id }) { index, feed ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover",
-                                modifier = Modifier.width(60.dp).height(60.dp).clickable {
-                                    Logd(TAG, "feedUrl: ${feed.name} [${feed.feedUrl}] [$]")
-                                    if (feed.feedUrl.isNotBlank()) navTo(OnlineFeed(url=feed.feedUrl))
-                                })
+                                modifier = Modifier.width(60.dp).height(60.dp).clickable { if (feed.feedUrl.isNotBlank()) navTo(OnlineFeed(url=feed.feedUrl)) })
                             val textColor = MaterialTheme.colorScheme.onSurface
-                            Column(Modifier.weight(1f).padding(start = 10.dp).clickable {
-                                Logd(TAG, "feedUrl: ${feed.name} [${feed.feedUrl}]")
-                                if (feed.feedUrl.isNotBlank()) navTo(OnlineFeed(url=feed.feedUrl))
-                            }) {
+                            Column(Modifier.weight(1f).padding(start = 10.dp).clickable { if (feed.feedUrl.isNotBlank()) navTo(OnlineFeed(url=feed.feedUrl)) }) {
                                 Text(feed.name, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
                                 Text(feed.author, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
                                 Text(feed.category.joinToString(","), color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
