@@ -73,7 +73,6 @@
     <string name="no">いいえ</string>
     <string name="reset">Reset</string>
     <string name="global_default">グローバルデフォルト</string>
-    <string name="url_label">URL</string>
     <string name="last_full_update">最終更新日時</string>
     <string name="last_update">Last update</string>
     <string name="support_funding_label">サポート</string>
