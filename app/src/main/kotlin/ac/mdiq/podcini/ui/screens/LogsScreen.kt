@@ -433,7 +433,8 @@ fun LogsScreen() {
     @Composable
      fun MyTopAppBar() {
         Box {
-            TopAppBar(title = { Text(vm.title) }, navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) },
+            TopAppBar(title = { Text(vm.title) },
+                navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) },
                 actions = {
                 if (vm.title != "Session") IconButton(onClick = {
                     vm.clearAllLogs()

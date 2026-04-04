@@ -402,7 +402,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             AsyncImage(model = feed?.imageUrl?:"", contentDescription = "bgImage", contentScale = ContentScale.FillBounds, error = painterResource(R.drawable.teaser), modifier = Modifier.matchParentSize().blur(radiusX = 5.dp, radiusY = 5.dp))
             Box(modifier = Modifier.matchParentSize().background(Brush.verticalGradient(colors = listOf(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)))))
             Column {
-                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(modifier = Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { if (!navBack()) drawerController?.open() } )
                     Spacer(Modifier.weight(1f))
                     if (screenMode == FeedScreenMode.List) {
@@ -509,7 +509,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                             Spacer(modifier = Modifier.weight(0.1f))
                         }
                         AsyncImage(model = feed?.imageUrl ?: "", alignment = Alignment.TopStart, contentDescription = "imgvCover", error = painterResource(R.drawable.ic_launcher_foreground), modifier = Modifier.width(24.dp).height(24.dp).combinedClickable(
-                            onClick = { if (feed != null) vm.screenModeFlow.value = (if (screenMode == FeedScreenMode.Info) FeedScreenMode.List else FeedScreenMode.Info) },
+                            onClick = { if (feed != null) vm.screenModeFlow.value = FeedScreenMode.Info },
                             onLongClick = { onImgLongClick() }))
                         Spacer(modifier = Modifier.weight(0.1f))
                         Text(vm.listInfoText, style = MaterialTheme.typography.bodyMedium)

@@ -98,9 +98,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -120,7 +122,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -136,7 +137,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -585,15 +585,112 @@ fun LibraryScreen() {
 
     var showReceiverDialog by remember { mutableStateOf(false) }
     var showSendCatalogDialog by remember { mutableStateOf(false) }
+    var showRemoveFeedDialog by remember { mutableStateOf(false) }
+    var showChooseRatingDialog by remember { mutableStateOf(false) }
+    var showAssociateDialog by remember { mutableStateOf(false) }
+    var showToVolumeDialog by remember { mutableStateOf(false) }
+    var showTagsSettingDialog by remember { mutableStateOf(false) }
+
+    val episodesToQueue = remember { mutableStateListOf<Episode>() }
+    if (episodesToQueue.isNotEmpty()) PutToQueueDialog(episodesToQueue.toList()) { episodesToQueue.clear() }
+    var volumeToOperate by remember { mutableStateOf<Volume?>(null) }
+    var showEditVolume by remember { mutableStateOf(false) }
+
+    var isFeedsOptionsExpanded by remember { mutableStateOf(false) }
+    fun exitSelectMode() {
+        isFeedsOptionsExpanded = false
+        selectMode = false
+    }
+
+    val feedsSelected = remember { mutableStateListOf<Feed>() }
+    val feedsOptionsMap = remember { linkedMapOf<String, @Composable ()->Unit>(
+        "AddToQueue" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+            exitSelectMode()
+            episodesToQueue.clear()
+            val eps = realm.query(Episode::class).query("feedId IN $0", feedsSelected.map { it.id }).limit(200).find()
+            if (eps.isNotEmpty()) episodesToQueue.addAll(eps)
+        }) {
+            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.outline_playlist_add_24), "Add to queue")
+            Text(stringResource(id = R.string.add_to_queue) + " (max 200)") } },
+        "SetRating" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+            exitSelectMode()
+            showChooseRatingDialog = true
+        }) {
+            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_star), "Set rating")
+            Text(stringResource(id = R.string.set_rating_label)) } },
+        "AssociatedQueue" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+            showAssociateDialog = true
+            exitSelectMode()
+        }) {
+            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "associated queue")
+            Text(stringResource(id = R.string.pref_feed_associated_queue)) } },
+        "ParentVolume" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+            showToVolumeDialog = true
+            exitSelectMode()
+        }) {
+            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.rounded_books_movies_and_music_24), "set parent volume", modifier = Modifier.height(24.dp))
+            Text(stringResource(id = R.string.pref_parent_volume)) } },
+        "FullSettings" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+            feedsToSet = feedsSelected
+            navTo(FeedsSettings)
+            exitSelectMode()
+        }) {
+            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_settings), "full settings")
+            Text(stringResource(id = R.string.full_settings)) } },
+        "RemoveFeeds" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+            showRemoveFeedDialog = true
+            exitSelectMode()
+        }) {
+            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), "remove feed")
+            Text(stringResource(id = R.string.remove_feed_label)) } },
+        "OPMLExport" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+            exitSelectMode()
+            val exportType = ExportTypes.OPML_SELECTED
+            val ExportDateFormat = LocalDate.Format {
+                year()
+                char('-')
+                monthNumber()
+                char('-')
+                day()
+            }
+            fun getExportFileName(outputNameTemplate: String): String {
+                val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                val dateString = today.format(ExportDateFormat)
+                return outputNameTemplate.replace("%s", dateString)
+            }
+            val title = getExportFileName(exportType.outputNameTemplate)
+            val intentPickAction = Intent(Intent.ACTION_CREATE_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE)
+                .setType(exportType.contentType)
+                .putExtra(Intent.EXTRA_TITLE, title)
+            try {
+                val actMain: MainActivity? = generateSequence(context) { if (it is ContextWrapper) it.baseContext else null }.filterIsInstance<MainActivity>().firstOrNull()
+                actMain?.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
+                    if (result.resultCode != RESULT_OK || result.data == null) return@registerForActivityResult
+                    val uri = result.data!!.data
+                    runOnIOScope {
+                        try {
+                            Logd(TAG, "selectedFeeds: ${feedsSelected.size}")
+                            if (uri == null) ExportWorker(OpmlWriter()).exportFile(feedsSelected)
+                            else {
+                                val worker = DocumentFileExportWorker(OpmlWriter(), uri)
+                                worker.exportFile(feedsSelected)
+                            }
+                        } catch (e: Exception) { Loge(TAG, "exportOPML error: ${e.message}") }
+                    }
+                }?.launch(intentPickAction)
+                return@clickable
+            } catch (e: ActivityNotFoundException) { Loge(TAG, "No activity found. Should never happen...") }
+        }) {
+            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_import_export_24), "")
+            Text(stringResource(id = R.string.opml_export_label)) } }
+    ) }
 
     val prefsState by vm.prefsFlow.collectAsStateWithLifecycle()
     if (prefsState != null) vm.subPrefs = prefsState!!
 
     val feedList by vm.feedsFlow.collectAsStateWithLifecycle()
-    Logd(TAG, "feeds: ${feedList.size}")
-
     val volumes by vm.subVolumesFlow.collectAsStateWithLifecycle()
-//    Logd(TAG, "volumes: ${volumes.size}")
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -634,645 +731,80 @@ fun LibraryScreen() {
     }
 
     @Composable
-    fun MyTopAppBar() {
+    fun TopBar() {
         var expanded by remember { mutableStateOf(false) }
         val isFiltered = remember(vm.subPrefs.feedsFilter, vm.subPrefs.tagsSel.size, vm.subPrefs.langsSel.size, vm.subPrefs.queueSelIds.size) { vm.subPrefs.feedsFilter.isNotEmpty() || vm.subPrefs.tagsSel.size != appAttribs.feedTagSet.size || vm.subPrefs.langsSel.size != appAttribs.langSet.size || vm.subPrefs.queueSelIds.size != vm.queueIds.size }
-        Box {
-            TopAppBar(title = {
-                Row {
-                    if (feedOperationText.isNotEmpty()) Text(feedOperationText, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.clickable {})
-                    else {
-                        var feedCountState by remember(feedList.size, feedCount) { mutableStateOf(feedList.size.toString() + "/" + feedCount.toString()) }
-                        Text(feedCountState, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = textColor, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f))
-                    }
-                } },
-                navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) } ,
-                actions = {
-                    if (!vm.isViewGarden) IconButton(onClick = { navTo(Search) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
-                    if (!vm.isViewGarden) IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (isFiltered) buttonAltColor else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
-                    IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
-                    if (!vm.isViewGarden) IconButton(onClick = {
-                        facetsCustomTag = "Subscriptions"
-                        facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", feedList.map { it.id })
-                        navTo(Facets(modeName = QuickAccess.Custom.name))
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "facets") }
-                    IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                    DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.toggle_grid_list)) }, onClick = {
-                            runOnIOScope { upsert(vm.subPrefs) { it.prefFeedGridLayout = !it.prefFeedGridLayout } }
-                            expanded = false
-                        })
-                        if (!vm.isViewGarden) {
-                            fun toggleAllFeeds() {
-                                vm.curVolume = null
-                                vm.showAllFeeds = !vm.showAllFeeds
-                            }
-                            DropdownMenuItem(text = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(stringResource(R.string.show_all_feeds))
-                                    Checkbox(checked = vm.showAllFeeds, onCheckedChange = { toggleAllFeeds() })
-                                }
-                            }, onClick = { toggleAllFeeds() })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.new_volume_label)) }, onClick = {
-                                showNewVolume = true
-                                expanded = false
-                            })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.new_synth_label)) }, onClick = {
-                                showNewSynthetic = true
-                                expanded = false
-                            })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.add_feed_label)) }, onClick = {
-                                navTo(FindFeeds)
-                                expanded = false
-                            })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.receive_contents)) }, onClick = {
-                                showReceiverDialog = true
-                                expanded = false
-                            })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.send_catalog)) }, onClick = {
-                                showSendCatalogDialog = true
-                                expanded = false
-                            })
+        Row(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer", modifier = Modifier.padding(end = 10.dp).clickable { drawerController?.open() })
+            if (feedOperationText.isNotEmpty()) Text(feedOperationText, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.clickable {})
+            else {
+                var feedCountState by remember(feedList.size, feedCount) { mutableStateOf(feedList.size.toString() + "/" + feedCount.toString()) }
+                Text(feedCountState, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = textColor, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f))
+            }
+            Spacer(Modifier.weight(1f))
+            if (!vm.isViewGarden) IconButton(onClick = { navTo(Search) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
+            if (!vm.isViewGarden) IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (isFiltered) buttonAltColor else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
+            IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
+            if (!vm.isViewGarden) IconButton(onClick = {
+                facetsCustomTag = "Subscriptions"
+                facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", feedList.map { it.id })
+                navTo(Facets(modeName = QuickAccess.Custom.name))
+            }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "facets") }
+            Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
+                IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
+                DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
+                    DropdownMenuItem(text = { Text(stringResource(R.string.toggle_grid_list)) }, onClick = {
+                        runOnIOScope { upsert(vm.subPrefs) { it.prefFeedGridLayout = !it.prefFeedGridLayout } }
+                        expanded = false
+                    })
+                    if (!vm.isViewGarden) {
+                        fun toggleAllFeeds() {
+                            vm.curVolume = null
+                            vm.showAllFeeds = !vm.showAllFeeds
                         }
-                        DropdownMenuItem(text = { Text(stringResource(R.string.full_refresh_label)) }, onClick = {
-                            if (vm.curVolume == null) runOnceOrAsk(fullUpdate = true, removeUnlisted=true)
-                            else runOnceOrAsk(vm.curVolume!!.allFeeds, fullUpdate=true, removeUnlisted=true)
-                            expanded = false
-                        })
-                        fun toggleArchived() {
-                            vm.subPrefs = upsertBlk(vm.subPrefs) { it.showArchived = !it.showArchived }
-                            expanded = false
-                        }
-                        if (!vm.isViewGarden) DropdownMenuItem(text = {
+                        DropdownMenuItem(text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(stringResource(R.string.show_archived))
-                                Checkbox(checked = vm.subPrefs.showArchived, onCheckedChange = { toggleArchived() })
+                                Text(stringResource(R.string.show_all_feeds))
+                                Checkbox(checked = vm.showAllFeeds, onCheckedChange = { toggleAllFeeds() })
                             }
-                        }, onClick = { toggleArchived() })
+                        }, onClick = { toggleAllFeeds() })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.new_volume_label)) }, onClick = {
+                            showNewVolume = true
+                            expanded = false
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.new_synth_label)) }, onClick = {
+                            showNewSynthetic = true
+                            expanded = false
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.add_feed_label)) }, onClick = {
+                            navTo(FindFeeds)
+                            expanded = false
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.receive_contents)) }, onClick = {
+                            showReceiverDialog = true
+                            expanded = false
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.send_catalog)) }, onClick = {
+                            showSendCatalogDialog = true
+                            expanded = false
+                        })
                     }
-                })
-            HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
-        }
-    }
-
-    @Composable
-    fun LazyList() {
-        var selectedSize by remember { mutableIntStateOf(0) }
-        val feedsSelected = remember { mutableStateListOf<Feed>() }
-        var longPressIndex by remember { mutableIntStateOf(-1) }
-        var refreshing by remember { mutableStateOf(false)}
-
-        @SuppressLint("LocalContextResourcesRead")
-        fun saveSelectedFeeds(cbBlock: (Feed)->Unit) {
-            runOnIOScope { realm.write { for (f_ in feedsSelected) findLatest(f_)?.let { cbBlock(it) } } }
-            val numItems = feedsSelected.size
-            Logt(TAG, context.resources.getQuantityString(R.plurals.updated_feeds_batch_label, numItems, numItems))
-        }
-
-        var showRemoveFeedDialog by remember { mutableStateOf(false) }
-        var showChooseRatingDialog by remember { mutableStateOf(false) }
-        var showAssociateDialog by remember { mutableStateOf(false) }
-        var showToVolumeDialog by remember { mutableStateOf(false) }
-        var showTagsSettingDialog by remember { mutableStateOf(false) }
-
-        val episodesToQueue = remember { mutableStateListOf<Episode>() }
-        if (episodesToQueue.isNotEmpty()) PutToQueueDialog(episodesToQueue.toList()) { episodesToQueue.clear() }
-
-        var isFeedsOptionsExpanded by remember { mutableStateOf(false) }
-        fun exitSelectMode() {
-            isFeedsOptionsExpanded = false
-            selectMode = false
-        }
-        val feedsOptionsMap = remember { linkedMapOf<String, @Composable ()->Unit>(
-            "AddToQueue" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                exitSelectMode()
-                episodesToQueue.clear()
-                val eps = realm.query(Episode::class).query("feedId IN $0", feedsSelected.map { it.id }).limit(200).find()
-                if (eps.isNotEmpty()) episodesToQueue.addAll(eps)
-            }) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.outline_playlist_add_24), "Add to queue")
-                Text(stringResource(id = R.string.add_to_queue) + " (max 200)") } },
-            "SetRating" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                exitSelectMode()
-                showChooseRatingDialog = true
-            }) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_star), "Set rating")
-                Text(stringResource(id = R.string.set_rating_label)) } },
-            "AssociatedQueue" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                showAssociateDialog = true
-                exitSelectMode()
-            }) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "associated queue")
-                Text(stringResource(id = R.string.pref_feed_associated_queue)) } },
-            "ParentVolume" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                showToVolumeDialog = true
-                exitSelectMode()
-            }) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.rounded_books_movies_and_music_24), "set parent volume", modifier = Modifier.height(24.dp))
-                Text(stringResource(id = R.string.pref_parent_volume)) } },
-            "FullSettings" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                feedsToSet = feedsSelected
-                navTo(FeedsSettings)
-                exitSelectMode()
-            }) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_settings), "full settings")
-                Text(stringResource(id = R.string.full_settings)) } },
-            "RemoveFeeds" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                showRemoveFeedDialog = true
-                exitSelectMode()
-            }) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), "remove feed")
-                Text(stringResource(id = R.string.remove_feed_label)) } },
-            "OPMLExport" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                exitSelectMode()
-                val exportType = ExportTypes.OPML_SELECTED
-                val ExportDateFormat = LocalDate.Format {
-                    year()
-                    char('-')
-                    monthNumber()
-                    char('-')
-                    day()
-                }
-                fun getExportFileName(outputNameTemplate: String): String {
-                    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-                    val dateString = today.format(ExportDateFormat)
-                    return outputNameTemplate.replace("%s", dateString)
-                }
-                val title = getExportFileName(exportType.outputNameTemplate)
-                val intentPickAction = Intent(Intent.ACTION_CREATE_DOCUMENT)
-                    .addCategory(Intent.CATEGORY_OPENABLE)
-                    .setType(exportType.contentType)
-                    .putExtra(Intent.EXTRA_TITLE, title)
-                try {
-                    val actMain: MainActivity? = generateSequence(context) { if (it is ContextWrapper) it.baseContext else null }.filterIsInstance<MainActivity>().firstOrNull()
-                    actMain?.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
-                        if (result.resultCode != RESULT_OK || result.data == null) return@registerForActivityResult
-                        val uri = result.data!!.data
-                        runOnIOScope {
-                            try {
-                                Logd(TAG, "selectedFeeds: ${feedsSelected.size}")
-                                if (uri == null) ExportWorker(OpmlWriter()).exportFile(feedsSelected)
-                                else {
-                                    val worker = DocumentFileExportWorker(OpmlWriter(), uri)
-                                    worker.exportFile(feedsSelected)
-                                }
-                            } catch (e: Exception) { Loge(TAG, "exportOPML error: ${e.message}") }
-                        }
-                    }?.launch(intentPickAction)
-                    return@clickable
-                } catch (e: ActivityNotFoundException) { Loge(TAG, "No activity found. Should never happen...") }
-            }) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_import_export_24), "")
-                Text(stringResource(id = R.string.opml_export_label)) } }
-            ) }
-
-        var volumeToOperate by remember { mutableStateOf<Volume?>(null) }
-        var showEditVolume by remember { mutableStateOf(false) }
-
-        @Composable
-        fun OpenDialogs() {
-            @Composable
-            fun SetToVolumeDialog(onDismissRequest: () -> Unit) {
-                CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        var selectedOption by remember {mutableStateOf("")}
-                        val custom = "Custom"
-                        val none = "None"
-                        var selected by remember {mutableStateOf(if (selectedOption == none) none else custom)}
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = none == selected,
-                                onCheckedChange = { isChecked ->
-                                    selected = none
-                                    saveSelectedFeeds { it: Feed -> it.volumeId = -1L }
-                                    onDismissRequest()
-                                })
-                            Text(none)
-                            Spacer(Modifier.width(50.dp))
-                            Checkbox(checked = custom == selected, onCheckedChange = { isChecked -> selected = custom })
-                            Text(custom)
-                        }
-                        if (selected == custom) {
-                            Logd(TAG, "volumes: ${volumes.size}")
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                for (index in volumes.indices) {
-                                    FilterChip(onClick = {
-                                        saveSelectedFeeds { it: Feed -> it.volumeId = volumes[index].id }
-                                        onDismissRequest()
-                                    }, label = { Text(volumes[index].name) }, selected = false )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            @Composable
-            fun SetAssociateQueueDialog(onDismissRequest: () -> Unit) {
-                CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        var selectedOption by remember {mutableStateOf("")}
-                        val custom = "Custom"
-                        val none = "None"
-                        var selected by remember {mutableStateOf(if (selectedOption == none) none else custom)}
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = none == selected,
-                                onCheckedChange = { isChecked ->
-                                    selected = none
-                                    saveSelectedFeeds { it: Feed ->
-                                        it.queueId = -2L
-                                        it.autoDownload = false
-                                        it.autoEnqueue = false
-                                    }
-                                    onDismissRequest()
-                                })
-                            Text(none)
-                            Spacer(Modifier.width(50.dp))
-                            Checkbox(checked = custom == selected, onCheckedChange = { isChecked -> selected = custom })
-                            Text(custom)
-                        }
-                        if (selected == custom) {
-                            Logd(TAG, "queues: ${queuesLive.size}")
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                for (index in queuesLive.indices) {
-                                    FilterChip(onClick = {
-                                        saveSelectedFeeds { it: Feed -> it.queueId = queuesLive[index].id }
-                                        onDismissRequest()
-                                    }, label = { Text(queuesLive[index].name) }, selected = false )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            @Composable
-            fun ChooseRatingDialog(selected: List<Feed>, onDismissRequest: () -> Unit) {
-                CommonPopupCard(onDismissRequest = onDismissRequest) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        for (rating in Rating.entries.reversed()) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp).clickable {
-                                runOnIOScope {
-                                    realm.write {
-                                        for (f_ in selected) {
-                                            val f = findLatest(f_)
-                                            if (f != null) f.rating = rating.code
-                                        }
-                                    }
-                                }
-                                onDismissRequest()
-                            }) {
-                                Icon(imageVector = ImageVector.vectorResource(id = rating.res), "")
-                                Text(rating.name, Modifier.padding(start = 4.dp))
-                            }
-                        }
-                    }
-                }
-            }
-
-            @Composable
-            fun VolumeOptionsMenu(onDismissRequest: ()->Unit) {
-                CommonPopupCard(onDismissRequest = onDismissRequest) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        feedsOptionsMap.entries.forEachIndexed { _, entry -> if (entry.key != "ParentVolume") entry.value() }
-                        HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable { showEditVolume = true }) {
-                            Icon(imageVector = Icons.Filled.Edit, "edit volume")
-                            Text(stringResource(id = R.string.edit_volume)) }
-                        if (volumeToOperate != null && volumeToOperate!!.id >= 0L) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                            commonConfirm = CommonConfirmAttrib(
-                                title = context.getString(R.string.remove_volume) + "?",
-                                message = context.getString(R.string.remove_volume_msg) + "\n" + volumeToOperate?.name,
-                                confirmRes = R.string.confirm_label,
-                                cancelRes = R.string.cancel_label,
-                                onConfirm = {
-                                    Logd(TAG, "removing volume: ${volumeToOperate?.name}")
-                                    runOnIOScope {
-                                        feedOperationText = "Processing"
-                                        deleteVolumeTree(volumeToOperate!!)
-                                        feedOperationText = "s"
-                                    }
-                                    commonConfirm = null
-                                },
-                            )
-                        }) {
-                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), "remove volume")
-                            Text(stringResource(id = R.string.remove_volume)) }
-                        if (volumeToOperate?.isLocal == true) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                            commonConfirm = CommonConfirmAttrib(
-                                title = context.getString(R.string.reconnect_local_folder) + "?",
-                                message = volumeToOperate?.name + "\n" + context.getString(R.string.reconnect_local_folder_warning),
-                                confirmRes = R.string.confirm_label,
-                                cancelRes = R.string.cancel_label,
-                                onConfirm = {
-                                    Logd(TAG, "reconnecting folder: ${volumeToOperate?.name}")
-                                    try { connectLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Logs(TAG, e, "No activity found. Should never happen...") }
-                                    commonConfirm = null
-                                },
-                            )
-                        }) {
-                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.rounded_books_movies_and_music_24), "reconnect folder", modifier = Modifier.size(24.dp))
-                            Text(stringResource(id = R.string.reconnect_local_folder)) }
-                    }
-                }
-            }
-            if (volumeToOperate != null) VolumeOptionsMenu { volumeToOperate = null}
-
-            if (showRemoveFeedDialog) RemoveFeedDialog(feedsSelected, onDismissRequest = {showRemoveFeedDialog = false}) {}
-            if (showChooseRatingDialog) ChooseRatingDialog(feedsSelected) { showChooseRatingDialog = false }
-            if (showAssociateDialog) SetAssociateQueueDialog {showAssociateDialog = false}
-            if (showToVolumeDialog) SetToVolumeDialog {showToVolumeDialog = false}
-            if (showTagsSettingDialog) TagSettingDialog(TagType.Feed, setOf(), multiples = true, { showTagsSettingDialog = false } ) { tags ->
-                runOnIOScope { realm.write { for (f_ in feedsSelected) findLatest(f_)?.tags?.addAll(tags) } }
-            }
-            @Composable
-            fun EditVolume(volume: Volume, onDismissRequest: () -> Unit) {
-                CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
-                    val textColor = MaterialTheme.colorScheme.onSurface
-                    Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                        Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
-                        var name by remember { mutableStateOf(volume.name) }
-                        TextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.rename)) })
-                        var parent by remember { mutableStateOf<Volume?>(null) }
-                        var selectedOption by remember {mutableStateOf("")}
-                        val custom = "Custom"
-                        val none = "None"
-                        var selected by remember {mutableStateOf(if (selectedOption == none) none else custom)}
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = none == selected,
-                                onCheckedChange = { isChecked ->
-                                    selected = none
-                                    parent = null
-                                })
-                            Text(none)
-                            Spacer(Modifier.width(50.dp))
-                            Checkbox(checked = custom == selected, onCheckedChange = { isChecked -> selected = custom })
-                            Text(custom)
-                        }
-                        if (selected == custom) {
-                            Logd(TAG, "volumes: ${volumes.size}")
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                for (index in volumes.indices) FilterChip(onClick = { parent = volumes[index] }, label = { Text(volumes[index].name) }, selected = parent == volumes[index], border = filterChipBorder(parent == volumes[index]))
-                            }
-                        }
-                        Row {
-                            Button({ onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) }
-                            Spacer(Modifier.weight(1f))
-                            Button({
-                                upsertBlk(volume) {
-                                    it.name = name
-                                    it.parentId = parent?.id ?: -1L
-                                }
-                                onDismissRequest()
-                            }) { Text(stringResource(R.string.confirm_label)) }
-                        }
-                    }
-                }
-            }
-            if (showEditVolume) EditVolume(volumeToOperate!!) { showEditVolume = false }
-
-        }
-        OpenDialogs()
-
-        PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = refreshing, indicator = {}, onRefresh = {
-            refreshing = true
-            commonConfirm = CommonConfirmAttrib(
-                title = context.getString(R.string.feed_refresh_title) + "?",
-                message = "",
-                confirmRes = R.string.confirm_label,
-                cancelRes = R.string.cancel_label,
-                onConfirm = {
-                    if (vm.curVolume == null) checkAndScheduleUpdateTaskOnce(replace = true, force = true)
-                    else runOnce(vm.curVolume!!.allFeeds)
-                },
-            )
-            refreshing = false
-        }) {
-            if (vm.subPrefs.prefFeedGridLayout) {
-                LazyVerticalGrid(state = rememberLazyGridState(), columns = GridCells.Adaptive(80.dp), modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 16.dp)) {
-                    if (!vm.showAllFeeds && volumes.isNotEmpty()) items(volumes, key = { it.id}) { volume ->
-                        Column(Modifier.background(MaterialTheme.colorScheme.surface)
-                            .combinedClickable(onClick = { vm.curVolume = volume},
-                                onLongClick = {
-                                    feedsSelected.clear()
-                                    feedsSelected.addAll(volume.allFeeds)
-                                    volumeToOperate = volume
-                            })) {
-                            Icon(imageVector = ImageVector.vectorResource(R.drawable.rounded_books_movies_and_music_24), tint = buttonColor, contentDescription = null, modifier = Modifier.fillMaxWidth())
-                            Text(volume.name, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
-                    items(feedList, key = { it.id}) { feed ->
-                        var isSelected by remember(selectMode, selectedSize, feed.id) { mutableStateOf(selectMode && feed in feedsSelected) }
-                        fun toggleSelected() {
-                            isSelected = !isSelected
-                            if (isSelected) feedsSelected.add(feed)
-                            else feedsSelected.remove(feed)
-                        }
-                        Column(Modifier.background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface).combinedClickable(
-                            onClick = {
-                                Logd(TAG, "clicked: ${feed.title}")
-                                if (!feed.isBuilding) {
-                                    if (selectMode) toggleSelected()
-                                    else navTo(FeedDetails(feedId = feed.id))
-                                } },
-                            onLongClick = {
-                                if (!feed.isBuilding) {
-                                    selectMode = !selectMode
-                                    isSelected = selectMode
-                                    feedsSelected.clear()
-                                    if (selectMode) {
-                                        val index = feedList.indexOfFirst { it.id == feed.id }
-                                        feedsSelected.add(feed)
-                                        longPressIndex = index
-                                    } else {
-                                        selectedSize = 0
-                                        longPressIndex = -1
-                                    }
-                                }
-                                Logd(TAG, "long clicked: ${feed.title}")
-                            })) {
-                            ConstraintLayout(Modifier.fillMaxSize()) {
-                                val (coverImage, episodeCount, rating, error) = createRefs()
-                                AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "coverImage",
-                                    colorFilter = if (!feed.inNormalVolume) ColorFilter.tint(color = Color.Gray.copy(alpha = 0.5f), blendMode = BlendMode.SrcAtop) else null,
-                                    modifier = Modifier.fillMaxWidth().aspectRatio(1f).constrainAs(coverImage) {
-                                        top.linkTo(parent.top)
-                                        bottom.linkTo(parent.bottom)
-                                        start.linkTo(parent.start)
-                                    })
-                                val measureString = remember(feed.episodesCount) { formatWithGrouping(feed.episodesCount.toLong()) }
-                                if (measureString.isNotBlank()) Text(measureString, color = buttonAltColor, modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer.copy(0.8f)).constrainAs(episodeCount) {
-                                    end.linkTo(parent.end)
-                                    top.linkTo(coverImage.top)
-                                })
-                                if (feed.rating != Rating.UNRATED.code)
-                                    Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = buttonColor, contentDescription = "rating",
-                                        modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer.copy(0.8f)).constrainAs(rating) {
-                                            start.linkTo(coverImage.start)
-                                            bottom.linkTo(coverImage.bottom)
-                                        })
-                                if (feed.lastUpdateFailed) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_error), tint = Color.Red, contentDescription = "error",
-                                    modifier = Modifier.background(Color.Gray).constrainAs(error) {
-                                        end.linkTo(parent.end)
-                                        bottom.linkTo(coverImage.bottom)
-                                    })
-                            }
-                            Text(feed.title ?: "No title", color = textColor, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        }
-                    }
-                }
-            } else {
-                val listState = rememberLazyListState()
-                var restored by remember { mutableStateOf(false) }
-                DisposableEffect(LocalLifecycleOwner.current) {
-                    onDispose {
-                        val index = listState.firstVisibleItemIndex
-                        val offset = listState.firstVisibleItemScrollOffset
-                        Logd(TAG, "DisposableEffect onDispose save positions: $index $offset")
-                        runOnIOScope {
-                            vm.subPrefs = upsert(vm.subPrefs) {
-                                it.positionIndex = index
-                                it.positionOffset = offset
-                            }
-                        }
-                    }
-                }
-
-//                val currentEntry = navController.navController.currentBackStackEntryAsState().value
-//                val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
-//                LaunchedEffect(feeds.size) {
-//                    Logd(TAG, "LaunchedEffect(feeds.size) cameBack: $cameBack")
-//                    if (!restored && feeds.size > 5) {
-//                        if (!cameBack) {
-//                            scope.launch {
-//                                val (index, offset) = Pair(vm.subPrefs.positionIndex, vm.subPrefs.positionOffset)
-//                                val safeIndex = index.coerceIn(0, feeds.size - 1)
-//                                val safeOffset = if (safeIndex == index) offset else 0
-//                                listState.scrollToItem(safeIndex, safeOffset)
-////                                currentEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
-//                            }
-//                        }
-//                        currentEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
-////                        else scope.launch { listState.scrollToItem(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) }
-//                        restored = true
-//                    }
-//                }
-//                LaunchedEffect(filterAndSort) {
-//                    Logd(TAG, "LaunchedEffect(filterSorted) $filterAndSort")
-//                    if (feeds.isNotEmpty() && filterAndSort) scope.launch { listState.scrollToItem(0) }
-//                    filterAndSort = false
-//                }
-
-                LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(start = 5.dp, end = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (!vm.showAllFeeds && volumes.isNotEmpty()) items(volumes, key = { v -> v.id}) { volume ->
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.combinedClickable(
-                            onClick = { vm.curVolume = volume },
-                            onLongClick = {
-                                feedsSelected.clear()
-                                feedsSelected.addAll(volume.allFeeds)
-                                volumeToOperate = volume
-                            })) {
-                            Icon(imageVector = ImageVector.vectorResource(R.drawable.rounded_books_movies_and_music_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(50.dp).height(50.dp))
-                            Text(volume.name, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.weight(1f).fillMaxHeight().wrapContentHeight(Alignment.CenterVertically))
-                        }
-                    }
-                    items(feedList, key = { feed -> feed.id}) { feed_ ->
-                        val feed by rememberUpdatedState(feed_)
-                        var isSelected by remember(key1 = selectMode, key2 = selectedSize) { mutableStateOf(selectMode && feed in feedsSelected) }
-                        fun toggleSelected() {
-                            isSelected = !isSelected
-                            if (isSelected) feedsSelected.add(feed)
-                            else feedsSelected.remove(feed)
-                            Logd(TAG, "toggleSelected: selected: ${feedsSelected.size}")
-                        }
-                        val imageSize = 60
-                        Row(Modifier.height(imageSize.dp).background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)) {
-                            Box(modifier = Modifier.size(imageSize.dp)) {
-                                AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover",
-                                    colorFilter = if (!feed.inNormalVolume) ColorFilter.tint(color = Color.Gray.copy(alpha = 0.5f), blendMode = BlendMode.SrcAtop) else null,
-                                    modifier = Modifier.fillMaxSize().clickable {
-                                        Logd(TAG, "icon clicked!")
-                                        if (!feed.isBuilding) {
-                                            if (selectMode) toggleSelected()
-                                            else navTo(FeedDetails(feedId = feed.id, modeName = FeedScreenMode.Info.name))
-                                        }
-                                    })
-                                if (feed.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = buttonColor, contentDescription = "rating", modifier = Modifier.size((imageSize/4).dp).align(Alignment.BottomStart).background(MaterialTheme.colorScheme.tertiaryContainer.copy(0.8f)))
-                            }
-                            Box(Modifier.weight(1f).fillMaxHeight().padding(start = 10.dp).combinedClickable(onClick = {
-                                if (!feed.isBuilding) {
-                                    if (selectMode) toggleSelected()
-                                    else navTo(FeedDetails(feedId = feed.id))
-                                }
-                            }, onLongClick = {
-                                if (!feed.isBuilding) {
-                                    selectMode = !selectMode
-                                    isSelected = selectMode
-                                    feedsSelected.clear()
-                                    if (selectMode) {
-                                        feedsSelected.add(feed)
-                                        val index = feedList.indexOfFirst { it.id == feed.id }
-                                        longPressIndex = index
-                                    } else {
-                                        selectedSize = 0
-                                        longPressIndex = -1
-                                    }
-                                }
-                            })) {
-                                Text(feed.title ?: "No title", color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.align(Alignment.TopStart))
-                                Row(modifier = Modifier.align(Alignment.BottomStart)) {
-                                    val measureString = remember(feed.episodesCount, feed.totleDuration) { formatWithGrouping(feed.episodesCount.toLong()) + " : " + durationInHours(feed.totleDuration/1000, false) }
-                                    Text(measureString, color = textColor, style = MaterialTheme.typography.bodyMedium)
-                                    Spacer(modifier = Modifier.weight(1f))
-                                    Text(feed.sortInfo, color = textColor, style = MaterialTheme.typography.bodyMedium)
-                                }
-                            }
-                            if (feed.lastUpdateFailed) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_error), tint = Color.Red, contentDescription = "error")
-                        }
-                    }
-                }
-            }
-            if (selectMode) {
-                Row(modifier = Modifier.align(Alignment.TopEnd).background(MaterialTheme.colorScheme.tertiaryContainer),
-                    horizontalArrangement = Arrangement.spacedBy(15.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_upward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).padding(start = 10.dp).clickable {
-                        feedsSelected.clear()
-                        for (i in 0..longPressIndex) feedsSelected.add(feedList[i])
-                        selectedSize = feedsSelected.size
-                        Logd(TAG, "selectedIds: ${feedsSelected.size}")
+                    DropdownMenuItem(text = { Text(stringResource(R.string.full_refresh_label)) }, onClick = {
+                        if (vm.curVolume == null) runOnceOrAsk(fullUpdate = true, removeUnlisted = true)
+                        else runOnceOrAsk(vm.curVolume!!.allFeeds, fullUpdate = true, removeUnlisted = true)
+                        expanded = false
                     })
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_downward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable {
-                        feedsSelected.clear()
-                        for (i in longPressIndex..<feedList.size) feedsSelected.add(feedList[i])
-                        selectedSize = feedsSelected.size
-                        Logd(TAG, "selectedIds: ${feedsSelected.size}")
-                    })
-                    var selectAllRes by remember { mutableIntStateOf(R.drawable.ic_select_all) }
-                    Icon(imageVector = ImageVector.vectorResource(selectAllRes), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable {
-                        if (selectedSize != feedList.size) {
-                            feedsSelected.clear()
-                            feedsSelected.addAll(feedList)
-                            selectAllRes = R.drawable.ic_select_none
-                        } else {
-                            feedsSelected.clear()
-                            longPressIndex = -1
-                            selectAllRes = R.drawable.ic_select_all
-                        }
-                        selectedSize = feedsSelected.size
-                        Logd(TAG, "selectedIds: ${feedsSelected.size}")
-                    })
-                    @Composable
-                    fun FeedsSpeedDial(selected: SnapshotStateList<Feed>, modifier: Modifier = Modifier) {
-                        val bgColor = MaterialTheme.colorScheme.tertiaryContainer
-                        val fgColor = remember { complementaryColorOf(bgColor) }
-                        if (isFeedsOptionsExpanded) CommonPopupCard(onDismissRequest = { isFeedsOptionsExpanded = false }) {
-                            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { feedsOptionsMap.entries.forEachIndexed { _, entry -> entry.value() } }
-                        }
-                        FloatingActionButton(containerColor = bgColor, contentColor = fgColor,
-                            onClick = { isFeedsOptionsExpanded = !isFeedsOptionsExpanded }) { Icon(Icons.Filled.Menu, "Menu") }
+                    fun toggleArchived() {
+                        vm.subPrefs = upsertBlk(vm.subPrefs) { it.showArchived = !it.showArchived }
+                        expanded = false
                     }
-                    FeedsSpeedDial(feedsSelected.toMutableStateList(), modifier = Modifier.padding(start = 16.dp))
-                }
+                    if (!vm.isViewGarden) DropdownMenuItem(text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(stringResource(R.string.show_archived))
+                            Checkbox(checked = vm.subPrefs.showArchived, onCheckedChange = { toggleArchived() })
+                        }
+                    }, onClick = { toggleArchived() })
+            }
             }
         }
     }
@@ -2014,13 +1546,464 @@ fun LibraryScreen() {
         }
         if (showNewSynthetic) RenameOrCreateSyntheticFeed { showNewSynthetic = false }
         if (showNewVolume) CreateVolume(parent = vm.curVolume) { showNewVolume = false }
+
+        @SuppressLint("LocalContextResourcesRead")
+        fun saveSelectedFeeds(cbBlock: (Feed)->Unit) {
+            runOnIOScope { realm.write { for (f_ in feedsSelected) findLatest(f_)?.let { cbBlock(it) } } }
+            val numItems = feedsSelected.size
+            Logt(TAG, context.resources.getQuantityString(R.plurals.updated_feeds_batch_label, numItems, numItems))
+        }
+
+        @Composable
+        fun SetToVolumeDialog(onDismissRequest: () -> Unit) {
+            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    var selectedOption by remember {mutableStateOf("")}
+                    val custom = "Custom"
+                    val none = "None"
+                    var selected by remember {mutableStateOf(if (selectedOption == none) none else custom)}
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = none == selected,
+                            onCheckedChange = { isChecked ->
+                                selected = none
+                                saveSelectedFeeds { it: Feed -> it.volumeId = -1L }
+                                onDismissRequest()
+                            })
+                        Text(none)
+                        Spacer(Modifier.width(50.dp))
+                        Checkbox(checked = custom == selected, onCheckedChange = { isChecked -> selected = custom })
+                        Text(custom)
+                    }
+                    if (selected == custom) {
+                        Logd(TAG, "volumes: ${volumes.size}")
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            for (index in volumes.indices) {
+                                FilterChip(onClick = {
+                                    saveSelectedFeeds { it: Feed -> it.volumeId = volumes[index].id }
+                                    onDismissRequest()
+                                }, label = { Text(volumes[index].name) }, selected = false )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        @Composable
+        fun SetAssociateQueueDialog(onDismissRequest: () -> Unit) {
+            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    var selectedOption by remember {mutableStateOf("")}
+                    val custom = "Custom"
+                    val none = "None"
+                    var selected by remember {mutableStateOf(if (selectedOption == none) none else custom)}
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = none == selected,
+                            onCheckedChange = { isChecked ->
+                                selected = none
+                                saveSelectedFeeds { it: Feed ->
+                                    it.queueId = -2L
+                                    it.autoDownload = false
+                                    it.autoEnqueue = false
+                                }
+                                onDismissRequest()
+                            })
+                        Text(none)
+                        Spacer(Modifier.width(50.dp))
+                        Checkbox(checked = custom == selected, onCheckedChange = { isChecked -> selected = custom })
+                        Text(custom)
+                    }
+                    if (selected == custom) {
+                        Logd(TAG, "queues: ${queuesLive.size}")
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            for (index in queuesLive.indices) {
+                                FilterChip(onClick = {
+                                    saveSelectedFeeds { it: Feed -> it.queueId = queuesLive[index].id }
+                                    onDismissRequest()
+                                }, label = { Text(queuesLive[index].name) }, selected = false )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        @Composable
+        fun ChooseRatingDialog(selected: List<Feed>, onDismissRequest: () -> Unit) {
+            CommonPopupCard(onDismissRequest = onDismissRequest) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    for (rating in Rating.entries.reversed()) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp).clickable {
+                            runOnIOScope {
+                                realm.write {
+                                    for (f_ in selected) {
+                                        val f = findLatest(f_)
+                                        if (f != null) f.rating = rating.code
+                                    }
+                                }
+                            }
+                            onDismissRequest()
+                        }) {
+                            Icon(imageVector = ImageVector.vectorResource(id = rating.res), "")
+                            Text(rating.name, Modifier.padding(start = 4.dp))
+                        }
+                    }
+                }
+            }
+        }
+
+        @Composable
+        fun VolumeOptionsMenu(onDismissRequest: ()->Unit) {
+            CommonPopupCard(onDismissRequest = onDismissRequest) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    feedsOptionsMap.entries.forEachIndexed { _, entry -> if (entry.key != "ParentVolume") entry.value() }
+                    HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable { showEditVolume = true }) {
+                        Icon(imageVector = Icons.Filled.Edit, "edit volume")
+                        Text(stringResource(id = R.string.edit_volume)) }
+                    if (volumeToOperate != null && volumeToOperate!!.id >= 0L) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                        commonConfirm = CommonConfirmAttrib(
+                            title = context.getString(R.string.remove_volume) + "?",
+                            message = context.getString(R.string.remove_volume_msg) + "\n" + volumeToOperate?.name,
+                            confirmRes = R.string.confirm_label,
+                            cancelRes = R.string.cancel_label,
+                            onConfirm = {
+                                Logd(TAG, "removing volume: ${volumeToOperate?.name}")
+                                runOnIOScope {
+                                    feedOperationText = "Processing"
+                                    deleteVolumeTree(volumeToOperate!!)
+                                    feedOperationText = "s"
+                                }
+                                commonConfirm = null
+                            },
+                        )
+                    }) {
+                        Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), "remove volume")
+                        Text(stringResource(id = R.string.remove_volume)) }
+                    if (volumeToOperate?.isLocal == true) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                        commonConfirm = CommonConfirmAttrib(
+                            title = context.getString(R.string.reconnect_local_folder) + "?",
+                            message = volumeToOperate?.name + "\n" + context.getString(R.string.reconnect_local_folder_warning),
+                            confirmRes = R.string.confirm_label,
+                            cancelRes = R.string.cancel_label,
+                            onConfirm = {
+                                Logd(TAG, "reconnecting folder: ${volumeToOperate?.name}")
+                                try { connectLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Logs(TAG, e, "No activity found. Should never happen...") }
+                                commonConfirm = null
+                            },
+                        )
+                    }) {
+                        Icon(imageVector = ImageVector.vectorResource(id = R.drawable.rounded_books_movies_and_music_24), "reconnect folder", modifier = Modifier.size(24.dp))
+                        Text(stringResource(id = R.string.reconnect_local_folder)) }
+                }
+            }
+        }
+        if (volumeToOperate != null) VolumeOptionsMenu { volumeToOperate = null}
+
+        if (showRemoveFeedDialog) RemoveFeedDialog(feedsSelected, onDismissRequest = {showRemoveFeedDialog = false}) {}
+        if (showChooseRatingDialog) ChooseRatingDialog(feedsSelected) { showChooseRatingDialog = false }
+        if (showAssociateDialog) SetAssociateQueueDialog {showAssociateDialog = false}
+        if (showToVolumeDialog) SetToVolumeDialog {showToVolumeDialog = false}
+        if (showTagsSettingDialog) TagSettingDialog(TagType.Feed, setOf(), multiples = true, { showTagsSettingDialog = false } ) { tags ->
+            runOnIOScope { realm.write { for (f_ in feedsSelected) findLatest(f_)?.tags?.addAll(tags) } }
+        }
+        @Composable
+        fun EditVolume(volume: Volume, onDismissRequest: () -> Unit) {
+            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+                val textColor = MaterialTheme.colorScheme.onSurface
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                    Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
+                    var name by remember { mutableStateOf(volume.name) }
+                    TextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.rename)) })
+                    var parent by remember { mutableStateOf<Volume?>(null) }
+                    var selectedOption by remember {mutableStateOf("")}
+                    val custom = "Custom"
+                    val none = "None"
+                    var selected by remember {mutableStateOf(if (selectedOption == none) none else custom)}
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = none == selected,
+                            onCheckedChange = { isChecked ->
+                                selected = none
+                                parent = null
+                            })
+                        Text(none)
+                        Spacer(Modifier.width(50.dp))
+                        Checkbox(checked = custom == selected, onCheckedChange = { isChecked -> selected = custom })
+                        Text(custom)
+                    }
+                    if (selected == custom) {
+                        Logd(TAG, "volumes: ${volumes.size}")
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            for (index in volumes.indices) FilterChip(onClick = { parent = volumes[index] }, label = { Text(volumes[index].name) }, selected = parent == volumes[index], border = filterChipBorder(parent == volumes[index]))
+                        }
+                    }
+                    Row {
+                        Button({ onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) }
+                        Spacer(Modifier.weight(1f))
+                        Button({
+                            upsertBlk(volume) {
+                                it.name = name
+                                it.parentId = parent?.id ?: -1L
+                            }
+                            onDismissRequest()
+                        }) { Text(stringResource(R.string.confirm_label)) }
+                    }
+                }
+            }
+        }
+        if (showEditVolume) EditVolume(volumeToOperate!!) { showEditVolume = false }
     }
+
     OpenDialogs()
 
-    Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-            LazyList()
+    Scaffold(topBar = { TopBar() }) { innerPadding ->
+        var selectedSize by remember { mutableIntStateOf(0) }
+        var longPressIndex by remember { mutableIntStateOf(-1) }
+        var refreshing by remember { mutableStateOf(false)}
+
+        PullToRefreshBox(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface), isRefreshing = refreshing, indicator = {}, onRefresh = {
+            refreshing = true
+            commonConfirm = CommonConfirmAttrib(
+                title = context.getString(R.string.feed_refresh_title) + "?",
+                message = "",
+                confirmRes = R.string.confirm_label,
+                cancelRes = R.string.cancel_label,
+                onConfirm = {
+                    if (vm.curVolume == null) checkAndScheduleUpdateTaskOnce(replace = true, force = true)
+                    else runOnce(vm.curVolume!!.allFeeds)
+                },
+            )
+            refreshing = false
+        }) {
+            if (vm.subPrefs.prefFeedGridLayout) {
+                LazyVerticalGrid(state = rememberLazyGridState(), columns = GridCells.Adaptive(80.dp), modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 16.dp)) {
+                    if (!vm.showAllFeeds && volumes.isNotEmpty()) items(volumes, key = { it.id}) { volume ->
+                        Column(Modifier.background(MaterialTheme.colorScheme.surface)
+                            .combinedClickable(onClick = { vm.curVolume = volume},
+                                onLongClick = {
+                                    feedsSelected.clear()
+                                    feedsSelected.addAll(volume.allFeeds)
+                                    volumeToOperate = volume
+                                })) {
+                            Icon(imageVector = ImageVector.vectorResource(R.drawable.rounded_books_movies_and_music_24), tint = buttonColor, contentDescription = null, modifier = Modifier.fillMaxWidth())
+                            Text(volume.name, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                    items(feedList, key = { it.id}) { feed ->
+                        var isSelected by remember(selectMode, selectedSize, feed.id) { mutableStateOf(selectMode && feed in feedsSelected) }
+                        fun toggleSelected() {
+                            isSelected = !isSelected
+                            if (isSelected) feedsSelected.add(feed)
+                            else feedsSelected.remove(feed)
+                        }
+                        Column(Modifier.background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface).combinedClickable(
+                            onClick = {
+                                Logd(TAG, "clicked: ${feed.title}")
+                                if (!feed.isBuilding) {
+                                    if (selectMode) toggleSelected()
+                                    else navTo(FeedDetails(feedId = feed.id))
+                                } },
+                            onLongClick = {
+                                if (!feed.isBuilding) {
+                                    selectMode = !selectMode
+                                    isSelected = selectMode
+                                    feedsSelected.clear()
+                                    if (selectMode) {
+                                        val index = feedList.indexOfFirst { it.id == feed.id }
+                                        feedsSelected.add(feed)
+                                        longPressIndex = index
+                                    } else {
+                                        selectedSize = 0
+                                        longPressIndex = -1
+                                    }
+                                }
+                                Logd(TAG, "long clicked: ${feed.title}")
+                            })) {
+                            ConstraintLayout(Modifier.fillMaxSize()) {
+                                val (coverImage, episodeCount, rating, error) = createRefs()
+                                AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "coverImage",
+                                    colorFilter = if (!feed.inNormalVolume) ColorFilter.tint(color = Color.Gray.copy(alpha = 0.5f), blendMode = BlendMode.SrcAtop) else null,
+                                    modifier = Modifier.fillMaxWidth().aspectRatio(1f).constrainAs(coverImage) {
+                                        top.linkTo(parent.top)
+                                        bottom.linkTo(parent.bottom)
+                                        start.linkTo(parent.start)
+                                    })
+                                val measureString = remember(feed.episodesCount) { formatWithGrouping(feed.episodesCount.toLong()) }
+                                if (measureString.isNotBlank()) Text(measureString, color = buttonAltColor, modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer.copy(0.8f)).constrainAs(episodeCount) {
+                                    end.linkTo(parent.end)
+                                    top.linkTo(coverImage.top)
+                                })
+                                if (feed.rating != Rating.UNRATED.code)
+                                    Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = buttonColor, contentDescription = "rating",
+                                        modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer.copy(0.8f)).constrainAs(rating) {
+                                            start.linkTo(coverImage.start)
+                                            bottom.linkTo(coverImage.bottom)
+                                        })
+                                if (feed.lastUpdateFailed) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_error), tint = Color.Red, contentDescription = "error",
+                                    modifier = Modifier.background(Color.Gray).constrainAs(error) {
+                                        end.linkTo(parent.end)
+                                        bottom.linkTo(coverImage.bottom)
+                                    })
+                            }
+                            Text(feed.title ?: "No title", color = textColor, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                }
+            } else {
+                val listState = rememberLazyListState()
+                var restored by remember { mutableStateOf(false) }
+                DisposableEffect(LocalLifecycleOwner.current) {
+                    onDispose {
+                        val index = listState.firstVisibleItemIndex
+                        val offset = listState.firstVisibleItemScrollOffset
+                        Logd(TAG, "DisposableEffect onDispose save positions: $index $offset")
+                        runOnIOScope {
+                            vm.subPrefs = upsert(vm.subPrefs) {
+                                it.positionIndex = index
+                                it.positionOffset = offset
+                            }
+                        }
+                    }
+                }
+
+                //                val currentEntry = navController.navController.currentBackStackEntryAsState().value
+                //                val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
+                //                LaunchedEffect(feeds.size) {
+                //                    Logd(TAG, "LaunchedEffect(feeds.size) cameBack: $cameBack")
+                //                    if (!restored && feeds.size > 5) {
+                //                        if (!cameBack) {
+                //                            scope.launch {
+                //                                val (index, offset) = Pair(vm.subPrefs.positionIndex, vm.subPrefs.positionOffset)
+                //                                val safeIndex = index.coerceIn(0, feeds.size - 1)
+                //                                val safeOffset = if (safeIndex == index) offset else 0
+                //                                listState.scrollToItem(safeIndex, safeOffset)
+                ////                                currentEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
+                //                            }
+                //                        }
+                //                        currentEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
+                ////                        else scope.launch { listState.scrollToItem(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) }
+                //                        restored = true
+                //                    }
+                //                }
+                //                LaunchedEffect(filterAndSort) {
+                //                    Logd(TAG, "LaunchedEffect(filterSorted) $filterAndSort")
+                //                    if (feeds.isNotEmpty() && filterAndSort) scope.launch { listState.scrollToItem(0) }
+                //                    filterAndSort = false
+                //                }
+
+                LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(start = 5.dp, end = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (!vm.showAllFeeds && volumes.isNotEmpty()) items(volumes, key = { v -> v.id}) { volume ->
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.combinedClickable(
+                            onClick = { vm.curVolume = volume },
+                            onLongClick = {
+                                feedsSelected.clear()
+                                feedsSelected.addAll(volume.allFeeds)
+                                volumeToOperate = volume
+                            })) {
+                            Icon(imageVector = ImageVector.vectorResource(R.drawable.rounded_books_movies_and_music_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(50.dp).height(50.dp))
+                            Text(volume.name, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.weight(1f).fillMaxHeight().wrapContentHeight(Alignment.CenterVertically))
+                        }
+                    }
+                    items(feedList, key = { feed -> feed.id}) { feed_ ->
+                        val feed by rememberUpdatedState(feed_)
+                        var isSelected by remember(key1 = selectMode, key2 = selectedSize) { mutableStateOf(selectMode && feed in feedsSelected) }
+                        fun toggleSelected() {
+                            isSelected = !isSelected
+                            if (isSelected) feedsSelected.add(feed)
+                            else feedsSelected.remove(feed)
+                            Logd(TAG, "toggleSelected: selected: ${feedsSelected.size}")
+                        }
+                        val imageSize = 60
+                        Row(Modifier.height(imageSize.dp).background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)) {
+                            Box(modifier = Modifier.size(imageSize.dp)) {
+                                AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover",
+                                    colorFilter = if (!feed.inNormalVolume) ColorFilter.tint(color = Color.Gray.copy(alpha = 0.5f), blendMode = BlendMode.SrcAtop) else null,
+                                    modifier = Modifier.fillMaxSize().clickable {
+                                        Logd(TAG, "icon clicked!")
+                                        if (!feed.isBuilding) {
+                                            if (selectMode) toggleSelected()
+                                            else navTo(FeedDetails(feedId = feed.id, modeName = FeedScreenMode.Info.name))
+                                        }
+                                    })
+                                if (feed.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = buttonColor, contentDescription = "rating", modifier = Modifier.size((imageSize/4).dp).align(Alignment.BottomStart).background(MaterialTheme.colorScheme.tertiaryContainer.copy(0.8f)))
+                            }
+                            Box(Modifier.weight(1f).fillMaxHeight().padding(start = 10.dp).combinedClickable(onClick = {
+                                if (!feed.isBuilding) {
+                                    if (selectMode) toggleSelected()
+                                    else navTo(FeedDetails(feedId = feed.id))
+                                }
+                            }, onLongClick = {
+                                if (!feed.isBuilding) {
+                                    selectMode = !selectMode
+                                    isSelected = selectMode
+                                    feedsSelected.clear()
+                                    if (selectMode) {
+                                        feedsSelected.add(feed)
+                                        val index = feedList.indexOfFirst { it.id == feed.id }
+                                        longPressIndex = index
+                                    } else {
+                                        selectedSize = 0
+                                        longPressIndex = -1
+                                    }
+                                }
+                            })) {
+                                Text(feed.title ?: "No title", color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.align(Alignment.TopStart))
+                                Row(modifier = Modifier.align(Alignment.BottomStart)) {
+                                    val measureString = remember(feed.episodesCount, feed.totleDuration) { formatWithGrouping(feed.episodesCount.toLong()) + " : " + durationInHours(feed.totleDuration/1000, false) }
+                                    Text(measureString, color = textColor, style = MaterialTheme.typography.bodyMedium)
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Text(feed.sortInfo, color = textColor, style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                            if (feed.lastUpdateFailed) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_error), tint = Color.Red, contentDescription = "error")
+                        }
+                    }
+                }
+            }
+            if (selectMode) {
+                Row(modifier = Modifier.align(Alignment.TopEnd).background(MaterialTheme.colorScheme.tertiaryContainer),
+                    horizontalArrangement = Arrangement.spacedBy(15.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_upward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).padding(start = 10.dp).clickable {
+                        feedsSelected.clear()
+                        for (i in 0..longPressIndex) feedsSelected.add(feedList[i])
+                        selectedSize = feedsSelected.size
+                        Logd(TAG, "selectedIds: ${feedsSelected.size}")
+                    })
+                    Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_downward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable {
+                        feedsSelected.clear()
+                        for (i in longPressIndex..<feedList.size) feedsSelected.add(feedList[i])
+                        selectedSize = feedsSelected.size
+                        Logd(TAG, "selectedIds: ${feedsSelected.size}")
+                    })
+                    var selectAllRes by remember { mutableIntStateOf(R.drawable.ic_select_all) }
+                    Icon(imageVector = ImageVector.vectorResource(selectAllRes), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable {
+                        if (selectedSize != feedList.size) {
+                            feedsSelected.clear()
+                            feedsSelected.addAll(feedList)
+                            selectAllRes = R.drawable.ic_select_none
+                        } else {
+                            feedsSelected.clear()
+                            longPressIndex = -1
+                            selectAllRes = R.drawable.ic_select_all
+                        }
+                        selectedSize = feedsSelected.size
+                        Logd(TAG, "selectedIds: ${feedsSelected.size}")
+                    })
+                    @Composable
+                    fun FeedsSpeedDial(selected: SnapshotStateList<Feed>, modifier: Modifier = Modifier) {
+                        val bgColor = MaterialTheme.colorScheme.tertiaryContainer
+                        val fgColor = remember { complementaryColorOf(bgColor) }
+                        if (isFeedsOptionsExpanded) CommonPopupCard(onDismissRequest = { isFeedsOptionsExpanded = false }) {
+                            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { feedsOptionsMap.entries.forEachIndexed { _, entry -> entry.value() } }
+                        }
+                        FloatingActionButton(containerColor = bgColor, contentColor = fgColor,
+                            onClick = { isFeedsOptionsExpanded = !isFeedsOptionsExpanded }) { Icon(Icons.Filled.Menu, "Menu") }
+                    }
+                    FeedsSpeedDial(feedsSelected.toMutableStateList(), modifier = Modifier.padding(start = 16.dp))
+                }
+            }
         }
+
     }
 }
 

@@ -1,2 +1,0 @@
-* amended some lazy lists and fixed some list layout not starting at the top
-* set popups from the large widget to use dark theme, same as the widget

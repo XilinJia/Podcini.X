@@ -74,7 +74,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -89,7 +91,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -102,7 +103,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -119,9 +119,11 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -281,6 +283,7 @@ fun QueuesScreen(id: Long = -1L) {
     var browserFuture: ListenableFuture<MediaBrowser>? by remember { mutableStateOf(null) }
 
     var swipeActions by remember { mutableStateOf(SwipeActions(TAG)) }
+    var listInfoText by remember { mutableStateOf("") }
 
     var curQueuePosition by remember(vm.curQueue) {  mutableIntStateOf(vm.curQueue.scrollPosition) }
     Logd(TAG, "curQueuePosition: $curQueuePosition ${vm.curQueue.id}")
@@ -449,17 +452,20 @@ fun QueuesScreen(id: Long = -1L) {
     }
 
     OpenDialogs()
-    
+
+
     @Composable
-    fun MyTopAppBar() {
+    fun TopBar() {
         var expanded by remember { mutableStateOf(false) }
         val buttonColor = Color(0xDDFFD700)
-        Box {
-            TopAppBar(title = {
-                if (vm.queuesMode == QueuesScreenMode.Queue) {
-                    Text((if (vm.curQueue.id == actQueue.id) "> " else "") + if (vm.curIndex in vm.queueNames.indices) vm.queueNames[vm.curIndex].ifBlank { "No name" } else "No name", maxLines = 1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).combinedClickable(
-                        onClick = { showChooseQueue = true },
-                        onLongClick = {
+        Box(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
+            if (vm.curQueue.id == actQueue.id) AsyncImage(model = curEpisode?.imageUrl?:curEpisode?.feed?.imageUrl?:"", contentDescription = "bgImage", contentScale = ContentScale.FillBounds, error = painterResource(R.drawable.teaser), modifier = Modifier.matchParentSize().blur(radiusX = 5.dp, radiusY = 5.dp))
+            Box(modifier = Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)))
+            Column {
+                Row(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() })
+                    if (vm.queuesMode == QueuesScreenMode.Queue) {
+                        Text((if (vm.curQueue.id == actQueue.id) "> " else "") + if (vm.curIndex in vm.queueNames.indices) vm.queueNames[vm.curIndex].ifBlank { "No name" } else "No name", maxLines = 1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).combinedClickable(onClick = { showChooseQueue = true }, onLongClick = {
                             if (vm.curQueue.id == actQueue.id) {
                                 if (episodes.size > 5) {
                                     val index = episodes.indexOfFirst { it.id == curEpisode?.id }
@@ -473,22 +479,23 @@ fun QueuesScreen(id: Long = -1L) {
                                 else Logt(TAG, "actQueue is not available")
                             }
                         }))
-                } else {
-                    val title = remember(vm.queuesMode) { when (vm.queuesMode) {
-                        QueuesScreenMode.Bin -> vm.curQueue.name + " Bin"
-                        QueuesScreenMode.Queue -> ""
-                        QueuesScreenMode.Feed -> "${vm.feedsAssociated.size} Feeds"
-                        else -> "Settings"
-                    } }
-                    Text(title)
-                } },
-                navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) },
-                actions = {
+                    } else {
+                        val title = remember(vm.queuesMode) {
+                            when (vm.queuesMode) {
+                                QueuesScreenMode.Bin -> vm.curQueue.name + " Bin"
+                                QueuesScreenMode.Queue -> ""
+                                QueuesScreenMode.Feed -> "${vm.feedsAssociated.size} Feeds"
+                                else -> "Settings"
+                            }
+                        }
+                        Text(title)
+                    }
+                    Spacer(Modifier.weight(1f))
                     val binIconRes = remember(vm.queuesMode) { if (vm.queuesMode != QueuesScreenMode.Queue) R.drawable.playlist_play else R.drawable.ic_history }
-                    val feedsIconRes = remember(vm.queuesMode) {  if (vm.queuesMode == QueuesScreenMode.Feed) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 }
+                    val feedsIconRes = remember(vm.queuesMode) { if (vm.queuesMode == QueuesScreenMode.Feed) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 }
                     if (vm.queuesMode != QueuesScreenMode.Feed) IconButton(onClick = {
                         vm.cameBack = false
-                        vm.queuesMode = when(vm.queuesMode) {
+                        vm.queuesMode = when (vm.queuesMode) {
                             QueuesScreenMode.Queue -> QueuesScreenMode.Bin
                             QueuesScreenMode.Bin -> QueuesScreenMode.Queue
                             else -> QueuesScreenMode.Queue
@@ -497,7 +504,7 @@ fun QueuesScreen(id: Long = -1L) {
                     }) { Icon(imageVector = ImageVector.vectorResource(binIconRes), contentDescription = "bin") }
                     if (vm.queuesMode in listOf(QueuesScreenMode.Queue, QueuesScreenMode.Feed)) IconButton(onClick = {
                         vm.cameBack = false
-                        vm.queuesMode = when(vm.queuesMode) {
+                        vm.queuesMode = when (vm.queuesMode) {
                             QueuesScreenMode.Queue -> QueuesScreenMode.Feed
                             QueuesScreenMode.Feed -> QueuesScreenMode.Queue
                             else -> QueuesScreenMode.Queue
@@ -509,7 +516,7 @@ fun QueuesScreen(id: Long = -1L) {
                             facetsMode = QuickAccess.Custom
                             facetsCustomTag = vm.spinnerTexts[vm.curIndex]
                             facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", vm.feedsAssociated.map { it.id })
-                            navTo(Facets(modeName=QuickAccess.Custom.name))
+                            navTo(Facets(modeName = QuickAccess.Custom.name))
                         }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "facets") }
                         IconButton(onClick = {
                             feedIdsToUse.clear()
@@ -518,52 +525,55 @@ fun QueuesScreen(id: Long = -1L) {
                         }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "library") }
                     }
                     if (vm.queuesMode == QueuesScreenMode.Queue) IconButton(onClick = { navTo(Search) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
-                    IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                    DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.settings_label)) }, onClick = {
-                            vm.queuesMode = QueuesScreenMode.Settings
-                            runOnIOScope { upsert(appAttribs) { it.queuesMode = vm.queuesMode.name } }
-                            expanded = false
-                        })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.clear_bin_label)) }, onClick = {
-                            upsertBlk(vm.curQueue) {
-                                it.idsBinList.clear()
-                                it.update()
-                            }
-                            expanded = false
-                        })
-                        if (vm.queuesMode == QueuesScreenMode.Queue) {
-                            DropdownMenuItem(text = { Text(stringResource(R.string.sort)) }, onClick = {
-                                showSortDialog = true
+                    Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
+                        IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
+                        DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.settings_label)) }, onClick = {
+                                vm.queuesMode = QueuesScreenMode.Settings
+                                runOnIOScope { upsert(appAttribs) { it.queuesMode = vm.queuesMode.name } }
                                 expanded = false
                             })
-                            if (vm.queueNames.size < QUEUES_LIMIT) DropdownMenuItem(text = { Text(stringResource(R.string.add_queue)) }, onClick = {
-                                showAddQueueDialog.value = true
-                                expanded = false
-                            })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.clear_queue_label)) }, onClick = {
-                                showClearQueueDialog.value = true
-                                expanded = false
-                            })
-                            fun toggleQL() {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.clear_bin_label)) }, onClick = {
                                 upsertBlk(vm.curQueue) {
-                                    it.isLocked = !it.isLocked
-                                    if (!it.isLocked) it.autoSort = false
+                                    it.idsBinList.clear()
+                                    it.update()
                                 }
-                                //                                dragDropEnabled = !(vm.curQueue.isSorted || vm.curQueue.isLocked)
-                                Logt(TAG, context.getString(if (vm.curQueue.isLocked) R.string.queue_locked else R.string.queue_unlocked))
                                 expanded = false
-                            }
-                            DropdownMenuItem(text = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(stringResource(R.string.lock_queue))
-                                    Checkbox(checked = vm.curQueue.isLocked, onCheckedChange = { toggleQL() })
+                            })
+                            if (vm.queuesMode == QueuesScreenMode.Queue) {
+                                DropdownMenuItem(text = { Text(stringResource(R.string.sort)) }, onClick = {
+                                    showSortDialog = true
+                                    expanded = false
+                                })
+                                if (vm.queueNames.size < QUEUES_LIMIT) DropdownMenuItem(text = { Text(stringResource(R.string.add_queue)) }, onClick = {
+                                    showAddQueueDialog.value = true
+                                    expanded = false
+                                })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.clear_queue_label)) }, onClick = {
+                                    showClearQueueDialog.value = true
+                                    expanded = false
+                                })
+                                fun toggleQL() {
+                                    upsertBlk(vm.curQueue) {
+                                        it.isLocked = !it.isLocked
+                                        if (!it.isLocked) it.autoSort = false
+                                    } //                                dragDropEnabled = !(vm.curQueue.isSorted || vm.curQueue.isLocked)
+                                    Logt(TAG, context.getString(if (vm.curQueue.isLocked) R.string.queue_locked else R.string.queue_unlocked))
+                                    expanded = false
                                 }
-                            }, onClick = { toggleQL() })
+                                DropdownMenuItem(text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(stringResource(R.string.lock_queue))
+                                        Checkbox(checked = vm.curQueue.isLocked, onCheckedChange = { toggleQL() })
+                                    }
+                                }, onClick = { toggleQL() })
+                            }
                         }
                     }
-                })
-            HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
+
+                }
+                if (vm.queuesMode in listOf(QueuesScreenMode.Bin, QueuesScreenMode.Queue)) InforBar(swipeActions) { Text("$listInfoText $feedOperationText", style = MaterialTheme.typography.bodyMedium) }
+            }
         }
     }
 
@@ -680,13 +690,11 @@ fun QueuesScreen(id: Long = -1L) {
     }
 
     if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesSortedFlow)
-    else Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-//        Logd(TAG, "Scaffold screenMode: $queuesMode")
+    else Scaffold(topBar = { TopBar() }) { innerPadding ->
         when (vm.queuesMode) {
             QueuesScreenMode.Feed -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { AssociatedFeedsGrid(vm.feedsAssociated) }
             QueuesScreenMode.Settings -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { Settings() }
             else -> {
-                var listInfoText by remember { mutableStateOf("") }
                 LaunchedEffect(episodes.size) {
                     Logd(TAG, "LaunchedEffect(episodes.size) ${episodes.size}")
                     withContext(Dispatchers.IO) { listInfoText = buildListInfo(episodes) }
@@ -694,7 +702,6 @@ fun QueuesScreen(id: Long = -1L) {
                 if (vm.queuesMode == QueuesScreenMode.Bin) {
                     Logd(TAG, "vm.queuesMode == QueuesScreenMode.Bin")
                     Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-                        InforBar(swipeActions) { Text("$listInfoText $feedOperationText", style = MaterialTheme.typography.bodyMedium) }
                         EpisodeLazyColumn(episodes, swipeActions = swipeActions)
                     }
                 } else {
@@ -713,7 +720,6 @@ fun QueuesScreen(id: Long = -1L) {
                                 val buttonColor = MaterialTheme.colorScheme.tertiary
                                 val imageWidth = 56.dp
                                 val imageHeight = 56.dp
-//                                var isDragging by remember(episode.id) { mutableStateOf(false) }
                                 var yOffset by remember(index) { mutableFloatStateOf(0f) }
                                 var draggedIndex by remember { mutableStateOf<Int?>(null) }
                                 Row(Modifier.background(MaterialTheme.colorScheme.surface).zIndex(if (draggedIndex == index) 1f else 0f).offset { IntOffset(0, if (draggedIndex == index) yOffset.roundToInt() else 0) }) {
@@ -737,14 +743,8 @@ fun QueuesScreen(id: Long = -1L) {
                                                     yOffset += rowHeightPx
                                                 }
                                             },
-                                            onDragStarted = {
-                                                Logd(TAG, "MainRow onDragStart")
-//                                                isDragging = true
-                                                draggedIndex = index
-                                            },
+                                            onDragStarted = { draggedIndex = index },
                                             onDragStopped = {
-                                                Logd(TAG, "MainRow onDragEnd")
-//                                                isDragging = false
                                                 persistOrdered(episodes_, queueEntries)
                                                 draggedIndex = null
                                                 yOffset = 0f
@@ -776,7 +776,6 @@ fun QueuesScreen(id: Long = -1L) {
                             }
                         ) }
                         Logd(TAG, "Scaffold scrollToOnStart: cameBack: ${vm.cameBack} $scrollToOnStart $curQueuePosition")
-                        InforBar(swipeActions) { Text("$listInfoText $feedOperationText", style = MaterialTheme.typography.bodyMedium) }
                         EpisodeLazyColumn(episodes, swipeActions = swipeActions,
                             lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
                             refreshCB = {

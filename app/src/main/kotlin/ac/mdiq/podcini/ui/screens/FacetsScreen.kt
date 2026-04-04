@@ -48,34 +48,32 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -462,6 +460,7 @@ fun FacetsScreen(modeName: String = "") {
     var showSortDialog by remember { mutableStateOf(false) }
     var showDatesFilterDialog by remember { mutableStateOf(false) }
     val showClearHistoryDialog = remember { mutableStateOf(false) }
+    var showChooseMode by remember { mutableStateOf(false) }
 
     val episodes by vm.episodesFlow.collectAsStateWithLifecycle()
     val feedsAssociated by vm.feedsAssFlow.collectAsStateWithLifecycle()
@@ -496,7 +495,58 @@ fun FacetsScreen(modeName: String = "") {
         else vm.showFeeds = false
     }
 
-    var showChooseMode by remember { mutableStateOf(false) }
+    @Composable
+    fun TopBar() {
+        var expanded by remember { mutableStateOf(false) }
+        val textColor = MaterialTheme.colorScheme.onSurface
+        val buttonColor = Color(0xDDFFD700)
+        Row(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer", modifier = Modifier.padding(end = 10.dp).clickable { drawerController?.open() })
+            Text(facetsMode.name, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).clickable { showChooseMode = true })
+            Spacer(Modifier.weight(1f))
+            val feedsIconRes = remember(vm.showFeeds) { if (vm.showFeeds) R.drawable.baseline_list_alt_24 else R.drawable.baseline_dynamic_feed_24 }
+            IconButton(onClick = { vm.showFeeds = !vm.showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
+            IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
+            if (facetsMode != QuickAccess.Recorded) IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (vm.filterButtonColor.value == Color.White) textColor else vm.filterButtonColor.value, contentDescription = "filter") }
+            if (vm.showFeeds) IconButton(onClick = {
+                feedIdsToUse.clear()
+                feedIdsToUse.addAll(feedsAssociated.map { it.id })
+                navTo(Library)
+            }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "library") }
+            IconButton(onClick = { navTo(Search) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
+            if (facetsMode in listOf(QuickAccess.History, QuickAccess.Downloaded, QuickAccess.New)) {
+                Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
+                    IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
+                    DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
+                        if (episodes.isNotEmpty() && facetsMode == QuickAccess.History) {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.between_dates)) }, onClick = {
+                                showDatesFilterDialog = true
+                                expanded = false
+                            })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.clear_history_label)) }, onClick = {
+                                showClearHistoryDialog.value = true
+                                expanded = false
+                            })
+                        }
+                        if (facetsMode == QuickAccess.Downloaded) DropdownMenuItem(text = { Text(stringResource(R.string.reconcile_label)) }, onClick = {
+                            vm.reconcile()
+                            expanded = false
+                        })
+                        if (episodes.isNotEmpty() && facetsMode == QuickAccess.New) DropdownMenuItem(text = { Text(stringResource(R.string.clear_new_label)) }, onClick = {
+                            vm.progressing = true
+                            runOnIOScope {
+                                for (e in episodes) if (e.playState == EpisodeState.NEW.code) upsert(e) { it.setPlayState(EpisodeState.UNPLAYED) }
+                                Logt(TAG, "New items cleared")
+                                withContext(Dispatchers.Main) { vm.progressing = false }
+                                resetSwipes() //                                        vm.buildFlow()
+                            }
+                            expanded = false
+                        })
+                    }
+                }
+            }
+        }
+    }
 
     @Composable
     fun OpenDialogs() {
@@ -551,66 +601,10 @@ fun FacetsScreen(modeName: String = "") {
         if (showChooseMode) ChooseMode()
     }
 
-    @Composable
-    fun MyTopAppBar() {
-        var expanded by remember { mutableStateOf(false) }
-        val textColor = MaterialTheme.colorScheme.onSurface
-        val buttonColor = Color(0xDDFFD700)
-        Box {
-            TopAppBar(title = { Text(facetsMode.name, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).clickable { showChooseMode = true }) },
-                navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) },
-                actions = {
-                    Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                        val feedsIconRes = remember(vm.showFeeds) { if (vm.showFeeds) R.drawable.baseline_list_alt_24 else R.drawable.baseline_dynamic_feed_24 }
-                        IconButton(onClick = { vm.showFeeds = !vm.showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
-                        IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
-                        if (facetsMode != QuickAccess.Recorded) IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (vm.filterButtonColor.value == Color.White) textColor else vm.filterButtonColor.value, contentDescription = "filter") }
-                        if (vm.showFeeds) IconButton(onClick = {
-                            feedIdsToUse.clear()
-                            feedIdsToUse.addAll(feedsAssociated.map { it.id })
-                            navTo(Library)
-                        }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "library") }
-                        IconButton(onClick = { navTo(Search) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
-                        if (facetsMode in listOf(QuickAccess.History, QuickAccess.Downloaded, QuickAccess.New)) {
-                            IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                            DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
-                                if (episodes.isNotEmpty() && facetsMode == QuickAccess.History) {
-                                    DropdownMenuItem(text = { Text(stringResource(R.string.between_dates)) }, onClick = {
-                                        showDatesFilterDialog = true
-                                        expanded = false
-                                    })
-                                    DropdownMenuItem(text = { Text(stringResource(R.string.clear_history_label)) }, onClick = {
-                                        showClearHistoryDialog.value = true
-                                        expanded = false
-                                    })
-                                }
-                                if (facetsMode == QuickAccess.Downloaded) DropdownMenuItem(text = { Text(stringResource(R.string.reconcile_label)) }, onClick = {
-                                    vm.reconcile()
-                                    expanded = false
-                                })
-                                if (episodes.isNotEmpty() && facetsMode == QuickAccess.New) DropdownMenuItem(text = { Text(stringResource(R.string.clear_new_label)) }, onClick = {
-                                    vm.progressing = true
-                                    runOnIOScope {
-                                        for (e in episodes) if (e.playState == EpisodeState.NEW.code) upsert(e) { it.setPlayState(EpisodeState.UNPLAYED) }
-                                        Logt(TAG, "New items cleared")
-                                        withContext(Dispatchers.Main) { vm.progressing = false }
-                                        resetSwipes()
-//                                        vm.buildFlow()
-                                    }
-                                    expanded = false
-                                })
-                            }
-                        }
-                    }
-                })
-            HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
-        }
-    }
-
     OpenDialogs()
 
     if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesFlow)
-    else Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
+    else Scaffold(topBar = { TopBar() }) { innerPadding ->
         if (vm.showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { AssociatedFeedsGrid(feedsAssociated) }
         else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             val statusMode = remember(facetsMode) {
@@ -626,9 +620,7 @@ fun FacetsScreen(modeName: String = "") {
              }
             InforBar(swipeActions) { Text(info, style = MaterialTheme.typography.bodyMedium) }
             EpisodeLazyColumn(episodes, statusRowMode = statusMode, showActionButtons = facetsMode != QuickAccess.Commented, swipeActions = swipeActions, actionButtonType = actionButtonType,
-                actionButtonCB = { e, type ->
-                    if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, vm.sortOrder) }
-                })
+                actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, vm.sortOrder) } })
         }
     }
 }

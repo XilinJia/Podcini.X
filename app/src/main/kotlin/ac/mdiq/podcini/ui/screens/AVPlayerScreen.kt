@@ -130,6 +130,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.center
@@ -374,7 +375,7 @@ fun ControlUI(vm: AVPlayerVM) {
     val offsetX = remember(curEpisode?.id) { Animatable(0f) }
     val swipeVelocityThreshold = 1500f
     val swipeDistanceThreshold = with(LocalDensity.current) { 100.dp.toPx() }
-    Row(Modifier.background(MaterialTheme.colorScheme.surface).pointerInput(Unit) {
+    Row(Modifier.pointerInput(Unit) {
         detectHorizontalDragGestures(
             onDragStart = {
                 Logd(TAG, "detectHorizontalDragGestures onDragStart")
@@ -567,19 +568,6 @@ fun ProgressBar(vm: AVPlayerVM) {
     }
 }
 
-@Composable
-fun PlayerUIScreen(modifier: Modifier) {
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val vm: AVPlayerVM = viewModel()
-    Box(modifier = modifier.fillMaxWidth().height(100.dp).border(1.dp, MaterialTheme.colorScheme.tertiary).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))) {
-        Column {
-            Text(curEpisode?.title ?: "No title", maxLines = 1, color = textColor, style = MaterialTheme.typography.bodyMedium)
-            ProgressBar(vm)
-            ControlUI(vm)
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AVPlayerScreen() {
@@ -705,7 +693,9 @@ fun AVPlayerScreen() {
 
     @Composable
     fun PlayerUI(modifier: Modifier) {
-        Box(modifier = modifier.fillMaxWidth().height(100.dp).border(1.dp, MaterialTheme.colorScheme.tertiary).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))) {
+        Box(modifier = modifier.fillMaxWidth().height(100.dp).border(1.dp, MaterialTheme.colorScheme.tertiary)) {
+            AsyncImage(model = curEpisode?.imageUrl?:curEpisode?.feed?.imageUrl?:"", contentDescription = "bgImage", contentScale = ContentScale.FillBounds, error = painterResource(R.drawable.teaser), modifier = Modifier.matchParentSize().blur(radiusX = 5.dp, radiusY = 5.dp))
+            Box(modifier = Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)))
             Column {
                 Text(curEpisode?.title ?: "No title", maxLines = 1, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 ProgressBar(vm)

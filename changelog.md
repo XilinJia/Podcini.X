@@ -1,3 +1,12 @@
+# 10.14.7
+
+* made customized top bars in Library, Queues, and Facets screens
+* in Queues screen, merged the top bar and the info bar, and, if active qu added background image of curEpisode
+* added background image of curEpisode to PlayerUI
+* back arrow on FindFeed screen returns to previous screen or open drawer
+* gradle uppped to 9.4.1
+* some code refactoring
+
 # 10.14.6
 
 * fixed crash when opening Months tab in Statistics
