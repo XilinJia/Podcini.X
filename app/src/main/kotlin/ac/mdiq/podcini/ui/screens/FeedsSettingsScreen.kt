@@ -34,7 +34,9 @@ import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.ui.compose.VideoModeDialog
+import ac.mdiq.podcini.ui.compose.borderColor
 import ac.mdiq.podcini.ui.compose.filterChipBorder
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.Logd
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -204,7 +206,6 @@ fun FeedsSettingsScreen() {
 
     @Composable
     fun TitleSummarySwitch(titleRes: Int, summaryRes: Int, iconRes: Int, initVal: Boolean, cb: ((Boolean)->Unit)) {
-        val textColor = MaterialTheme.colorScheme.onSurface
         Column {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
                 if (iconRes > 0) Icon(ImageVector.vectorResource(id = iconRes), "", tint = textColor)
@@ -221,7 +222,7 @@ fun FeedsSettingsScreen() {
         }
     }
 
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).padding(start = 5.dp, end = 5.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (feedsToSet.size == 1) {
@@ -270,7 +271,7 @@ fun FeedsSettingsScreen() {
                                             runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.volumeId = v.id } } }
                                             curVolumeName = v.name
                                             onDismissRequest()
-                                        }, label = { Text(volumes[i].name) }, selected = false, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))
+                                        }, label = { Text(volumes[i].name) }, selected = false, border = BorderStroke(1.dp, borderColor))
                                     }
                                 }
                             }
@@ -505,7 +506,7 @@ fun FeedsSettingsScreen() {
                                             runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.queue = q } } }
                                             curPrefQueue = q.name
                                             onDismissRequest()
-                                        }, label = { Text(queuesLive[i].name) }, selected = false, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))
+                                        }, label = { Text(queuesLive[i].name) }, selected = false, border = BorderStroke(1.dp, borderColor))
                                     }
                                 }
                             }
@@ -685,7 +686,7 @@ fun FeedsSettingsScreen() {
             val curAction = remember(feedToSet.prefActionType) { feedToSet.prefActionType ?: "Auto" }
             var showChooseAction by remember { mutableStateOf(false) }
             if (showChooseAction) Popup(onDismissRequest = { showChooseAction = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
-                Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                         for (action in actions) {
                             FilterChip(onClick = {
@@ -1087,7 +1088,7 @@ fun FeedsSettingsScreen() {
                             return result.toString()
                         }
                         Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = onDismiss) {
-                            Surface(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+                            Surface(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
                                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(stringResource(R.string.episode_filters_label), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
                                     val termList = remember { if (inexcl == ADLIncExc.EXCLUDE) filter.excludeTerms.toMutableStateList() else filter.includeTerms.toMutableStateList() }

@@ -5,6 +5,7 @@ import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.utils.Logd
 import androidx.compose.foundation.clickable
@@ -63,7 +64,7 @@ class SwipeActions(private val tag: String) {
     @Composable
     fun SwipeActionsSettingDialog(onDismissRequest: () -> Unit) {
         val context by rememberUpdatedState(LocalContext.current)
-        val textColor = MaterialTheme.colorScheme.onSurface
+        
 
         val leftAction = remember { mutableStateOf(left) }
         val rightAction = remember { mutableStateOf(right) }

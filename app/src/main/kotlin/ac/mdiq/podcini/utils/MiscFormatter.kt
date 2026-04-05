@@ -5,35 +5,24 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
 import kotlinx.datetime.format.Padding
-import kotlinx.datetime.format.byUnicodePattern
 import kotlinx.datetime.format.char
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import kotlin.math.abs
+import kotlin.math.min
+import kotlin.math.pow
+import kotlin.math.round
+import kotlin.math.roundToInt
 import kotlin.time.Clock
 import kotlin.time.Instant
-import kotlin.math.*
 
-fun formatRfc822Date(date: Instant?): String {
-    val formatter = LocalDateTime.Format { byUnicodePattern("dd MM yy HH:mm:ss") }
-    val localDateTime = (date?: Instant.fromEpochSeconds(0)).toLocalDateTime(TimeZone.currentSystemDefault())
-    return localDateTime.format(formatter)
+private val FULL_DATETIME_FORMAT = LocalDateTime.Format {
+    year();char('-'); monthNumber(); char('-'); day()
+    char(' '); hour(); char(':'); minute(); char(':'); second()
 }
 
 fun fullDateTimeString(time: Long? = null): String {
-    val localDateTime = (if (time == null) Clock.System.now() else Instant.fromEpochMilliseconds(time)).toLocalDateTime(TimeZone.currentSystemDefault())
-    val formatter = LocalDateTime.Format {
-        year()
-        char('-')
-        monthNumber()
-        char('-')
-        day()
-        char(' ')
-        hour()
-        char(':')
-        minute()
-        char(':')
-        second()
-    }
-    return localDateTime.format(formatter)
+    return (if (time == null) Clock.System.now() else Instant.fromEpochMilliseconds(time)).toLocalDateTime(TimeZone.currentSystemDefault()).format(FULL_DATETIME_FORMAT)
 }
 
 fun stripDateTimeLines(input: String): String {
@@ -47,8 +36,6 @@ fun formatAbbrev(epochMillis: Long): String {
     val dateTime = instant.toLocalDateTime(tz)
     val now = Clock.System.now().toLocalDateTime(tz)
 
-    val withinLastYear = dateTime.year == now.year
-
     val withYearFormat = LocalDateTime.Format {
         yearTwoDigits(1970) // or year() for 4 digits
         char('-')
@@ -61,7 +48,7 @@ fun formatAbbrev(epochMillis: Long): String {
         char('-')
         day(padding = Padding.ZERO)
     }
-    val format = if (withinLastYear) noYearFormat else withYearFormat
+    val format = if (dateTime.year == now.year) noYearFormat else withYearFormat
     return dateTime.format(format)
 }
 
@@ -69,15 +56,10 @@ fun formatDateTimeFlex(epochMillis: Long): String {
     val tz = TimeZone.currentSystemDefault()
     val date = Instant.fromEpochMilliseconds(epochMillis).toLocalDateTime(tz)
     val now = Clock.System.now().toLocalDateTime(tz)
-
-    val sameDayFormat = LocalDateTime.Format { hour(); char(':'); minute() }
-    val sameYearFormat = LocalDateTime.Format { monthNumber(); char('-'); day(); char(' '); hour(); char(':'); minute() }
-    val defaultFormat = LocalDateTime.Format { year(); char('-'); monthNumber(); char('-'); day() }
-
     return when (date.year) {
-        now.year if date.dayOfYear == now.dayOfYear -> date.format(sameDayFormat)
-        now.year -> date.format(sameYearFormat)
-        else -> date.format(defaultFormat)
+        now.year if date.dayOfYear == now.dayOfYear -> date.format(LocalDateTime.Format { hour(); char(':'); minute() })
+        now.year -> date.format(LocalDateTime.Format { monthNumber(); char('-'); day(); char(' '); hour(); char(':'); minute() })
+        else -> date.format(LocalDateTime.Format { year(); char('-'); monthNumber(); char('-'); day() })
     }
 }
 
@@ -132,19 +114,14 @@ fun formatNumberKmp(value: Double, fractionDigits: Int = 2, useGrouping: Boolean
     if (value.isNaN()) return "NaN"
     if (value.isInfinite()) return if (value > 0) "Infinity" else "-Infinity"
 
-    val negative = value < 0.0
-    val abs = abs(value)
-
-    // scale and round
-    val factor = 10.0.pow(fractionDigits)
-    val scaled = round(abs * factor).toLong()
-
-    val intPart = scaled / (10.0.pow(fractionDigits).toLong())
-    val fracPart = (scaled % (10.0.pow(fractionDigits).toLong())).toInt()
+    val scaled = round(abs(value) * (10.0.pow(fractionDigits))).toLong()
+    val power = (10.0.pow(fractionDigits).toLong())
+    val intPart = scaled / power
+    val fracPart = (scaled % power).toInt()
 
     val intStr = if (useGrouping) group(intPart.toString(), groupingSeparator) else intPart.toString()
     val result = if (fractionDigits == 0) intStr else intStr + decimalSeparator + fracPart.toString().padStart(fractionDigits, '0')
-    return if (negative) "-$result" else result
+    return if (value < 0.0) "-$result" else result
 }
 
 private fun group(s: String, sep: Char): String {
@@ -375,4 +352,11 @@ fun formatShortFileSize(bytes: Long): String {
     } while (value >= 1000 && unitIndex < units.lastIndex)
     val formatted = if (value >= 10) value.toInt().toString() else "%.1f".format(value)
     return "$formatted ${units[unitIndex]}"
+}
+
+fun LocalDate.formatMMDDYY(): String {
+    val month = month.number.toString().padStart(2, '0')
+    val day = day.toString().padStart(2, '0')
+    val year = (year % 100).toString().padStart(2, '0')
+    return "$month/$day/$year"
 }

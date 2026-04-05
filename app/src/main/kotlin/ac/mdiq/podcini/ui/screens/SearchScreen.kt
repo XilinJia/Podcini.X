@@ -20,6 +20,7 @@ import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.SearchBarRow
 import ac.mdiq.podcini.ui.compose.episodeForInfo
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.ui.utils.SearchAlgo
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.formatLargeInteger
@@ -160,7 +161,7 @@ fun SearchScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val drawerController = LocalDrawerController.current
 
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
     val actionColor = MaterialTheme.colorScheme.tertiary
 
     val vm: SearchVM = viewModel()
@@ -264,7 +265,7 @@ fun SearchScreen() {
                                 Logd(TAG, "icon clicked!")
                                 if (!feed.isBuilding) navTo(FeedDetails(feedId=feed.id, modeName=FeedScreenMode.Info.name))
                             })
-                        val textColor = MaterialTheme.colorScheme.onSurface
+                        
                         Column(Modifier.weight(1f).padding(start = 10.dp).clickable { if (!feed.isBuilding) navTo(FeedDetails(feedId=feed.id)) }) {
                             Row {
                                 if (feed.rating != Rating.UNRATED.code)
@@ -306,7 +307,7 @@ fun SearchScreen() {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover",
                                 modifier = Modifier.width(60.dp).height(60.dp).clickable { if (feed.feedUrl.isNotBlank()) navTo(OnlineFeed(url=feed.feedUrl)) })
-                            val textColor = MaterialTheme.colorScheme.onSurface
+                            
                             Column(Modifier.weight(1f).padding(start = 10.dp).clickable { if (feed.feedUrl.isNotBlank()) navTo(OnlineFeed(url=feed.feedUrl)) }) {
                                 Text(feed.name, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
                                 Text(feed.author, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)

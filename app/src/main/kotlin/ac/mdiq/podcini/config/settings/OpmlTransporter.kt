@@ -10,7 +10,6 @@ import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
-import ac.mdiq.podcini.utils.formatRfc822Date
 import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -22,6 +21,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.format
+import kotlinx.datetime.format.char
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import nl.adaptivity.xmlutil.XmlDeclMode
@@ -29,6 +33,7 @@ import nl.adaptivity.xmlutil.serialization.XML
 import nl.adaptivity.xmlutil.serialization.XmlElement
 import nl.adaptivity.xmlutil.serialization.XmlSerialName
 import okio.buffer
+import kotlin.time.Clock
 
 
 class OpmlTransporter {
@@ -98,7 +103,12 @@ class OpmlTransporter {
         override suspend fun writeDocument(feeds: List<Feed>, unifiedFile: UnifiedFile) {
             val outlines = feeds.asSequence().filterNot { it.isSynthetic() }
                 .map { feed -> Outline(text = feed.title?:"", title = feed.title?:"", type = feed.type, xmlUrl = feed.downloadUrl, htmlUrl = feed.link) }.toList()
-            val opml = Opml(version = OPML_VERSION, head = Head(title = OPML_TITLE, dateCreated = formatRfc822Date(null)), body = Body(outlines = outlines))
+            val formatter = LocalDateTime.Format {
+                day(); char(' '); monthNumber(); char(' '); yearTwoDigits(1970)
+                char(' '); hour(); char(':'); minute(); char(':'); second()
+            }
+            val dateCreated = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).format(formatter)
+            val opml = Opml(version = OPML_VERSION, head = Head(title = OPML_TITLE, dateCreated = dateCreated), body = Body(outlines = outlines))
 
             val xml = XML {
                 indentString = "  "

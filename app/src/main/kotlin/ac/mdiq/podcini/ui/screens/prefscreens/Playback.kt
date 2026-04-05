@@ -24,6 +24,7 @@ import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.VideoModeDialog
 import ac.mdiq.podcini.ui.compose.commonConfirm
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.Logd
 import android.app.Activity
 import android.content.Intent
@@ -80,7 +81,7 @@ private const val TAG = "PlaybackScreen"
 @Composable
 fun PlaybackScreen() {
     val context by rememberUpdatedState(LocalContext.current)
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
     BackHandler(enabled = true) { pfBackStack.removeLastOrNull() }
 
     var selectedRingtoneUri by remember { mutableStateOf(appPrefs.ringToneUriString?.toUri()) }

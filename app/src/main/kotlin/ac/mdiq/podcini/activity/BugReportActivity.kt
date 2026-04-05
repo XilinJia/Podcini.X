@@ -10,6 +10,8 @@ import ac.mdiq.podcini.storage.utils.internalDir
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.compose.PodciniTheme
+import ac.mdiq.podcini.ui.compose.borderColor
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
@@ -105,7 +107,7 @@ class BugReportActivity : ComponentActivity() {
 
     @Composable
     fun MainView() {
-        val textColor = MaterialTheme.colorScheme.onSurface
+        
         Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(horizontal = 5.dp).verticalScroll(rememberScrollState())) {
                 if (toastMassege.isNotEmpty()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
@@ -130,12 +132,12 @@ class BugReportActivity : ComponentActivity() {
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
-        val buttonColor = Color(0xDDFFD700)
+        
         Box {
             TopAppBar(title = { Text(stringResource(R.string.bug_report_title)) }, navigationIcon = { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "", modifier = Modifier.padding(7.dp).clickable { finish() })  },
                 actions = {
                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                    DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
+                    DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.export_logs_menu_title)) }, onClick = {
                             showConfirmExport.value = true
                             expanded = false

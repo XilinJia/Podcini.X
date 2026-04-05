@@ -39,8 +39,10 @@ import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.StatusRowMode
+import ac.mdiq.podcini.ui.compose.borderColor
 import ac.mdiq.podcini.ui.compose.episodeForInfo
 import ac.mdiq.podcini.ui.compose.filterChipBorder
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.timeIt
@@ -127,7 +129,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
 
 enum class QuickAccess {
     New, Planned, Repeats, Liked, Todos, Timers, Commented, Tagged, Recorded, Queued, Downloaded, History, Archived, Frozen, All, Custom, None
@@ -498,8 +499,6 @@ fun FacetsScreen(modeName: String = "") {
     @Composable
     fun TopBar() {
         var expanded by remember { mutableStateOf(false) }
-        val textColor = MaterialTheme.colorScheme.onSurface
-        val buttonColor = Color(0xDDFFD700)
         Row(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer", modifier = Modifier.padding(end = 10.dp).clickable { drawerController?.open() })
             Text(facetsMode.name, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).clickable { showChooseMode = true })
@@ -517,7 +516,7 @@ fun FacetsScreen(modeName: String = "") {
             if (facetsMode in listOf(QuickAccess.History, QuickAccess.Downloaded, QuickAccess.New)) {
                 Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                    DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
+                    DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
                         if (episodes.isNotEmpty() && facetsMode == QuickAccess.History) {
                             DropdownMenuItem(text = { Text(stringResource(R.string.between_dates)) }, onClick = {
                                 showDatesFilterDialog = true
@@ -577,7 +576,7 @@ fun FacetsScreen(modeName: String = "") {
         @Composable
         fun ChooseMode() {
             Popup(onDismissRequest = { showChooseMode = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
-                Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface)) {
+                Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface)) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                         for (index in vm.spinnerTexts.indices) {
                             FilterChip(onClick = {

@@ -14,10 +14,14 @@ import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
+import ac.mdiq.podcini.ui.compose.borderColor
+import ac.mdiq.podcini.ui.compose.buttonColor
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.format
+import ac.mdiq.podcini.utils.formatMMDDYY
 import ac.mdiq.podcini.utils.formatShortFileSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -169,13 +173,6 @@ class StatisticsVM: ViewModel() {
         statsOfDay = getStatistics(date.atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds(), date.plus(1, DateTimeUnit.DAY).atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds())
     }
 
-    fun LocalDate.formatMMDDYY(): String {
-        val month = month.toString().padStart(2, '0')
-        val day = day.toString().padStart(2, '0')
-        val year = (year % 100).toString().padStart(2, '0')
-        return "$month/$day/$year"
-    }
-
     internal fun loadStatistics() {
         loadDailyStats()
         try {
@@ -238,20 +235,20 @@ fun StatisticsScreen() {
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
-        val textColor = MaterialTheme.colorScheme.onSurface
-        val buttonColor = Color(0xDDFFD700)
+        
+        
         val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
         Box {
             TopAppBar(title = { Text("") }, navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chart_box), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) },
                 actions = {
                 if (vm.selectedTabIndex.intValue <= 2) {
                     IconButton(onClick = { vm.showFilter = true }) {
-                        val filterColor = if (vm.timeFilterFrom > 0L || vm.timeFilterTo < Long.MAX_VALUE) buttonAltColor else textColor
+                        val filterColor = if (vm.timeFilterFrom > 0L || vm.timeFilterTo < Long.MAX_VALUE) buttonAltColor else buttonColor
                         Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = filterColor, contentDescription = "filter")
                     }
                 }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
+                DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
                     if (vm.selectedTabIndex.intValue == 0 || vm.selectedTabIndex.intValue == 1) DropdownMenuItem(text = { Text(stringResource(R.string.statistics_reset_data)) }, onClick = {
                         vm.showResetDialog.value = true
                         expanded = false
@@ -305,11 +302,8 @@ fun StatisticsScreen() {
         }
     }
 
-    if (vm.showTodayStats) {
-        AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { vm.showTodayStats = false },  confirmButton = {},
-            text = { EpisodeLazyColumn(vm.statsOfDay.episodes, showCoverImage = false, showActionButtons = false) },
-            dismissButton = { TextButton(onClick = { vm.showTodayStats = false }) { Text(stringResource(R.string.cancel_label)) } } )
-    }
+    if (vm.showTodayStats)
+        AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { vm.showTodayStats = false }, confirmButton = {}, text = { EpisodeLazyColumn(vm.statsOfDay.episodes, showCoverImage = false, showActionButtons = false) }, dismissButton = { TextButton(onClick = { vm.showTodayStats = false }) { Text(stringResource(R.string.cancel_label)) } })
 
     @Composable
     fun OverviewNumbers(stats: StatisticsItem, nd: Int = 1, center: Boolean = true) {
@@ -317,7 +311,7 @@ fun StatisticsScreen() {
             if (nd == 1) return num.toString()
             return (1f*num/nd).format(2)
         }
-        val textColor = MaterialTheme.colorScheme.onSurface
+        
         Row {
             if (center) Spacer(Modifier.weight(0.3f))
             Text( stringResource(R.string.spent) + ": " + durationStringShort(stats.timeSpent*1000/nd, true), color = textColor)
@@ -373,7 +367,7 @@ fun StatisticsScreen() {
     @Composable
     fun Overview() {
         LaunchedEffect(vm.statisticsState) { if (vm.chartData == null) vm.loadStatistics() }
-        val textColor = MaterialTheme.colorScheme.onSurface
+        
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             Row {
                 Spacer(Modifier.weight(1f))
@@ -388,16 +382,7 @@ fun StatisticsScreen() {
                 }) { Text("-", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }
                 Spacer(Modifier.weight(0.2f))
                 TextButton(onClick = { vm.showTodayStats = true }) {
-                    val dateText = remember(vm.date) {
-                        if (vm.date == Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) context.getString(R.string.statistics_today) else {
-                            fun LocalDate.formatMMDDYYYY(): String {
-                                val month = month.toString().padStart(2, '0')
-                                val day = day.toString().padStart(2, '0')
-                                return "$month/$day/$year"
-                            }
-                            vm.date.formatMMDDYYYY()
-                        }
-                    }
+                    val dateText = remember(vm.date) { if (vm.date == Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) context.getString(R.string.statistics_today) else vm.date.formatMMDDYY() }
                     Text(dateText, style = MaterialTheme.typography.headlineSmall)
                 }
                 Spacer(Modifier.weight(0.2f))
@@ -532,7 +517,7 @@ fun StatisticsScreen() {
         Column {
             ClickableBarChart(vm.monthStats) { index -> onMonthClicked(index) }
             val lazyListState = rememberLazyListState()
-            val textColor = MaterialTheme.colorScheme.onSurface
+            
             LazyColumn(state = lazyListState, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 30.dp, bottom = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 itemsIndexed(vm.monthStats) { index, item ->
@@ -560,7 +545,7 @@ fun StatisticsScreen() {
             vm.downloadChartData = LineChartData(dataValues)
         }
         if (vm.downloadstatsData == null) loadDownloadStatistics()
-        val textColor = MaterialTheme.colorScheme.onSurface
+        
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(stringResource(R.string.total_size_downloaded_podcasts), color = textColor, modifier = Modifier.padding(top = 20.dp, bottom = 10.dp))
             Text(formatShortFileSize(vm.downloadChartData!!.sum.toLong()), color = textColor)
@@ -839,7 +824,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
     LaunchedEffect(Unit) { loadStatistics() }
     AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
         text = {
-            val textColor = MaterialTheme.colorScheme.onSurface
+            
             val context = LocalContext.current
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) { Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis) }

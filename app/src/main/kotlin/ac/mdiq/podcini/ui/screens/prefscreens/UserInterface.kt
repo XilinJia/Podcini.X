@@ -9,6 +9,7 @@ import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.appTheme
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.ui.screens.DefaultPages
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -42,7 +43,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun UserInterfaceScreen() {
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
     BackHandler(enabled = true) { pfBackStack.removeLastOrNull() }
 
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {

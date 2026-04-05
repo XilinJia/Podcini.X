@@ -164,11 +164,11 @@ import kotlinx.datetime.atTime
 import kotlinx.datetime.format
 import kotlinx.datetime.format.char
 import kotlinx.datetime.minus
+import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
-
 
 private const val TAG = "ComposeEpisodes"
 
@@ -227,7 +227,7 @@ fun ShareDialog(item: Episode, onDismissRequest: () -> Unit) {
 fun TodoDialog(episode: Episode, todo: Todo? = null, onDismissRequest: () -> Unit) {
     CommonDialogSurface(onDismissRequest = onDismissRequest) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            val textColor = MaterialTheme.colorScheme.onSurface
+            
             var title by remember { mutableStateOf(TextFieldValue(todo?.title ?: "")) }
             BasicTextField(value = title, onValueChange = { title = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(40.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
             var addNote by remember { mutableStateOf(false) }
@@ -259,7 +259,7 @@ fun TodoDialog(episode: Episode, todo: Todo? = null, onDismissRequest: () -> Uni
                 Instant.fromEpochMilliseconds(epochMillis).toLocalDateTime(TimeZone.currentSystemDefault())
             }
             var year by remember(zdt) { mutableIntStateOf(zdt.year) }
-            var month by remember(zdt) { mutableIntStateOf(zdt.month.ordinal) }
+            var month by remember(zdt) { mutableIntStateOf(zdt.month.number) }
             var date by remember(zdt) { mutableIntStateOf(zdt.day) }
             var hour by remember(zdt) { mutableIntStateOf(zdt.hour) }
             var minute by remember(zdt) { mutableIntStateOf(zdt.minute) }
@@ -305,7 +305,7 @@ val webDataCache = LruCache<Long, String>(10)
 
 @Composable
 fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters: Boolean = false) {
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
     var webviewData by remember { mutableStateOf<String?>("") }
     var playerLocal: ExoPlayer? by remember { mutableStateOf(null) }
 
@@ -474,8 +474,8 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
         //                    if (!episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
         if (episode.chapters.isNotEmpty()) {
             val chapters = remember { episode.chapters }
-            val textColor = MaterialTheme.colorScheme.onSurface
-            val buttonColor = MaterialTheme.colorScheme.tertiary
+            
+            
 //            val context = LocalContext.current
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp)) {
                 Text(stringResource(R.string.chapters_label))
@@ -705,7 +705,7 @@ fun ShelveDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
 fun EraseEpisodesDialog(selected: List<Episode>, feed: Feed?, onDismissRequest: () -> Unit) {
     CommonPopupCard(onDismissRequest = onDismissRequest) {
         val message = stringResource(R.string.erase_episodes_confirmation_msg)
-        val textColor = MaterialTheme.colorScheme.onSurface
+        
         var textState by remember { mutableStateOf(TextFieldValue("")) }
 
         if (feed == null) Text(stringResource(R.string.not_erase_message), modifier = Modifier.padding(10.dp))
@@ -745,7 +745,7 @@ fun EditTimerDialog(timer: Timer, onDismissRequest: () -> Unit) {
     CommonPopupCard(onDismissRequest = onDismissRequest) {
         val zdt = remember(timer.triggerTime) { Instant.fromEpochMilliseconds(timer.triggerTime).toLocalDateTime(TimeZone.currentSystemDefault()) }
         var year by remember(zdt) { mutableIntStateOf(zdt.year) }
-        var month by remember(zdt) { mutableIntStateOf(zdt.month.ordinal) }
+        var month by remember(zdt) { mutableIntStateOf(zdt.month.number) }
         var date by remember(zdt) { mutableIntStateOf(zdt.day) }
         var hour by remember(zdt) { mutableIntStateOf(zdt.hour) }
         var minute by remember(zdt) { mutableIntStateOf(zdt.minute) }
@@ -782,7 +782,7 @@ fun AddTimerDialog(episode: Episode, onDismissRequest: () -> Unit) {
     CommonPopupCard(onDismissRequest = onDismissRequest) {
         val zdt = remember { Instant.fromEpochMilliseconds(System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()) }
         var year by remember(zdt) { mutableIntStateOf(zdt.year) }
-        var month by remember(zdt) { mutableIntStateOf(zdt.month.ordinal) }
+        var month by remember(zdt) { mutableIntStateOf(zdt.month.number) }
         var date by remember(zdt) { mutableIntStateOf(zdt.day) }
         var hour by remember(zdt) { mutableIntStateOf(zdt.hour) }
         var minute by remember(zdt) { mutableIntStateOf(zdt.minute) }
@@ -821,7 +821,7 @@ fun IgnoreEpisodesDialog(selected: List<Episode>, onDismissRequest: () -> Unit) 
     CommonPopupCard(onDismissRequest = onDismissRequest) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             val message = stringResource(R.string.ignore_episodes_confirmation_msg)
-            val textColor = MaterialTheme.colorScheme.onSurface
+            
             var textState by remember { mutableStateOf(TextFieldValue("")) }
             Text(message + ": ${selected.size}")
             Text(stringResource(R.string.reason_to_delete_msg))
@@ -891,9 +891,9 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
         dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
-        Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-            val textColor = MaterialTheme.colorScheme.onSurface
-            val buttonColor = MaterialTheme.colorScheme.tertiary
+        Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
+            
+            
             val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                 var filter by remember { mutableStateOf(filter_.apply { if (andOr.isBlank()) andOr = "AND" }) }
@@ -903,7 +903,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                         Text(stringResource(R.string.join_categories_with) + " :", style = MaterialTheme.typography.bodyMedium , color = textColor, modifier = Modifier.padding(end = 10.dp))
                         Spacer(Modifier.width(30.dp))
                         OutlinedButton(
-                            modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (andOr == "OR") buttonColor else buttonAltColor),
+                            modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (andOr == "OR") borderColor else buttonAltColor),
                             onClick = {
                                 andOr = "AND"
                                 filter.andOr = andOr
@@ -912,7 +912,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                         ) { Text(text = "AND", color = textColor) }
                         Spacer(Modifier.width(20.dp))
                         OutlinedButton(
-                            modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (andOr == "AND") buttonColor else buttonAltColor),
+                            modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (andOr == "AND") borderColor else buttonAltColor),
                             onClick = {
                                 andOr = "OR"
                                 filter.andOr = andOr
@@ -973,7 +973,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                         if (expandRow) ScrollRowGrid(columns = 3, itemCount = tagList.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                             LaunchedEffect(Unit) { if (filter.containsTag(tagList[index])) selectedList[index].value = true }
                             OutlinedButton(
-                                modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
+                                modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else borderColor),
                                 onClick = {
                                     selectNone = false
                                     selectedList[index].value = !selectedList[index].value
@@ -998,7 +998,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                             Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge , color = textColor, modifier = Modifier.padding(end = 10.dp))
                             Spacer(Modifier.width(30.dp))
                             OutlinedButton(
-                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) buttonColor else buttonAltColor),
+                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) borderColor else buttonAltColor),
                                 onClick = {
                                     if (selectedIndex != 0) {
                                         selectNone = false
@@ -1015,7 +1015,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                             ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
                             Spacer(Modifier.width(20.dp))
                             OutlinedButton(
-                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) buttonColor else buttonAltColor),
+                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) borderColor else buttonAltColor),
                                 onClick = {
                                     if (selectedIndex != 1) {
                                         selectNone = false
@@ -1103,7 +1103,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                                     if (item.properties[index].filterId in filter.propertySet) selectedList[index].value = true
                                 }
                                 OutlinedButton(
-                                    modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
+                                    modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else borderColor),
                                     onClick = {
                                         selectNone = false
                                         selectedList[index].value = !selectedList[index].value
@@ -1142,19 +1142,19 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
 @Composable
 fun EpisodeSortDialog(initOrder: EpisodeSortOrder, includeConditionals: List<EpisodeSortOrder> = listOf(), onDismissRequest: () -> Unit, onSelectionChanged: (EpisodeSortOrder?) -> Unit) {
     val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, f -> index % 2 != 0 && (!f.conditional || f in includeConditionals || f in gearbox.includeExtraSort()) } }
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val buttonColor = MaterialTheme.colorScheme.tertiary
+    
+    
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
         dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
-        Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(250.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+        Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(250.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
             var order by remember { mutableStateOf(initOrder) }
             var sortIndex by remember { mutableIntStateOf(orderList.indexOfFirst { it.code == order.code || it.code == order.code+1 }) }
             Column(Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp).verticalScroll(rememberScrollState())) {
                 ScrollRowGrid(columns = 2, itemCount = orderList.size) { index ->
                     var dir by remember { mutableStateOf(order.code != orderList[sortIndex].code) }
-                    OutlinedButton(modifier = Modifier.padding(2.dp), elevation = null, border = BorderStroke(2.dp, if (sortIndex != index) buttonColor else buttonAltColor),
+                    OutlinedButton(modifier = Modifier.padding(2.dp), elevation = null, border = BorderStroke(2.dp, if (sortIndex != index) borderColor else buttonAltColor),
                         onClick = {
                             if (sortIndex == index) dir = !dir
                             sortIndex = index

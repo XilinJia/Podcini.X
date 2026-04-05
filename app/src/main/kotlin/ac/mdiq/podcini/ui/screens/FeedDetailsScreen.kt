@@ -49,7 +49,9 @@ import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
 import ac.mdiq.podcini.ui.compose.SendToDevice
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
+import ac.mdiq.podcini.ui.compose.borderColor
 import ac.mdiq.podcini.ui.compose.episodeForInfo
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.ui.utils.HtmlToPlainText
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
@@ -118,7 +120,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.lerp
@@ -249,7 +250,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
     val drawerController = LocalDrawerController.current
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
 
     val vm: FeedDetailsVM = viewModel(key = feedId.toString(), factory = viewModelFactory { initializer { FeedDetailsVM(feedId = feedId, modeName = modeName) } })
 
@@ -395,12 +396,11 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     @Composable
     fun TopHeader() {
         var expanded by remember { mutableStateOf(false) }
-        val buttonColor = Color(0xDDFFD700)
         val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
 
         Box(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
             AsyncImage(model = feed?.imageUrl?:"", contentDescription = "bgImage", contentScale = ContentScale.FillBounds, error = painterResource(R.drawable.teaser), modifier = Modifier.matchParentSize().blur(radiusX = 5.dp, radiusY = 5.dp))
-            Box(modifier = Modifier.matchParentSize().background(Brush.verticalGradient(colors = listOf(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)))))
+            Box(modifier = Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)))
             Column {
                 Row(modifier = Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { if (!navBack()) drawerController?.open() } )
@@ -408,13 +408,13 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     if (screenMode == FeedScreenMode.List) {
                         val isFiltered = remember(feed?.filterString, feed?.episodeFilter?.propertySet) { !feed?.filterString.isNullOrBlank() && !feed?.episodeFilter?.propertySet.isNullOrEmpty() }
                         IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort") }
-                        val filterButtonColor = remember(vm.enableFilter) {  if (vm.enableFilter) if (isFiltered) buttonAltColor else textColor else Color.Red }
+                        val filterButtonColor = if (vm.enableFilter) if (isFiltered) buttonAltColor else textColor else Color.Red
                         if (feed != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter_white), tint = filterButtonColor, contentDescription = "butFilter", modifier = Modifier.padding(horizontal = 5.dp).combinedClickable(
                             onClick = { if (vm.enableFilter) showFilterDialog = true },
                             onLongClick = { if (isFiltered) vm.enableFilter = !vm.enableFilter })
                         )
                     }
-                    val histColor = remember(screenMode) {  if (screenMode != FeedScreenMode.History) textColor else buttonAltColor }
+                    val histColor = if (screenMode != FeedScreenMode.History) textColor else buttonAltColor
                     if (screenMode in listOf(FeedScreenMode.List, FeedScreenMode.History) && feed != null) IconButton(onClick = {
                         vm.cameBack = false
                         vm.screenModeFlow.value = when(screenMode) {
@@ -431,7 +431,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     if (feed != null) {
                         Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
                             IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                            DropdownMenu(expanded = expanded, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
+                            DropdownMenu(expanded = expanded, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
                                 DropdownMenuItem(text = { Text(stringResource(R.string.settings_label)) }, onClick = {
                                     feedsToSet = listOf(feed!!)
                                     navTo(FeedsSettings)

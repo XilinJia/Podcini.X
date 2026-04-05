@@ -121,8 +121,8 @@ var showSwipeActionsDialog by mutableStateOf(false)
 
 @Composable
 fun InforBar(swipeActions: SwipeActions, content: @Composable (RowScope.()->Unit)) {
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val buttonColor = MaterialTheme.colorScheme.tertiary
+    
+    
     val leftAction = swipeActions.left
     val rightAction = swipeActions.right
 //    Logd("InforBar", "textState: ${text.value}")
@@ -164,8 +164,8 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
     val scope = rememberCoroutineScope()
     var longPressIndex by remember { mutableIntStateOf(-1) }
     val context by rememberUpdatedState(LocalContext.current)
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val buttonColor = MaterialTheme.colorScheme.tertiary
+    
+    
     val localTime = remember { nowInMillis() }
 
     fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {

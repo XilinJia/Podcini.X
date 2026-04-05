@@ -1,0 +1,5 @@
+* fixed improperly using month's name in some cases
+* clarified a bit background image on PlayerUI
+* brightened a bit back ground image on FeedDetails header, and removed gradients
+* in EpisodeInfo, show background image on topbar and header
+* unified definitions of textColor, buttonColor and borderColor

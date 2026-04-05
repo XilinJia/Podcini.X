@@ -10,6 +10,7 @@ import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.IconTitleSummaryActionRow
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.ui.screens.LocalDrawerController
 import ac.mdiq.podcini.ui.screens.PopMode
 import ac.mdiq.podcini.ui.screens.defaultNavKey
@@ -165,7 +166,7 @@ fun PrefPortalScreen() {
 
     @Composable
     fun IconTitleSummaryScreenRow(vecRes: Int, titleRes: Int, summaryRes: Int, screen: PFNavKey) {
-        val textColor = MaterialTheme.colorScheme.onSurface
+        
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {
             Icon(imageVector = ImageVector.vectorResource(vecRes), contentDescription = "", tint = textColor, modifier = Modifier.size(40.dp).padding(end = 15.dp))
             Column(modifier = Modifier.weight(1f).clickable { pfBackStack.add(screen) }) {
@@ -176,7 +177,7 @@ fun PrefPortalScreen() {
     }
     @Composable
     fun IconTitleActionRow(vecRes: Int, titleRes: Int, callback: ()-> Unit) {
-        val textColor = MaterialTheme.colorScheme.onSurface
+        
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {
             Icon(imageVector = ImageVector.vectorResource(vecRes), contentDescription = "", tint = textColor, modifier = Modifier.size(40.dp).padding(end = 15.dp))
             Column(modifier = Modifier.weight(1f).clickable { callback() }) {
@@ -184,7 +185,7 @@ fun PrefPortalScreen() {
             }
         }
     }
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
     Column(modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
         val copyrightNoticeText by remember { mutableStateOf(getCopyrightNoticeText()) }
         if (copyrightNoticeText.isNotBlank()) {
@@ -211,7 +212,7 @@ fun PrefPortalScreen() {
 @Composable
 fun AboutScreen() {
     val context by rememberUpdatedState(LocalContext.current)
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
     BackHandler(enabled = true) { pfBackStack.removeLastOrNull() }
 
     Column(modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
@@ -265,7 +266,7 @@ fun LicensesScreen() {
         }
     }
     val lazyListState = rememberLazyListState()
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
     val showLicense = remember { mutableStateOf(false) }
     var licenseText by remember { mutableStateOf("") }
     ComfirmDialog(titleRes = 0, message = licenseText, showLicense) {}

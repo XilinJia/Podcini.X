@@ -94,7 +94,7 @@ import kotlinx.coroutines.delay
 fun CommonDialogSurface(onDismissRequest: () -> Unit, content: @Composable (() -> Unit)) {
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(
-            shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+            shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
             content()
         }
     }
@@ -104,7 +104,7 @@ fun CommonDialogSurface(onDismissRequest: () -> Unit, content: @Composable (() -
 fun CommonPopupCard(onDismissRequest: () -> Unit, alignment: Alignment = Alignment.TopCenter, content: @Composable (() -> Unit)) {
     Popup(onDismissRequest = { onDismissRequest() }, alignment = alignment, properties = PopupProperties(focusable = true, dismissOnBackPress = true, dismissOnClickOutside = true, clippingEnabled = true)) {
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface),
-            modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+            modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
             content()
         }
     }
@@ -113,7 +113,6 @@ fun CommonPopupCard(onDismissRequest: () -> Unit, alignment: Alignment = Alignme
 
 @Composable
 fun filterChipBorder(selected: Boolean): BorderStroke {
-    val buttonColor = MaterialTheme.colorScheme.tertiary
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
     return FilterChipDefaults.filterChipBorder(
         enabled = true,
@@ -203,8 +202,8 @@ fun CustomToast(message: String, durationMillis: Long = 3000L, onDismiss: () -> 
 fun CommentEditingDialog(textState: TextFieldValue, autoSave: Boolean = true, onTextChange: (TextFieldValue) -> Unit, onDismissRequest: () -> Unit, onSave: () -> Unit) {
     Dialog(onDismissRequest = { onDismissRequest() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         var textChanged by remember { mutableStateOf(false) }
-        Surface(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-            val textColor = MaterialTheme.colorScheme.onSurface
+        Surface(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, borderColor)) {
+            
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(stringResource(R.string.add_comment), color = textColor, style = CustomTextStyles.titleCustom)
                 Spacer(modifier = Modifier.height(16.dp))
@@ -277,7 +276,7 @@ fun ScrollRowGrid(columns: Int, itemCount: Int, modifier: Modifier = Modifier, c
 
 @Composable
 fun SimpleSwitchDialog(title: String, text: String, onDismissRequest: ()->Unit, callback: (Boolean)-> Unit) {
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
     var isChecked by remember { mutableStateOf(false) }
     AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
         title = { Text(title, style = CustomTextStyles.titleCustom) },
@@ -299,7 +298,7 @@ fun SimpleSwitchDialog(title: String, text: String, onDismissRequest: ()->Unit, 
 
 @Composable
 fun IconTitleSummaryActionRow(vecRes: Int, titleRes: Int, summaryRes: Int, callback: ()-> Unit) {
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {
         Icon(imageVector = ImageVector.vectorResource(vecRes), contentDescription = "", tint = textColor, modifier = Modifier.size(40.dp).padding(end = 15.dp))
         Column(modifier = Modifier.weight(1f).clickable { callback() }) {
@@ -311,7 +310,6 @@ fun IconTitleSummaryActionRow(vecRes: Int, titleRes: Int, summaryRes: Int, callb
 
 @Composable
 fun TitleSummaryActionColumn(titleRes: Int, summaryRes: Int, callback: ()-> Unit) {
-    val textColor = MaterialTheme.colorScheme.onSurface
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp).clickable { callback() }) {
         if (titleRes != 0) Text(stringResource(titleRes), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
         if (summaryRes != 0) Text(stringResource(summaryRes), color = textColor, style = MaterialTheme.typography.bodySmall)
@@ -320,7 +318,6 @@ fun TitleSummaryActionColumn(titleRes: Int, summaryRes: Int, callback: ()-> Unit
 
 @Composable
 fun TitleSummarySwitchRow(titleRes: Int, summaryRes: Int, initVal: Boolean, cb: (Boolean)->Unit) {
-    val textColor = MaterialTheme.colorScheme.onSurface
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
         Column(modifier = Modifier.weight(1f)) {
             Text(stringResource(titleRes), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
@@ -416,7 +413,7 @@ fun ComfirmDialog(titleRes: Int, message: String, showDialog: MutableState<Boole
 
 @Composable
 fun SearchBarRow(hintTextRes: Int, defaultText: String, modifier: Modifier = Modifier, history: List<String> = listOf(), performSearch: (String) -> Unit) {
-    val buttonColor = MaterialTheme.colorScheme.tertiary
+    
     var showHistory by remember { mutableStateOf(false) }
     var queryText by remember { mutableStateOf(defaultText) }
     DropdownMenu(expanded = showHistory, onDismissRequest = { showHistory = false }) {
@@ -479,14 +476,14 @@ fun NumberEditor(initVal: Int, label: String = "seconds", nz: Boolean = true, in
 
 @Composable
 fun SelectLowerAllUpper(selectedList: MutableList<MutableState<Boolean>>, lowerCB: (()->Unit)?, allCB: ()->Unit, upperCB: (()->Unit)?) {
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val buttonColor = MaterialTheme.colorScheme.tertiary
+    
+    
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
     var lowerSelected by remember { mutableStateOf(false) }
     var higherSelected by remember { mutableStateOf(false) }
     Spacer(Modifier.width(20.dp))
     if (lowerCB != null) {
-        OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (lowerSelected) buttonAltColor else buttonColor),
+        OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (lowerSelected) buttonAltColor else borderColor),
             onClick = {
                 val hIndex = selectedList.indexOfLast { it.value }
                 if (hIndex < 0) return@OutlinedButton
@@ -502,7 +499,7 @@ fun SelectLowerAllUpper(selectedList: MutableList<MutableState<Boolean>>, lowerC
         ) { Text(text = "<<<", maxLines = 1, color = textColor) }
         Spacer(Modifier.width(20.dp))
     }
-    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (lowerSelected && higherSelected) buttonAltColor else buttonColor),
+    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (lowerSelected && higherSelected) buttonAltColor else borderColor),
         onClick = {
             val selectAll = !(lowerSelected && higherSelected)
             lowerSelected = selectAll
@@ -513,7 +510,7 @@ fun SelectLowerAllUpper(selectedList: MutableList<MutableState<Boolean>>, lowerC
     ) { Text(text = "A", maxLines = 1, color = textColor) }
     if (upperCB != null) {
         Spacer(Modifier.width(20.dp))
-        OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (higherSelected) buttonAltColor else buttonColor),
+        OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (higherSelected) buttonAltColor else borderColor),
             onClick = {
                 val lIndex = selectedList.indexOfFirst { it.value }
                 if (lIndex < 0) return@OutlinedButton

@@ -4,6 +4,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.ui.compose.AppThemes
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.appTheme
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.ui.screens.AVPlayerVM
 import ac.mdiq.podcini.ui.screens.ControlUI
 import ac.mdiq.podcini.ui.screens.ProgressBar
@@ -50,7 +51,7 @@ class PlayerUIActivity : ComponentActivity() {
         setContent {
             PodciniTheme(AppThemes.BLACK) {
                 Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBars)) {
-                    val textColor = MaterialTheme.colorScheme.onSurface
+                    
                     val vm: AVPlayerVM = viewModel()
                     Box(modifier = Modifier.fillMaxWidth().height(100.dp).border(1.dp, MaterialTheme.colorScheme.tertiary).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))) {
                         Column {

@@ -34,6 +34,7 @@ import ac.mdiq.podcini.ui.compose.EpisodeScreen
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.episodeForInfo
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.ui.utils.HtmlToPlainText
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
@@ -310,7 +311,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     val lifecycleOwner = LocalLifecycleOwner.current
     val drawerController = LocalDrawerController.current
     val context by rememberUpdatedState(LocalContext.current)
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
 
     val vm: OnlineFeedVM = viewModel(key = url, factory = viewModelFactory { initializer { OnlineFeedVM(url, source, shared) } })
 

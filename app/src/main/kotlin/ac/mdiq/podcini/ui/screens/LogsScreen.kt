@@ -18,6 +18,7 @@ import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -174,7 +175,7 @@ fun LogsScreen() {
         }
         CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
             Column(modifier = Modifier.padding(10.dp)) {
-                val textColor = MaterialTheme.colorScheme.onSurface
+                
                 Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
                 Text(message, color = textColor)
                 Row(Modifier.padding(top = 10.dp)) {
@@ -200,7 +201,7 @@ fun LogsScreen() {
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(vm.shareLogs) { log ->
-                val textColor = MaterialTheme.colorScheme.onSurface
+                
                 Row (modifier = Modifier.clickable {
                     if (log.status < ShareLog.Status.SUCCESS.ordinal) receiveShared(log.url!!, context as MainActivity, false) { sharedUrl = log.url!! }
                     else {
@@ -265,7 +266,7 @@ fun LogsScreen() {
     fun SubscriptionDetailDialog(log: SubscriptionLog, onDismissRequest: () -> Unit) {
         CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
             Column(modifier = Modifier.padding(10.dp)) {
-                val textColor = MaterialTheme.colorScheme.onSurface
+                
                 Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
                 Text(log.title, color = textColor)
                 Text(log.comment, color = textColor)
@@ -290,7 +291,7 @@ fun LogsScreen() {
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(vm.subscriptionLogs) { log ->
-                val textColor = MaterialTheme.colorScheme.onSurface
+                
                 Row (verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp).clickable {
                     dialogParam.value = log
                     showDialog.value = true
@@ -310,11 +311,10 @@ fun LogsScreen() {
     @Composable
     fun SessionLogView() {
         val lazyListState = rememberLazyListState()
-        val textColor = MaterialTheme.colorScheme.onSurface
+        
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(sessionLogs.reversed()) { log ->
-                val color = remember { if (log.contains("Error", ignoreCase = true)) Color.Red else textColor }
-                Text(log, color = color)
+                Text(log, color = if (log.contains("Error", ignoreCase = true)) Color.Red else textColor)
             }
         }
     }
@@ -341,7 +341,7 @@ fun LogsScreen() {
         val messageFull = context.getString(R.string.download_log_details_message, context.getString(status.reason?.res ?: R.string.download_error_error_unknown), message, url)
         CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
             Column(modifier = Modifier.padding(10.dp)) {
-                val textColor = MaterialTheme.colorScheme.onSurface
+                
                 Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
                 Text(messageFull, color = textColor)
                 if (feed == null && media == null) Text(stringResource(R.string.content_not_exist))
@@ -370,7 +370,7 @@ fun LogsScreen() {
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(vm.downloadLogs) { position, status ->
-                val textColor = MaterialTheme.colorScheme.onSurface
+                
                 Row (modifier = Modifier.clickable {
                     showDialog.value = true
                     dialogParam.value = status

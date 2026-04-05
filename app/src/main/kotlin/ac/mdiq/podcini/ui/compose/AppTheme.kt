@@ -16,6 +16,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -40,6 +41,18 @@ val CustomTypography = Typography(
 object CustomTextStyles {
     val titleCustom = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Medium)
 }
+
+val borderColor = Color(0xDDFFD700)
+
+val textColor: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.onSurface
+
+val buttonColor: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.tertiary
 
 val Shapes = Shapes(
     extraSmall = RoundedCornerShape(4.dp),

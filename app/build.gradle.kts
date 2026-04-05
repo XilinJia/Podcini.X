@@ -14,7 +14,7 @@ composeCompiler {
 //    stabilityConfigurationFile = rootProject.layout.projectDirectory.file("stability_config.conf")
 }
 
-kotlin { jvmToolchain(17) }
+kotlin { jvmToolchain(21) }
 
 val metaInfExcludes = listOf("DEPENDENCIES", "LICENSE", "NOTICE", "CHANGES", "README.md", "NOTICE.txt", "LICENSE.txt", "MANIFEST.MF").map { "/META-INF/$it" }
 
@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 282
-        versionName = "10.14.7"
+        versionCode = 283
+        versionName = "10.14.8"
 
         ndkVersion = "29.0.14206865"
 

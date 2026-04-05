@@ -11,6 +11,7 @@ import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.EpisodeFilter.Companion.unfiltered
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.Logd
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -75,7 +76,7 @@ fun NavDrawerScreen() {
     val drawerCtrl = LocalDrawerController.current
     val drawerState = LocalDrawerState.current
 
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
     var curruntRoute: String
 
     val feedBriefs = remember { mutableStateListOf<FeedBrief>() }

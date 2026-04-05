@@ -116,7 +116,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
         if (feeds[0].isLocalFeed) stringResource(R.string.feed_delete_confirmation_local_msg, feeds[0].title?:"No title")
         else stringResource(R.string.feed_delete_confirmation_msg, feeds[0].title?:"No title")
     } else stringResource(R.string.feed_delete_confirmation_msg_batch)
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
     var textState by remember { mutableStateOf(TextFieldValue("")) }
 
     CommonDialogSurface(onDismissRequest = onDismissRequest) {
@@ -173,7 +173,7 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
     val context = LocalContext.current
     val showSubscribeDialog = remember { mutableStateOf(false) }
     if (showSubscribeDialog.value) CommonPopupCard(onDismissRequest = { showSubscribeDialog.value = false }) {
-        val textColor = MaterialTheme.colorScheme.onSurface
+        
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.Center) {
             Text("Subscribe: \"${feed.title}\" ?", color = textColor, modifier = Modifier.padding(bottom = 10.dp))
             Button(onClick = {
@@ -191,7 +191,7 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
                 else navTo(OnlineFeed(url = feed.feedUrl, source = feed.source))
             } },
         onLongClick = { showSubscribeDialog.value = true })) {
-        val textColor = MaterialTheme.colorScheme.onSurface
+        
         Row {
             Box(modifier = Modifier.width(80.dp).height(80.dp)) {
                 AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
@@ -225,7 +225,7 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
 @Composable
 fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, onDismissRequest: () -> Unit) {
     CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
-        val textColor = MaterialTheme.colorScheme.onSurface
+        
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
             var name by remember { mutableStateOf(feed_?.title ?:"") }

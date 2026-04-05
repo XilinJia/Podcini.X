@@ -7,6 +7,8 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
 
 import ac.mdiq.podcini.ui.compose.PodciniTheme
+import ac.mdiq.podcini.ui.compose.borderColor
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.ui.screens.QuickAccess
 import android.content.Intent
 import android.graphics.drawable.BitmapDrawable
@@ -64,8 +66,8 @@ class ShortcutsActivity : ComponentActivity() {
 
         setContent {
             PodciniTheme {
-                Card(modifier = Modifier.padding(vertical = 30.dp, horizontal = 16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-                    val textColor = MaterialTheme.colorScheme.onSurface
+                Card(modifier = Modifier.padding(vertical = 30.dp, horizontal = 16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
+                    
                     Column {
                         val lazyListState = rememberLazyListState()
                         when {

@@ -55,9 +55,12 @@ import ac.mdiq.podcini.ui.compose.SendToDevice
 import ac.mdiq.podcini.ui.compose.Spinner
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
+import ac.mdiq.podcini.ui.compose.borderColor
+import ac.mdiq.podcini.ui.compose.buttonColor
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.complementaryColorOf
 import ac.mdiq.podcini.ui.compose.filterChipBorder
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
@@ -563,9 +566,9 @@ fun LibraryScreen() {
     val context by rememberUpdatedState(LocalContext.current)
     val drawerController = LocalDrawerController.current
 
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
 //    val muteColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val buttonColor = MaterialTheme.colorScheme.tertiary
+    
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
 
     val vm: LibraryVM = viewModel()
@@ -752,7 +755,7 @@ fun LibraryScreen() {
             }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "facets") }
             Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
+                DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.toggle_grid_list)) }, onClick = {
                         runOnIOScope { upsert(vm.subPrefs) { it.prefFeedGridLayout = !it.prefFeedGridLayout } }
                         expanded = false
@@ -816,10 +819,10 @@ fun LibraryScreen() {
             Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
                 val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
                 dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
-                Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor)) {
+                Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
                     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.sortIndex != FeedSortIndex.Feed.ordinal) buttonColor else buttonAltColor),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.sortIndex != FeedSortIndex.Feed.ordinal) borderColor else buttonAltColor),
                                 onClick = {
                                     if (vm.subPrefs.sortIndex == FeedSortIndex.Feed.ordinal)
                                         runOnIOScope {
@@ -837,7 +840,7 @@ fun LibraryScreen() {
                                     else vm.preparePropertySort(feedList)
                                 }
                             ) { Text(text = stringResource(FeedSortIndex.Feed.res) + if (vm.subPrefs.propertyAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.sortIndex != FeedSortIndex.Date.ordinal) buttonColor else buttonAltColor),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.sortIndex != FeedSortIndex.Date.ordinal) borderColor else buttonAltColor),
                                 onClick = {
                                     if (vm.subPrefs.sortIndex == FeedSortIndex.Date.ordinal)
                                         runOnIOScope {
@@ -850,7 +853,7 @@ fun LibraryScreen() {
                                     else vm.prepareDateSort(feedList)
                                 }
                             ) { Text(text = stringResource(FeedSortIndex.Date.res) + if (vm.subPrefs.dateAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.sortIndex != FeedSortIndex.Time.ordinal) buttonColor else buttonAltColor),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.sortIndex != FeedSortIndex.Time.ordinal) borderColor else buttonAltColor),
                                 onClick = {
                                     if (vm.subPrefs.sortIndex == FeedSortIndex.Time.ordinal)
                                         runOnIOScope {
@@ -863,7 +866,7 @@ fun LibraryScreen() {
                                     else vm.prepareTimeSort(feedList)
                                 }
                             ) { Text(text = stringResource(FeedSortIndex.Time.res) + if (vm.subPrefs.timeAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.sortIndex != FeedSortIndex.Count.ordinal) buttonColor else buttonAltColor),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.sortIndex != FeedSortIndex.Count.ordinal) borderColor else buttonAltColor),
                                 onClick = {
                                     if (vm.subPrefs.sortIndex == FeedSortIndex.Count.ordinal)
                                         runOnIOScope {
@@ -882,21 +885,21 @@ fun LibraryScreen() {
                             FeedSortIndex.Feed.ordinal -> {
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                                     for (sd in FeedPropertySortIndex.entries) {
-                                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.propertySortIndex != sd.ordinal) buttonColor else buttonAltColor), onClick = { if (vm.subPrefs.propertySortIndex != sd.ordinal) vm.preparePropertySort(feedList, sd) }) { Text(stringResource(sd.res)) }
+                                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.propertySortIndex != sd.ordinal) borderColor else buttonAltColor), onClick = { if (vm.subPrefs.propertySortIndex != sd.ordinal) vm.preparePropertySort(feedList, sd) }) { Text(stringResource(sd.res)) }
                                     }
                                 }
                             }
                             FeedSortIndex.Date.ordinal -> {
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                                     for (sd in FeedDateSortIndex.entries) {
-                                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.dateSortIndex != sd.ordinal) buttonColor else buttonAltColor), onClick = { if (vm.subPrefs.dateSortIndex != sd.ordinal) vm.prepareDateSort(feedList,sd) }) { Text(stringResource(sd.res)) }
+                                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.dateSortIndex != sd.ordinal) borderColor else buttonAltColor), onClick = { if (vm.subPrefs.dateSortIndex != sd.ordinal) vm.prepareDateSort(feedList,sd) }) { Text(stringResource(sd.res)) }
                                     }
                                 }
                             }
                             FeedSortIndex.Time.ordinal -> {
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                                     for (sd in FeedTimeSortIndex.entries) {
-                                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.timeSortIndex != sd.ordinal) buttonColor else buttonAltColor), onClick = { if (vm.subPrefs.timeSortIndex != sd.ordinal) vm.prepareTimeSort(feedList, sd) }) { Text(stringResource(sd.res)) }
+                                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.timeSortIndex != sd.ordinal) borderColor else buttonAltColor), onClick = { if (vm.subPrefs.timeSortIndex != sd.ordinal) vm.prepareTimeSort(feedList, sd) }) { Text(stringResource(sd.res)) }
                                     }
                                 }
                             }
@@ -921,12 +924,12 @@ fun LibraryScreen() {
                                                 }
                                             }
                                             OutlinedButton(
-                                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.subPrefs.downlaodedSortIndex != 0) buttonColor else buttonAltColor),
+                                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.subPrefs.downlaodedSortIndex != 0) borderColor else buttonAltColor),
                                                 onClick = { persistDLSort(0) },
                                             ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
                                             Spacer(Modifier.weight(0.1f))
                                             OutlinedButton(
-                                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.subPrefs.downlaodedSortIndex != 1) buttonColor else buttonAltColor),
+                                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.subPrefs.downlaodedSortIndex != 1) borderColor else buttonAltColor),
                                                 onClick = { persistDLSort(1) },
                                             ) { Text(text = stringResource(item.properties[1].displayName), color = textColor) }
                                             Spacer(Modifier.weight(0.5f))
@@ -948,12 +951,12 @@ fun LibraryScreen() {
                                                 }
                                             }
                                             OutlinedButton(
-                                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.subPrefs.commentedSortIndex != 0) buttonColor else buttonAltColor),
+                                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.subPrefs.commentedSortIndex != 0) borderColor else buttonAltColor),
                                                 onClick = { persistCommentSort(0) },
                                             ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
                                             Spacer(Modifier.weight(0.1f))
                                             OutlinedButton(
-                                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.subPrefs.commentedSortIndex != 1) buttonColor else buttonAltColor),
+                                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.subPrefs.commentedSortIndex != 1) borderColor else buttonAltColor),
                                                 onClick = { persistCommentSort(1) },
                                             ) { Text(text = stringResource(item.properties[1].displayName), color = textColor) }
                                             Spacer(Modifier.weight(0.5f))
@@ -1052,7 +1055,7 @@ fun LibraryScreen() {
                                         }
                                         if (expandRow) ScrollRowGrid(columns = 3, itemCount = item.properties.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                             OutlinedButton(
-                                                modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (episodeStateSort[index].value) buttonAltColor else buttonColor),
+                                                modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (episodeStateSort[index].value) buttonAltColor else borderColor),
                                                 onClick = {
                                                     episodeStateSort[index].value = !episodeStateSort[index].value
                                                     val c = episodeStateSort.count { it.value }
@@ -1153,7 +1156,7 @@ fun LibraryScreen() {
                                         }
                                         if (expandRow) ScrollRowGrid(columns = 3, itemCount = item.properties.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                             OutlinedButton(
-                                                modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (ratingSort[index].value) buttonAltColor else buttonColor),
+                                                modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (ratingSort[index].value) buttonAltColor else borderColor),
                                                 onClick = {
                                                     ratingSort[index].value = !ratingSort[index].value
                                                     val c = ratingSort.count { it.value }
@@ -1190,7 +1193,7 @@ fun LibraryScreen() {
             Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
                 val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
                 dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
-                Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor)) {
+                Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
                     Column(Modifier.fillMaxSize()) {
                         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                             Logd(TAG, "appAttribs.langSet: ${appAttribs.langSet.size}")
@@ -1224,7 +1227,7 @@ fun LibraryScreen() {
                                         }
                                     }
                                     if (expandRow) ScrollRowGrid(columns = 3, itemCount = langs.size, modifier = Modifier.padding(start = 10.dp)) { index ->
-                                        OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
+                                        OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else borderColor),
                                             onClick = {
                                                 selectedList[index].value = !selectedList[index].value
                                                 runOnIOScope {
@@ -1269,7 +1272,7 @@ fun LibraryScreen() {
                                     }
                                 }
                                 if (expandRow) ScrollRowGrid(columns = 3, itemCount = vm.queueNames.size, modifier = Modifier.padding(start = 10.dp)) { index ->
-                                    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
+                                    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else borderColor),
                                         onClick = {
                                             selectedList[index].value = !selectedList[index].value
                                             runOnIOScope {
@@ -1315,7 +1318,7 @@ fun LibraryScreen() {
                                         }
                                     }
                                     if (expandRow) ScrollRowGrid(columns = 3, itemCount = tagList.size, modifier = Modifier.padding(start = 10.dp)) { index ->
-                                        OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
+                                        OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else borderColor),
                                             onClick = {
                                                 selectedList[index].value = !selectedList[index].value
                                                 runOnIOScope {
@@ -1347,7 +1350,7 @@ fun LibraryScreen() {
                                         Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = textColor, modifier = Modifier.padding(end = 10.dp))
                                         Spacer(Modifier.width(30.dp))
                                         OutlinedButton(
-                                            modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) buttonColor else buttonAltColor),
+                                            modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) borderColor else buttonAltColor),
                                             onClick = {
                                                 if (selectedIndex != 0) {
                                                     selectNone = false
@@ -1363,7 +1366,7 @@ fun LibraryScreen() {
                                         ) { Text(text = stringResource(item.values[0].displayName), color = textColor) }
                                         Spacer(Modifier.width(20.dp))
                                         OutlinedButton(
-                                            modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) buttonColor else buttonAltColor),
+                                            modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) borderColor else buttonAltColor),
                                             onClick = {
                                                 if (selectedIndex != 1) {
                                                     selectNone = false
@@ -1411,7 +1414,7 @@ fun LibraryScreen() {
                                         if (expandRow) ScrollRowGrid(columns = 3, itemCount = item.values.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                             if (selectNone) selectedList[index].value = false
                                             OutlinedButton(
-                                                modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
+                                                modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else borderColor),
                                                 onClick = {
                                                     selectNone = false
                                                     selectedList[index].value = !selectedList[index].value
@@ -1454,7 +1457,7 @@ fun LibraryScreen() {
         @Composable
         fun CreateVolume(parent: Volume?, onDismissRequest: () -> Unit) {
             CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
-                val textColor = MaterialTheme.colorScheme.onSurface
+                
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
                     var name by remember { mutableStateOf("") }
@@ -1710,7 +1713,7 @@ fun LibraryScreen() {
         @Composable
         fun EditVolume(volume: Volume, onDismissRequest: () -> Unit) {
             CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
-                val textColor = MaterialTheme.colorScheme.onSurface
+                
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
                     var name by remember { mutableStateOf(volume.name) }

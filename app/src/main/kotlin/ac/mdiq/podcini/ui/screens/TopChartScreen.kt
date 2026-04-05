@@ -8,7 +8,9 @@ import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
+import ac.mdiq.podcini.ui.compose.borderColor
 import ac.mdiq.podcini.ui.compose.filterChipBorder
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -303,7 +305,7 @@ fun TopChartScreen() {
     @Composable
     fun ChooseGenre() {
         Popup(onDismissRequest = { showChooseGenre = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
-            Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface)) {
+            Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface)) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                     for (index in vm.spinnerTexts.indices) {
                         FilterChip(onClick = {
@@ -335,7 +337,7 @@ fun TopChartScreen() {
         }
     }
     
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
     
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         ConstraintLayout(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {

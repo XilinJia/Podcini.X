@@ -1,7 +1,16 @@
+# 10.14.8
+
+* fixed improperly using month's name in some cases
+* clarified a bit background image on PlayerUI
+* brightened a bit back ground image on FeedDetails header, and removed gradients
+* in EpisodeInfo, show background image on topbar and header
+* unified definitions of textColor, buttonColor and borderColor
+* build with Java 21
+
 # 10.14.7
 
 * made customized top bars in Library, Queues, and Facets screens
-* in Queues screen, merged the top bar and the info bar, and, if active qu added background image of curEpisode
+* in Queues screen, merged the top bar and the info bar, and, if active queue, added background image of curEpisode
 * added background image of curEpisode to PlayerUI
 * back arrow on FindFeed screen returns to previous screen or open drawer
 * gradle uppped to 9.4.1

@@ -51,7 +51,10 @@ import ac.mdiq.podcini.ui.compose.EpisodeDetails
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.compose.SleepTimerDialog
+import ac.mdiq.podcini.ui.compose.borderColor
+import ac.mdiq.podcini.ui.compose.buttonColor
 import ac.mdiq.podcini.ui.compose.distinctColorOf
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.FlowEvent.BufferUpdateEvent
@@ -333,10 +336,6 @@ fun VolumeDialog(vm: AVPlayerVM, onDismissRequest: () -> Unit) {
 fun ControlUI(vm: AVPlayerVM) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-
-    val textColor = MaterialTheme.colorScheme.onSurface
-//    val buttonColor = Color(0xDDFFD700)
-    val buttonColor = MaterialTheme.colorScheme.tertiary
     val buttonColor1 = Color(0xEEAA7700)
 
     DisposableEffect(Unit) {
@@ -404,7 +403,7 @@ fun ControlUI(vm: AVPlayerVM) {
             },
         )
     }) {
-        AsyncImage(model = ImageRequest.Builder(context).data(curEpisode?.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.width(50.dp).height(50.dp).border(border = BorderStroke(1.dp, buttonColor)).padding(start = 5.dp).combinedClickable(
+        AsyncImage(model = ImageRequest.Builder(context).data(curEpisode?.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.width(50.dp).height(50.dp).border(border = BorderStroke(1.dp, borderColor)).padding(start = 5.dp).combinedClickable(
             onClick = {
                 Logd(TAG, "playerUi icon was clicked $psState")
                 if (psState == PSState.PartiallyExpanded) {
@@ -539,8 +538,6 @@ fun ControlUI(vm: AVPlayerVM) {
 
 @Composable
 fun ProgressBar(vm: AVPlayerVM) {
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val buttonColor = Color(0xDDFFD700)
     Box(modifier = Modifier.fillMaxWidth()) {
         var sliderValue by remember(curEpisode?.position) { mutableFloatStateOf((curEpisode?.position?:0).toFloat()) }
         val actColor = MaterialTheme.colorScheme.tertiary
@@ -576,9 +573,6 @@ fun AVPlayerScreen() {
     val context = LocalContext.current
 
     val vm: AVPlayerVM = viewModel()
-
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val buttonColor = Color(0xDDFFD700)
 
     var showHomeText by remember { mutableStateOf(false) }
 
@@ -665,7 +659,7 @@ fun AVPlayerScreen() {
     var showAudioControlDialog by remember { mutableStateOf(false) }
     @Composable
     fun PlaybackControlsDialog(onDismiss: ()-> Unit) {
-        val textColor = MaterialTheme.colorScheme.onSurface
+        
         AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.audio_controls)) },
             text = {
                 LazyColumn {
@@ -683,9 +677,9 @@ fun AVPlayerScreen() {
     if (showAudioControlDialog) PlaybackControlsDialog(onDismiss = { showAudioControlDialog = false })
 
     var showVolumeDialog by remember { mutableStateOf(false) }
-    var showSleepTimeDialog by remember { mutableStateOf(false) }
-
     if (showVolumeDialog) VolumeDialog(vm) { showVolumeDialog = false }
+
+    var showSleepTimeDialog by remember { mutableStateOf(false) }
     if (showSleepTimeDialog) SleepTimerDialog { showSleepTimeDialog = false }
 
     var showSpeedDialog by remember { mutableStateOf(false) }
@@ -694,7 +688,7 @@ fun AVPlayerScreen() {
     @Composable
     fun PlayerUI(modifier: Modifier) {
         Box(modifier = modifier.fillMaxWidth().height(100.dp).border(1.dp, MaterialTheme.colorScheme.tertiary)) {
-            AsyncImage(model = curEpisode?.imageUrl?:curEpisode?.feed?.imageUrl?:"", contentDescription = "bgImage", contentScale = ContentScale.FillBounds, error = painterResource(R.drawable.teaser), modifier = Modifier.matchParentSize().blur(radiusX = 5.dp, radiusY = 5.dp))
+            AsyncImage(model = curEpisode?.imageUrl?:curEpisode?.feed?.imageUrl?:"", contentDescription = "bgImage", contentScale = ContentScale.FillBounds, error = painterResource(R.drawable.teaser), modifier = Modifier.matchParentSize().blur(radiusX = 3.dp, radiusY = 3.dp))
             Box(modifier = Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)))
             Column {
                 Text(curEpisode?.title ?: "No title", maxLines = 1, color = textColor, style = MaterialTheme.typography.bodyMedium)
@@ -710,7 +704,6 @@ fun AVPlayerScreen() {
     @Composable
     fun VideoToolBar(modifier: Modifier = Modifier) {
         var expanded by remember { mutableStateOf(false) }
-        val buttonColor = Color(0xDDFFD700)
         if (vm.showActionBar) Row(modifier = modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable { psState = PSState.PartiallyExpanded })
             if (vm.landscape) Column {
@@ -732,7 +725,7 @@ fun AVPlayerScreen() {
             }
             Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
+                DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
                     if (vm.landscape) {
                         var sleeperRes by remember { mutableIntStateOf(if (!isSleepTimerActive()) R.string.set_sleeptimer_label else R.string.sleep_timer_label) }
                         DropdownMenuItem(text = { Text(stringResource(sleeperRes)) }, onClick = {
@@ -792,7 +785,7 @@ fun AVPlayerScreen() {
             (context as? BaseActivity)?.CastIconButton()
             Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
+                DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
                     if (curEpisode != null) DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
                         showShareDialog = true
                         expanded = false
@@ -844,18 +837,15 @@ fun AVPlayerScreen() {
             detectHorizontalDragGestures(
                 onDragStart = { velocityTracker.resetTracking() },
                 onHorizontalDrag = { change, dragAmount ->
-                    //                            Logd(TAG, "detectHorizontalDragGestures onHorizontalDrag $dragAmount")
                     if (abs(dragAmount) > 4) {
                         velocityTracker.addPosition(change.uptimeMillis, change.position)
                         scope.launch { offsetX.snapTo(offsetX.value + dragAmount) }
                     }
                 },
                 onDragEnd = {
-                    //                            Logd(TAG, "detectHorizontalDragGestures onDragEnd")
                     scope.launch {
                         val velocity = velocityTracker.calculateVelocity().x
                         val distance = offsetX.value
-                        //                                Logd(TAG, "detectHorizontalDragGestures velocity: $velocity distance: $distance")
                         val shouldSwipe = abs(distance) > swipeDistanceThreshold && abs(velocity) > swipeVelocityThreshold
                         if (shouldSwipe) {
                             if (distance > 0) navTo(Queues(id=actQueue.id))

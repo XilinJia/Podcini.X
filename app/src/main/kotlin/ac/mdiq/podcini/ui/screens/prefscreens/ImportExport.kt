@@ -42,6 +42,7 @@ import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.commonConfirm
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
@@ -419,7 +420,7 @@ fun ImportExportScreen() {
         exportWithWriter(writer, null, exportType)
     }
 
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
     if (showProgress) {
         CommonPopupCard(onDismissRequest = { showProgress = false }) {
             Box(contentAlignment = Alignment.Center) {

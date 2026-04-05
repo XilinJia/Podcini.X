@@ -152,7 +152,7 @@ private fun SpeedSetter(initSpeed: Float, maxSpeed: Float, speedCB: (Float) -> U
 fun PlaybackSpeedDialog(feeds: List<Feed>, initSpeed: Float, maxSpeed: Float, isGlobal: Boolean = false, onDismiss: () -> Unit, speedCB: (Float) -> Unit) {
     // min speed set to 0.1 and max speed at 10
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = onDismiss) {
-        Card(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+        Card(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
             Column {
                 Text(stringResource(R.string.playback_speed), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
                 var speed by remember { mutableFloatStateOf(initSpeed) }
@@ -211,7 +211,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = onDismiss) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
         dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
-        Card(modifier = Modifier.fillMaxWidth().wrapContentHeight().padding(top = 10.dp, bottom = 10.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+        Card(modifier = Modifier.fillMaxWidth().wrapContentHeight().padding(top = 10.dp, bottom = 10.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
             Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 var speed by remember { mutableFloatStateOf(curPBSpeed) }
                 val speeds = remember { readPlaybackSpeedArray(appPrefs.playbackSpeedArray).toMutableStateList() }

@@ -40,6 +40,7 @@ import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.Spinner
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -140,9 +141,8 @@ fun NetworkStorageScreen() {
 
     @Composable
     fun ProxyDialog(onDismissRequest: ()->Unit) {
-        val textColor = MaterialTheme.colorScheme.onSurface
         val types = remember { mutableStateListOf<String>() }
-
+        val textColor = MaterialTheme.colorScheme.onSurface
         LaunchedEffect(Unit) {
             types.add(Proxy.Type.DIRECT.name)
             types.add(Proxy.Type.HTTP.name)
@@ -307,7 +307,7 @@ fun NetworkStorageScreen() {
     val showImporSuccessDialog = remember { mutableStateOf(false) }
     ComfirmDialog(titleRes = R.string.successful_import_label, message = stringResource(R.string.import_ok), showDialog = showImporSuccessDialog, cancellable = false) { forceRestart() }
 
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
 
     var showProgress by remember { mutableStateOf(false) }
     if (showProgress) {
@@ -652,7 +652,7 @@ fun SynchronizationScreen() {
     @Composable
     fun WifiAuthenticationDialog(onDismissRequest: ()->Unit) {
         val TAG = "WifiAuthenticationDialog"
-        val textColor = MaterialTheme.colorScheme.onSurface
+        
         val context by rememberUpdatedState(LocalContext.current)
         var progressMessage by remember { mutableStateOf("") }
         var errorMessage by remember { mutableStateOf("") }
@@ -761,7 +761,7 @@ fun SynchronizationScreen() {
     //        return provider.identifier == selectedSyncProviderKey
     //    }
 
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
     TitleSummaryActionColumn(R.string.wifi_sync, R.string.wifi_sync_summary_unchoosen) {
         showWifiAuthenticationDialog = true
     }

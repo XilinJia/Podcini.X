@@ -44,6 +44,8 @@ import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
+import ac.mdiq.podcini.ui.compose.borderColor
+import ac.mdiq.podcini.ui.compose.buttonColor
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.episodeForInfo
 import ac.mdiq.podcini.ui.compose.filterChipBorder
@@ -121,7 +123,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -437,7 +438,7 @@ fun QueuesScreen(id: Long = -1L) {
         }
 
         if (showChooseQueue) Popup(onDismissRequest = { showChooseQueue = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
-            Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface)) {
+            Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface)) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                     for (index in vm.queues.indices) {
                         FilterChip(onClick = {
@@ -453,16 +454,14 @@ fun QueuesScreen(id: Long = -1L) {
 
     OpenDialogs()
 
-
     @Composable
     fun TopBar() {
         var expanded by remember { mutableStateOf(false) }
-        val buttonColor = Color(0xDDFFD700)
         Box(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
             if (vm.curQueue.id == actQueue.id) AsyncImage(model = curEpisode?.imageUrl?:curEpisode?.feed?.imageUrl?:"", contentDescription = "bgImage", contentScale = ContentScale.FillBounds, error = painterResource(R.drawable.teaser), modifier = Modifier.matchParentSize().blur(radiusX = 5.dp, radiusY = 5.dp))
             Box(modifier = Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)))
             Column {
-                Row(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(modifier = Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() })
                     if (vm.queuesMode == QueuesScreenMode.Queue) {
                         Text((if (vm.curQueue.id == actQueue.id) "> " else "") + if (vm.curIndex in vm.queueNames.indices) vm.queueNames[vm.curIndex].ifBlank { "No name" } else "No name", maxLines = 1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).combinedClickable(onClick = { showChooseQueue = true }, onLongClick = {
@@ -527,7 +526,7 @@ fun QueuesScreen(id: Long = -1L) {
                     if (vm.queuesMode == QueuesScreenMode.Queue) IconButton(onClick = { navTo(Search) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                     Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
                         IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                        DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
+                        DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
                             DropdownMenuItem(text = { Text(stringResource(R.string.settings_label)) }, onClick = {
                                 vm.queuesMode = QueuesScreenMode.Settings
                                 runOnIOScope { upsert(appAttribs) { it.queuesMode = vm.queuesMode.name } }
@@ -717,7 +716,7 @@ fun QueuesScreen(id: Long = -1L) {
                                     val item = removeAt(from)
                                     add(to, item)
                                 }
-                                val buttonColor = MaterialTheme.colorScheme.tertiary
+                                
                                 val imageWidth = 56.dp
                                 val imageHeight = 56.dp
                                 var yOffset by remember(index) { mutableFloatStateOf(0f) }

@@ -25,6 +25,7 @@ import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
 import ac.mdiq.podcini.ui.compose.SearchBarRow
+import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import android.annotation.SuppressLint
@@ -204,7 +205,7 @@ fun FindFeedsScreen() {
         }
     }
 
-    val textColor = MaterialTheme.colorScheme.onSurface
+    
     val actionColor = MaterialTheme.colorScheme.tertiary
     ComfirmDialog(R.string.restore_subscriptions_label, stringResource(R.string.restore_subscriptions_summary, vm.numberOPMLFeedsToRestore.intValue), vm.showOPMLRestoreDialog) {
         vm.showProgress = true
