@@ -230,6 +230,7 @@
     <string name="add_to_associated_queue">إضافة إلى قائمة الانتظار المرتبطة</string>
     <string name="multicast_to_devices">Multicast to devices</string>
     <string name="remove_from_all_queues">إزالة من جميع قوائم الانتظار</string>
+    <string name="remove_from_cur_queue">Remove from current queue</string>
     <string name="media_type">نوع الوسائط</string>
     <string name="unknown">غير معروف</string>
     <string name="audio">الصوت</string>
