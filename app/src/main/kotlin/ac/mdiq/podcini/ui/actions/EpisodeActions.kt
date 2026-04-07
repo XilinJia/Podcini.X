@@ -5,10 +5,12 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.addToQueue
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
+import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.smartRemoveFromAllQueues
+import ac.mdiq.podcini.storage.database.smartRemoveFromQueues
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeState
@@ -88,7 +90,9 @@ val episodeActions: List<EpisodeAction> = listOf(
     AddToAssociatedQueue(),
     AddToActiveQueue(),
     AddToQueue(),
-    RemoveFromQueue(),
+
+    RemoveFromCurQueue(),
+    RemoveFromAllQueues(),
 
     SetRating(),
     AddComment(),
@@ -242,9 +246,9 @@ class AddToQueue : EpisodeAction() {
     }
 }
 
-class RemoveFromQueue : EpisodeAction() {
+class RemoveFromAllQueues : EpisodeAction() {
     override val id: String
-        get() = "REMOVE_FROM_QUEUE"
+        get() = "REMOVE_FROM_QUEUES"
     override val title: String
         get() = getAppContext().getString(R.string.remove_from_all_queues)
 
@@ -255,7 +259,27 @@ class RemoveFromQueue : EpisodeAction() {
 
     override fun performAction(e: Episode) {
         super.performAction(e)
-        runOnIOScope { smartRemoveFromAllQueues(e) }
+        runOnIOScope { smartRemoveFromQueues(e) }
+    }
+}
+
+class RemoveFromCurQueue : EpisodeAction() {
+    override val id: String
+        get() = "REMOVE_FROM_CUR_QUEUE"
+    override val title: String
+        get() = getAppContext().getString(R.string.remove_from_cur_queue)
+
+    override val iconRes:  Int = R.drawable.outline_remove_from_queue_24
+    override val color: Color = Color(0xFFDD77FF)
+
+    override fun enabled(): Boolean = onEpisode != null && actQueue.contains(onEpisode!!)
+
+    override fun performAction(e: Episode) {
+        super.performAction(e)
+        runOnIOScope {
+            val curQueue = queuesLive.find { it.id == appAttribs.curQueueId }
+            if (curQueue != null) smartRemoveFromQueues(e, listOf(curQueue))
+        }
     }
 }
 

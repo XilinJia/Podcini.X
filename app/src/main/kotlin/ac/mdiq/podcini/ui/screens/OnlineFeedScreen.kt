@@ -381,7 +381,10 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     @Composable
     fun MyTopAppBar() {
         Box {
-            TopAppBar(title = { Text(text = "Online feed") }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer",  modifier = Modifier.padding(7.dp).clickable { if (!navBack()) drawerController?.open() }) } )
+            TopAppBar(title = { Text(text = "Online feed") }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer",  modifier = Modifier.padding(7.dp).clickable {
+                if (vm.showEpisodes) vm.showEpisodes = false
+                else if (!navBack()) drawerController?.open()
+            }) } )
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }

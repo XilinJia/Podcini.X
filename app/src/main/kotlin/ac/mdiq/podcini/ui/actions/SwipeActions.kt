@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -64,7 +63,6 @@ class SwipeActions(private val tag: String) {
     @Composable
     fun SwipeActionsSettingDialog(onDismissRequest: () -> Unit) {
         val context by rememberUpdatedState(LocalContext.current)
-        
 
         val leftAction = remember { mutableStateOf(left) }
         val rightAction = remember { mutableStateOf(right) }
@@ -74,9 +72,9 @@ class SwipeActions(private val tag: String) {
         var showPickerDialog by remember { mutableStateOf(false) }
         if (showPickerDialog) {
             CommonPopupCard(onDismissRequest = { showPickerDialog = false }) {
-                LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(16.dp)) {
+                LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(8.dp)) {
                     items(keys) { key ->
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(8.dp)
                             .clickable {
                                 when (direction) {
                                     -1 -> leftAction.value = key
@@ -91,13 +89,11 @@ class SwipeActions(private val tag: String) {
                     }
                 }
             }
-        }
-
-        if (!showPickerDialog) CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+        } else CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
             Logd("SwipeActions", "SwipeActions tag: $tag")
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 val forFragment = remember(tag) {
-                    if (tag != Screens.Queues.name) keys = keys.filter { a: EpisodeAction -> a !is RemoveFromQueue }
+                    if (tag != Screens.Queues.name) keys = keys.filter { a: EpisodeAction -> a !is RemoveFromAllQueues && a !is RemoveFromCurQueue }
                     when (tag) {
                         Screens.Facets.name -> context.getString(R.string.facets)
                         Screens.OnlineFeed.name -> context.getString(R.string.online_episodes_label)

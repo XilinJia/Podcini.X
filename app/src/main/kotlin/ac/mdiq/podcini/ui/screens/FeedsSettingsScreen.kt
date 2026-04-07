@@ -127,7 +127,6 @@ var feedsToSet: List<Feed> = listOf()
 @Composable
 fun FeedsSettingsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
-//    val context by rememberUpdatedState(LocalContext.current)
     val drawerController = LocalDrawerController.current
 
     var feedFlow by remember { mutableStateOf<Flow<SingleQueryChange<Feed>>>(emptyFlow()) }
@@ -225,10 +224,10 @@ fun FeedsSettingsScreen() {
     
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).padding(start = 5.dp, end = 5.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // edit title
             if (feedsToSet.size == 1) {
                 Column {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        // edit title
                         Text(text = stringResource(R.string.title), style = CustomTextStyles.titleCustom)
                         Spacer(Modifier.weight(1f))
                         var showDialog by remember { mutableStateOf(false) }
@@ -299,6 +298,7 @@ fun FeedsSettingsScreen() {
                 useEpisodeImage = it
                 runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.useEpisodeImage = it } } }
             }
+            // audio type
             Column {
                 var showDialog by remember { mutableStateOf(false) }
                 @Composable
@@ -334,6 +334,7 @@ fun FeedsSettingsScreen() {
                 }
                 Text(text = stringResource(R.string.pref_feed_audio_type_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
+            // preferred language
             if (feedToSet.langSet.size > 1 || feedsToSet.size > 1) {
                 Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
                     Text(stringResource(R.string.preferred_languages), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
@@ -360,8 +361,8 @@ fun FeedsSettingsScreen() {
                     Text("Candidates: $langs", color = textColor, style = MaterialTheme.typography.bodySmall)
                 }
             }
+            //                    video mode
             if ((feedToSet.id >= MAX_NATURAL_SYNTHETIC_ID && feedToSet.hasVideoMedia) || feedsToSet.size > 1) {
-                //                    video mode
                 Column {
                     Row(Modifier.fillMaxWidth()) {
                         var showDialog by remember { mutableStateOf(false) }
@@ -382,6 +383,7 @@ fun FeedsSettingsScreen() {
                     }
                 }
             }
+            // qualities
             if (feedToSet.type == Feed.FeedType.YOUTUBE.name || (feedsToSet.size > 1 && gearbox.supportAudioQualities())) {
                 //                    audio quality
                 Column {
@@ -527,6 +529,35 @@ fun FeedsSettingsScreen() {
                 }
                 Text(text = curPrefQueue + " : " + stringResource(R.string.pref_feed_associated_queue_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
+            //                    repeat intervals
+            Column {
+                Row(Modifier.fillMaxWidth()) {
+                    val showDialog = remember { mutableStateOf(false) }
+                    @Composable
+                    fun RepeatIntervalsDialog(onDismiss: () -> Unit) {
+                        CommonPopupCard(onDismissRequest = onDismiss) {
+                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                var intervals = remember { feedToSet.repeatIntervals.toMutableList() }
+                                if (intervals.isEmpty()) intervals = DEFAULT_INTERVALS.toMutableList()
+                                val units = INTERVAL_UNITS.map { stringResource(it) }
+                                for (i in intervals.indices) {
+                                    NumberEditor(intervals[i], label = "in " + units[i], nz = false, instant = true, modifier = Modifier) { intervals[i] = it }
+                                }
+                                Button(onClick = {
+                                    runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.repeatIntervals = intervals.toRealmList() } } }
+                                    onDismiss()
+                                }) { Text(stringResource(R.string.confirm_label)) }
+                            }
+                        }
+                    }
+                    if (showDialog.value) RepeatIntervalsDialog(onDismiss = { showDialog.value = false })
+                    Icon(ImageVector.vectorResource(id = R.drawable.baseline_replay_24), "", tint = textColor)
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Text(text = stringResource(R.string.pref_feed_intervals), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showDialog.value = true })
+                }
+                Text(text = stringResource(R.string.pref_feed_intervals_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+            }
+
             //                    tags
             var showTagsSettingDialog by remember { mutableStateOf(false) }
             if (showTagsSettingDialog) TagSettingDialog(TagType.Feed, feedToSet.tags, onDismiss = { showTagsSettingDialog = false }) { tags ->
@@ -557,116 +588,10 @@ fun FeedsSettingsScreen() {
                 }
                 Text(text = stringResource(R.string.pref_feed_playback_speed_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
-            //              skip silence
-            Column {
-                Row(Modifier.fillMaxWidth()) {
-                    Icon(ImageVector.vectorResource(id = R.drawable.ic_volume_adaption), "", tint = textColor)
-                    Spacer(modifier = Modifier.width(20.dp))
-                    Text(text = stringResource(R.string.pref_skip_silence_title), style = CustomTextStyles.titleCustom, color = textColor)
-                }
-                Row(Modifier.fillMaxWidth()) {
-                    var glChecked by remember { mutableStateOf(feedToSet.skipSilence == null) }
-                    Checkbox(checked = glChecked, modifier = Modifier.height(24.dp), onCheckedChange = {
-                        glChecked = it
-                        runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.let { f ->
-                            if (glChecked) f.skipSilence = null
-                            else f.skipSilence = f.skipSilence ?: false
-                        } } } }
-                    })
-                    Text(text = stringResource(R.string.global), style = CustomTextStyles.titleCustom, color = textColor)
-                    if (!glChecked) {
-                        Spacer(modifier = Modifier.width(20.dp))
-                        var checked by remember { mutableStateOf(feedToSet.skipSilence ?: false) }
-                        Switch(checked = checked, modifier = Modifier.height(24.dp), onCheckedChange = {
-                            checked = it
-                            runOnIOScope {
-                                realm.write {
-                                    for (f in feedsToSet) {
-                                        findLatest(f)?.let { f -> f.skipSilence = checked }
-                                    }
-                                }
-                            }
-                        })
-                    }
-                }
-                Text(text = stringResource(R.string.pref_feed_playback_speed_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
-            }
-            //                    volume adaption
-            Column {
-                Row(Modifier.fillMaxWidth()) {
-                    val showDialog = remember { mutableStateOf(false) }
-                    @Composable
-                    fun VolumeAdaptionDialog(onDismissRequest: () -> Unit) {
-                        CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
-                            val (selectedOption, onOptionSelected) = remember { mutableStateOf(feedToSet.volumeAdaptionSetting ) }
-                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                VolumeAdaptionSetting.entries.forEach { item ->
-                                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        Checkbox(checked = (item == selectedOption),
-                                            onCheckedChange = { _ ->
-                                                Logd(TAG, "row clicked: $item $selectedOption")
-                                                if (item != selectedOption) {
-                                                    onOptionSelected(item)
-                                                    runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.volumeAdaptionSetting = item } } }
-                                                    onDismissRequest()
-                                                }
-                                            }
-                                        )
-                                        Text(text = stringResource(item.resId), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if (showDialog.value) VolumeAdaptionDialog(onDismissRequest = { showDialog.value = false })
-                    Icon(ImageVector.vectorResource(id = R.drawable.ic_volume_adaption), "", tint = textColor)
-                    Spacer(modifier = Modifier.width(20.dp))
-                    Text(text = stringResource(R.string.feed_volume_adapdation), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showDialog.value = true })
-                }
-                Text(text = stringResource(R.string.feed_volume_adaptation_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
-            }
-            //                    authentication
-            if ((feedToSet.id > 0 && !feedToSet.isLocalFeed) || feedsToSet.size > 1) {
-                Column {
-                    Row(Modifier.fillMaxWidth()) {
-                        val showDialog = remember { mutableStateOf(false) }
-                        @Composable
-                        fun AuthenticationDialog(onDismiss: () -> Unit) {
-                            CommonPopupCard(onDismissRequest = onDismiss) {
-                                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    val oldName = feedToSet.username?:""
-                                    var newName by remember { mutableStateOf(oldName) }
-                                    TextField(value = newName, onValueChange = { newName = it }, label = { Text("Username") })
-                                    val oldPW = feedToSet.password?:""
-                                    var newPW by remember { mutableStateOf(oldPW) }
-                                    TextField(value = newPW, onValueChange = { newPW = it }, label = { Text("Password") })
-                                    Button(onClick = {
-                                        if (newName.isNotEmpty() && oldName != newName) {
-                                            runOnIOScope {
-                                                realm.write { for (f in feedsToSet) { if (!f.isLocalFeed) findLatest(f)?.let {
-                                                    it.username = newName
-                                                    it.password = newPW
-                                                } } }
-                                                gearbox.feedUpdater(feedsToSet).startRefresh()
-                                            }
-                                            onDismiss()
-                                        }
-                                    }) { Text(stringResource(R.string.confirm_label)) }
-                                }
-                            }
-                        }
-                        if (showDialog.value) AuthenticationDialog(onDismiss = { showDialog.value = false })
-                        Icon(ImageVector.vectorResource(id = R.drawable.ic_key), "", tint = textColor)
-                        Spacer(modifier = Modifier.width(20.dp))
-                        Text(text = stringResource(R.string.authentication_label), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showDialog.value = true })
-                    }
-                    Text(text = stringResource(R.string.authentication_descr), style = MaterialTheme.typography.bodyMedium, color = textColor)
-                }
-            }
+            //                    prefer streaming
             var autoDownloadChecked by remember { mutableStateOf(feedToSet.autoDownload) }
             var preferStreaming by remember { mutableStateOf(feedToSet.prefStreamOverDownload) }
             if (feedToSet.type != Feed.FeedType.YOUTUBE.name || !preferStreaming || feedsToSet.size > 1) {
-                //                    prefer streaming
                 TitleSummarySwitch(R.string.pref_stream_over_download_title, R.string.pref_stream_over_download_sum, R.drawable.ic_stream, preferStreaming) {
                     preferStreaming = it
                     if (preferStreaming) {
@@ -723,6 +648,40 @@ fun FeedsSettingsScreen() {
                 }
                 Text(text = stringResource(R.string.preferred_action_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
+            //              skip silence
+            Column {
+                Row(Modifier.fillMaxWidth()) {
+                    Icon(ImageVector.vectorResource(id = R.drawable.ic_volume_adaption), "", tint = textColor)
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Text(text = stringResource(R.string.pref_skip_silence_title), style = CustomTextStyles.titleCustom, color = textColor)
+                }
+                Row(Modifier.fillMaxWidth()) {
+                    var glChecked by remember { mutableStateOf(feedToSet.skipSilence == null) }
+                    Checkbox(checked = glChecked, modifier = Modifier.height(24.dp), onCheckedChange = {
+                        glChecked = it
+                        runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.let { f ->
+                            if (glChecked) f.skipSilence = null
+                            else f.skipSilence = f.skipSilence ?: false
+                        } } } }
+                    })
+                    Text(text = stringResource(R.string.global), style = CustomTextStyles.titleCustom, color = textColor)
+                    if (!glChecked) {
+                        Spacer(modifier = Modifier.width(20.dp))
+                        var checked by remember { mutableStateOf(feedToSet.skipSilence ?: false) }
+                        Switch(checked = checked, modifier = Modifier.height(24.dp), onCheckedChange = {
+                            checked = it
+                            runOnIOScope {
+                                realm.write {
+                                    for (f in feedsToSet) {
+                                        findLatest(f)?.let { f -> f.skipSilence = checked }
+                                    }
+                                }
+                            }
+                        })
+                    }
+                }
+                Text(text = stringResource(R.string.pref_feed_playback_speed_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+            }
             //                    auto skip
             Column {
                 Row(Modifier.fillMaxWidth()) {
@@ -754,78 +713,43 @@ fun FeedsSettingsScreen() {
                 }
                 Text(text = stringResource(R.string.pref_feed_skip_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
-            //                    repeat intervals
+            //                    volume adaption
             Column {
                 Row(Modifier.fillMaxWidth()) {
                     val showDialog = remember { mutableStateOf(false) }
                     @Composable
-                    fun RepeatIntervalsDialog(onDismiss: () -> Unit) {
-                        CommonPopupCard(onDismissRequest = onDismiss) {
+                    fun VolumeAdaptionDialog(onDismissRequest: () -> Unit) {
+                        CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+                            val (selectedOption, onOptionSelected) = remember { mutableStateOf(feedToSet.volumeAdaptionSetting ) }
                             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                var intervals = remember { feedToSet.repeatIntervals.toMutableList() }
-                                if (intervals.isEmpty()) intervals = DEFAULT_INTERVALS.toMutableList()
-                                val units = INTERVAL_UNITS.map { stringResource(it) }
-                                for (i in intervals.indices) {
-                                    NumberEditor(intervals[i], label = "in " + units[i], nz = false, instant = true, modifier = Modifier) { intervals[i] = it }
-                                }
-                                Button(onClick = {
-                                    runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.repeatIntervals = intervals.toRealmList() } } }
-                                    onDismiss()
-                                }) { Text(stringResource(R.string.confirm_label)) }
-                            }
-                        }
-                    }
-                    if (showDialog.value) RepeatIntervalsDialog(onDismiss = { showDialog.value = false })
-                    Icon(ImageVector.vectorResource(id = R.drawable.baseline_replay_24), "", tint = textColor)
-                    Spacer(modifier = Modifier.width(20.dp))
-                    Text(text = stringResource(R.string.pref_feed_intervals), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showDialog.value = true })
-                }
-                Text(text = stringResource(R.string.pref_feed_intervals_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
-            }
-            if (feedToSet.type != Feed.FeedType.YOUTUBE.name || feedsToSet.size > 1) {
-                //                    auto delete
-                Column {
-                    Row(Modifier.fillMaxWidth()) {
-                        val showDialog = remember { mutableStateOf(false) }
-                        @Composable
-                        fun AutoDeleteDialog(onDismissRequest: () -> Unit) {
-                            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
-                                val (selectedOption, onOptionSelected) = remember { mutableStateOf(autoDeletePolicy) }
-                                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    FeedAutoDeleteOptions.forEach { text ->
-                                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                            Checkbox(checked = (text == selectedOption),
-                                                onCheckedChange = {
-                                                    Logd(TAG, "row clicked: $text $selectedOption")
-                                                    if (text != selectedOption) {
-                                                        onOptionSelected(text)
-                                                        val action_ = when (text) {
-                                                            AutoDeleteAction.GLOBAL.tag -> AutoDeleteAction.GLOBAL
-                                                            AutoDeleteAction.ALWAYS.tag -> AutoDeleteAction.ALWAYS
-                                                            AutoDeleteAction.NEVER.tag -> AutoDeleteAction.NEVER
-                                                            else -> AutoDeleteAction.GLOBAL
-                                                        }
-                                                        runOnIOScope { realm.write { for (f in feedsToSet) { if (f.type != Feed.FeedType.YOUTUBE.name) findLatest(f)?.autoDeleteAction = action_ } } }
-                                                        onDismissRequest()
-                                                    }
+                                VolumeAdaptionSetting.entries.forEach { item ->
+                                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(checked = (item == selectedOption),
+                                            onCheckedChange = { _ ->
+                                                Logd(TAG, "row clicked: $item $selectedOption")
+                                                if (item != selectedOption) {
+                                                    onOptionSelected(item)
+                                                    runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.volumeAdaptionSetting = item } } }
+                                                    onDismissRequest()
                                                 }
-                                            )
-                                            Text(text = text, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
-                                        }
+                                            }
+                                        )
+                                        Text(text = stringResource(item.resId), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
                                     }
                                 }
                             }
                         }
-                        if (showDialog.value) AutoDeleteDialog(onDismissRequest = { showDialog.value = false })
-                        Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), "", tint = textColor)
-                        Spacer(modifier = Modifier.width(20.dp))
-                        Text(text = stringResource(R.string.auto_delete_episode), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showDialog.value = true })
                     }
-                    Text(text = stringResource(R.string.auto_delete_sum) + ": " + stringResource(autoDeleteSummaryResId), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                    if (showDialog.value) VolumeAdaptionDialog(onDismissRequest = { showDialog.value = false })
+                    Icon(ImageVector.vectorResource(id = R.drawable.ic_volume_adaption), "", tint = textColor)
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Text(text = stringResource(R.string.feed_volume_adapdation), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showDialog.value = true })
                 }
+                Text(text = stringResource(R.string.feed_volume_adaptation_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
+
+            //                    max episodes
             if (feedToSet.id > MAX_SYNTHETIC_ID || feedsToSet.size > 1) {
-                //                    max episodes
                 Column {
                     Row(Modifier.fillMaxWidth()) {
                         Icon(ImageVector.vectorResource(id = R.drawable.ic_refresh), "", tint = textColor)
@@ -839,44 +763,8 @@ fun FeedsSettingsScreen() {
                     Text(text = stringResource(R.string.limit_episodes_to_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
             }
-            if (feedToSet.id > MAX_SYNTHETIC_ID) {
-                // edit feed url
-                Column {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "Podcast URL", style = CustomTextStyles.titleCustom)
-                        Spacer(Modifier.weight(1f))
-                        @Composable
-                        fun EditUrlSettingsDialog(onDismiss: () -> Unit) {
-                            var url by remember { mutableStateOf(feedToSet.downloadUrl ?: "") }
-                            AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.edit_url_menu)) },
-                                text = {
-                                    Column {
-                                        Text(stringResource(R.string.edit_url_confirmation_msg))
-                                        TextField(value = url, onValueChange = { url = it }, modifier = Modifier.fillMaxWidth())
-                                    }
-                                },
-                                confirmButton = {
-                                    TextButton(onClick = {
-                                        runOnIOScope {
-                                            feedToSet = upsert(feedToSet) { it.downloadUrl = url }
-                                            gearbox.feedUpdater(listOf(feedToSet)).startRefresh()
-                                        }
-                                        onDismiss()
-                                    }) { Text("OK") }
-                                },
-                                dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel_label)) } }
-                            )
-                        }
-
-                        var showDialog by remember { mutableStateOf(false) }
-                        if (showDialog) EditUrlSettingsDialog { showDialog = false }
-                        IconButton(onClick = { showDialog = true }) { Icon(Icons.Default.Edit, contentDescription = "Edit url") }
-                    }
-                    Text(text = feedToSet.downloadUrl ?: "", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 15.dp))
-                }
-            }
+            //                    refresh
             if ((feedToSet.inNormalVolume && feedToSet.id > MAX_SYNTHETIC_ID) || feedsToSet.size > 1) {
-                //                    refresh
                 var autoUpdate by remember { mutableStateOf(feedToSet.keepUpdated) }
                 TitleSummarySwitch(R.string.keep_updated, R.string.keep_updated_summary, R.drawable.ic_refresh, autoUpdate) {
                     autoUpdate = it
@@ -888,12 +776,13 @@ fun FeedsSettingsScreen() {
                     runOnIOScope { realm.write { for (f in feedsToSet) { if (f.id > MAX_SYNTHETIC_ID) findLatest(f)?.acceptTinyEpisodes = acceptTiny } } }
                 }
             }
+            //                    auto add new to queue
             if (curPrefQueue != "None" || feedsToSet.size > 1) {
-                //                    auto add new to queue
                 TitleSummarySwitch(R.string.audo_add_new_queue, R.string.audo_add_new_queue_summary, R.drawable.outline_playlist_add_24, feedToSet.autoAddNewToQueue) {
                     runOnIOScope { realm.write { for (f in feedsToSet) { if (f.queueTextExt != "None") findLatest(f)?.autoAddNewToQueue = it } } }
                 }
             }
+            // sorting
             var showSortDialog by remember { mutableStateOf(false) }
             if (showSortDialog) {
                 EpisodeSortDialog(initOrder = feedToSet.episodeSortOrder, onDismissRequest = { showSortDialog = false }) { order ->
@@ -908,6 +797,7 @@ fun FeedsSettingsScreen() {
                 }
                 Text(text = stringResource(R.string.sort_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
+            // filtering
             var showFilterDialog by remember {  mutableStateOf(false) }
             if (showFilterDialog) {
                 EpisodesFilterDialog(filter_ = feedToSet.episodeFilter, onDismissRequest = { showFilterDialog = false }) { filter ->
@@ -922,6 +812,7 @@ fun FeedsSettingsScreen() {
                 }
                 Text(text = stringResource(R.string.filter_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
+
             var autoEnqueueChecked by remember { mutableStateOf(feedToSet.autoEnqueue) }
             Row(Modifier.fillMaxWidth().padding(top=5.dp)) {
                 Text(text = stringResource(R.string.auto_colon), style = CustomTextStyles.titleCustom, color = textColor)
@@ -1219,6 +1110,124 @@ fun FeedsSettingsScreen() {
                             feedToSet.episodeFilterADL.propertySet.forEach { FilterChip(onClick = { }, label = { Text(it) }, selected = false) }
                         }
                     }
+                }
+            }
+
+            //                    auto delete
+            if (feedToSet.type != Feed.FeedType.YOUTUBE.name || feedsToSet.size > 1) {
+                Column {
+                    Row(Modifier.fillMaxWidth()) {
+                        val showDialog = remember { mutableStateOf(false) }
+                        @Composable
+                        fun AutoDeleteDialog(onDismissRequest: () -> Unit) {
+                            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+                                val (selectedOption, onOptionSelected) = remember { mutableStateOf(autoDeletePolicy) }
+                                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    FeedAutoDeleteOptions.forEach { text ->
+                                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Checkbox(checked = (text == selectedOption),
+                                                onCheckedChange = {
+                                                    Logd(TAG, "row clicked: $text $selectedOption")
+                                                    if (text != selectedOption) {
+                                                        onOptionSelected(text)
+                                                        val action_ = when (text) {
+                                                            AutoDeleteAction.GLOBAL.tag -> AutoDeleteAction.GLOBAL
+                                                            AutoDeleteAction.ALWAYS.tag -> AutoDeleteAction.ALWAYS
+                                                            AutoDeleteAction.NEVER.tag -> AutoDeleteAction.NEVER
+                                                            else -> AutoDeleteAction.GLOBAL
+                                                        }
+                                                        runOnIOScope { realm.write { for (f in feedsToSet) { if (f.type != Feed.FeedType.YOUTUBE.name) findLatest(f)?.autoDeleteAction = action_ } } }
+                                                        onDismissRequest()
+                                                    }
+                                                }
+                                            )
+                                            Text(text = text, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (showDialog.value) AutoDeleteDialog(onDismissRequest = { showDialog.value = false })
+                        Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), "", tint = textColor)
+                        Spacer(modifier = Modifier.width(20.dp))
+                        Text(text = stringResource(R.string.auto_delete_episode), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showDialog.value = true })
+                    }
+                    Text(text = stringResource(R.string.auto_delete_sum) + ": " + stringResource(autoDeleteSummaryResId), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                }
+            }
+
+            //                    authentication
+            if ((feedToSet.id > 0 && !feedToSet.isLocalFeed) || feedsToSet.size > 1) {
+                Column {
+                    Row(Modifier.fillMaxWidth()) {
+                        val showDialog = remember { mutableStateOf(false) }
+                        @Composable
+                        fun AuthenticationDialog(onDismiss: () -> Unit) {
+                            CommonPopupCard(onDismissRequest = onDismiss) {
+                                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    val oldName = feedToSet.username?:""
+                                    var newName by remember { mutableStateOf(oldName) }
+                                    TextField(value = newName, onValueChange = { newName = it }, label = { Text("Username") })
+                                    val oldPW = feedToSet.password?:""
+                                    var newPW by remember { mutableStateOf(oldPW) }
+                                    TextField(value = newPW, onValueChange = { newPW = it }, label = { Text("Password") })
+                                    Button(onClick = {
+                                        if (newName.isNotEmpty() && oldName != newName) {
+                                            runOnIOScope {
+                                                realm.write { for (f in feedsToSet) { if (!f.isLocalFeed) findLatest(f)?.let {
+                                                    it.username = newName
+                                                    it.password = newPW
+                                                } } }
+                                                gearbox.feedUpdater(feedsToSet).startRefresh()
+                                            }
+                                            onDismiss()
+                                        }
+                                    }) { Text(stringResource(R.string.confirm_label)) }
+                                }
+                            }
+                        }
+                        if (showDialog.value) AuthenticationDialog(onDismiss = { showDialog.value = false })
+                        Icon(ImageVector.vectorResource(id = R.drawable.ic_key), "", tint = textColor)
+                        Spacer(modifier = Modifier.width(20.dp))
+                        Text(text = stringResource(R.string.authentication_label), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showDialog.value = true })
+                    }
+                    Text(text = stringResource(R.string.authentication_descr), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                }
+            }
+            // edit feed url
+            if (feedToSet.id > MAX_SYNTHETIC_ID) {
+                Column {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Podcast URL", style = CustomTextStyles.titleCustom)
+                        Spacer(Modifier.weight(1f))
+                        @Composable
+                        fun EditUrlSettingsDialog(onDismiss: () -> Unit) {
+                            var url by remember { mutableStateOf(feedToSet.downloadUrl ?: "") }
+                            AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.edit_url_menu)) },
+                                text = {
+                                    Column {
+                                        Text(stringResource(R.string.edit_url_confirmation_msg))
+                                        TextField(value = url, onValueChange = { url = it }, modifier = Modifier.fillMaxWidth())
+                                    }
+                                },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        runOnIOScope {
+                                            feedToSet = upsert(feedToSet) { it.downloadUrl = url }
+                                            gearbox.feedUpdater(listOf(feedToSet)).startRefresh()
+                                        }
+                                        onDismiss()
+                                    }) { Text("OK") }
+                                },
+                                dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel_label)) } }
+                            )
+                        }
+
+                        var showDialog by remember { mutableStateOf(false) }
+                        if (showDialog) EditUrlSettingsDialog { showDialog = false }
+                        IconButton(onClick = { showDialog = true }) { Icon(Icons.Default.Edit, contentDescription = "Edit url") }
+                    }
+                    Text(text = feedToSet.downloadUrl ?: "", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 15.dp))
                 }
             }
         }

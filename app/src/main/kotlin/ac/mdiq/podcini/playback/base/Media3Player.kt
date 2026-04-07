@@ -552,19 +552,6 @@ class Media3Player : MediaPlayerBase() {
             }
             needChangeOffload = false
         }
-//        val ringtoneUri = if (appPrefs.useRingTone && !appPrefs.ringToneUriString.isNullOrBlank()) appPrefs.ringToneUriString!!.toUri() else null
-//        Logd(TAG, "ringtoneUri: $ringtoneUri")
-//        if (mediaSource != null) {
-//            val ringtoneSource = if (ringtoneUri != null) ProgressiveMediaSource.Factory(DefaultDataSource.Factory(context)).createMediaSource(MediaItem.fromUri(ringtoneUri)) else null
-//            Logd(TAG, "ringtoneSource: ${ringtoneSource != null}")
-//            val playlist = if (ringtoneSource != null) listOf(mediaSource!!, ringtoneSource!!) else listOf(mediaSource!!)
-//            exoPlayer?.setMediaSources(playlist, false)
-//        } else {
-//            val ringtoneItem = if (ringtoneUri != null) MediaItem.fromUri(ringtoneUri) else null
-//            Logd(TAG, "ringtoneItem: ${ringtoneItem != null}")
-//            val playlist = if (ringtoneItem != null) listOf(mediaItem!!, ringtoneItem!!) else listOf(mediaItem!!)
-//            exoPlayer?.setMediaItems(playlist)
-//        }
         if (mediaSource != null) exoPlayer?.setMediaSource(mediaSource!!, false)
         else exoPlayer?.setMediaItem(mediaItem!!)
         exoPlayer?.prepare()

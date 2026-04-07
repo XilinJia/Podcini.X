@@ -196,7 +196,7 @@ suspend fun queueToVirtual(episode: Episode, episodes: List<Episode>, listIdenti
 }
 
 
-suspend fun smartRemoveFromAllQueues(item_: Episode) {
+suspend fun smartRemoveFromQueues(item_: Episode, queues_: List<PlayQueue> = listOf()) {
     Logd(TAG, "smartRemoveFromAllQueues: ${item_.title}")
     var item = item_
     val almostEnded = item.hasAlmostEnded()
@@ -211,16 +211,18 @@ suspend fun smartRemoveFromAllQueues(item_: Episode) {
         val stat = if (item.lastPlayedTime > 0L) EpisodeState.SKIPPED else EpisodeState.PASSED
         setPlayState(stat, listOf(item), resetMediaPosition = false)
     }
-    for (q in queuesLive) {
+    val queues = queues_.ifEmpty { queuesLive }
+    for (q in queues) {
         if (q.id != actQueue.id && q.contains(item)) removeFromQueue(q, listOf(item))
     }
     //        ensure actQueue is last updated
-    Logd(TAG, "actQueue: [${actQueue.name}]")
-    val qes = actQueue.entries
-    if (curEpisode != null) curIndexInActQueue = qes.indexOfFirst { it.episodeId == curEpisode!!.id }
-    if (actQueue.size() > 0 && actQueue.contains(item)) removeFromQueue(actQueue, listOf(item))
-    else upsertBlk(actQueue) { it.update() }
-//    actQueue.checkAndFill()
+    if (actQueue.id in queues.map { it.id }) {
+        Logd(TAG, "actQueue: [${actQueue.name}]")
+        val qes = actQueue.entries
+        if (curEpisode != null) curIndexInActQueue = qes.indexOfFirst { it.episodeId == curEpisode!!.id }
+        if (actQueue.size() > 0 && actQueue.contains(item)) removeFromQueue(actQueue, listOf(item))
+        else upsertBlk(actQueue) { it.update() }
+    }
 }
 
 fun removeFromAllQueues(episodes: Collection<Episode>, playState: EpisodeState? = null) {

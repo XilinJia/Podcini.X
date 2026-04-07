@@ -43,8 +43,6 @@ import android.service.quicksettings.TileService
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.util.concurrent.atomic.AtomicBoolean
@@ -356,25 +354,6 @@ abstract class MediaPlayerBase {
     }
 
     /**
-     * Starts a new thread that loads the chapter marks from a playable object. If another chapter loader is already active,
-     * it will be cancelled first.
-     * On completion, the callback's onChapterLoaded method will be called.
-     */
-    @Synchronized
-    private fun startChapterLoader(media: Episode) {
-        // TODO: what to do?
-        fun onChapterLoaded(media: Episode?) {
-            //            sendNotificationBroadcast(NOTIFICATION_TYPE_RELOAD, 0)
-        }
-        runOnIOScope {
-            try {
-                loadChapters(media, false)
-                withContext(Dispatchers.Main) { onChapterLoaded(media) }
-            } catch (e: Throwable) { Logps(TAG, e, "Error loading chapters:") }
-        }
-    }
-
-    /**
      * Sets the player status of the PSMP object. PlayerStatus and media attributes have to be set at the same time
      * so that getPSMPInfo can't return an invalid state (e.g. status is PLAYING, but media is null).
      * This method will notify the callback about the change of the player status (even if the new status is the same
@@ -410,7 +389,7 @@ abstract class MediaPlayerBase {
             isInitialized -> savePlayerStatus(curEpisode, status)
             isPrepared -> {
                 savePlayerStatus(curEpisode, status)
-                if (curEpisode != null) startChapterLoader(curEpisode!!)
+                if (curEpisode != null) runOnIOScope { try { loadChapters(curEpisode!!, false) } catch (e: Throwable) { Logps(TAG, e, "Error loading chapters for: ${curEpisode?.title}") } }
             }
             isPaused -> savePlayerStatus(status)
             isStopped -> {}

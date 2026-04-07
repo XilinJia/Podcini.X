@@ -1,3 +1,10 @@
+# 10.14.9 
+
+* amended items order in FeedSettings
+* on top bar of OnlineFeed screen, back arrow returns to podcast info view from episodes view
+* reworked chapter fetching routines, enhanced efficiency and fixed bugs
+* added "remove from current queue" action accessible only in Queues
+
 # 10.14.8
 
 * fixed improperly using month's name in some cases

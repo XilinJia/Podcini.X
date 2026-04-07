@@ -181,7 +181,7 @@ fun MainActivityUI() {
 
     val windowInfo = LocalWindowInfo.current
     val screenWidth = windowInfo.containerSize.width.dp
-    Logd(TAG, "before CompositionLocalProvider")
+//    Logd(TAG, "before CompositionLocalProvider")
     CompositionLocalProvider(LocalDrawerController provides drawerCtrl, LocalDrawerState provides drawerState) {
         ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
             BottomSheetScaffold(sheetContent = { AVPlayerScreen() }, scaffoldState = sheetState, sheetMaxWidth = screenWidth, sheetPeekHeight = bottomInsetPadding + 100.dp, sheetDragHandle = {}, sheetShape = RectangleShape, topBar = {}) { paddingValues ->

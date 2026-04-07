@@ -298,6 +298,7 @@
     <string name="multicast_to_devices">Multicast to devices</string>
 
     <string name="remove_from_all_queues">Remove from all queues</string>
+    <string name="remove_from_cur_queue">Remove from current queue</string>
 
     <string name="media_type">Media type</string>
     <string name="unknown">Unknown</string>

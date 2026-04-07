@@ -18,8 +18,6 @@ class Chapter : EmbeddedRealmObject {
      */
     var chapterId: String? = null
 
-    var episode: Episode? = null
-
     constructor() {
 //        id = newId()
     }

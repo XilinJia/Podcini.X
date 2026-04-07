@@ -17,7 +17,7 @@ import ac.mdiq.podcini.storage.database.addToQueue
 import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.smartRemoveFromAllQueues
+import ac.mdiq.podcini.storage.database.smartRemoveFromQueues
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
@@ -664,7 +664,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                             Text(stringResource(id = R.string.add_to_queue)) } },
                         { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                             onSelected()
-                            runOnIOScope { for (e in selected) smartRemoveFromAllQueues(e) }
+                            runOnIOScope { for (e in selected) smartRemoveFromQueues(e) }
                         }, verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_remove), contentDescription = "Remove from active queue")
                             Text(stringResource(id = R.string.remove_from_all_queues)) } },

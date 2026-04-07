@@ -63,8 +63,8 @@ object PodciniHttpClient {
             install(HttpRedirect) { checkHttpMethod = false }
             install(HttpTimeout) {
                 connectTimeoutMillis = CONNECTION_TIMEOUT.toLong()
-                requestTimeoutMillis = READ_TIMEOUT.toLong()
                 socketTimeoutMillis = SOCKET_TIMEOUT.toLong()
+                requestTimeoutMillis = READ_TIMEOUT.toLong()
             }
             install(HttpCache)
             engine {

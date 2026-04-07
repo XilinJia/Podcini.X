@@ -44,6 +44,7 @@ abstract class EpisodeDLManager {
                 return
             }
             //                val broadcastUnreadStateUpdate = item.isNew
+            val chapters = if (!item.chaptersLoaded) try { fetchChapters(item) } catch (e: Exception) { Logs(TAG, e, "Get chapters failed for ${item.title}");listOf() } else listOf()
             item = upsert(item) {
                 it.downloaded = true
                 it.fileUrl = request.destination
@@ -53,7 +54,7 @@ abstract class EpisodeDLManager {
                     runBlocking { it.size = if (file.exists()) file.size()?: 0 else 0 }
                     Logd(TAG, "run() set size: ${it.size}")
                 }
-                if (!it.chaptersLoaded) runBlocking { try { it.setChapters(fetchChapters(it)) } catch (e: Exception) { Logs(TAG, e, "Get chapters failed for ${it.title}") } }
+                if (chapters.isNotEmpty()) it.setChapters(chapters)
 
                 // TODO: this seems not really needed
 //                if (!it.fileUrl.isNullOrBlank() && it.size > 0) {

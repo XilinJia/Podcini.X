@@ -316,7 +316,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
     LaunchedEffect(modeName) { vm.screenModeFlow.value = (FeedScreenMode.valueOf(modeName)) }
 
-    Logd(TAG, "in Composition")
     @Composable
     fun OpenDialogs() {
         ComfirmDialog(0, stringResource(R.string.reconnect_local_folder_warning), showConnectLocalFolderConfirm) {
@@ -668,7 +667,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         else -> -1
                     }
                 ) }
-                Logd(TAG, "feed?.prefActionType: ${feed?.prefActionType}")
+//                Logd(TAG, "feed?.prefActionType: ${feed?.prefActionType}")
                 val actionButtonName = remember(feed?.prefActionType, feed?.downloadUrl) {
                     when {
                         feed == null -> null
@@ -678,7 +677,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         gearbox.isGearFeed(feed!!.downloadUrl!!) -> ButtonTypes.STREAM.name
                         else -> null
                     } }
-                Logd(TAG, "actionButtonName: $actionButtonName")
                 EpisodeLazyColumn(episodes, feed = feed, layoutMode = if (feed?.useWideLayout == true) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal,
                     swipeActions = swipeActions, lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
                     refreshCB = {

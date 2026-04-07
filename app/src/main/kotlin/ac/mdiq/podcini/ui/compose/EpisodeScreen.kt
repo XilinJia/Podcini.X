@@ -175,6 +175,8 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
         showHomeScreen = false
     }
 
+    Logd(TAG, "mimeType: ${episode.mimeType}")
+
     var showShareDialog by remember { mutableStateOf(false) }
     var futureState by remember { mutableStateOf(EpisodeState.UNSPECIFIED) }
     var showAddTimerDialog by remember { mutableStateOf(false) }
@@ -386,10 +388,7 @@ fun EpisodeWebView(episode: Episode) {
                                 } else Loge(TAG, context.getString(R.string.tts_init_failed))
                             }
                         }
-                        withContext(Dispatchers.Main) {
-                            readMode = true
-                            //                                Logd(TAG, "cleanedNotes: $cleanedNotes")
-                        }
+                        withContext(Dispatchers.Main) { readMode = true }
                     } else Loge(TAG, context.getString(R.string.web_content_not_available))
                 }
             }

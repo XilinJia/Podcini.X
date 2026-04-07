@@ -941,7 +941,7 @@ fun AVPlayerScreen() {
         )
     }
 
-    Logd(TAG, "landscape: ${vm.landscape}")
+//    Logd(TAG, "landscape: ${vm.landscape}")
 //    if ((landscape || curVideoMode == VideoMode.FULL_SCREEN || (curVideoMode == VideoMode.DEFAULT && appPrefs.videoPlaybackMode == VideoMode.FULL_SCREEN.code)) && playVideo && bsState == BSState.Expanded) {
     if (vm.landscape && playVideo && psState == PSState.Expanded) {
         Box {

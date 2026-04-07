@@ -379,8 +379,6 @@ fun QueuesScreen(id: Long = -1L) {
         }
     }
 
-    Logd(TAG, "in Composition")
-
     val lazyListState = rememberLazyListState()
 
     @Composable

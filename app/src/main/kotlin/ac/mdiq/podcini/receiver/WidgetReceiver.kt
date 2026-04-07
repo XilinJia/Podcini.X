@@ -25,7 +25,7 @@ import ac.mdiq.podcini.storage.database.episodeById
 import ac.mdiq.podcini.storage.database.fastForwardSecs
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.rewindSecs
-import ac.mdiq.podcini.storage.database.smartRemoveFromAllQueues
+import ac.mdiq.podcini.storage.database.smartRemoveFromQueues
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.WidgetEpisode
@@ -233,7 +233,7 @@ class RemoveAction : ActionCallback {
         }
         Logd(TAG, "RemoveAction onAction episode: ${episode.title}")
         val episodes = withContext(Dispatchers.IO) {
-            smartRemoveFromAllQueues(episode)
+            smartRemoveFromQueues(episode)
             val queueId = parameters[QUEUE_ID_KEY]
             if (queueId == null) {
                 Loge("RemoveAction", "queueId from parameter is null.")

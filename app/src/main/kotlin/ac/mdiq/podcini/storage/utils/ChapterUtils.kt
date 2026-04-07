@@ -15,6 +15,8 @@ import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import android.content.ContentResolver
 import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpTimeoutConfig
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.get
 import io.ktor.client.request.head
 import io.ktor.client.request.header
@@ -26,8 +28,7 @@ import io.ktor.http.decodeURLQueryComponent
 import io.ktor.http.isSuccess
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.readAvailable
-import io.ktor.utils.io.readRemaining
-import kotlinx.io.readByteArray
+import okio.Buffer
 import okio.BufferedSource
 import okio.ByteString.Companion.encodeUtf8
 import okio.EOFException
@@ -62,7 +63,7 @@ suspend fun fetchChapters(episode: Episode): List<Chapter> {
                     chapters.add(Chapter(startTime * 1000L, title, link, img))
                 }
                 return chapters
-            } catch (e: JSONException) { Logs(TAG, e) }
+            } catch (e: JSONException) { Logs(TAG, e, "Error parse json string for chapters: $jsonStr ${episode.title}") }
             return listOf()
         }
         chaptersFromPodcastIndex = try {
@@ -70,11 +71,16 @@ suspend fun fetchChapters(episode: Episode): List<Chapter> {
             Logd(TAG, "fetchChapters fetching from url: $url")
             val response = getKtorClient().get(url) { header(HttpHeaders.CacheControl, null) }
             if (response.status.isSuccess()) parse(response.bodyAsText()) else listOf()
-        } catch (e: Exception) { listOf() }
+        } catch (e: Exception) {
+            Logs(TAG, e, "Error getting chapters from url for ${episode.title}")
+            listOf()
+        }
     }
-    val chaptersFromMediaFile = loadChaptersFromMedia(episode)
-    val chaptersMergePhase1 = mergeChapters(chaptersFromDatabase, chaptersFromMediaFile)
-    return mergeChapters(chaptersMergePhase1, chaptersFromPodcastIndex) ?: listOf()
+    if (chaptersFromPodcastIndex.isNullOrEmpty()) {
+        val chaptersFromMediaFile = loadChaptersFromMedia(episode)
+        val chaptersMergePhase1 = mergeChapters(chaptersFromDatabase, chaptersFromMediaFile)
+        return mergeChapters(chaptersMergePhase1, chaptersFromPodcastIndex) ?: listOf()
+    } else return mergeChapters(chaptersFromDatabase, chaptersFromPodcastIndex) ?: listOf()
 }
 
 suspend fun loadChapters(episode: Episode, forceReload: Boolean) {
@@ -138,67 +144,84 @@ class ChapterReader(input: CountingSource) : ID3Reader(input) {
     val chapters: MutableList<Chapter> = mutableListOf()
 
     override fun readFrame(frameHeader: FrameHeader) {
+        var chapBuffer = Buffer()
+        var chapBufferSize = 0L
+
         fun readChapter(): Chapter {
-            Logd(TAG, "readChapter")
-            val chapterStartedPosition = position
-            val elementId = readIsoStringNullTerminated(100)
-            val startTime = buffer.readInt().toLong()
-            skipBytes(12) // Ignore end time, start offset, end offset
-            val chapter = Chapter()
-            chapter.start = startTime
-            chapter.chapterId = elementId
-            while (position < chapterStartedPosition + frameHeader.size) {
-                val subFrameHeader = readFrameHeader() ?: break
-                //                Logd(TAG, "readChapter Handling subframe: $subFrameHeader")
-                val frameStartPosition = position
+            val elementId = readNullTerminatedString(chapBuffer)
+            val startTime = chapBuffer.readInt().toLong()
+//            val endTime = chapBuffer.readInt().toLong()
+//            val startOffset = chapBuffer.readInt()
+//            val endOffset = chapBuffer.readInt()
+            chapBuffer.skip(12) // don't need endTime, startOffset, and endOffset
+            val chapter = Chapter().apply {
+                this.start = startTime
+                this.chapterId = elementId
+            }
+            while (!chapBuffer.exhausted()) {
+                val subFrameHeader = readSubFrameHeader(chapBuffer) ?: break
+                Logd(TAG, "readChapter Handling subframe: $subFrameHeader ${chapBuffer.size}")
+                val payload = chapBuffer.readByteArray(subFrameHeader.size.toLong())
                 when (subFrameHeader.id) {
                     FRAME_ID_TITLE -> {
-                        chapter.title = readEncodingAndString(subFrameHeader.size)
-                        Logd(TAG, "Found title: " + chapter.title)
+                        chapter.title = readTextFrame(payload)
+                        Logd(TAG, "readChapter Found title: ${chapter.title} ${chapter.start}")
                     }
                     FRAME_ID_LINK -> {
-                        readEncodingAndString(subFrameHeader.size) // skip description
-                        val url = readIsoStringNullTerminated((frameStartPosition + subFrameHeader.size - position).toInt())
+                        val (_, url) = readWXXXFrame(payload)
                         try {
-                            //                            val decodedLink = URLDecoder.decode(url, "ISO-8859-1")
                             val decodedLink = url.decodeURLQueryComponent(charset = Charsets.ISO_8859_1)
                             chapter.link = decodedLink
-                            Logd(TAG, "Found link: " + chapter.link)
-                        } catch (e: IllegalArgumentException) { Logs(TAG, e, "Bad URL found in ID3 data") }
+                            Logd(TAG, "readChapter Found link: ${chapter.link}")
+                        } catch (e: IllegalArgumentException) { Logs(TAG, e, "readChapter Bad URL found in ID3 data") }
                     }
                     FRAME_ID_PICTURE -> {
-                        val encoding = buffer.readByte()
-                        val mime = readIsoStringNullTerminated(subFrameHeader.size)
-                        val type = buffer.readByte()
-                        val description = readEncodedString(encoding.toInt(), subFrameHeader.size)
-                        Logd(TAG, "Found apic: $mime,$description")
-                        if (MIME_IMAGE_URL == mime) {
-                            val link = readIsoStringNullTerminated(subFrameHeader.size)
-                            Logd(TAG, "Link: $link")
-                            if (chapter.imageUrl.isNullOrEmpty() || type.toInt() == IMAGE_TYPE_COVER) chapter.imageUrl = link
-                        } else {
-                            val alreadyConsumed = position - frameStartPosition
-                            val rawImageDataLength = subFrameHeader.size - alreadyConsumed
-                            if (chapter.imageUrl.isNullOrEmpty() || type.toInt() == IMAGE_TYPE_COVER) chapter.imageUrl = "embedded-image://$position/$rawImageDataLength"
-                        }
+//                        val encoding = buffer.readByte()
+//                        val mime = readIsoStringNullTerminated(subFrameHeader.size)
+//                        val type = buffer.readByte()
+//                        val description = readEncodedString(encoding.toInt(), subFrameHeader.size)
+//                        Logd(TAG, "readChapter Found apic: $mime,$description")
+//                        if (MIME_IMAGE_URL == mime) {
+//                            val link = readIsoStringNullTerminated(subFrameHeader.size)
+//                            Logd(TAG, "readChapter Link: $link")
+//                            if (chapter.imageUrl.isNullOrEmpty() || type.toInt() == IMAGE_TYPE_COVER) chapter.imageUrl = link
+//                        } else {
+//                            val alreadyConsumed = position - frameStartPosition
+//                            val rawImageDataLength = subFrameHeader.size - alreadyConsumed
+//                            if (chapter.imageUrl.isNullOrEmpty() || type.toInt() == IMAGE_TYPE_COVER) chapter.imageUrl = "embedded-image://$position/$rawImageDataLength"
+//                        }
                     }
-                    else -> Logd(TAG, "Unknown chapter sub-frame ${subFrameHeader.id}")
+                    else -> Logd(TAG, "readChapter Unknown chapter sub-frame ${subFrameHeader.id}")
                 }
-                // Skip garbage to fill frame completely
-                // This also asserts that we are not reading too many bytes from this frame.
-                val alreadyConsumed = position - frameStartPosition
-                Logd(TAG, "readChapter subFrameHeader.size: ${subFrameHeader.size} alreadyConsumed: $alreadyConsumed = $position - $frameStartPosition ")
-                skipBytes((subFrameHeader.size - alreadyConsumed).toInt())
+                Logd(TAG, "readChapter subFrameHeader.size: ${subFrameHeader.size} ")
+                val chapBufferEndSize = chapBuffer.size
+                val consumed = chapBufferSize - chapBufferEndSize
+                Logd(TAG, "chapBufferSize: $chapBufferSize chapBufferEndSize: $chapBufferEndSize")
+                Logd(TAG, "Subframe ${subFrameHeader.id} expected=${subFrameHeader.size}, actual=$consumed")
+//                chapBuffer.skip(chapBufferEndSize.toLong())
             }
             return chapter
         }
 
         if (FRAME_ID_CHAPTER == frameHeader.id) {
+            val size = frameHeader.size.toLong()
+            if (size > remainingTagBytes) {
+                Loge(TAG, "Frame exceeds tag boundary: size=$size remaining=$remainingTagBytes")
+                return
+            }
+            Logd(TAG, "readFrame size: $size remainingTagBytes: $remainingTagBytes")
+            val chapBody = buffer.readByteArray(size)
+            remainingTagBytes -= size
+            chapBuffer = Buffer().write(chapBody)
+            chapBufferSize = chapBuffer.size
+            Logd(TAG, "chapBufferSize: $chapBufferSize size: $size")
+
             Logd(TAG, "readFrame Handling frame: $frameHeader")
             val chapter = readChapter()
             Logd(TAG, "readFrame Chapter done: $chapter")
             chapters.add(chapter)
-        } else super.readFrame(frameHeader)
+        }
+//        else super.readFrame(frameHeader)
     }
 
     companion object {
@@ -351,44 +374,42 @@ suspend fun loadChaptersFromMedia(episode: Episode): List<Chapter> {
             Logd(TAG, "openSource fileUrl: $fileUrl")
             val file = fileUrl.toUF()
             if (!file.exists()) {
-                Loge(TAG, "file doesn't exist: $fileUrl")
+                Loge(TAG, "Failed loading chapters for ${episode.title}: file doesn't exist: $fileUrl")
                 return
             }
             val size = file.size()
             Logd(TAG, "openSource size: $size")
             if (size == null || size > 0) cb(file.source().buffer(), size)
-            else Loge(TAG, "loadChaptersFromMediaFile1 file is empty: $fileUrl")
+            else Loge(TAG, "Failed loading chapters for ${episode.title}: file is empty: $fileUrl")
         } else {
             if (streamurl != null && (streamurl.startsWith(ContentResolver.SCHEME_CONTENT) || streamurl.startsWith(ContentResolver.SCHEME_FILE))) {
                 val file = streamurl.toUF()
                 if (!file.exists()) {
-                    Loge(TAG, "streamurl doesn't exist: $fileUrl")
+                    Loge(TAG, "Failed loading chapters for ${episode.title}: streamurl file doesn't exist: $streamurl")
                     return
                 }
                 val size = file.size()
                 cb(file.source().buffer(), size)
             } else {
-                if (streamurl.isNullOrEmpty()) throw Exception("stream url is null of empty")
-
+                if (streamurl.isNullOrEmpty()) throw Exception("Failed loading chapters for ${episode.title}: stream url is null of empty")
                 Logd(TAG, "openSource open streaming source")
-                getKtorClient().prepareGet(streamurl).execute { response ->
+                getKtorClient().prepareGet(streamurl) {
+                    header("Range", "bytes=0-131072")
+                    timeout { requestTimeoutMillis = HttpTimeoutConfig.INFINITE_TIMEOUT_MS }
+                }.execute { response ->
                     val channel: ByteReadChannel = response.body()
-                    try {
-                        fs.sink(tempPath).buffer().use { sink ->
-                            val limit = 1_000_000L
-                            var totalRead = 0L
-                            while (!channel.isClosedForRead && totalRead < limit) {
-                                val packet = channel.readRemaining(8192)
-                                if (packet.exhausted()) break
-                                val bytes = packet.readByteArray()
-                                sink.write(bytes)
-                                totalRead += bytes.size
-                                Logd(TAG, "fs.sink(tempPath) totalRead: $totalRead")
-                            }
+                    val buffer = ByteArray(8192)
+                    val limit = 128 * 1024L
+                    var totalRead = 0L
+                    fs.sink(tempPath).buffer().use { sink ->
+                        while (!channel.isClosedForRead && totalRead < limit) {
+                            val read = channel.readAvailable(buffer, 0, minOf(buffer.size.toLong(), limit - totalRead).toInt())
+                            if (read <= 0) break
+                            sink.write(buffer, 0, read)
+                            totalRead += read
                         }
-                        fs.source(tempPath).buffer().use { fileSource -> cb(fileSource, null) }
-                    } catch (e: Exception) { Loge(TAG, "Download or Parse failed: ${e.message}")
-                    } finally { fs.delete(tempPath) }
+                    }
+                    fs.source(tempPath).buffer().use { fileSource -> cb(fileSource, null) }
                 }
             }
         }
@@ -473,7 +494,7 @@ suspend fun loadChaptersFromMedia(episode: Episode): List<Chapter> {
                                 reader.parseM4A()
                                 cList = reader.chapters.toList()
                             } catch (e: Exception) {
-                                Logs(TAG, e, "failed to get chapters for MP4 media")
+                                Logs(TAG, e, "failed to get chapters for MP4 media ${episode.title}")
                                 cList = emptyList()
                             }
                         }
@@ -487,7 +508,7 @@ suspend fun loadChaptersFromMedia(episode: Episode): List<Chapter> {
                 reader.chapters.toList()
             }
             else -> {
-                Logt(TAG, "file format: $format currently not handled")
+                Logt(TAG, "failed to get chapters for ${episode.title}: file format $format currently not handled")
                 emptyList()
             }
         }

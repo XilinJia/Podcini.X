@@ -4,7 +4,9 @@ import ac.mdiq.podcini.storage.utils.CountingSource
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
+import com.fleeksoft.charset.decodeToString
 import okio.Buffer
+import okio.BufferedSource
 import okio.buffer
 
 abstract class Header internal constructor(
@@ -30,32 +32,65 @@ class FrameHeader(
     size: Int,
     flags: Short) : Header(id, size)
 
+
+/*
+ID,Name,Description
+TIT2,Title,The name of the track/episode.
+TPE1,Lead Performer,Usually the artist or podcast host.
+TRCK,Track Number,The order of the track in the album/series.
+TALB,Album/Series,The podcast name or album title.
+TDRC,Recording Time,"The year or date of recording (e.g., ""2026"")."
+TCON,Content Type,"The genre (e.g., ""Podcast"" or ""Rock"")."
+TCOP,Copyright,Legal/Copyright string.
+TLEN,Length,This is the total duration in milliseconds.
+TENC,Encoded by,The person or software that created the file.
+CHAP,Chapter,Defines start/end times for chapters (what you found earlier).
+*/
+
 /**
  * Reads the ID3 Tag of a given file.
  * See https://id3.org/id3v2.3.0
  */
 open class ID3Reader(private val source: CountingSource) {
     private var tagHeader: TagHeader? = null
+    var remainingTagBytes: Long = 0L
     val position: Long
         get() = source.count
 
     val buffer = source.buffer()
 
+    fun isValidFrameId(id: String): Boolean {
+        return id.length == 4 && id.all { it in 'A'..'Z' || it in '0'..'9' }
+    }
+
     fun readSource() {
         tagHeader = readTagHeader() ?: return
+        remainingTagBytes = (tagHeader?.size?:0).toLong()
+
         val tagContentStartPosition = position
         while (position < tagContentStartPosition + tagHeader!!.size) {
             val frameHeader = readFrameHeader() ?: break
-            if (frameHeader.id[0] !in '0'..'z') {
-                Logd(TAG, "Stopping because of invalid frame: $frameHeader")
-                return
+            Logd(TAG, "readSource frameHeader.id: ${frameHeader.id}")
+            if (!isValidFrameId(frameHeader.id)) {
+                Logd(TAG, "Invalid frame id: ${frameHeader.id}, skipping 1 byte to resync")
+                skipBytes(1)
+                continue
             }
+//            if (frameHeader.id == "TLEN") {
+//                val frameSize = frameHeader.size
+//                if (frameSize > 1) {
+//                    val encoding = buffer.readByte().toInt()
+//                    val textDataSize = (frameSize - 1).toLong()
+//                    val rawText = buffer.readString(textDataSize, Charsets.UTF_8).trim { it <= ' ' || it.code == 0 }
+//                    val duration = rawText.toLongOrNull() ?: 0L
+//                }
+//            }
             readFrame(frameHeader)
         }
     }
 
     protected open fun readFrame(frameHeader: FrameHeader) {
-        //        Logd(TAG, "Skipping frame: " + frameHeader.id + ", size: " + frameHeader.size)
+        Logd(TAG, "readFrame Skipping frame: " + frameHeader.id + ", size: " + frameHeader.size)
         skipBytes(frameHeader.size)
     }
 
@@ -65,66 +100,148 @@ open class ID3Reader(private val source: CountingSource) {
     @Throws(ID3ReaderException::class)
     protected fun skipBytes(number: Int) {
         if (number < 0) throw ID3ReaderException("Trying to skip a negative number of bytes: $number")
-        buffer.skip(number.toLong())
+        try { buffer.skip(number.toLong()) } catch (e: Exception) { Logd(TAG, "skipBytes skip exception: ${e.message}")}
     }
 
     protected fun readTagHeader(): TagHeader? {
-        val header = buffer.readByteArray(3)
-        if (header.decodeToString() != "ID3") {
-            Logt(TAG, "File is either not a ID3 file or does not have ID3 header")
+        val headerBytes = buffer.readByteArray(3)
+        if (headerBytes.decodeToString() != "ID3") {
+            Logt(TAG, "Not an ID3 file")
             return null
         }
-        val version = buffer.readShort()
+        val versionMajor = buffer.readByte().toShort()
+        val versionRevision = buffer.readByte().toShort()
         val flags = buffer.readByte()
         val size = unsynchsafe(buffer.readInt())
-        if ((flags.toInt() and 64) != 0) {
-            val extendedHeaderSize = buffer.readInt()
-            skipBytes(extendedHeaderSize - 4)
+        var totalHeaderSize = 10
+
+        // Extended header (if flag set)
+        if ((flags.toInt() and 0x40) != 0) {
+            val extSizeRaw = buffer.readInt()
+            val extSize = if (versionMajor >= 4) unsynchsafe(extSizeRaw) else extSizeRaw
+            skipBytes(extSize - 4)
+            totalHeaderSize += extSize
         }
-        return TagHeader("ID3", size, version, flags)
+
+        val totalTagSize = totalHeaderSize + size
+        return TagHeader("ID3", totalTagSize, versionMajor, flags)
     }
 
     protected fun readFrameHeader(): FrameHeader? {
-        val id = readPlainBytesToString(FRAME_ID_LENGTH)
-        if (id.isBlank() || id[0].code == 0) {
-            Logd(TAG, "Hit padding or end of tags. Stopping.")
-            return null
-        }
-        if (!id.matches(Regex("[A-Z0-9]{4}"))) {
-            Logd(TAG, "Invalid Frame ID found: $id. We are likely misaligned.")
-            return null
-        }
-        val rawSize = buffer.readInt()
-        val size = when {
-            tagHeader != null && tagHeader!!.version >= 0x0400 -> unsynchsafe(rawSize)
-            tagHeader != null && tagHeader!!.version == 0x0300.toShort() -> rawSize
-            else -> {
-                Loge(TAG, "header version not supported: ${tagHeader?.version}")
-                return null
+        val peekBuffer = buffer.peek()
+        if (peekBuffer.request(10)) {    // 4 ID + 4 size + 2 flags
+            val idBytes = peekBuffer.readByteArray(4)
+            val id = idBytes.decodeToString(Charsets.ISO_8859_1)
+            if (!id.matches(Regex("[A-Z0-9]{4}"))) {
+                if (idBytes.all { it.toInt() == 0 }) return null
+                buffer.skip(1)
+                return readFrameHeader()
             }
+            val rawSize = peekBuffer.readInt()
+            val size = when (tagHeader?.version) {
+                4.toShort() -> unsynchsafe(rawSize)
+                3.toShort() -> rawSize
+                else -> return null
+            }
+            val flags = peekBuffer.readShort()
+            buffer.skip(10)
+            return FrameHeader(id, size, flags)
         }
-//        if (tagHeader != null && tagHeader!!.version >= 0x0400) size = unsynchsafe(size)
-        val flags = buffer.readShort()
+        return null
+    }
+
+    fun readSubFrameHeader(chapBuffer: Buffer): FrameHeader? {
+        if (chapBuffer.size < 10) return null
+        val idBytes = chapBuffer.readByteArray(4)
+        val id = idBytes.decodeToString(Charsets.ISO_8859_1)
+        if (!id.matches(Regex("[A-Z0-9]{4}"))) return null
+        val rawSize = chapBuffer.readInt()
+        val size = when (tagHeader?.version) {
+            4.toShort() -> unsynchsafe(rawSize)
+            3.toShort() -> rawSize
+            else -> rawSize
+        }
+        val flags = chapBuffer.readShort()
         return FrameHeader(id, size, flags)
     }
 
+    fun readTextFrame(payload: ByteArray): String {
+        if (payload.isEmpty()) return ""
+        val encoding = payload[0].toInt()
+        val textBytes = payload.copyOfRange(1, payload.size)
+        val charset = when (encoding) {
+            0 -> Charsets.ISO_8859_1
+            1 -> Charsets.UTF_16
+            2 -> Charsets.UTF_16BE
+            3 -> Charsets.UTF_8
+            else -> Charsets.ISO_8859_1
+        }
+        return textBytes.toString(charset).trimEnd('\u0000')
+    }
+
+    fun indexOfNull(byteArray: ByteArray, start: Int = 0): Int {
+        for (i in start until byteArray.size) if (byteArray[i] == 0.toByte()) return i
+        return -1
+    }
+
+    fun readWXXXFrame(payload: ByteArray): Pair<String, String> {
+        if (payload.isEmpty()) return "" to ""
+        val encoding = payload[0].toInt()
+        val charset = when (encoding) {
+            0 -> Charsets.ISO_8859_1
+            1 -> Charsets.UTF_16
+            2 -> Charsets.UTF_16BE
+            3 -> Charsets.UTF_8
+            else -> Charsets.ISO_8859_1
+        }
+        val descEnd = indexOfNull(payload, start = 1)
+        val description = if (descEnd != -1) payload.copyOfRange(1, descEnd).toString(charset) else ""
+        val urlStart = if (descEnd != -1) descEnd + 1 else payload.size
+        val url = if (urlStart < payload.size) payload.copyOfRange(urlStart, payload.size).toString(Charsets.ISO_8859_1).trimEnd('\u0000') else ""
+        return description to url
+    }
+
+    data class APIC(
+        val mimeType: String,
+        val picType: Byte,
+        val description: String,
+        val imageData: ByteArray
+    )
+
+    fun readAPICFrame(payload: ByteArray): APIC? {
+        if (payload.isEmpty()) return null
+
+        val encodingByte = payload[0].toInt()
+        val contentBytes = payload.copyOfRange(1, payload.size)
+
+        val charset = when (encodingByte.toInt()) {
+            0 -> Charsets.ISO_8859_1
+            1 -> Charsets.UTF_16
+            2 -> Charsets.UTF_16BE
+            3 -> Charsets.UTF_8
+            else -> Charsets.ISO_8859_1
+        }
+
+        var offset = 0
+
+        val mimeEnd = indexOfNull(contentBytes, offset)
+        if (mimeEnd == -1) return null
+        val mimeType = contentBytes.copyOfRange(offset, mimeEnd).toString(charset)
+        offset = mimeEnd + 1
+
+        if (offset >= contentBytes.size) return null
+        val picType = contentBytes[offset]
+        offset += 1
+
+        val descEnd = indexOfNull(contentBytes, offset)
+        val description = if (descEnd != -1) contentBytes.copyOfRange(offset, descEnd).toString(charset) else ""
+        offset = (descEnd + 1).coerceAtMost(contentBytes.size)
+        val imageData = contentBytes.copyOfRange(offset, contentBytes.size)
+
+        return APIC(mimeType, picType, description, imageData)
+    }
+
     private fun unsynchsafe(n: Int): Int = (n and 0x7F) or ((n shr 8 and 0x7F) shl 7) or ((n shr 16 and 0x7F) shl 14) or ((n shr 24 and 0x7F) shl 21)
-
-//    private fun unsynchsafe(inVal: Int): Int {
-//        var out = 0
-//        var mask = 0x7F000000
-//        while (mask != 0) {
-//            out = out shr 1
-//            out = out or (inVal and mask)
-//            mask = mask shr 8
-//        }
-//        return out
-//    }
-
-    /**
-     * Reads a null-terminated string with encoding.
-     */
-    fun readEncodingAndString(max: Int): String = readEncodedString(buffer.readByte().toInt(), max - 1)
 
     protected fun readPlainBytesToString(length: Int): String {
         val stringBuilder = StringBuilder()
@@ -136,16 +253,24 @@ open class ID3Reader(private val source: CountingSource) {
         return stringBuilder.toString()
     }
 
-    protected fun readIsoStringNullTerminated(max: Int): String = readEncodedString(ENCODING_ISO.toInt(), max)
+    fun readNullTerminatedString(buffer: Buffer): String {
+        val bytes = mutableListOf<Byte>()
+        while (!buffer.exhausted()) {
+            val b = buffer.readByte()
+            if (b == 0.toByte()) break
+            bytes.add(b)
+        }
+        return bytes.toByteArray().toString(Charsets.ISO_8859_1)
+    }
 
-    fun readEncodedString(encoding: Int, max: Int): String {
+    fun readEncodedString(encoding: Int, max: Int, buffer_: BufferedSource = buffer): String {
         var charset = Charsets.UTF_8
         // Reads chars where the encoding uses 1 char per symbol.
         fun readEncodedString1(): String {
             val tempBuffer = Buffer()
             var bytesRead = 0
-            while (bytesRead < max && !buffer.exhausted()) {
-                val b = buffer.readByte()
+            while (bytesRead < max && !buffer_.exhausted()) {
+                val b = buffer_.readByte()
                 bytesRead++
                 if (b == 0.toByte()) break
                 tempBuffer.writeByte(b.toInt())
@@ -157,9 +282,9 @@ open class ID3Reader(private val source: CountingSource) {
             val tempBuffer = Buffer()
             var bytesRead = 0
             var foundEnd = false
-            while (bytesRead + 1 < max && !buffer.exhausted()) {
-                val c1 = buffer.readByte()
-                val c2 = buffer.readByte()
+            while (bytesRead + 1 < max && !buffer_.exhausted()) {
+                val c1 = buffer_.readByte()
+                val c2 = buffer_.readByte()
                 if (c1.toInt() == 0 && c2.toInt() == 0) {
                     foundEnd = true
                     break
@@ -168,8 +293,8 @@ open class ID3Reader(private val source: CountingSource) {
                 tempBuffer.writeByte(c1.toInt())
                 tempBuffer.writeByte(c2.toInt())
             }
-            if (!foundEnd && bytesRead < max && !buffer.exhausted()) {
-                val c = buffer.readByte()
+            if (!foundEnd && bytesRead < max && !buffer_.exhausted()) {
+                val c = buffer_.readByte()
                 if (c.toInt() != 0) tempBuffer.writeByte(c.toInt())
             }
             return try { tempBuffer.readString(tempBuffer.size, charset) } catch (e: Exception) { Loge(TAG, "readEncodedString2 failed: ${e.message}"); "" }

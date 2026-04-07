@@ -8,7 +8,6 @@ import ac.mdiq.podcini.ui.compose.isLightTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.fleeksoft.ksoup.Ksoup
-import com.fleeksoft.ksoup.nodes.Document
 
 /**
  * Cleans up and prepares shownotes:
@@ -85,62 +84,52 @@ class ShownotesCleaner {
 
         var shownotes = rawShownotes
         if (shownotes.isEmpty()) {
-            Logd(TAG, "shownotesProvider contained no shownotes. Returning 'no shownotes' message")
+            Logd(TAG, "processShownotes shownotesProvider contained no shownotes. Returning 'no shownotes' message")
             shownotes = "<html><head></head><body><p id='apNoShownotes'>$noShownotesLabel</p></body></html>"
         }
 
         // replace ASCII line breaks with HTML ones if shownotes don't contain HTML line breaks already
         if (!LINE_BREAK_REGEX.containsMatchIn(shownotes) && !shownotes.contains("<p>")) shownotes = shownotes.replace("\n", "<br />")
-        val document = Ksoup.parse(shownotes)   // TODO: this is time consuming
-        cleanCss(document)
-        document.head().appendElement("style").attr("type", "text/css").text(webviewStyle)
-        addTimecodes(document, playableDuration)
-        return document.toString()
-    }
-
-    private fun addTimecodes(document: Document, playableDuration: Int) {
-        val elementsWithTimeCodes = document.body().getElementsMatchingOwnText(TIMECODE_REGEX)
-        Logd(TAG, "Recognized " + elementsWithTimeCodes.size + " timecodes")
-        if (elementsWithTimeCodes.isEmpty()) return  // No elements with timecodes
-
-        var useHourFormat = true
-        if (playableDuration != Int.MAX_VALUE) {
-            // We need to decide if we are going to treat short timecodes as HH:MM or MM:SS. To do
-            // so we will parse all the short timecodes and see if they fit in the duration. If one
-            // does not we will use MM:SS, otherwise all will be parsed as HH:MM.
-            elementsWithTimeCodes.forEach { element ->
-                val matches = TIMECODE_REGEX.findAll(element.html())
-                for (match in matches) {
-                    if (match.groups[1] == null) {
-                        val time = durationStringShortToMs(match.value, true)
-                        if (time > playableDuration) {
-                            useHourFormat = false
-                            break
-                        }
-                    }
-                }
-                if (!useHourFormat) return@forEach
-            }
-        }
-        for (element in elementsWithTimeCodes) {
-            val originalHtml = element.html()
-            val newHtml = TIMECODE_REGEX.replace(originalHtml) { match ->
-                val group = match.value
-                val time = if (match.groups[1] != null) durationStringLongToMs(group) else durationStringShortToMs(group, useHourFormat)
-                if (time < playableDuration) """<a class="timecode" href="podcini://timecode/$time">$group</a>""" else group
-            }
-            element.html(newHtml)
-        }
-    }
-
-    private fun cleanCss(document: Document) {
-        Logd(TAG, "cleanCss number of elements: ${document.getAllElements().size}")
+        val document = Ksoup.parse(shownotes)
         for (element in document.getAllElements()) {
             when {
                 element.hasAttr("style") -> element.attr("style", element.attr("style").replace(CSS_COLOR.toRegex(), ""))
-                element.tagName() == "style" -> element.html(cleanStyleTag(element.html()))
+                element.tagName() == "style" -> element.html(element.html().replace(CSS_COMMENT.toRegex(), "").replace(CSS_COLOR.toRegex(), ""))
             }
         }
+        document.head().appendElement("style").attr("type", "text/css").text(webviewStyle)
+        val elementsWithTimeCodes = document.body().getElementsMatchingOwnText(TIMECODE_REGEX)
+        Logd(TAG, "processShownotes Recognized " + elementsWithTimeCodes.size + " timecodes")
+        if (elementsWithTimeCodes.isNotEmpty()) {
+            var useHourFormat = true
+            if (playableDuration != Int.MAX_VALUE) { // We need to decide if we are going to treat short timecodes as HH:MM or MM:SS. To do
+                // so we will parse all the short timecodes and see if they fit in the duration. If one
+                // does not we will use MM:SS, otherwise all will be parsed as HH:MM.
+                elementsWithTimeCodes.forEach { element ->
+                    val matches = TIMECODE_REGEX.findAll(element.html())
+                    for (match in matches) {
+                        if (match.groups[1] == null) {
+                            val time = durationStringShortToMs(match.value, true)
+                            if (time > playableDuration) {
+                                useHourFormat = false
+                                break
+                            }
+                        }
+                    }
+                    if (!useHourFormat) return@forEach
+                }
+            }
+            for (element in elementsWithTimeCodes) {
+                val originalHtml = element.html()
+                val newHtml = TIMECODE_REGEX.replace(originalHtml) { match ->
+                    val group = match.value
+                    val time = if (match.groups[1] != null) durationStringLongToMs(group) else durationStringShortToMs(group, useHourFormat)
+                    if (time < playableDuration) """<a class="timecode" href="podcini://timecode/$time">$group</a>""" else group
+                }
+                element.html(newHtml)
+            }
+        }
+        return document.toString()
     }
 
     companion object {
@@ -182,10 +171,6 @@ class ShownotesCleaner {
                 if (match != null) try { return match.groupValues[1].toInt() * 1000 } catch (e: Exception) { Logs(TAG, e) }
             }
             return -1
-        }
-
-        fun cleanStyleTag(oldCss: String): String {
-            return oldCss.replace(CSS_COMMENT.toRegex(), "").replace(CSS_COLOR.toRegex(), "")
         }
     }
 }

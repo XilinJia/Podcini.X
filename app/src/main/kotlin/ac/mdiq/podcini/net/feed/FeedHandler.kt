@@ -235,7 +235,9 @@ class FeedHandler {
                     uri == Media.NSURI && prefix == Media.NSTAG -> state.namespaces[uri] = Media()
                     uri == DublinCore.NSURI && prefix == DublinCore.NSTAG -> state.namespaces[uri] = DublinCore()
                     uri == PodcastIndex.NSURI || uri == PodcastIndex.NSURI2 && prefix == PodcastIndex.NSTAG -> state.namespaces[uri] = PodcastIndex()
-                    else -> Logd(TAG, "startPrefixMapping can not handle prefix: $prefix uri: $uri")
+                    else -> {
+//                        Logd(TAG, "startPrefixMapping can not handle prefix: $prefix uri: $uri")
+                    }
                 }
             }
         }
@@ -893,13 +895,13 @@ class FeedHandler {
                         try {
                             val start= parseTimeString(attributes.getValue(START))
                             val title: String? = attributes.getValue(TITLE)
+                            Logd(TAG, "handleElementStart got chapter: $start $title")
                             val link: String? = attributes.getValue(HREF)
                             val imageUrl: String? = attributes.getValue(IMAGE)
                             val chapter = Chapter(start, title, link, imageUrl)
                             currentItem.chapters.add(chapter)
-                        } catch (e: NumberFormatException) {
-                            Logs(TAG, e, "Unable to read chapter. ${e.message}")
-                        }
+                            currentItem.chaptersLoaded = true
+                        } catch (e: NumberFormatException) { Logs(TAG, e, "Unable to read chapter. ${e.message}") }
                     }
                 }
             }

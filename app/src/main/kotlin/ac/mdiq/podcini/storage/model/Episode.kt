@@ -85,8 +85,6 @@ class Episode : RealmObject {
 
     var parentURL: String? = null
 
-    var podcastIndexChapterUrl: String? = null
-
     /**
      * Returns the image of this item, as specified in the feed.
      * To load the image that can be displayed to the user, use [.getImageLocation],
@@ -125,9 +123,12 @@ class Episode : RealmObject {
 
     var marks: RealmSet<Long> = realmSetOf()
 
+    var podcastIndexChapterUrl: String? = null
+
     var chapters: RealmList<Chapter> = realmListOf()
 
     var chaptersLoaded: Boolean = false
+
 
     @set:JvmName("setRatingProperty")
     var rating: Int = Rating.UNRATED.code
@@ -473,7 +474,8 @@ class Episode : RealmObject {
     }
 
     fun setChapters(chapters_: List<Chapter>) {
-        for (c in chapters_) c.episode = this
+//        for (c in chapters_) c.episode = this
+        for (c in chapters_) Logd(TAG, "chapter: ${c.title}")
         chapters.clear()
         chapters.addAll(chapters_)
         chaptersLoaded = true
