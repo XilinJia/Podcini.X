@@ -123,7 +123,7 @@
     <string name="auto_enqueue_sum1">قائمة الإنتظار التلقائية تتطلب قائمة الإنتظار المرتبطة لم يتم تعيينها إلى لا شيء.</string>
     <string name="auto_download_sum">تمكين التنزيل التلقائي للحلقات المؤهلة وإضافتها إلى قائمة الانتظار المرتبطة بها (عندما لا يتم تعيينها على عدم تشغيل التحديث التلقائي).</string>
     <string name="limit_episodes_to">الحد من الحلقات إلى</string>
-    <string name="limit_episodes_to_sum">قم بسحب الحد الأقصى لعدد الحلقات للاحتفاظ بها. عند تجاوزه، يتم مسح الحلقات القديمة. سيتم الاحتفاظ بالحلقات المعلمة بشكل خاص.</string>
+    <string name="limit_episodes_to_sum">Suggest a maximum number of episodes to keep. When exceeded, older episodes are erased. Specially marked episodes will be kept.</string>
     <string name="skip_first_hint">تخطي أولاً (ثانية)</string>
     <string name="skip_last_hint">تخطي آخر (ثواني)</string>
     <string name="auto_download_label">تضمين في التنزيلات التلقائية</string>
@@ -766,8 +766,6 @@
     <string name="keep_updated_summary">تضمين هذا podcast عند التحديث التلقائي لجميع podcasts</string>
     <string name="accept_tiny_episodes">Accept tiny episodes</string>
     <string name="accept_tiny_episodes_sum">Some episodes can have duration less than 1 second. These are normally rejected during feed updates. Turning on this will accept them.</string>
-    <string name="audo_add_new_queue">إضافة تلقائية جديدة إلى قائمة الانتظار</string>
-    <string name="audo_add_new_queue_summary">إضافة حلقات جديدة تلقائياً في هذا البث الصوتي إلى قائمة الانتظار المحددة عند التحديث التلقائي</string>
     <string name="auto_download_disabled_sum">يمكن تمكين التحميل التلقائي هنا عندما يتم تمكين التحميل التلقائي في الإعدادات العامة والبث غير مفضل في التغذية.</string>
     <string name="statistics_length_played">مدة الكل بدأ:</string>
     <string name="statistics_time_played">وقت اللعب:</string>
