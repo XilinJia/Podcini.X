@@ -123,7 +123,7 @@
     <string name="auto_enqueue_sum1">自動エンキューには関連するキューが None に設定されていない必要があります。</string>
     <string name="auto_download_sum">資格のあるエピソードの自動ダウンロードを有効にし、関連するキューに追加します((自動更新時に「なし」に設定されていない場合)。</string>
     <string name="limit_episodes_to">エピソードの制限</string>
-    <string name="limit_episodes_to_sum">Sugegst 最大数のエピソードを保持します。超過すると、古いエピソードが消去されます。特別にマークされたエピソードが保持されます。</string>
+    <string name="limit_episodes_to_sum">Suggest a maximum number of episodes to keep. When exceeded, older episodes are erased. Specially marked episodes will be kept.</string>
     <string name="skip_first_hint">最初にスキップ (秒)</string>
     <string name="skip_last_hint">最後をスキップ (秒)</string>
     <string name="auto_download_label">自動ダウンロードに含める</string>
@@ -741,8 +741,6 @@
     <string name="keep_updated_summary">すべてのポッドキャストを更新するときにこのポッドキャストを含める (自動)</string>
     <string name="accept_tiny_episodes">Accept tiny episodes</string>
     <string name="accept_tiny_episodes_sum">Some episodes can have duration less than 1 second. These are normally rejected during feed updates. Turning on this will accept them.</string>
-    <string name="audo_add_new_queue">自動的にキューに追加</string>
-    <string name="audo_add_new_queue_summary">(自動)更新時に指定されたキューにこのポッドキャストに新しいエピソードを自動的に追加</string>
     <string name="auto_download_disabled_sum">グローバル設定で自動ダウンロードが有効になっていて、フィードでストリーミングが好ましくない場合、ここで自動ダウンロードを有効にすることができます。</string>
     <string name="statistics_length_played">すべての開始時間:</string>
     <string name="statistics_time_played">プレイした時間:</string>
