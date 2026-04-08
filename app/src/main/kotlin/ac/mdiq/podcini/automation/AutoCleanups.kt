@@ -1,8 +1,9 @@
 package ac.mdiq.podcini.automation
 
+import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.storage.database.EPISODE_CACHE_SIZE_UNLIMITED
 import ac.mdiq.podcini.storage.database.appPrefs
-import ac.mdiq.podcini.storage.database.deleteMedias
+import ac.mdiq.podcini.storage.database.deleteMedia
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.inQueueEpisodeIdSet
@@ -13,7 +14,6 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.ui.screens.prefscreens.EpisodeCleanupOptions
-import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
@@ -164,12 +164,15 @@ abstract class EpisodeCleanupAlgorithm {
     protected abstract suspend fun performCleanup(numToRemove: Int): Int
 
     protected suspend fun cleanup(candidates: List<Episode>, numToRemove: Int): Int {
-        val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
-        try {
-            deleteMedias(delete)
-            if (appPrefs.deleteRemovesFromQueue) removeFromAllQueues(delete)
-        }  catch (e: Throwable) { Logs(TAG, e) }
-        val counter = delete.size
+        val toDelete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
+        for (episode in toDelete) {
+            if (episode.feed != null && !episode.feed!!.isLocalFeed) {
+                EpisodeAdrDLManager.manager?.cancel(episode)
+                if (episode.downloaded) deleteMedia(episode)
+            }
+        }
+        if (appPrefs.deleteRemovesFromQueue) removeFromAllQueues(toDelete)
+        val counter = toDelete.size
         Logt(TAG, "Auto-delete deleted $counter episodes ($numToRemove requested)")
         return counter
     }

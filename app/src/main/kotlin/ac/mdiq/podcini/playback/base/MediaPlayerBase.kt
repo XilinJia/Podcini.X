@@ -198,10 +198,6 @@ abstract class MediaPlayerBase {
      */
     abstract fun shutdown()
 
-//    open fun resetVideoSurface() {
-//        Logpe(TAG, "Resetting Video Surface unsupported in Remote Media Player")
-//    }
-
     open fun setAudioTrack(track: Int) {}
 
     fun skip() {
@@ -336,7 +332,6 @@ abstract class MediaPlayerBase {
 
     private fun upsertDB(it: Episode, position: Int) {
         it.position = position
-
         if (it.startPosition >= 0 && it.position > it.startPosition) it.playedDuration = (it.playedDurationWhenStarted + it.position - it.startPosition)
         if (it.startTime > 0) {
             var delta = (nowInMillis() - it.startTime)
@@ -344,10 +339,8 @@ abstract class MediaPlayerBase {
                 Logpt(TAG, "upsertDB likely invalid delta: $delta ${it.title}")
                 it.startTime = nowInMillis()
                 delta = 0L
-            }
-            else it.timeSpent = it.timeSpentOnStart + delta
+            } else it.timeSpent = it.timeSpentOnStart + delta
         }
-
         it.lastPlayedTime = (System.currentTimeMillis())
         if (it.playState == EpisodeState.NEW.code) it.setPlayState(EpisodeState.UNPLAYED)
         Logd(TAG, "upsertDB ${it.startTime} timeSpent: ${it.timeSpent} playedDuration: ${it.playedDuration}")

@@ -312,7 +312,6 @@ class Feed : RealmObject {
         }
     var queueId: Long = 0L
 
-    var autoAddNewToQueue: Boolean = false
     // ============= Queue ==============
 
 
@@ -567,7 +566,7 @@ class Feed : RealmObject {
         if (autoDownload != other.autoDownload) return false
         if (autoEnqueue != other.autoEnqueue) return false
         if (queueId != other.queueId) return false
-        if (autoAddNewToQueue != other.autoAddNewToQueue) return false
+//        if (autoAddNewToQueue != other.autoAddNewToQueue) return false
         if (durationFloorADL != other.durationFloorADL) return false
         if (durationCeilingADL != other.durationCeilingADL) return false
         if (sortOrderCodeADL != other.sortOrderCodeADL) return false
@@ -653,7 +652,7 @@ class Feed : RealmObject {
         result = 31 * result + autoDownload.hashCode()
         result = 31 * result + autoEnqueue.hashCode()
         result = 31 * result + queueId.hashCode()
-        result = 31 * result + autoAddNewToQueue.hashCode()
+//        result = 31 * result + autoAddNewToQueue.hashCode()
         result = 31 * result + durationFloorADL
         result = 31 * result + durationCeilingADL
         result = 31 * result + sortOrderCodeADL

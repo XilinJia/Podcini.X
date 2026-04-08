@@ -49,7 +49,7 @@ abstract class EpisodeDLManager {
                 it.downloaded = true
                 it.fileUrl = request.destination
                 Logd(TAG, "run() set request.destination: ${request.destination}")
-                if (!request.destination.isNullOrBlank()) {
+                if (request.destination.isNotBlank()) {
                     val file = request.destination.toUF()
                     runBlocking { it.size = if (file.exists()) file.size()?: 0 else 0 }
                     Logd(TAG, "run() set size: ${it.size}")

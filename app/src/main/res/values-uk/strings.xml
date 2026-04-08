@@ -610,8 +610,8 @@
     <string name="use_wide_layout_summary">Широкий макет з списку епізодів показує більше зображення, більше підходяще для контенту відео.</string>
     <string name="keep_updated">Слідкувати за оновленнями</string>
     <string name="keep_updated_summary">Включати цей подкаст під час (автоматичного) оновлення всіх подкастів</string>
-    <string name="audo_add_new_queue">Автоматично додавати нові до черги</string>
-    <string name="audo_add_new_queue_summary">Автоматично додавати нові епізоди в цьому подкасті до призначеної черги, коли (автооновлення)</string>
+
+
 
     <string name="statistics_length_played">Тривалість всього початоку:</string>
     <string name="statistics_time_played">Час відтворення:</string>

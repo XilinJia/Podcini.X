@@ -78,7 +78,7 @@ open class FeedBuilderBase(val showError: (String?, String)->Unit) {
                     //                        Logd(TAG, "buildPodcast destination: $destination")
                     val feed = Feed(selectedDownloadUrl, null)
                     feed.isBuilding = true
-                    val result = FeedHandler().parseFeed(source, feed)
+                    val result = FeedHandler.parseFeed(source, feed)
                     feed.isBuilding = false
                     if (result != null) withContext(Dispatchers.Main) { handleFeed(result.feed, result.alternateFeedUrls) }
                 }

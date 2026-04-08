@@ -621,8 +621,9 @@
     <string name="use_wide_layout_summary">التخطيط الواسع لقائمة الحلقات يظهر صورة أكبر، أكثر ملاءمة لمحتوى الفيديو.</string>
     <string name="keep_updated">أبقيه محدثا</string>
     <string name="keep_updated_summary">قم بإضافة هذا البودكاست عند تحديث (أو التحديث التلقائي) جميع ملفات البودكاستات</string>
-    <string name="audo_add_new_queue">إضافة تلقائية جديدة إلى قائمة الانتظار</string>
-    <string name="audo_add_new_queue_summary">إضافة حلقات جديدة تلقائياً في هذا البث الصوتي إلى قائمة الانتظار المحددة عند التحديث التلقائي</string>
+
+
+
 
     <string name="statistics_length_played">مدة الكل بدأ:</string>
     <string name="statistics_time_played">وقت التشغيل الكامل:</string>

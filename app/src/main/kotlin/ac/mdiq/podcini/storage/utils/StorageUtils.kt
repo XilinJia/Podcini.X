@@ -226,11 +226,7 @@ class PathFile(
 
     override suspend fun listChildren(): List<UnifiedFile> = fs.list(path).map { PathFile(it) }
 
-    override suspend fun delete(): Boolean =
-        try {
-            fs.delete(this.path)
-            true
-        } catch (e: Throwable) { false }
+    override suspend fun delete(): Boolean = try { fs.delete(this.path);true } catch (e: Throwable) { false }
 
     override suspend fun createFile(mimeType: String, name: String): UnifiedFile {
         if (!fs.exists(path)) throw IllegalStateException("Parent path does not exist: $path")
@@ -353,10 +349,7 @@ class ContentUriFile(
         return outputStream.sink()
     }
 
-    override suspend fun delete(): Boolean {
-        Logd(TAG, "delete ${docFile?.uri}")
-        return docFile?.delete() ?: false
-    }
+    override suspend fun delete(): Boolean = docFile?.delete() ?: false
 
     override suspend fun createFile(mimeType: String, name: String): UnifiedFile {
         Logd(TAG, "createFile")

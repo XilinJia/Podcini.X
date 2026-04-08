@@ -600,8 +600,8 @@
     <string name="use_wide_layout_summary">Bred layout på episodlistan visar större bild, mer lämplig för videoinnehåll.</string>
     <string name="keep_updated">Håll uppdaterad</string>
     <string name="keep_updated_summary">Inkludera detta flöde vid (auto-)uppdatering av alla podcasts</string>
-    <string name="audo_add_new_queue">Lägg automatiskt till ny i kö</string>
-    <string name="audo_add_new_queue_summary">Lägg automatiskt till nya avsnitt i den här podcasten i den angivna kön när (auto-)uppdateringen</string>
+
+
 
     <string name="statistics_length_played">Varaktighet för alla började:</string>
     <string name="statistics_time_played">Tid spelad:</string>

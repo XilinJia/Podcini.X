@@ -603,8 +603,8 @@
     <string name="use_wide_layout_summary">Weites Layout auf der Episodenliste zeigt ein größeres Bild, besser geeignet für Video-Inhalte.</string>
     <string name="keep_updated">Aktuell halten</string>
     <string name="keep_updated_summary">Diesen Podcast bei der (automatischen) Aktualisierung berücksichtigen</string>
-    <string name="audo_add_new_queue">Automatisch zur Warteschlange hinzufügen</string>
-    <string name="audo_add_new_queue_summary">Automatisch neue Episoden in diesem Podcast zur angegebenen Warteschlange hinzufügen, wenn (auto-)das Aktualisieren erfolgt</string>
+
+
 
     <string name="statistics_length_played">Dauer von allen gestartet:</string>
     <string name="statistics_time_played">Abspielzeit:</string>

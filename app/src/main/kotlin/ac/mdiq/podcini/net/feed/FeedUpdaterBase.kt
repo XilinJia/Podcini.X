@@ -188,6 +188,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             val feedToParse = Feed(request.source, request.lastModified)
             feedToParse.fileUrl = request.destination
             feedToParse.id = request.feedfileId
+            feedToParse.limitEpisodesCount = feed.limitEpisodesCount
             feedToParse.fillPreferences(false, Feed.AutoDeleteAction.GLOBAL, VolumeAdaptionSetting.OFF, request.username, request.password)
             if (request.arguments != null) feedToParse.pageNr = request.arguments.getInt(DownloadRequest.REQUEST_ARG_PAGE_NR, 0)
             var reason: DownloadError? = null
@@ -196,10 +197,10 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             var feedHandlerResult: FeedHandlerResult? = null
             var isSuccessful = true
             try {
-                feedHandlerResult = FeedHandler().parseFeed(source, feedToParse)
-                Logd(TAG,  "Parsed ${feedToParse.title}")
+                feedHandlerResult = FeedHandler.parseFeed(source, feedToParse)
+                Logd(TAG,  "refreshFeed Parsed ${feedToParse.title}")
                 if (feedToParse.title.isNullOrBlank()) throw InvalidFeedException("Feed has no title")
-                for (item in feedToParse.episodes) if (item.title.isNullOrBlank()) throw InvalidFeedException("Item has no title: $item")
+                for (item in feedToParse.episodes) if (item.title.isNullOrBlank()) Loge(TAG, "episode ${item.id} title is empty in feed ${feedToParse.title} ")
                 if (feedToParse.imageUrl.isNullOrEmpty()) feedToParse.imageUrl = Feed.PREFIX_GENERATIVE_COVER + feedToParse.downloadUrl
             } catch (e: SAXException) {
                 isSuccessful = false
@@ -231,7 +232,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
                 val feedFile = (request.destination).toUF()
                 if (feedFile.exists()) {
                     feedFile.delete()
-                    Logd(TAG, "Deletion of file '" + feedFile.absPath + "' ")
+                    Logd(TAG, "refreshFeed Deletion of file '" + feedFile.absPath + "' ")
                 }
             }
 

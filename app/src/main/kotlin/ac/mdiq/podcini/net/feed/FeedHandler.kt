@@ -11,6 +11,7 @@ import ac.mdiq.podcini.storage.utils.parseDate
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.Logt
 import androidx.core.text.HtmlCompat
 import io.ktor.utils.io.streams.inputStream
 import kotlinx.io.Source
@@ -27,7 +28,23 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-class FeedHandler {
+object FeedHandler {
+    private val TAG: String = FeedHandler::class.simpleName ?: "Anonymous"
+    private const val ATOM_ROOT = "feed"
+    private const val RSS_ROOT = "rss"
+
+    private class ParsingLimitReachedException : RuntimeException()
+
+    /**
+     * Parses the date but if the date is in the future, returns null.
+     */
+    fun parseOrNullIfFuture(input: String?): Instant? {
+        val date = parseDate(input) ?: return null
+        val now = Clock.System.now()
+        if (date > now) return null
+        return date
+    }
+
     class KmpAttributes(private val reader: XmlReader) : Attributes {
         override fun getLength(): Int = reader.attributeCount
         override fun getLocalName(index: Int): String = reader.getAttributeLocalName(index)
@@ -49,70 +66,67 @@ class FeedHandler {
         source.use { bufferedSource ->
             val reader = xmlStreaming.newGenericReader(bufferedSource.inputStream())
             try {
-                handler = handleEvent(reader, feed)
-                return FeedHandlerResult(handler.state.feed, handler.state.alternateUrls, handler.state.redirectUrl ?: "")
-            } catch (e: Exception) { Logs(TAG, e, "Streaming Parse Failed")
+                while (reader.hasNext()) {
+                    when (val event = reader.next()) {
+                        EventType.START_DOCUMENT -> {}
+                        EventType.START_ELEMENT -> {
+                            if (handler == null) {
+                                val type = when (val tag = reader.localName) {
+                                    ATOM_ROOT -> {
+                                        feed.type = Feed.FeedType.ATOM1.name
+                                        Logd(TAG, "getType Recognized type Atom")
+                                        val strLang = reader.getAttributeValue("http://www.w3.org/XML/1998/namespace", "lang")
+                                        if (strLang != null) feed.langSet.add(strLang)
+                                        Type.ATOM
+                                    }
+                                    RSS_ROOT -> {
+                                        when (val strVersion = reader.getAttributeValue("", "version")) {
+                                            null, "2.0" -> {
+                                                feed.type = Feed.FeedType.RSS.name
+                                                Type.RSS20
+                                            }
+                                            "0.91", "0.92" -> Type.RSS091
+                                            else -> {
+                                                Loge(TAG, "getType Unsupported rss version: $strVersion")
+                                                throw UnsupportedFeedtypeException("Unsupported rss version")
+                                            }
+                                        }
+                                    }
+                                    else -> {
+                                        Loge(TAG, "getType Type is invalid: $tag")
+                                        throw UnsupportedFeedtypeException(Type.INVALID, tag)
+                                    }
+                                }
+                                Logd(TAG, "getType Type is: $type")
+                                handler = SyndHandler(feed, type)
+                                handler.startDocument()
+                            }
+                            reader.namespaceContext.forEach { (prefix, uri) -> handler.startPrefixMapping(prefix, uri) }
+                            handler.startElement(reader.namespaceURI, reader.localName, reader.localName, KmpAttributes(reader))
+                        }
+                        EventType.TEXT, EventType.CDSECT -> {
+                            val text = reader.text.toCharArray()
+                            handler?.characters(text, 0, text.size)
+                        }
+                        EventType.END_ELEMENT -> {
+                            //                    Logd(TAG, "EventType.END_ELEMENT ${reader.localName}")
+                            handler?.endElement(reader.namespaceURI, reader.localName, reader.localName)
+                            reader.namespaceContext.forEach { (prefix, _) -> handler?.endPrefixMapping(prefix) }
+                        }
+                        EventType.END_DOCUMENT -> handler?.endDocument()
+                        else -> {
+                            //                            Logd(TAG, "parseFeed event else: $event")
+                        }
+                    }
+                }
+                return FeedHandlerResult(handler!!.state.feed, handler.state.alternateUrls, handler.state.redirectUrl ?: "")
+            } catch (e: ParsingLimitReachedException) {
+                Logt(TAG, "parseFeed Feed episodes limit is reached, terminate early: ${feed.title}")
+                return FeedHandlerResult(handler!!.state.feed, handler.state.alternateUrls, handler.state.redirectUrl ?: "")
+            } catch (e: Exception) { Logs(TAG, e, "parseFeed Streaming Parse Failed on feed ${feed.title}")
             } finally { reader.close() }
         }
         return null
-    }
-
-    fun handleEvent(reader:  XmlReader, feed: Feed): SyndHandler {
-        var handler: SyndHandler? = null
-        while (reader.hasNext()) {
-            when (val event = reader.next()) {
-                EventType.START_DOCUMENT -> {}
-                EventType.START_ELEMENT -> {
-                    if (handler == null) {
-                        val type = when (val tag = reader.localName) {
-                            ATOM_ROOT -> {
-                                feed.type = Feed.FeedType.ATOM1.name
-                                Logd(TAG, "getType Recognized type Atom")
-                                val strLang = reader.getAttributeValue("http://www.w3.org/XML/1998/namespace", "lang")
-                                if (strLang != null) feed.langSet.add(strLang)
-                                Type.ATOM
-                            }
-                            RSS_ROOT -> {
-                                when (val strVersion = reader.getAttributeValue("", "version")) {
-                                    null, "2.0" -> {
-                                        feed.type = Feed.FeedType.RSS.name
-                                        Type.RSS20
-                                    }
-                                    "0.91", "0.92" -> Type.RSS091
-                                    else -> {
-                                        Loge(TAG, "getType Unsupported rss version: $strVersion")
-                                        throw UnsupportedFeedtypeException("Unsupported rss version")
-                                    }
-                                }
-                            }
-                            else -> {
-                                Loge(TAG, "getType Type is invalid: $tag")
-                                throw UnsupportedFeedtypeException(Type.INVALID, tag)
-                            }
-                        }
-                        Logd(TAG, "getType Type is: $type")
-                        handler = SyndHandler(feed, type)
-                        handler.startDocument()
-                    }
-                    reader.namespaceContext.forEach { (prefix, uri) -> handler.startPrefixMapping(prefix, uri) }
-                    handler.startElement(reader.namespaceURI, reader.localName, reader.localName, KmpAttributes(reader))
-                }
-                EventType.TEXT, EventType.CDSECT -> {
-                    val text = reader.text.toCharArray()
-                    handler?.characters(text, 0, text.size)
-                }
-                EventType.END_ELEMENT -> {
-//                    Logd(TAG, "EventType.END_ELEMENT ${reader.localName}")
-                    handler?.endElement(reader.namespaceURI, reader.localName, reader.localName)
-                    reader.namespaceContext.forEach { (prefix, _) -> handler?.endPrefixMapping(prefix) }
-                }
-                EventType.END_DOCUMENT -> handler?.endDocument()
-                else -> {
-                    //                            Logd(TAG, "parseFeed event else: $event")
-                }
-            }
-        }
-        return handler!!
     }
 
     enum class Type {
@@ -199,6 +213,12 @@ class FeedHandler {
 //            Logd(TAG, "startElement: localName: $localName qualifiedName: $qualifiedName uri: $uri")
             val element = namespace.handleElementStart(localName, state, attributes)
             state.tagstack.addLast(element)
+            Logd(TAG, "startElement ${state.items.size} limitEpisodesCount: ${state.feed.limitEpisodesCount}")
+            if (state.feed.limitEpisodesCount > 0 && state.items.size > 1.2*state.feed.limitEpisodesCount) {
+                state.feed.episodes.clear()
+                state.feed.episodes.addAll(state.items)
+                throw ParsingLimitReachedException()
+            }
         }
         @Throws(SAXException::class)
         override fun characters(ch: CharArray, start: Int, length: Int) {
@@ -340,7 +360,6 @@ class FeedHandler {
                 ENTRY == localName -> {
                     state.currentItem = Episode()
                     state.items.add(state.currentItem!!)
-//                state.currentItem!!.feed = state.feed
                 }
                 localName.matches(isText.toRegex()) -> {
                     val type: String? = attributes.getValue(TEXT_TYPE)
@@ -776,7 +795,7 @@ class FeedHandler {
             when (localName) {
                 ITEM if CHANNEL == state.tagstack.lastOrNull()?.name -> {
                     state.currentItem = Episode()
-                    state.items.add(state.currentItem!!) //                state.currentItem!!.feed = state.feed
+                    state.items.add(state.currentItem!!)
                 }
                 ENCLOSURE if ITEM == state.tagstack.lastOrNull()?.name -> {
                     val url: String? = attributes.getValue(ENC_URL)
@@ -787,9 +806,7 @@ class FeedHandler {
                         try {
                             size = attributes.getValue(ENC_LEN)?.toLong() ?: 0 // less than 16kb is suspicious, check manually
                             if (size < 16384) size = 0
-                        } catch (e: NumberFormatException) {
-                            Logs(TAG, e, "Length attribute could not be parsed.")
-                        }
+                        } catch (e: NumberFormatException) { Logs(TAG, e, "Length attribute could not be parsed.") }
                         state.currentItem?.fillMedia(url, size, mimeType)
                     }
                 }
@@ -889,6 +906,21 @@ class FeedHandler {
         override fun handleElementStart(localName: String, state: HandlerState, attributes: Attributes): SyndElement {
             val currentItem = state.currentItem
             if (currentItem != null) {
+                fun parseTimeString(time: String): Long {
+                    val parts = time.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+                    var result: Long = 0
+                    var idx = 0
+                    if (parts.size == 3) {
+                        result += parts[idx].toInt() * 3600000L
+                        idx++
+                    }
+                    if (parts.size >= 2) {
+                        result += parts[idx].toInt() * 60000L
+                        idx++
+                        result += (parts[idx].toFloat() * 1000L).toLong()
+                    }
+                    return result
+                }
                 when (localName) {
                     CHAPTERS -> currentItem.chapters.clear()
                     CHAPTER if !attributes.getValue(START).isNullOrEmpty() -> { // if the chapter's START is empty, we don't need to do anything
@@ -948,42 +980,6 @@ class FeedHandler {
 
             private const val ITEM = "item"
             private const val DATE = "date"
-        }
-    }
-
-    companion object {
-        private val TAG: String = FeedHandler::class.simpleName ?: "Anonymous"
-        private const val ATOM_ROOT = "feed"
-        private const val RSS_ROOT = "rss"
-
-        /**
-         * Parses the date but if the date is in the future, returns null.
-         */
-        fun parseOrNullIfFuture(input: String?): Instant? {
-            val date = parseDate(input) ?: return null
-            val now = Clock.System.now()
-            if (date > now) return null
-            return date
-        }
-
-        /**
-         * Takes a string of the form [HH:]MM:SS[.mmm] and converts it to milliseconds.
-         */
-        fun parseTimeString(time: String): Long {
-            val parts = time.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-            var result: Long = 0
-            var idx = 0
-            if (parts.size == 3) {
-                // string has hours
-                result += parts[idx].toInt() * 3600000L
-                idx++
-            }
-            if (parts.size >= 2) {
-                result += parts[idx].toInt() * 60000L
-                idx++
-                result += (parts[idx].toFloat() * 1000L).toLong()
-            }
-            return result
         }
     }
 }

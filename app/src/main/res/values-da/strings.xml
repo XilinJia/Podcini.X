@@ -600,8 +600,8 @@
     <string name="use_wide_layout_summary">Bred layout på episode liste viser større billede, mere egnet til video indhold.</string>
     <string name="keep_updated">Hold opdateret</string>
     <string name="keep_updated_summary">Inkludér denne podcast når alle podcasts opdateres</string>
-    <string name="audo_add_new_queue">Tilføj automatisk ny til kø</string>
-    <string name="audo_add_new_queue_summary">Tilføj automatisk nye episoder i denne podcast til den angivne kø, når (auto-)opfriskning</string>
+
+
 
     <string name="statistics_length_played">Varighed af alle startet:</string>
     <string name="statistics_time_played">Afspillet tid:</string>

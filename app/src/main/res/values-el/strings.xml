@@ -600,8 +600,8 @@
     <string name="use_wide_layout_summary">Ευρεία διάταξη στη λίστα επεισοδίων δείχνει μεγαλύτερη εικόνα, πιο κατάλληλη για περιεχόμενο βίντεο.</string>
     <string name="keep_updated">Διατήρηση ενημερωμένων</string>
     <string name="keep_updated_summary">Συμπεριλάβετε αυτό το podcast όταν (αυτόματο) ανανεώσετε όλα τα podcast</string>
-    <string name="audo_add_new_queue">Αυτόματη προσθήκη νέου στην ουρά</string>
-    <string name="audo_add_new_queue_summary">Αυτόματη προσθήκη νέων επεισοδίων σε αυτό το podcast στην καθορισμένη ουρά όταν (αυτόματο) αναζωογονεί</string>
+
+
 
     <string name="statistics_length_played">Διάρκεια όλων ξεκίνησε:</string>
     <string name="statistics_time_played">Χρόνος αναπαραγωγής:</string>

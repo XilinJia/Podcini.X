@@ -610,8 +610,8 @@
     <string name="use_wide_layout_summary">Široké rozložení na seznamu epizod zobrazuje větší obrázek, vhodnější pro obsah videa.</string>
     <string name="keep_updated">Udržovat aktuální</string>
     <string name="keep_updated_summary">Zahrnout tento podcast při (automatickém) obnovování všech podcastů</string>
-    <string name="audo_add_new_queue">Automaticky přidat do fronty</string>
-    <string name="audo_add_new_queue_summary">Automaticky přidávat nové epizody v tomto kanálu do určené fronty při (auto-)obnovování</string>
+
+
 
     <string name="statistics_length_played">Doba trvání všech začátků:</string>
     <string name="statistics_time_played">Přehráno celkem:</string>

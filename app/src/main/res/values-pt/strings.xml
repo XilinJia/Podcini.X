@@ -602,8 +602,8 @@
     <string name="use_wide_layout_summary">Layout amplo na lista de episódios mostra uma imagem maior, mais adequada para conteúdos de vídeo.</string>
     <string name="keep_updated">Manter atualizada</string>
     <string name="keep_updated_summary">Incluir este podcast ao recarregar (automaticamente) todos os podcasts</string>
-    <string name="audo_add_new_queue">Adicionar novo automaticamente à fila</string>
-    <string name="audo_add_new_queue_summary">Adicionar automaticamente novos episódios neste podcast para a fila designada quando (automaticamente)atualizando</string>
+
+
 
     <string name="statistics_length_played">Duração de todos os iniciados:</string>
     <string name="statistics_time_played">Tempo de reprodução:</string>

@@ -610,8 +610,8 @@
     <string name="use_wide_layout_summary">Широкий макет в списке эпизодов показывает большее изображение, более подходящее для видео содержимого.</string>
     <string name="keep_updated">Постоянно обновлять</string>
     <string name="keep_updated_summary">Обновлять подкаст при (авто)обновлении всех подкастов</string>
-    <string name="audo_add_new_queue">Автоматическое добавление в очередь</string>
-    <string name="audo_add_new_queue_summary">Автоматически добавлять новые выпуски в этот подкаст в указанную очередь при (авто-)обновлении</string>
+
+
 
     <string name="statistics_length_played">Продолжительность всех запущено:</string>
     <string name="statistics_time_played">Времени прослушивания:</string>

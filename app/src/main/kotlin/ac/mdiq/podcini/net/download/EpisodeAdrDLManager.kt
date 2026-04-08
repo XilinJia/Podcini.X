@@ -273,7 +273,7 @@ class EpisodesDownloadWorker(context: Context, params: WorkerParameters) : Corou
             sendMessage(request.title?:"", false)
             return retry3times()
         }
-        Loge(TAG, "Download failed ${request.title} ${status.reason}")
+        Loge(TAG, "Episode download failed ${request.title} ${status.reason}")
         addDownloadStatus(status)
         if (status.reason in listOf(DownloadError.ERROR_FORBIDDEN, DownloadError.ERROR_NOT_FOUND, DownloadError.ERROR_UNAUTHORIZED, DownloadError.ERROR_IO_BLOCKED)) {
             Loge(TAG, "performDownload failure on various reasons ${status.reason?.name}")

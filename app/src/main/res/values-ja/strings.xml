@@ -597,8 +597,8 @@
     <string name="use_wide_layout_summary">エピソードリストの広いレイアウトは、より大きな画像を示します, ビデオのコンテンツに適しています.</string>
     <string name="keep_updated">更新を維持</string>
     <string name="keep_updated_summary">すべてのポッドキャストを (自動) 更新する時にこのポッドキャストを含めます</string>
-    <string name="audo_add_new_queue">自動的にキューに追加</string>
-    <string name="audo_add_new_queue_summary">(自動)更新時に指定されたキューにこのポッドキャストに新しいエピソードを自動的に追加</string>
+
+
 
     <string name="statistics_length_played">すべての開始時間:</string>
     <string name="statistics_time_played">再生時間:</string>

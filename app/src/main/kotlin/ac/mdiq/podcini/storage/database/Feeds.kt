@@ -431,7 +431,7 @@ suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, 
             if (priorMostRecentDate == null || priorMostRecentDate < (pubDate) || priorMostRecentDate == pubDate) {
                 Logd(TAG, "updateFeedFull Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
                 episode = upsertBlk(episode) { it.setPlayState(EpisodeState.NEW) }
-                if (savedFeed.autoAddNewToQueue && savedFeed.queue != null) runOnIOScope { addToAssQueue(listOf(episode)) }
+//                if (savedFeed.autoAddNewToQueue && savedFeed.queue != null) runOnIOScope { addToAssQueue(listOf(episode)) }
             } else upsertBlk(episode) {}
         }
         if (idx % 50 == 0) Logd(TAG, "updateFeedFull processing item $idx / ${newFeed.episodes.size} ")
@@ -530,7 +530,7 @@ suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = nu
 
         Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
         episode = upsert(episode) { it.setPlayState(EpisodeState.NEW) }
-        if (savedFeed.autoAddNewToQueue && savedFeed.queue != null) runOnIOScope { addToAssQueue(listOf(episode)) }
+//        if (savedFeed.autoAddNewToQueue && savedFeed.queue != null) runOnIOScope { addToAssQueue(listOf(episode)) }
     }
     downloadStatus?.addDetail("Added new episodes: $nNew")
 

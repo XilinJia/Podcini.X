@@ -595,8 +595,8 @@
     <string name="use_wide_layout_summary">Wide layout on episode list shows larger image, more suitable for video contents.</string>
     <string name="keep_updated">최신 업데이트 유지</string>
     <string name="keep_updated_summary">모든 팟캐스트를 (자동) 새로 고칠 때 이 팟캐스트 포함</string>
-    <string name="audo_add_new_queue">Auto add new to queue</string>
-    <string name="audo_add_new_queue_summary">Automatically add new episodes in this podcast to the designated queue when (auto-)refreshing</string>
+
+
 
     <string name="statistics_length_played">Duration of all started:</string>
     <string name="statistics_time_played">재생한 시간:</string>

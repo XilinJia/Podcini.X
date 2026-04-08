@@ -140,7 +140,7 @@ class FeedDownloader(request: DownloadRequest): Downloader(request) {
 
         try {
             val uri = getURIFromRequestUrl(request.source)
-            getKtorClient().prepareGet(uri.toString()){
+            getKtorClient().prepareGet(uri.toString()) {
                 attributes.put(DownloadRequestKey, request)
                 header(HttpHeaders.CacheControl, "no-store")
                 if (uri.scheme == "http") header("Upgrade-Insecure-Requests", "1")

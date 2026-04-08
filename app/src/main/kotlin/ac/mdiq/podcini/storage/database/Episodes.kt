@@ -6,7 +6,6 @@ import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
-import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.prefSpeedOf
@@ -26,6 +25,7 @@ import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.fullDateTimeString
@@ -114,7 +114,12 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
     val localItems: MutableList<Episode> = mutableListOf()
     val repeatItems: MutableList<Episode> = mutableListOf()
     suspend fun deleteItems(items_: List<Episode>) {
-        deleteMedias(items_)
+        for (episode in items_) {
+            if (episode.feed != null && !episode.feed!!.isLocalFeed) {
+                EpisodeAdrDLManager.manager?.cancel(episode)
+                if (episode.downloaded) deleteMedia(episode)
+            }
+        }
         if (appPrefs.deleteRemovesFromQueue) removeFromAllQueues(items_)
     }
     for (item in items) {
@@ -187,22 +192,20 @@ suspend fun eraseEpisodes(episodes: List<Episode>, msg: String = "") {
 
 suspend fun deleteMedia(episode: Episode): Episode {
     val context = getAppContext()
-    Logd(TAG, "deleteMedia [id=${episode.id}, title=${episode.getEpisodeTitle()}, downloaded=${episode.downloaded}")
     val url = episode.fileUrl
-    Logd(TAG, "deleteMedia $url")
+    Logd(TAG, "deleteMedia [id=${episode.id}, title=${episode.getEpisodeTitle()}, downloaded=${episode.downloaded} $url")
     var episode = episode
-    try {
-        if (url != null) {
-            val path = url.toUF()
-            path.delete()
+    if (!url.isNullOrBlank()) {
+        try {
+            url.toUF().delete()
             episode = upsertBlk(episode) {
                 it.fileUrl = null
                 it.hasEmbeddedPicture = false
                 if (it.playState < EpisodeState.SKIPPED.code && !shouldPreserve(it.playState)) it.setPlayState(EpisodeState.SKIPPED)
             }
             EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode))
-        }
-    } catch (e: Throwable) { Logs(TAG, e, "deleteMedia failed") }
+        } catch (e: Throwable) { Logs(TAG, e, "deleteMedia failed") }
+    } else Loge(TAG, "Failed deleting media for ${episode.title}: fileUrl is null or empty: ")
 
     if (episode.id == curState.curMediaId) {
         savePlayerStatus(null)
@@ -216,31 +219,7 @@ suspend fun deleteMedia(episode: Episode): Episode {
         val action = EpisodeAction.Builder(episode, EpisodeAction.DELETE).currentTimestamp().build()
         SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(action)
     }
-
     return episode
-}
-
-/**
- * This is used when the episodes are not listed with the feed.
- * Remove the listed episodes and their EpisodeMedia entries.
- * Deleting media also removes the download log entries.
- */
-suspend fun deleteMedias(episodes: List<Episode>)  {
-    val removedFromQueue: MutableList<Episode> = mutableListOf()
-    val queueItems = actQueue.episodes.toMutableList()
-    for (episode in episodes) {
-        if (queueItems.remove(episode)) removedFromQueue.add(episode)
-        if (episode.id == curState.curMediaId) {
-            // Applies to both downloaded and streamed media
-            savePlayerStatus(null)
-            sendLocalBroadcast(ACTION_SHUTDOWN_PLAYBACK_SERVICE)
-        }
-        if (episode.feed != null && !episode.feed!!.isLocalFeed) {
-            EpisodeAdrDLManager.manager?.cancel(episode)
-            if (episode.downloaded) deleteMedia(episode)
-        }
-    }
-    if (removedFromQueue.isNotEmpty()) removeFromAllQueues(removedFromQueue)
 }
 
 fun checkAndMarkDuplicates(episode: Episode): Episode {
@@ -288,12 +267,13 @@ suspend fun setPlayState(state: EpisodeState, episodes: List<Episode>, resetMedi
     realm.write {
         for (e in episodes) {
             val e_ = findLatest(e)
-            if (e_ != null) e_.setPlayState(state, resetMediaPosition)
-            else {
-                Logd(TAG, "setPlayState unmanaged episode: ${e.title}")
-                e.setPlayState(state, resetMediaPosition)
-                copyToRealm(e)
-            }
+            e_?.setPlayState(state, resetMediaPosition)
+            // TODO: if e_ is null, it's deleted, the following is not necessary
+//            else {
+//                Logd(TAG, "setPlayState unmanaged episode: ${e.title}")
+//                e.setPlayState(state, resetMediaPosition)
+//                copyToRealm(e)
+//            }
         }
     }
 }

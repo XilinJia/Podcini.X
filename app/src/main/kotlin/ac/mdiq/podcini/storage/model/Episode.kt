@@ -175,7 +175,6 @@ class Episode : RealmObject {
             if (value) downloadTime = nowInMillis()
             if (playState == EpisodeState.NEW.code) setPlayState(EpisodeState.UNPLAYED)
         }
-
     var downloadTime: Long = 0
 
     var lastPlayedTime: Long = 0 // Last time this media was played (in ms)

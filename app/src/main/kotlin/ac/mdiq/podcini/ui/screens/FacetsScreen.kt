@@ -432,7 +432,6 @@ class FacetsVM(modeName_: String): ViewModel() {
         }
         tag = TAG + QuickAccess.entries[curIndex]
         Logd(TAG, "facetsMode 1: ${facetsMode.name} ${facetsPrefs.screenMode}")
-
         timeIt("$TAG end of init")
     }
 
@@ -440,7 +439,6 @@ class FacetsVM(modeName_: String): ViewModel() {
         super.onCleared()
         facetsPrefsJob?.cancel()
         facetsPrefsJob = null
-//        facetsMode = QuickAccess.New
     }
 }
 
@@ -537,7 +535,7 @@ fun FacetsScreen(modeName: String = "") {
                                 for (e in episodes) if (e.playState == EpisodeState.NEW.code) upsert(e) { it.setPlayState(EpisodeState.UNPLAYED) }
                                 Logt(TAG, "New items cleared")
                                 withContext(Dispatchers.Main) { vm.progressing = false }
-                                resetSwipes() //                                        vm.buildFlow()
+                                resetSwipes()
                             }
                             expanded = false
                         })
@@ -557,13 +555,11 @@ fun FacetsScreen(modeName: String = "") {
             vm.filter = filter
             upsertBlk(vm.facetsPrefs) { it.filtersMap[facetsMode.name] = vm.filter.propertySet.joinToString(",") }
             resetSwipes()
-//            vm.buildFlow()
         }
         if (showSortDialog) EpisodeSortDialog(initOrder = vm.sortOrder, onDismissRequest = { showSortDialog = false }) { order ->
             if (order != null) {
                 vm.sortOrder = order
                 resetSwipes()
-//                vm.buildFlow()
             }
         }
         swipeActions.ActionOptionsDialog()

@@ -76,11 +76,8 @@ suspend fun fetchChapters(episode: Episode): List<Chapter> {
             listOf()
         }
     }
-    if (chaptersFromPodcastIndex.isNullOrEmpty()) {
-        val chaptersFromMediaFile = loadChaptersFromMedia(episode)
-        val chaptersMergePhase1 = mergeChapters(chaptersFromDatabase, chaptersFromMediaFile)
-        return mergeChapters(chaptersMergePhase1, chaptersFromPodcastIndex) ?: listOf()
-    } else return mergeChapters(chaptersFromDatabase, chaptersFromPodcastIndex) ?: listOf()
+    return if (chaptersFromPodcastIndex.isNullOrEmpty()) mergeChapters(chaptersFromDatabase, loadChaptersFromMedia(episode)) ?: listOf()
+    else mergeChapters(chaptersFromDatabase, chaptersFromPodcastIndex) ?: listOf()
 }
 
 suspend fun loadChapters(episode: Episode, forceReload: Boolean) {
@@ -150,9 +147,6 @@ class ChapterReader(input: CountingSource) : ID3Reader(input) {
         fun readChapter(): Chapter {
             val elementId = readNullTerminatedString(chapBuffer)
             val startTime = chapBuffer.readInt().toLong()
-//            val endTime = chapBuffer.readInt().toLong()
-//            val startOffset = chapBuffer.readInt()
-//            val endOffset = chapBuffer.readInt()
             chapBuffer.skip(12) // don't need endTime, startOffset, and endOffset
             val chapter = Chapter().apply {
                 this.start = startTime
@@ -194,11 +188,7 @@ class ChapterReader(input: CountingSource) : ID3Reader(input) {
                     else -> Logd(TAG, "readChapter Unknown chapter sub-frame ${subFrameHeader.id}")
                 }
                 Logd(TAG, "readChapter subFrameHeader.size: ${subFrameHeader.size} ")
-                val chapBufferEndSize = chapBuffer.size
-                val consumed = chapBufferSize - chapBufferEndSize
-                Logd(TAG, "chapBufferSize: $chapBufferSize chapBufferEndSize: $chapBufferEndSize")
-                Logd(TAG, "Subframe ${subFrameHeader.id} expected=${subFrameHeader.size}, actual=$consumed")
-//                chapBuffer.skip(chapBufferEndSize.toLong())
+                Logd(TAG, "chapBufferSize: $chapBufferSize chapBufferEndSize: ${chapBuffer.size}")
             }
             return chapter
         }

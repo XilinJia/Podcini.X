@@ -603,8 +603,8 @@
     <string name="use_wide_layout_summary">La mise en page étendue de la liste des épisodes montre une image plus grande, plus appropriée pour le contenu vidéo.</string>
     <string name="keep_updated">Maintenir à jour</string>
     <string name="keep_updated_summary">Inclure ce podcast lors de la mise à jour des podcasts</string>
-    <string name="audo_add_new_queue">Ajouter automatiquement à la file d\'attente</string>
-    <string name="audo_add_new_queue_summary">Ajouter automatiquement les nouveaux épisodes dans ce podcast à la file d\'attente désignée lorsque (auto-)actualisation</string>
+
+
 
     <string name="statistics_length_played">Durée de tous les débuts :</string>
     <string name="statistics_time_played">Temps de lecture :</string>

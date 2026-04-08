@@ -600,8 +600,8 @@
     <string name="use_wide_layout_summary">Brede lay-out op afleveringslijst toont grotere afbeeldingen, die beter geschikt zijn voor videoinhoud.</string>
     <string name="keep_updated">Bijgewerkt houden</string>
     <string name="keep_updated_summary">Deze podcast meenemen bij het (automatisch) vernieuwen van alle podcasts</string>
-    <string name="audo_add_new_queue">Automatisch nieuwe aan de wachtrij toevoegen</string>
-    <string name="audo_add_new_queue_summary">Automatisch nieuwe afleveringen toevoegen in deze podcast aan de wachtrij wanneer (automatisch )versen</string>
+
+
 
     <string name="statistics_length_played">Duur van alle gestart:</string>
     <string name="statistics_time_played">Afgespeeld:</string>

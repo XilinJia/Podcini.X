@@ -776,12 +776,6 @@ fun FeedsSettingsScreen() {
                     runOnIOScope { realm.write { for (f in feedsToSet) { if (f.id > MAX_SYNTHETIC_ID) findLatest(f)?.acceptTinyEpisodes = acceptTiny } } }
                 }
             }
-            //                    auto add new to queue
-            if (curPrefQueue != "None" || feedsToSet.size > 1) {
-                TitleSummarySwitch(R.string.audo_add_new_queue, R.string.audo_add_new_queue_summary, R.drawable.outline_playlist_add_24, feedToSet.autoAddNewToQueue) {
-                    runOnIOScope { realm.write { for (f in feedsToSet) { if (f.queueTextExt != "None") findLatest(f)?.autoAddNewToQueue = it } } }
-                }
-            }
             // sorting
             var showSortDialog by remember { mutableStateOf(false) }
             if (showSortDialog) {

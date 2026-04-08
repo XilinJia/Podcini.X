@@ -612,8 +612,8 @@
     <string name="use_wide_layout_summary">Szeroki układ na liście odcinków pokazuje większy obraz, bardziej odpowiedni dla zawartości wideo.</string>
     <string name="keep_updated">Aktualizuj</string>
     <string name="keep_updated_summary">Uwzględnij ten podcast przy (automatycznym) odświeżaniu wszystkich kanałów</string>
-    <string name="audo_add_new_queue">Automatycznie dodaj nowe do kolejki</string>
-    <string name="audo_add_new_queue_summary">Automatycznie dodaj nowe odcinki w tym podcastie do wyznaczonej kolejki, gdy (auto-)odświeżanie</string>
+
+
 
     <string name="statistics_length_played">Czas trwania wszystkich rozpoczętych:</string>
     <string name="statistics_time_played">Czas odtwarzania:</string>

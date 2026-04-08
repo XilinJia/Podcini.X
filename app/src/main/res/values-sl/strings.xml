@@ -610,8 +610,8 @@
     <string name="use_wide_layout_summary">Wide layout on episode list shows larger image, more suitable for video contents.</string>
     <string name="keep_updated">Keep updated</string>
     <string name="keep_updated_summary">Vključite osveževanje tega podcasta pri (samodejnem) osveževanju vseh podcastov</string>
-    <string name="audo_add_new_queue">Auto add new to queue</string>
-    <string name="audo_add_new_queue_summary">Automatically add new episodes in this podcast to the designated queue when (auto-)refreshing</string>
+
+
 
     <string name="statistics_length_played">Duration of all started:</string>
     <string name="statistics_time_played">Predvajani čas:</string>

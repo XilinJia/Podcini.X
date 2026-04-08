@@ -1,3 +1,11 @@
+# 10.14.10
+
+* removed "Auto add new to queue" in FeedSettings, prefers Auto-enqueue setting or access from Facets->New
+* when refresh feed
+	* if an episode title is empty, no longer throws an exception, only toasts an error, likely fixed missing episodes issue
+	* if feed has limit on episodes, refresh terminates early, mostly evidenced in full refresh 
+* some code refactoring
+
 # 10.14.9 
 
 * amended items order in FeedSettings

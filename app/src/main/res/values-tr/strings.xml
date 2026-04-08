@@ -727,8 +727,8 @@
     <string name="use_wide_layout_summary">Bölüm listesindeki geniş düzen, daha büyük bir resim gösterir ve video içerikleri için daha uygundur.</string>
     <string name="keep_updated">Güncel tut</string>
     <string name="keep_updated_summary">Bu podcast\'i tüm podcast\'ler (otomatik) yenilenirken dahil et</string>
-    <string name="audo_add_new_queue">Yeni olanları otomatik kuyruğa ekle</string>
-    <string name="audo_add_new_queue_summary">Bu podcast\'teki yeni bölümleri (otomatik) yenileme sırasında belirlenen kuyruğa otomatik olarak ekle</string>
+
+
 
     <string name="auto_download_disabled_sum">Burada otomatik indirme, genel ayarlarda otomatik indirme etkinleştirildiğinde ve beslemede akış tercih edilmediğinde etkinleştirilebilir.</string>
     <string name="statistics_length_played">Başlatılanların toplam süresi:</string>

@@ -6,7 +6,7 @@ import ac.mdiq.podcini.storage.database.EPISODE_CACHE_SIZE_UNLIMITED
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appPrefs
-import ac.mdiq.podcini.storage.database.deleteMedias
+import ac.mdiq.podcini.storage.database.deleteMedia
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.realm
@@ -57,11 +57,19 @@ class AutoDownloadAlgorithm {
                 }
             }
         }
-        assembleFeedsCandidates(feeds, candidates, toReplace, noRefreshing = noRefreshing)
+        assembleCandidates(feeds, candidates, toReplace, noRefreshing = noRefreshing)
         Logd(TAG, "run candidates ${candidates.size} for download")
         if (candidates.isNotEmpty()) {
             val autoDownloadableCount = candidates.size
-            if (toReplace.isNotEmpty()) deleteMedias(toReplace.toList())
+            if (toReplace.isNotEmpty()) {
+                for (episode in toReplace) {
+                    if (episode.feed != null && !episode.feed!!.isLocalFeed) {
+                        EpisodeAdrDLManager.manager?.cancel(episode)
+                        if (episode.downloaded) deleteMedia(episode)
+                    }
+                }
+                removeFromAllQueues(toReplace)
+            }
             val downloadedCount = getEpisodesCount(EpisodeFilter(EpisodeFilter.States.downloaded.name))
             val deletedCount = toReplace.size + cleanupAlgorithm().makeRoomForEpisodes(autoDownloadableCount - toReplace.size)
             val appEpisodeCache = appPrefs.episodeCacheSize
@@ -91,7 +99,7 @@ class AutoEnqueueAlgorithm {
         val toReplace: MutableSet<Episode> = mutableSetOf()
         val candidates: MutableSet<Episode> = mutableSetOf()
 
-        assembleFeedsCandidates(feeds, candidates, toReplace, dl = false, noRefreshing = noRefreshing)
+        assembleCandidates(feeds, candidates, toReplace, dl = false, noRefreshing = noRefreshing)
         if (candidates.isNotEmpty()) {
             if (toReplace.isNotEmpty()) removeFromAllQueues(toReplace, EpisodeState.UNPLAYED)
             Logd(TAG, "Enqueueing ${candidates.size} items")
@@ -103,7 +111,7 @@ class AutoEnqueueAlgorithm {
     }
 }
 
-private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<Episode>, toReplace: MutableSet<Episode>, dl: Boolean = true, noRefreshing: Boolean = false) {
+private fun assembleCandidates(feeds_: List<Feed>?, candidates: MutableSet<Episode>, toReplace: MutableSet<Episode>, dl: Boolean = true, noRefreshing: Boolean = false) {
     val NM = 3
     val feeds = (feeds_ ?: allFeeds).filter { it.inNormalVolume }
     val eIdsAllQueues = realm.query(QueueEntry::class).query("queueId != $VIRTUAL_QUEUE_ID").find().map { it.episodeId }.toSet()

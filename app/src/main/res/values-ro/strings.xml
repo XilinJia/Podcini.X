@@ -605,8 +605,8 @@
     <string name="use_wide_layout_summary">Aspectul larg din lista de episoade arată o imagine mai mare, mai potrivită pentru conținutul video.</string>
     <string name="keep_updated">Menține actualizat</string>
     <string name="keep_updated_summary">Include acest podcast când reîmprospătarea automată a podcasturilor este pornită</string>
-    <string name="audo_add_new_queue">Adăugare automată la coadă</string>
-    <string name="audo_add_new_queue_summary">Adaugă automat episoade noi în acest podcast la coada de redare desemnată atunci când (auto-)reîmprospătarea</string>
+
+
 
     <string name="statistics_length_played">Durata tuturor a început:</string>
     <string name="statistics_time_played">Timpul redat:</string>

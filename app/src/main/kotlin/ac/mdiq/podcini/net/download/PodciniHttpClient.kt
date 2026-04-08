@@ -45,7 +45,6 @@ object PodciniHttpClient {
 
     fun createKtorClient(): HttpClient {
         Logd(TAG, "Creating new instance of HTTP client")
-
         return HttpClient(OkHttp) {
             install(DefaultRequest) {
                 header(HttpHeaders.UserAgent, ClientConfig.USER_AGENT)
