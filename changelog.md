@@ -1,3 +1,13 @@
+# 10.14.11
+
+* fixed possible crash when removing item from queue
+* avoid showing PlayerUI on startup when curEpisode was set null previously
+* fix mis-calculation of almost ended position (0.95 of duration)
+* ensure feed refresh worker is properly scheduled in MainActivity for restart and re-install
+* amended media3 player creation settings, to ensure timing stability for some media
+* toast message when player experience discontinuity
+* some code refactoring and dependencies update
+
 # 10.14.10
 
 * removed "Auto add new to queue" in FeedSettings, prefers Auto-enqueue setting or access from Facets->New

@@ -9,6 +9,7 @@ import ac.mdiq.podcini.net.download.Downloader.Companion.downloadStates
 import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.net.feed.FeedUpdateManager
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
+import ac.mdiq.podcini.net.feed.FeedUpdateManager.scheduleUpdateTaskOnce
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.TTSEngine.closeTTS
 import ac.mdiq.podcini.playback.cast.BaseActivity
@@ -181,6 +182,8 @@ class MainActivity : BaseActivity() {
         }
 
         runOnIOScope {  SynchronizationQueueSink.syncNowIfNotSyncedRecently() }
+
+        scheduleUpdateTaskOnce(replace = false)
 
         WorkManager.getInstance(this).getWorkInfosByTagLiveData(FeedUpdateManager.WORK_TAG_FEED_UPDATE)
             .observe(this) { workInfos: List<WorkInfo> ->

@@ -5,11 +5,6 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.ClientConfig
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.net.feed.FeedUpdateManager.EXTRA_ERASE_UNLISTED
-import ac.mdiq.podcini.net.feed.FeedUpdateManager.EXTRA_FEED_IDS
-import ac.mdiq.podcini.net.feed.FeedUpdateManager.EXTRA_FULL_UPDATE
-import ac.mdiq.podcini.net.feed.FeedUpdateManager.KEY_IS_PERIODIC
-import ac.mdiq.podcini.net.feed.FeedUpdateManager.rescheduleUpdateTaskOnce
 import ac.mdiq.podcini.net.feed.FeedUpdaterBase.Companion.createNotification
 import ac.mdiq.podcini.net.utils.NetworkUtils.isFeedRefreshAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
@@ -53,76 +48,6 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.minutes
 
-class FeedUpdateWorkerBase(context: Context, private val params: WorkerParameters) : CoroutineWorker(context, params) {
-    private val TAG = "FeedUpdateWorkerBase"
-    private val MAX_BACKOFF_ATTEMPTS = 3
-
-    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
-    override suspend fun doWork(): Result {
-        setForegroundAsync(getForegroundInfo())
-        ClientConfig.initialize()
-
-        val attemptCount = params.runAttemptCount
-        if (attemptCount > 0) Logt(TAG, "Running backoff refresh due to prior errors")
-
-        val isPeriodic = inputData.getBoolean(KEY_IS_PERIODIC, false)
-        if (isPeriodic) upsertBlk(appAttribs) { it.prefLastFullUpdateTime = nowInMillis() }
-        when {
-            !networkMonitor.isConnected -> {
-                EventFlow.postEvent(FlowEvent.MessageEvent(applicationContext.getString(R.string.download_error_no_connection)))
-                return if (isPeriodic) Result.retry() else Result.success()
-            }
-            else -> {}
-        }
-        try {
-            val fullUpdate = inputData.getBoolean(EXTRA_FULL_UPDATE, false)
-            val eraseUnlisted = inputData.getBoolean(EXTRA_ERASE_UNLISTED, false)
-
-            val feedIds = inputData.getLongArray(EXTRA_FEED_IDS) ?: longArrayOf()
-            val feeds = if (feedIds.isNotEmpty()) realm.query(Feed::class).query("id IN $0", feedIds.toList()).find() else listOf()
-            Logd(TAG, "doWork feeds: ${feeds.size}")
-            if (feedIds.isNotEmpty() && feeds.isEmpty()) {
-                Loge(TAG, "feeds not found for feedIds ${feedIds.joinToString()}. update abort")
-                if (isPeriodic) rescheduleUpdateTaskOnce()
-                return Result.success()
-            }
-            val updater = gearbox.feedUpdater(feeds, fullUpdate, removeUnlisted = eraseUnlisted)
-            if (!updater.prepare()) {
-                Loge(TAG, "updater prepare failed")
-                if (isPeriodic) rescheduleUpdateTaskOnce()
-                return Result.success()
-            }
-            if (!networkMonitor.isConnected) {
-                Loge(TAG, "Refresh not performed: network unavailable, will retry")
-                return Result.retry()
-            }
-            if (updater.doWork()) {
-                Logd(TAG, "end of doWork, isPeriodic: $isPeriodic")
-                if (isPeriodic) rescheduleUpdateTaskOnce()
-                return Result.success()
-            } else return Result.success()
-        } catch (e: Throwable) {
-            Loge(TAG, "Some errors occurred during refresh, will retry: ${e.message}")
-            if (isPeriodic) {
-                if (attemptCount >= MAX_BACKOFF_ATTEMPTS) {
-                    upsertBlk(appAttribs) { it.feedIdsToRefresh.clear() }
-                    rescheduleUpdateTaskOnce()
-                    return Result.success()
-                }
-                return Result.retry()   // to handle system interruption
-            }
-            return Result.retry()
-        }
-    }
-
-    override suspend fun getForegroundInfo(): ForegroundInfo {
-        return withContext(Dispatchers.Main) {
-            ForegroundInfo(R.id.notification_updating_feeds, createNotification(null),
-                if (Build.VERSION.SDK_INT >= 29) FOREGROUND_SERVICE_TYPE_DATA_SYNC else 0 )
-        }
-    }
-}
-
 object FeedUpdateManager {
     private val TAG: String = FeedUpdateManager::class.simpleName ?: "Anonymous"
     val feedUpdateOnceWorkId = getAppContext().packageName + "FeedUpdateOnceWorker"
@@ -143,7 +68,7 @@ object FeedUpdateManager {
     var nextRefreshTime by mutableStateOf("")
 
     private fun oneRequest(initialDelay: Long): OneTimeWorkRequest {
-        return OneTimeWorkRequest.Builder(FeedUpdateWorkerBase::class.java)
+        return OneTimeWorkRequest.Builder(FeedUpdateWorker::class.java)
             .setInputData(workDataOf(KEY_IS_PERIODIC to true))
             .setConstraints(Builder()
 //                .setRequiredNetworkType(if (mobileAllowFeedRefresh) NetworkType.CONNECTED else NetworkType.UNMETERED)
@@ -167,8 +92,8 @@ object FeedUpdateManager {
     }
 
     fun scheduleUpdateTaskOnce(replace: Boolean, force: Boolean = false) {
-        Logd(TAG, "scheduleUpdateTaskOnce intervalInMillis: $intervalInMillis")
         val context = getAppContext()
+        Logd(TAG, "scheduleUpdateTaskOnce intervalInMillis: $intervalInMillis")
         var doItNow = true
         if (BuildConfig.DEBUG) {
             val workInfos = WorkManager.getInstance(context).getWorkInfosForUniqueWork(feedUpdateOnceWorkId).get()
@@ -192,22 +117,6 @@ object FeedUpdateManager {
         }
     }
 
-    internal fun rescheduleUpdateTaskOnce() {
-        val context = getAppContext()
-        Logd(TAG, "rescheduleUpdateTaskOnce intervalInMillis: $intervalInMillis")
-        if (BuildConfig.DEBUG) {
-            val workInfos = WorkManager.getInstance(context).getWorkInfosForUniqueWork(feedUpdateOnceWorkId).get()
-            for (wi in workInfos) Logd(TAG, "workInfos: ${wi.id} ${wi.initialDelayMillis} ${wi.runAttemptCount} ${wi.state}")
-        }
-        if (intervalInMillis == 0L) WorkManager.getInstance(context).cancelUniqueWork(feedUpdateOnceWorkId)
-        else {
-            val initialDelay = getInitialDelay()
-            Logd(TAG, "initialDelay: $initialDelay")
-            val oneTimeRequest = oneRequest(initialDelay)
-            WorkManager.getInstance(context).enqueueUniqueWork(feedUpdateOnceWorkId, ExistingWorkPolicy.APPEND_OR_REPLACE, oneTimeRequest)
-        }
-    }
-
     fun checkAndScheduleUpdateTaskOnce(replace: Boolean, force: Boolean = false) {
         val context = getAppContext()
         when {
@@ -222,19 +131,19 @@ object FeedUpdateManager {
                     confirmRes = R.string.confirm_mobile_streaming_button_once,
                     cancelRes = R.string.no,
                     neutralRes = R.string.confirm_mobile_streaming_button_always,
-                    onConfirm = { scheduleUpdateTaskOnce(replace = replace, force = force) },
+                    onConfirm = { scheduleUpdateTaskOnce(replace, force) },
                     onNeutral = {
                         mobileAllowFeedRefresh = true
-                        scheduleUpdateTaskOnce(replace = replace, force = force)
+                        scheduleUpdateTaskOnce(replace, force)
                     })
             }
-            else -> scheduleUpdateTaskOnce(replace = replace, force = force)
+            else -> scheduleUpdateTaskOnce(replace, force)
         }
     }
 
     fun runOnce(feeds: List<Feed> = listOf(), nextPage: Boolean = false, fullUpdate: Boolean = false, removeUnlisted: Boolean = false) {
         Logd(TAG, "runOnce feeds: ${feeds.size}")
-        val workRequest: OneTimeWorkRequest.Builder = OneTimeWorkRequest.Builder(FeedUpdateWorkerBase::class.java)
+        val workRequest: OneTimeWorkRequest.Builder = OneTimeWorkRequest.Builder(FeedUpdateWorker::class.java)
             .setInitialDelay(0L, TimeUnit.MILLISECONDS)
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .addTag(WORK_TAG_FEED_UPDATE)
@@ -271,6 +180,92 @@ object FeedUpdateManager {
                         mobileAllowFeedRefresh = true
                         runOnce(feeds, fullUpdate = fullUpdate, removeUnlisted = removeUnlisted)
                     })
+            }
+        }
+    }
+
+    class FeedUpdateWorker(context: Context, private val params: WorkerParameters) : CoroutineWorker(context, params) {
+        private val TAG = "FeedUpdateWorkerBase"
+        private val MAX_BACKOFF_ATTEMPTS = 3
+
+        @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+        override suspend fun doWork(): Result {
+            setForegroundAsync(getForegroundInfo())
+            ClientConfig.initialize()
+
+            fun rescheduleUpdateTaskOnce() {
+                val context = getAppContext()
+                Logd(FeedUpdateManager.TAG, "rescheduleUpdateTaskOnce intervalInMillis: $intervalInMillis")
+                if (BuildConfig.DEBUG) {
+                    val workInfos = WorkManager.getInstance(context).getWorkInfosForUniqueWork(feedUpdateOnceWorkId).get()
+                    for (wi in workInfos) Logd(FeedUpdateManager.TAG, "workInfos: ${wi.id} ${wi.initialDelayMillis} ${wi.runAttemptCount} ${wi.state}")
+                }
+                if (intervalInMillis == 0L) WorkManager.getInstance(context).cancelUniqueWork(feedUpdateOnceWorkId)
+                else {
+                    val initialDelay = getInitialDelay()
+                    Logd(FeedUpdateManager.TAG, "initialDelay: $initialDelay")
+                    val oneTimeRequest = oneRequest(initialDelay)
+                    WorkManager.getInstance(context).enqueueUniqueWork(feedUpdateOnceWorkId, ExistingWorkPolicy.APPEND_OR_REPLACE, oneTimeRequest)
+                }
+            }
+
+            val attemptCount = params.runAttemptCount
+            if (attemptCount > 0) Logt(TAG, "Running backoff refresh due to prior errors")
+
+            val isPeriodic = inputData.getBoolean(KEY_IS_PERIODIC, false)
+            if (isPeriodic) upsertBlk(appAttribs) { it.prefLastFullUpdateTime = nowInMillis() }
+            when {
+                !networkMonitor.isConnected -> {
+                    EventFlow.postEvent(FlowEvent.MessageEvent(applicationContext.getString(R.string.download_error_no_connection)))
+                    return if (isPeriodic) Result.retry() else Result.success()
+                }
+                else -> {}
+            }
+            try {
+                val fullUpdate = inputData.getBoolean(EXTRA_FULL_UPDATE, false)
+                val eraseUnlisted = inputData.getBoolean(EXTRA_ERASE_UNLISTED, false)
+
+                val feedIds = inputData.getLongArray(EXTRA_FEED_IDS) ?: longArrayOf()
+                val feeds = if (feedIds.isNotEmpty()) realm.query(Feed::class).query("id IN $0", feedIds.toList()).find() else listOf()
+                Logd(TAG, "doWork feeds: ${feeds.size}")
+                if (feedIds.isNotEmpty() && feeds.isEmpty()) {
+                    Loge(TAG, "feeds not found for feedIds ${feedIds.joinToString()}. update abort")
+                    if (isPeriodic) rescheduleUpdateTaskOnce()
+                    return Result.success()
+                }
+                val updater = gearbox.feedUpdater(feeds, fullUpdate, removeUnlisted = eraseUnlisted)
+                if (!updater.prepare()) {
+                    Loge(TAG, "updater prepare failed")
+                    if (isPeriodic) rescheduleUpdateTaskOnce()
+                    return Result.success()
+                }
+                if (!networkMonitor.isConnected) {
+                    Loge(TAG, "Refresh not performed: network unavailable, will retry")
+                    return Result.retry()
+                }
+                if (updater.doWork()) {
+                    Logd(TAG, "end of doWork, isPeriodic: $isPeriodic")
+                    if (isPeriodic) rescheduleUpdateTaskOnce()
+                    return Result.success()
+                } else return Result.success()
+            } catch (e: Throwable) {
+                Loge(TAG, "Some errors occurred during refresh, will retry: ${e.message}")
+                if (isPeriodic) {
+                    if (attemptCount >= MAX_BACKOFF_ATTEMPTS) {
+                        upsertBlk(appAttribs) { it.feedIdsToRefresh.clear() }
+                        rescheduleUpdateTaskOnce()
+                        return Result.success()
+                    }
+                    return Result.retry()   // to handle system interruption
+                }
+                return Result.retry()
+            }
+        }
+
+        override suspend fun getForegroundInfo(): ForegroundInfo {
+            return withContext(Dispatchers.Main) {
+                ForegroundInfo(R.id.notification_updating_feeds, createNotification(null),
+                    if (Build.VERSION.SDK_INT >= 29) FOREGROUND_SERVICE_TYPE_DATA_SYNC else 0 )
             }
         }
     }

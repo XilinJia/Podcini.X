@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 285
-        versionName = "10.14.10"
+        versionCode = 286
+        versionName = "10.14.11"
 
         ndkVersion = "29.0.14206865"
 
@@ -175,7 +175,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.constraintlayout:constraintlayout-compose:1.1.1")
 
-    implementation("androidx.annotation:annotation:1.9.1")
+    implementation("androidx.annotation:annotation:1.10.0")
     implementation("androidx.core:core-ktx:1.18.0")
     implementation("androidx.documentfile:documentfile:1.1.0")
     implementation("androidx.core:core-splashscreen:1.2.0")
@@ -184,8 +184,8 @@ dependencies {
     implementation("androidx.work:work-runtime:2.11.2")
 
     implementation("androidx.lifecycle:lifecycle-viewmodel-navigation3:2.10.0")
-    implementation("androidx.navigation3:navigation3-runtime:1.0.1")
-    implementation("androidx.navigation3:navigation3-ui:1.0.1")
+    implementation("androidx.navigation3:navigation3-runtime:1.1.0")
+    implementation("androidx.navigation3:navigation3-ui:1.1.0")
 
 
     implementation("androidx.media3:media3-exoplayer:1.10.0")

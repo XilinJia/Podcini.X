@@ -836,10 +836,9 @@ fun Feed.toDTO() = FeedDTO(
     commentTime = this.commentTime
 )
 
-fun FeedDTO.toRealm() = Feed().apply {
+fun FeedDTO.toRealm(): Feed = Feed().apply {
     id = this@toRealm.id
     val feed = getFeed(id) ?: this
-
     return upsertBlk(feed) {
 //        it.volumeId = this@toRealm.volumeId
         if (it.fileUrl == null) it.fileUrl = this@toRealm.fileUrl

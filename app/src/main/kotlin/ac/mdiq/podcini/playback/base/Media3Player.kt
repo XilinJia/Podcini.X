@@ -32,6 +32,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logpe
 import ac.mdiq.podcini.utils.Logps
 import ac.mdiq.podcini.utils.Logpt
+import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.timeIt
 import android.app.UiModeManager
 import android.content.Context
@@ -75,6 +76,9 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.SeekParameters
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
@@ -220,7 +224,7 @@ class Media3Player : MediaPlayerBase() {
 //                    }
                 }
                 override fun onPositionDiscontinuity(oldPosition: PositionInfo, newPosition: PositionInfo, reason: @DiscontinuityReason Int) {
-                    Logd(TAG, "onPositionDiscontinuity ${oldPosition.positionMs} ${newPosition.positionMs} $reason")
+                    Logt(TAG, "onPositionDiscontinuity ${oldPosition.positionMs} ${newPosition.positionMs} $reason")
 //                    if (reason == DISCONTINUITY_REASON_SEEK) audioSeekCompleteListener?.invoke()
                 }
                 override fun onAudioSessionIdChanged(audioSessionId: Int) {
@@ -327,7 +331,7 @@ class Media3Player : MediaPlayerBase() {
         loadControl.setBufferDurationsMs(90_000, 300_000, 2_000, 10_000)
 
         val audioOffloadPreferences = AudioOffloadPreferences.Builder()
-            .setAudioOffloadMode(if (offloadEnabled) AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED else AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED) // Add additional options as needed
+            .setAudioOffloadMode(if (offloadEnabled) AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED else AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED)
 //            .setIsGaplessSupportRequired(true)
 //            .setIsSpeedChangeSupportRequired(true)
             .build()
@@ -337,17 +341,45 @@ class Media3Player : MediaPlayerBase() {
 
         // Initialize ExoPlayer
         trackSelector = DefaultTrackSelector(context)
-        val defaultRenderersFactory = DefaultRenderersFactory(context)
-        exoPlayer = ExoPlayer.Builder(context, defaultRenderersFactory)
+
+//        val audioSink = DefaultAudioSink.Builder(context).setAudioProcessorChain(DefaultAudioSink.DefaultAudioProcessorChain()).setEnableFloatOutput(false).build()
+////        val defaultRenderersFactory = DefaultRenderersFactory(context)
+//        val renderersFactory = object : DefaultRenderersFactory(context) {
+//            override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink = audioSink
+//        }
+//        val extractorsFactory = DefaultExtractorsFactory().setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING)
+//        val mediaSourceFactory = DefaultMediaSourceFactory(context, extractorsFactory)
+//        exoPlayer = ExoPlayer.Builder(context, renderersFactory)
+//            .setMediaSourceFactory(mediaSourceFactory)
+//            .setLoadControl(loadControl.build())
+//            .setTrackSelector(trackSelector!!)
+//            .setSeekBackIncrementMs(rewindSecs * 1000L)
+//            .setSeekForwardIncrementMs(fastForwardSecs * 1000L)
+//            .build()
+//        exoPlayer!!.setSeekParameters(SeekParameters.EXACT)
+
+
+        val renderersFactory = object : DefaultRenderersFactory(context) {
+            init {
+                setEnableAudioTrackPlaybackParams(true)
+            }
+            override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink {
+                return DefaultAudioSink.Builder(context).setEnableFloatOutput(true).setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams).build()
+            }
+        }
+        val extractorsFactory = DefaultExtractorsFactory().setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING)
+        val mediaSourceFactory = DefaultMediaSourceFactory(context, extractorsFactory)
+        exoPlayer = ExoPlayer.Builder(context, renderersFactory)
+            .setMediaSourceFactory(mediaSourceFactory)
             .setLoadControl(loadControl.build())
             .setTrackSelector(trackSelector!!)
             .setSeekBackIncrementMs(rewindSecs * 1000L)
             .setSeekForwardIncrementMs(fastForwardSecs * 1000L)
             .build()
+        exoPlayer?.setSeekParameters(SeekParameters.DEFAULT)
 
-        exoPlayer!!.setSeekParameters(SeekParameters.CLOSEST_SYNC)
-        exoPlayer!!.trackSelectionParameters = exoPlayer!!.trackSelectionParameters
-            .buildUpon()
+
+        exoPlayer?.trackSelectionParameters = exoPlayer!!.trackSelectionParameters.buildUpon()
             .setAudioOffloadPreferences(audioOffloadPreferences)
             .build()
 

@@ -70,7 +70,7 @@ open class ID3Reader(private val source: CountingSource) {
         val tagContentStartPosition = position
         while (position < tagContentStartPosition + tagHeader!!.size) {
             val frameHeader = readFrameHeader() ?: break
-            Logd(TAG, "readSource frameHeader.id: ${frameHeader.id}")
+//            Logd(TAG, "readSource frameHeader.id: ${frameHeader.id}")
             if (!isValidFrameId(frameHeader.id)) {
                 Logd(TAG, "Invalid frame id: ${frameHeader.id}, skipping 1 byte to resync")
                 skipBytes(1)

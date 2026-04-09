@@ -25,7 +25,6 @@ import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.fullDateTimeString
@@ -136,7 +135,6 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
     }
 
     val userDone = CompletableDeferred<Unit>()
-
     if (localItems.isNotEmpty()) {
         withContext(Dispatchers.Main) {
             commonConfirm = CommonConfirmAttrib(
@@ -155,7 +153,6 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
         }
         userDone.await()
     }
-
     if (repeatItems.isNotEmpty()) {
         withContext(Dispatchers.Main) {
             commonConfirm = CommonConfirmAttrib(
@@ -205,7 +202,7 @@ suspend fun deleteMedia(episode: Episode): Episode {
             }
             EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode))
         } catch (e: Throwable) { Logs(TAG, e, "deleteMedia failed") }
-    } else Loge(TAG, "Failed deleting media for ${episode.title}: fileUrl is null or empty: ")
+    }
 
     if (episode.id == curState.curMediaId) {
         savePlayerStatus(null)
@@ -261,22 +258,6 @@ fun checkAndMarkDuplicates(episode: Episode): Episode {
 }
 
 fun shouldPreserve(stat: Int): Boolean = stat in listOf(EpisodeState.SOON.code, EpisodeState.LATER.code, EpisodeState.AGAIN.code, EpisodeState.FOREVER.code)
-
-suspend fun setPlayState(state: EpisodeState, episodes: List<Episode>, resetMediaPosition: Boolean) {
-    Logd(TAG, "setPlayState called played: $state resetMediaPosition: $resetMediaPosition")
-    realm.write {
-        for (e in episodes) {
-            val e_ = findLatest(e)
-            e_?.setPlayState(state, resetMediaPosition)
-            // TODO: if e_ is null, it's deleted, the following is not necessary
-//            else {
-//                Logd(TAG, "setPlayState unmanaged episode: ${e.title}")
-//                e.setPlayState(state, resetMediaPosition)
-//                copyToRealm(e)
-//            }
-        }
-    }
-}
 
 fun buildListInfo(episodes: List<Episode>, total: Int = 0): String {
     Logd(TAG, "buildListInfo")

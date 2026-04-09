@@ -45,7 +45,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlin.math.max
 
-private const val smartMarkAsPlayedPercent: Int = 95
+private const val smartMarkAsPlayedPercent: Float = 0.95f
 
 @Stable
 class Episode : RealmObject {
@@ -306,7 +306,7 @@ class Episode : RealmObject {
 
     fun isPlayed(): Boolean = playState >= EpisodeState.SKIPPED.code
 
-    fun hasAlmostEnded(): Boolean = duration > 0 && position >= duration * smartMarkAsPlayedPercent * 0.05
+    fun hasAlmostEnded(): Boolean = duration > 0 && position >= duration * smartMarkAsPlayedPercent
 
     /**
      * Updates this item's description property if the given argument is longer than the already stored description
@@ -759,7 +759,7 @@ fun Episode.toBasicDTO() = EpisodeDTO(
     commentTime = this.commentTime,
 )
 
-fun EpisodeDTO.toRealm() = Episode().apply {
+fun EpisodeDTO.toRealm(): Episode = Episode().apply {
     id = this@toRealm.id
     val e = episodeById(id) ?: this
 

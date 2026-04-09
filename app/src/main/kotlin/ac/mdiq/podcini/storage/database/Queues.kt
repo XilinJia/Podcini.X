@@ -155,7 +155,7 @@ suspend fun addToQueue(episodes: List<Episode>, queue: PlayQueue) {
         }
     }
     val toSetStat = episodes.filter { it.playState < EpisodeState.QUEUE.code }
-    if (toSetStat.isNotEmpty()) setPlayState(EpisodeState.QUEUE, toSetStat, false)
+    if (toSetStat.isNotEmpty()) realm.write { for (e in toSetStat) findLatest(e)?.setPlayState(EpisodeState.QUEUE, false) }
     if (queue.autoSort) queue.sort()
 }
 
@@ -209,7 +209,7 @@ suspend fun smartRemoveFromQueues(item_: Episode, queues_: List<PlayQueue> = lis
     }
     if (item.playState < EpisodeState.SKIPPED.code && !shouldPreserve(item.playState)) {
         val stat = if (item.lastPlayedTime > 0L) EpisodeState.SKIPPED else EpisodeState.PASSED
-        setPlayState(stat, listOf(item), resetMediaPosition = false)
+        item = upsert(item) { it.setPlayState(stat, resetPosition = false) }
     }
     val queues = queues_.ifEmpty { queuesLive }
     for (q in queues) {
@@ -298,7 +298,7 @@ suspend fun removeFromAllQueuesQuiet(episodeIds: List<Long>, updateState: Boolea
             }
             if (updateState) {
                 val eList = realm.query(Episode::class).query("id IN $0 AND playState < ${EpisodeState.SKIPPED.code}", idsInQueuesToRemove).find().filter { !shouldPreserve(it.playState) }
-                if (eList.isNotEmpty()) setPlayState(EpisodeState.SKIPPED, eList, false)
+                if (eList.isNotEmpty()) realm.write { for (e in eList) findLatest(e)?.setPlayState(EpisodeState.SKIPPED, false) }
             }
             val qNew = upsert(q) {
                 it.idsBinList.removeAll(idsInQueuesToRemove)

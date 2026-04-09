@@ -17,7 +17,6 @@ import ac.mdiq.podcini.storage.database.queuesFlow
 import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.setPlayState
 import ac.mdiq.podcini.storage.database.shouldPreserve
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -394,7 +393,7 @@ fun QueuesScreen(id: Long = -1L) {
                     it.update()
                 }
                 val toSetStat = episodes.filter { it.playState < EpisodeState.SKIPPED.code && !shouldPreserve(it.playState) }
-                if (toSetStat.isNotEmpty()) setPlayState(EpisodeState.SKIPPED, toSetStat, false)
+                if (toSetStat.isNotEmpty()) realm.write { for (e in toSetStat) findLatest(e)?.setPlayState(EpisodeState.SKIPPED, false) }
                 if (vm.curQueue.id == actQueue.id) EventFlow.postEvent(FlowEvent.QueueEvent.cleared())
                 vm.curQueue.checkAndFill()
                 realm.writeBlocking {

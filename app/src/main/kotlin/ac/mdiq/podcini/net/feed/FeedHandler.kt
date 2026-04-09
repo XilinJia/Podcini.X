@@ -213,7 +213,7 @@ object FeedHandler {
 //            Logd(TAG, "startElement: localName: $localName qualifiedName: $qualifiedName uri: $uri")
             val element = namespace.handleElementStart(localName, state, attributes)
             state.tagstack.addLast(element)
-            Logd(TAG, "startElement ${state.items.size} limitEpisodesCount: ${state.feed.limitEpisodesCount}")
+//            Logd(TAG, "startElement ${state.items.size} limitEpisodesCount: ${state.feed.limitEpisodesCount}")
             if (state.feed.limitEpisodesCount > 0 && state.items.size > 1.2*state.feed.limitEpisodesCount) {
                 state.feed.episodes.clear()
                 state.feed.episodes.addAll(state.items)

@@ -170,7 +170,10 @@ object InTheatre {
                         ))
                 }
             }
-            else -> curEpisode = null
+            else -> {
+                curEpisode = null
+                savePlayerStatus(null)
+            }
         }
     }
 
