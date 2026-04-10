@@ -755,23 +755,21 @@ fun QueuesScreen(id: Long = -1L) {
                         }
                     } else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                         LaunchedEffect(Unit) {
-                            snapshotFlow { lazyListState.isScrollInProgress }
-                                .collect { isScrolling ->
-                                    if (!isScrolling) {
-                                        val index = lazyListState.firstVisibleItemIndex
-                                        Logd(TAG, "Scroll settled at: $index")
-                                        curQueuePosition = index
-                                    }
+                            snapshotFlow { lazyListState.isScrollInProgress }.collect { isScrolling ->
+                                if (!isScrolling) {
+                                    val index = lazyListState.firstVisibleItemIndex
+                                    Logd(TAG, "Scroll settled at: $index")
+                                    curQueuePosition = index
                                 }
+                            }
                         }
-                        var scrollToOnStart by remember(vm.queuesMode, vm.curQueue, episodes.size, curEpisode?.id, vm.cameBack) { mutableIntStateOf(
-                            when {
+                        var scrollToOnStart by remember(vm.queuesMode, vm.curQueue, episodes.size, curEpisode?.id, vm.cameBack) {
+                            mutableIntStateOf(when {
                                 vm.queuesMode != QueuesScreenMode.Queue -> -1
                                 vm.cameBack -> -1
                                 vm.curQueue.id == actQueue.id -> episodes.indexOfFirst { it.id == curEpisode?.id }
                                 else -> curQueuePosition
-                            }
-                        ) }
+                            }) }
                         Logd(TAG, "Scaffold scrollToOnStart: cameBack: ${vm.cameBack} $scrollToOnStart $curQueuePosition")
                         EpisodeLazyColumn(episodes,  curQueue = vm.curQueue, swipeActions = swipeActions,
                             lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
@@ -792,12 +790,9 @@ fun QueuesScreen(id: Long = -1L) {
                                     onNeutral = { runOnceOrAsk(feeds = vm.feedsAssociated)  }
                                 )
                             },
-                            actionButtonCB = { e, type ->
-                                if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM))
-                                    if (actQueue.id != vm.curQueue.id) {
-                                        val q = queuesLive.find { it.id == vm.curQueue.id }
-                                        if (q != null) actQueue = q
-                                    }
+                            actionButtonCB = { _, type ->
+                                if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM) && actQueue.id != vm.curQueue.id)
+                                    queuesLive.find { it.id == vm.curQueue.id }?.let { actQueue = it }
                             }
                         )
                     }
