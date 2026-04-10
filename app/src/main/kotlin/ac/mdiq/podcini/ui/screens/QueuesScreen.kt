@@ -773,7 +773,7 @@ fun QueuesScreen(id: Long = -1L) {
                             }
                         ) }
                         Logd(TAG, "Scaffold scrollToOnStart: cameBack: ${vm.cameBack} $scrollToOnStart $curQueuePosition")
-                        EpisodeLazyColumn(episodes, swipeActions = swipeActions,
+                        EpisodeLazyColumn(episodes,  curQueue = vm.curQueue, swipeActions = swipeActions,
                             lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
                             refreshCB = {
                                 commonConfirm = CommonConfirmAttrib(
