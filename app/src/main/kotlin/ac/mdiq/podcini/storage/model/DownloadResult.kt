@@ -89,17 +89,20 @@ class DownloadResult : RealmObject {
 
         var idCounter: Long = -1
 
-        fun getFeedDownloadLog(feedId: Long): List<DownloadResult> {
+        fun getFeedDownloadLogs(feedId: Long): List<DownloadResult> {
             Logd(TAG, "getFeedDownloadLog() called with: $feedId")
             val dlog = realm.query(DownloadResult::class).query("feedfileId == $0", feedId).find().toMutableList()
             dlog.sortWith { lhs, rhs ->  (rhs.completionTime - lhs.completionTime).toInt() }
             return realm.copyFromRealm(dlog)
         }
 
-        suspend fun addDownloadStatus(status: DownloadResult) {
-            Logd(TAG, "addDownloadStatus called")
+        suspend fun logDownloadResult(status: DownloadResult) {
             if (status.id == 0L) status.setId()
             upsert(status) {}
+        }
+
+        suspend fun LogFor(feed: Feed, success: Boolean, message: String) {
+            logDownloadResult(DownloadResult(feed, null, success, message))
         }
     }
 }

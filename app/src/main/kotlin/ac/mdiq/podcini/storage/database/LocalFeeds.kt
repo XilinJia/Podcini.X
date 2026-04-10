@@ -5,8 +5,8 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.storage.model.DownloadResult
-import ac.mdiq.podcini.storage.model.DownloadResult.Companion.addDownloadStatus
-import ac.mdiq.podcini.storage.model.DownloadResult.Companion.getFeedDownloadLog
+import ac.mdiq.podcini.storage.model.DownloadResult.Companion.logDownloadResult
+import ac.mdiq.podcini.storage.model.DownloadResult.Companion.getFeedDownloadLogs
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Volume
@@ -243,7 +243,7 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
     updateFeedFull(feed, removeUnlistedItems = true)
 
     fun mustReportDownloadSuccessful(feed: Feed): Boolean {
-        val downloadResults = getFeedDownloadLog(feed.id).toMutableList()
+        val downloadResults = getFeedDownloadLogs(feed.id).toMutableList()
         if (downloadResults.isEmpty()) return true
         downloadResults.sortWith { ds1: DownloadResult, ds2: DownloadResult -> (ds1.completionTime - ds2.completionTime).toInt() }
         val lastDownloadResult = downloadResults[downloadResults.size - 1]
@@ -252,7 +252,7 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
 
     if (mustReportDownloadSuccessful(feed)) {
         val status = DownloadResult(feed, DownloadError.SUCCESS, true, "")
-        addDownloadStatus(status)
+        logDownloadResult(status)
         upsert(feed) { it.lastUpdateFailed = false }
     }
 }

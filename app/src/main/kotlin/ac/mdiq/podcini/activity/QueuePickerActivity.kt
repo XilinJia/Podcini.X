@@ -55,29 +55,30 @@ class QueuePickerActivity : ComponentActivity() {
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                             var curIndex by remember { mutableIntStateOf(-1) }
                             for (index in queuesLive.indices) {
-                                FilterChip(onClick = {
-                                    curIndex = index
-                                    val queue = queuesLive[index]
-                                    lifecycleScope.launch(Dispatchers.IO) {
-                                        val episodes = queue.episodesSorted.take(40).map { it.toWidget() }
-                                        val json = Json.encodeToString(episodes)
-                                        val manager = GlanceAppWidgetManager(this@QueuePickerActivity)
-                                        val glanceIds = manager.getGlanceIds(PodciniWidget::class.java)
-                                        glanceIds.forEach { glanceId ->
-                                            updateAppWidgetState(this@QueuePickerActivity, PreferencesGlanceStateDefinition, glanceId) { prefs ->
-                                                prefs.toMutablePreferences().apply {
-                                                    this[longPreferencesKey("queue_id")] = queue.id
-                                                    this[stringPreferencesKey("queue_name")] = queue.name
-                                                    this[intPreferencesKey("queue_size")] = queue.size()
-                                                    this[stringPreferencesKey("episodes")] = json
-                                                    this[stringPreferencesKey("update_type")] = "queue"
+                                FilterChip(label = { Text(spinnerTexts[index]) }, selected = curIndex == index, border = filterChipBorder(curIndex == index),
+                                    onClick = {
+                                        curIndex = index
+                                        val queue = queuesLive[index]
+                                        lifecycleScope.launch(Dispatchers.IO) {
+                                            val episodes = queue.episodesSorted.take(40).map { it.toWidget() }
+                                            val json = Json.encodeToString(episodes)
+                                            val manager = GlanceAppWidgetManager(this@QueuePickerActivity)
+                                            val glanceIds = manager.getGlanceIds(PodciniWidget::class.java)
+                                            glanceIds.forEach { glanceId ->
+                                                updateAppWidgetState(this@QueuePickerActivity, PreferencesGlanceStateDefinition, glanceId) { prefs ->
+                                                    prefs.toMutablePreferences().apply {
+                                                        this[longPreferencesKey("queue_id")] = queue.id
+                                                        this[stringPreferencesKey("queue_name")] = queue.name
+                                                        this[intPreferencesKey("queue_size")] = queue.size()
+                                                        this[stringPreferencesKey("episodes")] = json
+                                                        this[stringPreferencesKey("update_type")] = "queue"
+                                                    }
                                                 }
                                             }
+                                            PodciniWidget().updateAll(this@QueuePickerActivity)
+                                            finish()
                                         }
-                                        PodciniWidget().updateAll(this@QueuePickerActivity)
-                                        finish()
-                                    }
-                                }, label = { Text(spinnerTexts[index]) }, selected = curIndex == index, border = filterChipBorder(curIndex == index))
+                                    })
                             }
                         }
                     }

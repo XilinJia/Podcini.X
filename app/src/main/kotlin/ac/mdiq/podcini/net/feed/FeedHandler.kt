@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.net.feed
 
 import ac.mdiq.podcini.storage.model.Chapter
+import ac.mdiq.podcini.storage.model.DownloadResult.Companion.LogFor
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.FeedFunding
@@ -22,6 +23,7 @@ import nl.adaptivity.xmlutil.xmlStreaming
 import org.xml.sax.Attributes
 import org.xml.sax.SAXException
 import org.xml.sax.helpers.DefaultHandler
+import kotlin.collections.set
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
@@ -75,8 +77,7 @@ object FeedHandler {
                                     ATOM_ROOT -> {
                                         feed.type = Feed.FeedType.ATOM1.name
                                         Logd(TAG, "getType Recognized type Atom")
-                                        val strLang = reader.getAttributeValue("http://www.w3.org/XML/1998/namespace", "lang")
-                                        if (strLang != null) feed.langSet.add(strLang)
+                                        reader.getAttributeValue("http://www.w3.org/XML/1998/namespace", "lang")?.let { feed.langSet.add(it) }
                                         Type.ATOM
                                     }
                                     RSS_ROOT -> {
@@ -123,7 +124,9 @@ object FeedHandler {
             } catch (e: ParsingLimitReachedException) {
                 Logt(TAG, "parseFeed Feed episodes limit is reached, terminate early: ${feed.title}")
                 return FeedHandlerResult(handler!!.state.feed, handler.state.alternateUrls, handler.state.redirectUrl ?: "")
-            } catch (e: Exception) { Logs(TAG, e, "parseFeed Streaming Parse Failed on feed ${feed.title}")
+            } catch (e: Exception) {
+                Logs(TAG, e, "parseFeed Parse Failed on feed ${feed.title}")
+                LogFor(feed, false, "parseFeed Parse Failed ${e.message}")
             } finally { reader.close() }
         }
         return null
@@ -144,7 +147,7 @@ object FeedHandler {
      * Contains all relevant information to describe the current state of a SyndHandler.
      * Feed that the Handler is currently processing.
      */
-    class HandlerState( var feed: Feed) {
+    class HandlerState(var feed: Feed) {
         /**
          * Contains links to related feeds, e.g. feeds with enclosures in other formats. The key of the map is the
          * URL of the feed, the value is the title
@@ -192,10 +195,6 @@ object FeedHandler {
                 tagstack.addLast(top)
                 return third
             }
-
-        fun addAlternateFeedUrl(title: String, url: String) {
-            alternateUrls[url] = title
-        }
     }
 
     /** Superclass for all SAX Handlers which process Syndication formats  */
@@ -302,10 +301,6 @@ object FeedHandler {
             this.message = message
             type = Type.INVALID
         }
-
-        companion object {
-            private const val serialVersionUID = 9105878964928170669L
-        }
     }
 
     class FeedHandlerResult(
@@ -330,8 +325,7 @@ object FeedHandler {
             name: String,
             namespace: Namespace,
             private val type: String?) : SyndElement(name, namespace) {
-
-        private var content: String? = null
+        var content: String? = null
 
         val processedContent: String?
             /** Processes the content according to the type and returns it.  */
@@ -342,10 +336,6 @@ object FeedHandler {
                 // Handle as text by default
                 else -> content
             }
-
-        fun setContent(content: String?) {
-            this.content = content
-        }
 
         companion object {
             const val TYPE_HTML: String = "html"
@@ -399,7 +389,7 @@ object FeedHandler {
                                             // treat as podlove alternate feed
                                             var title: String? = attributes.getValue(LINK_TITLE)
                                             if (title.isNullOrEmpty()) title = href?:""
-                                            if (!href.isNullOrEmpty()) state.addAlternateFeedUrl(title, href)
+                                            if (!href.isNullOrEmpty()) state.alternateUrls[href] = title
                                         }
                                     }
                                 }
@@ -409,7 +399,7 @@ object FeedHandler {
                                         LINK_TYPE_ATOM, LINK_TYPE_RSS -> {
                                             var title: String? = attributes.getValue(LINK_TITLE)
                                             if (title.isNullOrEmpty()) title = href?:""
-                                            if (!href.isNullOrEmpty()) state.addAlternateFeedUrl(title, href)
+                                            if (!href.isNullOrEmpty()) state.alternateUrls[href] = title
                                         }
                                         //A Link such as to a directory such as iTunes
                                         LINK_TYPE_HTML, LINK_TYPE_XHTML -> {}
@@ -454,7 +444,7 @@ object FeedHandler {
 
                 if (top.matches(isText.toRegex())) {
                     textElement = topElement as AtomText
-                    textElement.setContent(content)
+                    textElement.content = content
                 }
                 when (top) {
                     ID -> {
@@ -609,11 +599,11 @@ object FeedHandler {
                     }
                 }
                 if (hours == 0L && minutes == 0L && seconds == 0L) throw NumberFormatException()
-                return toMillis(hours, minutes, seconds)
+                return (hours.hours.inWholeMilliseconds + minutes.minutes.inWholeMilliseconds + seconds.seconds.inWholeMilliseconds)
             } else {
                 val parts = durationStr.trim { it <= ' ' }.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
                 return when (parts.size) {
-                    1 -> toMillis(parts[0])
+                    1 -> parts[0].toDoubleOrNull()?.seconds?.inWholeMilliseconds ?: 0L
                     2 -> toMillis("0", parts[0], parts[1])
                     3 -> toMillis(parts[0], parts[1], parts[2])
                     else -> throw NumberFormatException()
@@ -621,21 +611,8 @@ object FeedHandler {
             }
         }
 
-        private fun toMillis(hours: Long, minutes: Long, seconds: Long): Long {
-            hours.hours.inWholeMilliseconds
-            return (hours.hours.inWholeMilliseconds + minutes.minutes.inWholeMilliseconds + seconds.seconds.inWholeMilliseconds)
-        }
-
         private fun toMillis(hours: String, minutes: String, seconds: String): Long {
             return (hours.toLong().hours.inWholeMilliseconds + minutes.toLong().minutes.inWholeMilliseconds + seconds.toLong().seconds.inWholeMilliseconds)
-        }
-
-        private fun toMillis(seconds: String): Long {
-            if (seconds.contains(".")) {
-                val value = seconds.toFloat()
-                val millis = value % 1
-                return value.toLong().seconds.inWholeMilliseconds + (millis * 1000).toLong()
-            } else return seconds.toLong().seconds.inWholeMilliseconds
         }
 
         companion object {
@@ -692,12 +669,10 @@ object FeedHandler {
                         state.currentItem != null && isDefault && url != null && validTypeMedia -> {
                             var size: Long = 0
                             val sizeStr: String? = attributes.getValue(SIZE)
-                            if (!sizeStr.isNullOrEmpty())
-                                try { size = sizeStr.toLong() } catch (e: NumberFormatException) { Logs(TAG, e, "Size \"$sizeStr\" could not be parsed.") }
+                            if (!sizeStr.isNullOrEmpty()) try { size = sizeStr.toLong() } catch (e: NumberFormatException) { Logs(TAG, e, "Size \"$sizeStr\" could not be parsed.") }
                             var durationMs = 0
                             val durationStr: String? = attributes.getValue(DURATION)
-                            if (!durationStr.isNullOrEmpty())
-                                try { durationMs = durationStr.toLong().seconds.inWholeMilliseconds.toInt() } catch (e: NumberFormatException) { Logs(TAG, e, "Duration string $durationStr could not be parsed") }
+                            if (!durationStr.isNullOrEmpty()) try { durationMs = durationStr.toLong().seconds.inWholeMilliseconds.toInt() } catch (e: NumberFormatException) { Logs(TAG, e, "Duration string $durationStr could not be parsed") }
 //                            Logd(TAG, "handleElementStart creating media: ${state.currentItem?.title} $url $size $mimeType durationMs: $durationMs")
                             state.currentItem?.fillMedia(url, size, mimeType)
                             if (durationMs > 0) state.currentItem?.duration = ( durationMs)

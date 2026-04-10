@@ -27,7 +27,8 @@ import ac.mdiq.podcini.storage.database.updateLocalFeed
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
-import ac.mdiq.podcini.storage.model.DownloadResult.Companion.addDownloadStatus
+import ac.mdiq.podcini.storage.model.DownloadResult.Companion.LogFor
+import ac.mdiq.podcini.storage.model.DownloadResult.Companion.logDownloadResult
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.storage.utils.toUF
@@ -70,7 +71,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
     protected suspend fun onFail(feed: Feed, details: String,  reason: DownloadError = DownloadError.ERROR_MISC) {
         Logd(TAG, details)
         upsert(feed) { it.lastUpdateFailed = true }
-        addDownloadStatus(DownloadResult(feed, reason, false, details))
+        logDownloadResult(DownloadResult(feed, reason, false, details))
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -200,7 +201,10 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
                 feedHandlerResult = FeedHandler.parseFeed(source, feedToParse)
                 Logd(TAG,  "refreshFeed Parsed ${feedToParse.title}")
                 if (feedToParse.title.isNullOrBlank()) throw InvalidFeedException("Feed has no title")
-                for (item in feedToParse.episodes) if (item.title.isNullOrBlank()) Loge(TAG, "episode ${item.id} title is empty in feed ${feedToParse.title} ")
+                for (item in feedToParse.episodes) if (item.title.isNullOrBlank()) {
+                    Loge(TAG, "episode ${item.id} title is empty in feed ${feedToParse.title} ")
+                    LogFor(feedToParse, true, "episode ${item.id} title is empty")
+                }
                 if (feedToParse.imageUrl.isNullOrEmpty()) feedToParse.imageUrl = Feed.PREFIX_GENERATIVE_COVER + feedToParse.downloadUrl
             } catch (e: SAXException) {
                 isSuccessful = false
@@ -247,7 +251,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             if (fullUpdate) updateFeedFull(feedHandlerResult!!.feed, removeUnlistedItems = removeUnlisted, downloadStatus = downloadStatus)
             else updateFeedSimple(feedHandlerResult!!.feed, downloadStatus)
 
-            addDownloadStatus(downloadStatus)
+            logDownloadResult(downloadStatus)
 
             if (!request.source.isNullOrEmpty()) {
                 fun updateFeedDownloadURL(original: String, updated: String) {
@@ -270,7 +274,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             }
             Logt(TAG, "refreshFeed: feed update failed: unsuccessful. cancelled? ${feed.title}")
             upsert(feed) { it.lastUpdateFailed = true }
-            addDownloadStatus(downloader.result)
+            logDownloadResult(downloader.result)
             return
         }
     }

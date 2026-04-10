@@ -18,7 +18,7 @@ import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.database.removeFromQueue
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
-import ac.mdiq.podcini.storage.model.DownloadResult.Companion.addDownloadStatus
+import ac.mdiq.podcini.storage.model.DownloadResult.Companion.logDownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.utils.quietlyDeleteFile
@@ -253,7 +253,7 @@ class EpisodesDownloadWorker(context: Context, params: WorkerParameters) : Corou
         try { downloader!!.download()
         } catch (e: Exception) {
             Logs(TAG, e, "failed performDownload exception on downloader!!.call()")
-            addDownloadStatus(downloader!!.result)
+            logDownloadResult(downloader!!.result)
             sendErrorNotification(request.title?:"")
             return Result.failure()
         }
@@ -263,7 +263,7 @@ class EpisodesDownloadWorker(context: Context, params: WorkerParameters) : Corou
 
         if (status.isSuccessful) {
             updateDB(request)
-            addDownloadStatus(downloader!!.result)
+            logDownloadResult(downloader!!.result)
             return Result.success()
         }
         if (status.reason == DownloadError.ERROR_HTTP_DATA_ERROR && status.reasonDetailed.toInt() == 416) {
@@ -274,7 +274,7 @@ class EpisodesDownloadWorker(context: Context, params: WorkerParameters) : Corou
             return retry3times()
         }
         Loge(TAG, "Episode download failed ${request.title} ${status.reason}")
-        addDownloadStatus(status)
+        logDownloadResult(status)
         if (status.reason in listOf(DownloadError.ERROR_FORBIDDEN, DownloadError.ERROR_NOT_FOUND, DownloadError.ERROR_UNAUTHORIZED, DownloadError.ERROR_IO_BLOCKED)) {
             Loge(TAG, "performDownload failure on various reasons ${status.reason?.name}")
             // Fail fast, these are probably unrecoverable

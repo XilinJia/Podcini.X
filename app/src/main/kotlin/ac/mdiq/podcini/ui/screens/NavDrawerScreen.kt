@@ -9,7 +9,7 @@ import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
-import ac.mdiq.podcini.storage.specs.EpisodeFilter.Companion.unfiltered
+import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.Logd
@@ -103,7 +103,7 @@ fun NavDrawerScreen() {
         if (drawerState.isOpen) withContext(Dispatchers.IO) {
             navMap[Screens.Queues.name]?.count = queuesLive.sumOf { it.size()}
             navMap[Screens.Library.name]?.count = feedCount
-            navMap[Screens.Facets.name]?.count = getEpisodesCount(unfiltered())
+            navMap[Screens.Facets.name]?.count = getEpisodesCount(EpisodeFilter(""))
             navMap[Screens.Logs.name]?.count = realm.query(ShareLog::class).count().find().toInt() +
                     realm.query(SubscriptionLog::class).count().find().toInt() +
                     realm.query(DownloadResult::class).count().find().toInt()

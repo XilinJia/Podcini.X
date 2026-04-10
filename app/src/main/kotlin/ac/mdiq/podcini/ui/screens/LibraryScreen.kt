@@ -1581,10 +1581,11 @@ fun LibraryScreen() {
                         Logd(TAG, "volumes: ${volumes.size}")
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                             for (index in volumes.indices) {
-                                FilterChip(onClick = {
-                                    saveSelectedFeeds { it: Feed -> it.volumeId = volumes[index].id }
-                                    onDismissRequest()
-                                }, label = { Text(volumes[index].name) }, selected = false )
+                                FilterChip(label = { Text(volumes[index].name) }, selected = false,
+                                    onClick = {
+                                        saveSelectedFeeds { it: Feed -> it.volumeId = volumes[index].id }
+                                        onDismissRequest()
+                                    })
                             }
                         }
                     }
@@ -1620,10 +1621,11 @@ fun LibraryScreen() {
                         Logd(TAG, "queues: ${queuesLive.size}")
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                             for (index in queuesLive.indices) {
-                                FilterChip(onClick = {
-                                    saveSelectedFeeds { it: Feed -> it.queueId = queuesLive[index].id }
-                                    onDismissRequest()
-                                }, label = { Text(queuesLive[index].name) }, selected = false )
+                                FilterChip(label = { Text(queuesLive[index].name) }, selected = false,
+                                    onClick = {
+                                        saveSelectedFeeds { it: Feed -> it.queueId = queuesLive[index].id }
+                                        onDismissRequest()
+                                    })
                             }
                         }
                     }

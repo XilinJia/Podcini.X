@@ -1,11 +1,9 @@
 package ac.mdiq.podcini.storage.specs
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.utils.Logd
-import java.io.Serializable
 
-class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Serializable {
+class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") {
     val propertySet = properties_.flatMap { it.split(",") }.map { it.trim() }.filter { it.isNotEmpty() }.toMutableSet()
 
     var durationFloor: Int = 0
@@ -293,8 +291,7 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
     }
 
     enum class EpisodesFilterGroup(val nameRes: Int, vararg values_: FilterProperties, val exclusive: Boolean = false) {
-        RATING(
-            R.string.rating_label,
+        RATING(R.string.rating_label,
             FilterProperties(R.string.unrated, States.unrated.name),
             FilterProperties(R.string.trash, States.trash.name),
             FilterProperties(R.string.bad, States.bad.name),
@@ -302,8 +299,7 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
             FilterProperties(R.string.good, States.good.name),
             FilterProperties(R.string.Super, States.superb.name),
         ),
-        PLAY_STATE(
-            R.string.playstate,
+        PLAY_STATE(R.string.playstate,
             FilterProperties(R.string.unspecified, States.UNSPECIFIED.name),
             FilterProperties(R.string.error_label, States.ERROR.name),
             FilterProperties(R.string.building, States.BUILDING.name),
@@ -320,6 +316,23 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
             FilterProperties(R.string.passed, States.PASSED.name),
             FilterProperties(R.string.ignored, States.IGNORED.name),
         ),
+        DURATION(R.string.duration,
+            FilterProperties(R.string.lower, States.lower.name),
+            FilterProperties(R.string.middle, States.middle.name),
+            FilterProperties(R.string.higher, States.higher.name)),
+
+        TITLE_TEXT(R.string.title,
+            FilterProperties(R.string.include, States.title_include.name),
+            FilterProperties(R.string.off, States.title_off.name),
+            FilterProperties(R.string.exclude, States.title_exclude.name), exclusive = true),
+
+        MEDIA_TYPE(R.string.media_type,
+            FilterProperties(R.string.unknown, States.unknown.name),
+            FilterProperties(R.string.audio, States.audio.name),
+            FilterProperties(R.string.video, States.video.name),
+            FilterProperties(R.string.audio_app, States.audio_app.name)
+        ),
+
         OPINION(R.string.has_comments, FilterProperties(R.string.yes, States.has_comments.name), FilterProperties(R.string.no, States.no_comments.name), exclusive = true),
 
         TAGGED(R.string.tagged, FilterProperties(R.string.yes, States.tagged.name), FilterProperties(R.string.no, States.untagged.name), exclusive = true),
@@ -333,23 +346,7 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
         //        MEDIA(R.string.has_media, ItemProperties(R.string.yes, States.has_media.name), ItemProperties(R.string.no, States.no_media.name)),
         DOWNLOADED(R.string.downloaded_label, FilterProperties(R.string.yes, States.downloaded.name), FilterProperties(R.string.no, States.not_downloaded.name), exclusive = true),
 
-        DURATION(R.string.duration,
-            FilterProperties(R.string.lower, States.lower.name),
-            FilterProperties(R.string.middle, States.middle.name),
-            FilterProperties(R.string.higher, States.higher.name)),
-
-        TITLE_TEXT(R.string.title,
-            FilterProperties(R.string.include, States.title_include.name),
-            FilterProperties(R.string.off, States.title_off.name),
-            FilterProperties(R.string.exclude, States.title_exclude.name), exclusive = true),
-
         CHAPTERS(R.string.has_chapters, FilterProperties(R.string.yes, States.has_chapters.name), FilterProperties(R.string.no, States.no_chapters.name), exclusive = true),
-        MEDIA_TYPE(R.string.media_type,
-            FilterProperties(R.string.unknown, States.unknown.name),
-            FilterProperties(R.string.audio, States.audio.name),
-            FilterProperties(R.string.video, States.video.name),
-            FilterProperties(R.string.audio_app, States.audio_app.name)
-        ),
         AUTO_DOWNLOADABLE(R.string.auto_downloadable_label, FilterProperties(R.string.yes, States.auto_downloadable.name), FilterProperties(R.string.no, States.not_auto_downloadable.name), exclusive = true);
 
 //        val properties: Array<FilterProperties> = arrayOf(*values_)
@@ -360,7 +357,5 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
 
     companion object {
         private const val TAG = "EpisodeFilter"
-
-        fun unfiltered(): EpisodeFilter = EpisodeFilter("")
     }
 }

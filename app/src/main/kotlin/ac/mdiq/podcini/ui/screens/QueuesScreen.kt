@@ -438,11 +438,12 @@ fun QueuesScreen(id: Long = -1L) {
             Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface)) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                     for (index in vm.queues.indices) {
-                        FilterChip(onClick = {
-                            if (vm.queuesMode == QueuesScreenMode.Queue) upsertBlk(vm.curQueue) { it.scrollPosition = lazyListState.firstVisibleItemIndex }
-                            setCurIndex(index)
-                            showChooseQueue = false
-                        }, label = { Text(vm.spinnerTexts[index]) }, selected = vm.curIndex == index, border = filterChipBorder(vm.curIndex == index))
+                        FilterChip(label = { Text(vm.spinnerTexts[index]) }, selected = vm.curIndex == index, border = filterChipBorder(vm.curIndex == index),
+                            onClick = {
+                                if (vm.queuesMode == QueuesScreenMode.Queue) upsertBlk(vm.curQueue) { it.scrollPosition = lazyListState.firstVisibleItemIndex }
+                                setCurIndex(index)
+                                showChooseQueue = false
+                            })
                     }
                 }
             }

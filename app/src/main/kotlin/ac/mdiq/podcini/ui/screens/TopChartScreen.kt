@@ -308,13 +308,14 @@ fun TopChartScreen() {
             Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface)) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                     for (index in vm.spinnerTexts.indices) {
-                        FilterChip(onClick = {
-                            vm.curIndex = index
-                            vm.curGenre = genres[genres.keys.toList()[index]] ?: 0
-                            Logd(TAG, "SpinnerExternalSet ${vm.curIndex} curGenre: ${vm.curGenre}")
-                            vm.loadToplist()
-                            showChooseGenre = false
-                        }, label = { Text(vm.spinnerTexts[index]) }, selected = vm.curIndex == index, border = filterChipBorder(vm.curIndex == index))
+                        FilterChip(label = { Text(vm.spinnerTexts[index]) }, selected = vm.curIndex == index, border = filterChipBorder(vm.curIndex == index),
+                            onClick = {
+                                vm.curIndex = index
+                                vm.curGenre = genres[genres.keys.toList()[index]] ?: 0
+                                Logd(TAG, "SpinnerExternalSet ${vm.curIndex} curGenre: ${vm.curGenre}")
+                                vm.loadToplist()
+                                showChooseGenre = false
+                            })
                     }
                 }
             }

@@ -575,19 +575,20 @@ fun FacetsScreen(modeName: String = "") {
                 Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface)) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                         for (index in vm.spinnerTexts.indices) {
-                            FilterChip(onClick = {
-                                vm.cameBack = false
-                                vm.curIndex = index
-                                facetsMode = QuickAccess.valueOf(vm.spinnerTexts[vm.curIndex])
-                                vm.tag = TAG + QuickAccess.entries[vm.curIndex]
-                                upsertBlk(vm.facetsPrefs) {
-                                    it.prefFacetsCurIndex = index
-                                    it.screenMode = facetsMode.name
-                                }
-                                actionButtonType = if (facetsMode == QuickAccess.Downloaded) ButtonTypes.DELETE else null
-                                resetSwipes()
-                                showChooseMode = false
-                            }, label = { Text(vm.spinnerTexts[index]) }, selected = vm.curIndex == index, border = filterChipBorder(vm.curIndex == index))
+                            FilterChip(label = { Text(vm.spinnerTexts[index]) }, selected = vm.curIndex == index, border = filterChipBorder(vm.curIndex == index),
+                                onClick = {
+                                    vm.cameBack = false
+                                    vm.curIndex = index
+                                    facetsMode = QuickAccess.valueOf(vm.spinnerTexts[vm.curIndex])
+                                    vm.tag = TAG + QuickAccess.entries[vm.curIndex]
+                                    upsertBlk(vm.facetsPrefs) {
+                                        it.prefFacetsCurIndex = index
+                                        it.screenMode = facetsMode.name
+                                    }
+                                    actionButtonType = if (facetsMode == QuickAccess.Downloaded) ButtonTypes.DELETE else null
+                                    resetSwipes()
+                                    showChooseMode = false
+                                })
                         }
                     }
                 }

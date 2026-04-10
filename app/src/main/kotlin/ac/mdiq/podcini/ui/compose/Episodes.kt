@@ -305,7 +305,6 @@ val webDataCache = LruCache<Long, String>(10)
 
 @Composable
 fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters: Boolean = false) {
-    
     var webviewData by remember { mutableStateOf<String?>("") }
     var playerLocal: ExoPlayer? by remember { mutableStateOf(null) }
 
@@ -419,14 +418,15 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
             Text(stringResource(R.string.marks), style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 5.dp, bottom = 5.dp))
             FlowRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
                 episode.marks.forEach { mark ->
-                    FilterChip(onClick = {
-                        if (curEpisode != null && exoPlayer != null && episode.id == curEpisode?.id) {
-                            if (!isPlaying) playPause()
-                            mPlayer?.seekTo(mark.toInt())
-                        } else Logt(TAG, context.getString(R.string.play_mark_msg))
-                    }, label = { Text(durationStringShort(mark, false)) }, selected = false, trailingIcon = {
-                        Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete", modifier = Modifier.size(FilterChipDefaults.IconSize).padding(start = 3.dp).clickable { markToRemove = mark })
-                    })
+                    FilterChip(label = { Text(durationStringShort(mark, false)) }, selected = false,
+                        onClick = {
+                            if (curEpisode != null && exoPlayer != null && episode.id == curEpisode?.id) {
+                                if (!isPlaying) playPause()
+                                mPlayer?.seekTo(mark.toInt())
+                            } else Logt(TAG, context.getString(R.string.play_mark_msg))
+                        },
+                        trailingIcon = { Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete", modifier = Modifier.size(FilterChipDefaults.IconSize).padding(start = 3.dp).clickable { markToRemove = mark }) }
+                    )
                 }
             }
         }
@@ -437,8 +437,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                 AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { cliptToRemove = "" }, text = { Text(stringResource(R.string.ask_remove_clip, cliptToRemove.substringBefore("."))) }, confirmButton = {
                     TextButton(onClick = {
                         runOnIOScope {
-                            val file = episode.getClipFile(cliptToRemove)
-                            file.delete()
+                            episode.getClipFile(cliptToRemove).delete()
                             upsert(episode) { it.clips.remove(cliptToRemove) }
                             withContext(Dispatchers.Main) { cliptToRemove = "" }
                         }
@@ -448,19 +447,19 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
             Text(stringResource(R.string.clips), style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 5.dp, bottom = 5.dp))
             FlowRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
                 episode.clips.forEach { clip ->
-                    FilterChip(onClick = {
-                        val file = episode.getClipFile(clip)
-                        val uri = file.toAndroidUri()
-                        Logd(TAG, "clip file: ${file.absPath} uri: $uri")
-                        if (playerLocal != null && uri != null && runBlocking { file.exists() }) {
-                            playerLocal!!.setMediaItem(MediaItem.fromUri(uri))
-                            playerLocal!!.prepare()
-                            playerLocal!!.play()
-                        } else Loge(TAG, "clip file doesn't exist: ${file.absPath}")
-                    }, label = { Text(clip.substringBefore(".")) }, selected = false,
-                        trailingIcon = {
-                        Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete", modifier = Modifier.size(FilterChipDefaults.IconSize).padding(start = 3.dp).clickable { cliptToRemove = clip })
-                    })
+                    FilterChip(label = { Text(clip.substringBefore(".")) }, selected = false,
+                        onClick = {
+                            val file = episode.getClipFile(clip)
+                            val uri = file.toAndroidUri()
+                            Logd(TAG, "clip file: ${file.absPath} uri: $uri")
+                            if (playerLocal != null && uri != null && runBlocking { file.exists() }) {
+                                playerLocal!!.setMediaItem(MediaItem.fromUri(uri))
+                                playerLocal!!.prepare()
+                                playerLocal!!.play()
+                            } else Loge(TAG, "clip file doesn't exist: ${file.absPath}")
+                        },
+                        trailingIcon = { Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete", modifier = Modifier.size(FilterChipDefaults.IconSize).padding(start = 3.dp).clickable { cliptToRemove = clip }) }
+                    )
                 }
             }
         }
@@ -892,8 +891,6 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
         dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
         Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
-            
-            
             val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                 var filter by remember { mutableStateOf(filter_.apply { if (andOr.isBlank()) andOr = "AND" }) }
@@ -1082,7 +1079,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                                     }
                                 }
                                 else -> {
-                                    Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Absolute.Left, verticalAlignment = Alignment.CenterVertically) {
+                                    Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Absolute.Left, verticalAlignment = Alignment.CenterVertically) {
                                         Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = buttonColor, modifier = Modifier.clickable { expandRow = !expandRow })
                                         if (expandRow) {
                                             val cb = {
@@ -1099,9 +1096,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                             }
                             if (expandRow) ScrollRowGrid(columns = 3, itemCount = item.properties.size) { index ->
                                 if (selectNone) selectedList[index].value = false
-                                LaunchedEffect(Unit) {
-                                    if (item.properties[index].filterId in filter.propertySet) selectedList[index].value = true
-                                }
+                                LaunchedEffect(Unit) { if (item.properties[index].filterId in filter.propertySet) selectedList[index].value = true }
                                 OutlinedButton(
                                     modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else borderColor),
                                     onClick = {
@@ -1316,7 +1311,7 @@ fun MulticastDialog(selected: List<Episode>, onDismiss: ()->Unit) {
                             sendJobs.remove(r.ip)
                         }
                     }
-                    if (job != null) sendJobs[r.ip] = job
+                    sendJobs[r.ip] = job
                 }
             }) { Text(stringResource(R.string.send)) }
         },

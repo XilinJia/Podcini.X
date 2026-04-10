@@ -170,10 +170,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
         onDispose { handleBackSubScreens.remove(TAG) }
     }
 
-    BackHandler(enabled = handleBackSubScreens.contains(TAG)) {
-        Logd(TAG, "BackHandler")
-        showHomeScreen = false
-    }
+    BackHandler(enabled = handleBackSubScreens.contains(TAG)) { showHomeScreen = false }
 
     Logd(TAG, "mimeType: ${episode.mimeType}")
 

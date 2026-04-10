@@ -219,12 +219,13 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.playback_speed), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
                     Spacer(Modifier.width(50.dp))
-                    if (showEdit) FilterChip(onClick = {
-                        if (speed !in speeds) {
-                            speeds.add(speed)
-                            speeds.sort()
-                            setPlaybackSpeedArray(speeds)
-                        } }, label = { Text(speed.format(2)) }, selected = false,
+                    if (showEdit) FilterChip(label = { Text(speed.format(2)) }, selected = false,
+                        onClick = {
+                            if (speed !in speeds) {
+                                speeds.add(speed)
+                                speeds.sort()
+                                setPlaybackSpeedArray(speeds)
+                            } },
                         trailingIcon = { Icon(imageVector = Icons.Filled.Add, contentDescription = "Add icon", modifier = Modifier.size(FilterChipDefaults.IconSize)) })
                     else IconButton(onClick = { showEdit = true }) { Icon(Icons.Default.Edit, contentDescription = "Edit preset") }
                 }
@@ -271,38 +272,39 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                 }
                 FlowRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
                     speeds.forEach { chipSpeed ->
-                        FilterChip(onClick = {
-                            Logd("VariableSpeedDialog", "holder.chip settingCode0: ${settingCode[0]} ${settingCode[1]} ${settingCode[2]}")
-                            settingCode[0] = forCurrent
-                            settingCode[1] = forPodcast
-                            settingCode[2] = forGlobal
-                            Logd("VariableSpeedDialog", "holder.chip settingCode: ${settingCode[0]} ${settingCode[1]} ${settingCode[2]}")
-                            if (playbackService != null) {
-                                isSpeedForward = false
-                                isFallbackSpeed = false
-                                if (settingCode.size == 3) {
-                                    Logd(TAG, "setSpeed codeArray: ${settingCode[0]} ${settingCode[1]} ${settingCode[2]}")
-                                    if (settingCode[2]) upsertBlk(appPrefs) { it.playbackSpeed = chipSpeed }
-                                    if (settingCode[1] && curEpisode?.feed != null) upsertBlk(curEpisode!!.feed!!) { it.playSpeed = chipSpeed }
-                                    if (settingCode[0]) {
+                        FilterChip(label = { Text(chipSpeed.format(2)) }, selected = false,
+                            onClick = {
+                                Logd("VariableSpeedDialog", "holder.chip settingCode0: ${settingCode[0]} ${settingCode[1]} ${settingCode[2]}")
+                                settingCode[0] = forCurrent
+                                settingCode[1] = forPodcast
+                                settingCode[2] = forGlobal
+                                Logd("VariableSpeedDialog", "holder.chip settingCode: ${settingCode[0]} ${settingCode[1]} ${settingCode[2]}")
+                                if (playbackService != null) {
+                                    isSpeedForward = false
+                                    isFallbackSpeed = false
+                                    if (settingCode.size == 3) {
+                                        Logd(TAG, "setSpeed codeArray: ${settingCode[0]} ${settingCode[1]} ${settingCode[2]}")
+                                        if (settingCode[2]) upsertBlk(appPrefs) { it.playbackSpeed = chipSpeed }
+                                        if (settingCode[1] && curEpisode?.feed != null) upsertBlk(curEpisode!!.feed!!) { it.playSpeed = chipSpeed }
+                                        if (settingCode[0]) {
+                                            curTempSpeed = chipSpeed
+                                            mPlayer?.setPlaybackParams(chipSpeed)
+                                        }
+                                    } else {
                                         curTempSpeed = chipSpeed
                                         mPlayer?.setPlaybackParams(chipSpeed)
                                     }
-                                } else {
-                                    curTempSpeed = chipSpeed
-                                    mPlayer?.setPlaybackParams(chipSpeed)
                                 }
-                            }
-                            else {
-                                upsertBlk(appPrefs) { it.playbackSpeed = chipSpeed }
-                                EventFlow.postEvent(FlowEvent.SpeedChangedEvent(chipSpeed))
-                            }
-                            onDismiss()
-                        }, label = { Text(chipSpeed.format(2)) }, selected = false,
+                                else {
+                                    upsertBlk(appPrefs) { it.playbackSpeed = chipSpeed }
+                                    EventFlow.postEvent(FlowEvent.SpeedChangedEvent(chipSpeed))
+                                }
+                                onDismiss()
+                            },
                             trailingIcon = { Icon(imageVector = Icons.Filled.Close, contentDescription = "Close icon", modifier = Modifier.size(30.dp).padding(start = 3.dp).clickable {
-                                    speeds.remove(chipSpeed)
-                                    setPlaybackSpeedArray(speeds)
-                                }) })
+                                speeds.remove(chipSpeed)
+                                setPlaybackSpeedArray(speeds)
+                            }) })
                     }
                 }
                 var showMore by remember { mutableStateOf(false) }

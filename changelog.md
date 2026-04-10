@@ -1,3 +1,11 @@
+# 10.14.12
+
+* added "remove from current queue" in multi-select menu, accessible in Queues screen
+* adjusted items order in FeedSettings, and "Use wide layout" is contingent on "Use episode image"
+* adjusted items order in episode filter and feed filter dialogs
+* added some feed update logging
+* some code refactoring
+
 # 10.14.11
 
 * fixed possible crash when removing item from queue
