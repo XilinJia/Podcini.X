@@ -840,6 +840,9 @@
     <!-- Audio controls -->
     <string name="audio_controls">オーディオコントロール</string>
     <string name="playback_speed">再生速度</string>
+    <string name="playback_pitch">Playback pitch</string>
+    <string name="hz">Hz</string>
+    <string name="ratio">Ratio</string>
     <string name="player_switch_to_audio_only">音声のみ</string>
     <string name="use_ring_tone">Use a ring tone</string>
     <string name="use_ring_tone_sum">When enabled, the chosen ring tone is played when starting a new episode in queue.</string>
