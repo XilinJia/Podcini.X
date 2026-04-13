@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 287
-        versionName = "10.14.12"
+        versionCode = 288
+        versionName = "10.14.13"
 
         ndkVersion = "29.0.14206865"
 
@@ -208,7 +208,7 @@ dependencies {
 
 
     implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
     implementation("io.ktor:ktor-http:3.4.2")
     implementation("io.ktor:ktor-client-core:3.4.2")

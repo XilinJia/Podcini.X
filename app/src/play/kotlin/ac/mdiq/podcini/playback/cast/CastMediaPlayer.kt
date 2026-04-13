@@ -239,7 +239,7 @@ class CastMediaPlayer : MediaPlayerBase() {
         this.startWhenPrepared.set(startWhenPrepared)
 
         try {
-            setPlaybackParams(prefSpeedOf(curEpisode))
+            prefSpeedOf(curEpisode).let { (sp, pi)-> setPlaybackParams(sp, pi) }
             when {
                 streaming -> {
                     val streamurl = curEpisode!!.downloadUrl
@@ -300,7 +300,6 @@ class CastMediaPlayer : MediaPlayerBase() {
     }
 
     override fun reinit() {
-        Logd(TAG, "reinit() called")
         if (curEpisode != null) prepareMedia(playable = curEpisode!!, streaming = true, startWhenPrepared = startWhenPrepared.get(), prepareImmediately = false, forceReset = true, doPostPlayback = true)
         else Logd(TAG, "Call to reinit was ignored: media was null")
     }
@@ -326,9 +325,8 @@ class CastMediaPlayer : MediaPlayerBase() {
         return retVal
     }
 
-    override fun setPlaybackParams(speed: Float) {
-        val playbackRate = max(MediaLoadOptions.PLAYBACK_RATE_MIN, min(MediaLoadOptions.PLAYBACK_RATE_MAX, speed.toDouble()))
-        remoteMediaClient?.setPlaybackRate(playbackRate)
+    override fun setPlaybackParams(speed: Float, pitch: Float) {
+        remoteMediaClient?.setPlaybackRate(max(MediaLoadOptions.PLAYBACK_RATE_MIN, min(MediaLoadOptions.PLAYBACK_RATE_MAX, speed.toDouble())))
     }
 
     override fun getPlaybackSpeed(): Float {
@@ -336,7 +334,6 @@ class CastMediaPlayer : MediaPlayerBase() {
     }
 
     override fun setVolume(volumeLeft: Float, volumeRight: Float, adaptionFactor: Float) {
-        Logd(TAG, "Setting the Stream volume on Remote Media Player")
         remoteMediaClient?.setStreamVolume(volumeLeft.toDouble())
     }
 

@@ -10,7 +10,8 @@ import ac.mdiq.podcini.playback.SleepTimer.autoEnableTo
 import ac.mdiq.podcini.playback.SleepTimer.isInTimeRange
 import ac.mdiq.podcini.playback.SleepTimer.lastTimerValue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.curTempSpeed
+import ac.mdiq.podcini.playback.base.InTheatre.curPitch
+import ac.mdiq.podcini.playback.base.InTheatre.curSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.playback.base.PositionSaver.Companion.positionSaver
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
@@ -166,7 +167,7 @@ abstract class MediaPlayerBase {
         else Logpe(TAG, "seekDelta getPosition() returned INVALID_TIME in seekDelta")
     }
 
-    abstract fun setPlaybackParams(speed: Float)
+    abstract fun setPlaybackParams(speed: Float, pitch: Float = 0f)
 
     open fun setSkipSilence() {}
 
@@ -262,7 +263,7 @@ abstract class MediaPlayerBase {
 
     protected fun onPlaybackEnded(stopPlaying: Boolean) {
         Logd(TAG, "onPlaybackEnded stopPlaying: $stopPlaying")
-        curTempSpeed = SPEED_USE_GLOBAL
+        curSpeed = SPEED_USE_GLOBAL
         if (stopPlaying) positionSaver?.cancelPositionSaver()
     }
 
@@ -456,7 +457,7 @@ abstract class MediaPlayerBase {
         internal var isFallbackSpeed = false
 
         val curPBSpeed: Float
-            get() = mPlayer?.getPlaybackSpeed() ?: prefSpeedOf(curEpisode)
+            get() = mPlayer?.getPlaybackSpeed() ?: prefSpeedOf(curEpisode).first
 
         private var isStartWhenPrepared: Boolean
             get() = mPlayer?.startWhenPrepared?.get() == true
@@ -464,14 +465,21 @@ abstract class MediaPlayerBase {
                 mPlayer?.startWhenPrepared?.set(s)
             }
 
-        fun prefSpeedOf(media: Episode?): Float {
+        fun prefSpeedOf(media: Episode?): Pair<Float, Float> {
             var playbackSpeed = SPEED_USE_GLOBAL
             if (media != null) {
-                playbackSpeed = curTempSpeed
+                playbackSpeed = curSpeed
                 if (playbackSpeed == SPEED_USE_GLOBAL && media.feedId != null && feedsMap.containsKey(media.feedId!!)) playbackSpeed = feedsMap[media.feedId!!]!!.playSpeed
             }
             if (playbackSpeed == SPEED_USE_GLOBAL) playbackSpeed = appPrefs.playbackSpeed
-            return playbackSpeed
+            var playbackPitch = SPEED_USE_GLOBAL
+            if (media != null) {
+                playbackPitch = curPitch
+                if (playbackPitch == SPEED_USE_GLOBAL && media.feedId != null && feedsMap.containsKey(media.feedId!!)) playbackPitch = feedsMap[media.feedId!!]!!.playPitch
+            }
+            if (playbackPitch == SPEED_USE_GLOBAL) playbackPitch = appPrefs.playbackPitch
+
+            return Pair(playbackSpeed, playbackPitch)
         }
 
         fun playPause() {

@@ -261,7 +261,7 @@ fun buildListInfo(episodes: List<Episode>, total: Int = 0): String {
     if (total > 0) infoText += "/$total"
     if (episodes.isNotEmpty()) {
         var timeLeft: Long = 0
-        for (item in episodes) timeLeft += ((item.duration - item.position) / (prefSpeedOf(item).takeIf { it > 0 } ?: 1f)).toLong()
+        for (item in episodes) timeLeft += ((item.duration - item.position) / (prefSpeedOf(item).first.takeIf { it > 0 } ?: 1f)).toLong()
         infoText += " * " + durationStringShort(timeLeft, true)
     }
     return infoText

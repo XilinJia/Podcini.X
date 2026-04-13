@@ -14,9 +14,7 @@ import ac.mdiq.podcini.playback.base.PlayerStatusInt
 import ac.mdiq.podcini.storage.database.addRemoteToMiscSyndicate
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.addToQueue
-import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
-import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.smartRemoveFromQueues
@@ -39,12 +37,13 @@ import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.screens.handleBackSubScreens
 import ac.mdiq.podcini.ui.screens.navTo
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.formatLargeInteger
 import ac.mdiq.podcini.utils.formatShortFileSize
 import ac.mdiq.podcini.utils.stripDateTimeLines
 import androidx.activity.compose.BackHandler
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -251,12 +250,6 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
         refreshCB?.invoke()
         refreshing = false
     }) {
-        fun <T> MutableList<T>.move(fromIndex: Int, toIndex: Int) {
-            if (fromIndex != toIndex && fromIndex in indices && toIndex in indices) {
-                val item = removeAt(fromIndex)
-                add(toIndex, item)
-            }
-        }
 //        val rowHeightPx = with(LocalDensity.current) { 56.dp.toPx() }
         val lifecycleOwner = LocalLifecycleOwner.current
         DisposableEffect(lifecycleOwner) {
@@ -597,6 +590,11 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                         selectedSize = selected.size
                         Logd(TAG, "selectedIds: ${selected.size}")
                     })
+                data class MenuOption(
+                    @DrawableRes val iconRes: Int,
+                    @StringRes val labelRes: Int,
+                    val onClick: () -> Unit
+                )
                 @Composable
                 fun EpisodeSpeedDial(modifier: Modifier = Modifier) {
                     var isExpanded by remember { mutableStateOf(false) }
@@ -604,35 +602,35 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                     val fgColor = remember { complementaryColorOf(bgColor) }
                     fun onSelected() {
                         isExpanded = false
-                        selectMode = false
                         selectModeCB?.invoke(selectMode)
+                        selectMode = false
                     }
                     val options = mutableListOf<@Composable () -> Unit>(
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             showPlayStateDialog = true
                             onSelected()
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_mark_played), contentDescription = "Set played state")
                             Text(stringResource(id = R.string.set_play_state_label)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             showChooseRatingDialog = true
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_star), contentDescription = "Set rating")
                             Text(stringResource(id = R.string.set_rating_label)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             showEditTagsDialog = true
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_label_24), contentDescription = "Edit tags")
                             Text(stringResource(id = R.string.edit_tags)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             showAddCommentDialog = true
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_comment_24), contentDescription = "Add comment")
                             Text(stringResource(id = R.string.add_comments)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             if (mobileAllowEpisodeDownload || !networkMonitor.isNetworkRestricted) EpisodeAdrDLManager.manager?.downloadNow(selected, true)
                             else {
@@ -648,119 +646,124 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_download), contentDescription = "Download")
                             Text(stringResource(id = R.string.download_label)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             runOnIOScope { selected.forEach { addToAssQueue(listOf(it)) } }
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to associated or active queue")
                             Text(stringResource(id = R.string.add_to_associated_queue)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             runOnIOScope { addToQueue(selected, actQueue) }
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to active queue")
                             Text(stringResource(id = R.string.add_to_active_queue)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             showPutToQueueDialog = true
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to queue...")
                             Text(stringResource(id = R.string.add_to_queue)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             runOnIOScope { for (e in selected) smartRemoveFromQueues(e) }
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_remove), contentDescription = "Remove from active queue")
-                            Text(stringResource(id = R.string.remove_from_all_queues)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                            onSelected()
-                            runOnIOScope {
-                                realm.write {
-                                    val selected_ = query(Episode::class, "id IN $0", selected.map { it.id }.toList()).find()
-                                    for (e in selected_) {
-                                        for (e1 in selected_) {
-                                            if (e.id == e1.id) continue
-                                            Logd(TAG, "set related: ${e.id} ${e1.id}")
-                                            e.related.add(e1)
+                            Text(stringResource(id = R.string.remove_from_all_queues)) } }
+                    )
+                    if (selected.isNotEmpty()) {
+                        if (curQueue != null) {
+                            options.add {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
+                                    onSelected()
+                                    runOnIOScope { for (e in selected) smartRemoveFromQueues(e, listOf(curQueue)) }
+                                }) {
+                                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_remove), contentDescription = "Remove from active queue")
+                                    Text(stringResource(id = R.string.remove_from_cur_queue))
+                                }
+                            }
+                        }
+                        options.add {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
+                                onSelected()
+                                runOnIOScope {
+                                    realm.write {
+                                        val selected_ = query(Episode::class, "id IN $0", selected.map { it.id }.toList()).find()
+                                        for (e in selected_) {
+                                            for (e1 in selected_) {
+                                                if (e.id == e1.id) continue
+                                                Logd(TAG, "set related: ${e.id} ${e1.id}")
+                                                e.related.add(e1)
+                                            }
                                         }
                                     }
                                 }
-                            }
-                        }) {
-                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "Set related")
-                            Text(stringResource(id = R.string.set_related)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                            onSelected()
-                            runOnIOScope {
-                                realm.write {
-                                    for (e_ in selected) {
-                                        val e = findLatest(e_)
-                                        if (e == null || (!e.downloaded && e.feed?.isLocalFeed != true)) continue
-                                        val almostEnded = e.hasAlmostEnded()
-                                        if (almostEnded) {
-                                            if (e.playState < EpisodeState.PLAYED.code) e.setPlayState(EpisodeState.PLAYED)
-                                            e.playbackCompletionTime = nowInMillis()
-                                        }
-                                    }
-                                }
-                                deleteEpisodesWarnLocalRepeat(selected)
-                            }
-                        }) {
-                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "Delete media")
-                            Text(stringResource(id = R.string.delete_episode_label)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                            }) {
+                                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "Set related")
+                                Text(stringResource(id = R.string.set_related)) }
+                        }
+                        options.add { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             showShelveDialog = true
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_shelves_24), contentDescription = "Shelve")
-                            Text(stringResource(id = R.string.shelve_label)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                            Text(stringResource(id = R.string.shelve_label)) }
+                        }
+                        if (isExternal)
+                            options.add {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
+                                    onSelected()
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        ytUrls.clear()
+                                        for (e in selected) {
+                                            if (gearbox.isGearUrl(e.downloadUrl ?: "")) ytUrls.add(e.downloadUrl!!)
+                                            else addRemoteToMiscSyndicate(e)
+                                        }
+                                    }
+                                }) {
+                                    Icon(Icons.Filled.AddCircle, contentDescription = "Reserve episodes")
+                                    Text(stringResource(id = R.string.reserve_episodes_label))
+                                }
+                            }
+                        options.add {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
+                                onSelected()
+                                runOnIOScope {
+                                    realm.write {
+                                        for (e_ in selected) {
+                                            val e = findLatest(e_)
+                                            if (e == null || (!e.downloaded && e.feed?.isLocalFeed != true)) continue
+                                            val almostEnded = e.hasAlmostEnded()
+                                            if (almostEnded) {
+                                                if (e.playState < EpisodeState.PLAYED.code) e.setPlayState(EpisodeState.PLAYED)
+                                                e.playbackCompletionTime = nowInMillis()
+                                            }
+                                        }
+                                    }
+                                    deleteEpisodesWarnLocalRepeat(selected)
+                                }
+                            }) {
+                                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "Delete media")
+                                Text(stringResource(id = R.string.delete_episode_label))
+                            }
+                        }
+                        if (feed != null) {
+                            options.add {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
+                                    onSelected()
+                                    showEraseDialog = true
+                                }) {
+                                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_delete_forever_24), contentDescription = "Erase episodes")
+                                    Text(stringResource(id = R.string.erase_episodes_label))
+                                }
+                            }
+                        }
+                        options.add { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             showMulticastDialog = true
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_share), contentDescription = "Multicast")
-                            Text(stringResource(id = R.string.multicast_to_devices)) } },
-                    )
-                    if (selected.isNotEmpty() && curQueue != null) {
-                        options.add {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                                onSelected()
-                                runOnIOScope {
-                                    val curQueue = queuesLive.find { it.id == appAttribs.curQueueId }
-                                    if (curQueue != null) for (e in selected) smartRemoveFromQueues(e, listOf(curQueue))
-                                    else Logt(TAG, "Current queue is not set, Ignored.")
-                                }
-                            }) {
-                                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_remove), contentDescription = "Remove from active queue")
-                                Text(stringResource(id = R.string.remove_from_cur_queue))
-                            }
-                        }
-                    }
-                    if (selected.isNotEmpty() && isExternal)
-                        options.add {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                                onSelected()
-                                CoroutineScope(Dispatchers.IO).launch {
-                                    ytUrls.clear()
-                                    for (e in selected) {
-                                        if (gearbox.isGearUrl(e.downloadUrl ?: "")) ytUrls.add(e.downloadUrl!!)
-                                        else addRemoteToMiscSyndicate(e)
-                                    }
-                                }
-                            }) {
-                                Icon(Icons.Filled.AddCircle, contentDescription = "Reserve episodes")
-                                Text(stringResource(id = R.string.reserve_episodes_label))
-                            }
-                        }
-                    if (feed != null) {
-                        options.add {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                                onSelected()
-                                showEraseDialog = true
-                            }) {
-                                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_delete_forever_24), contentDescription = "Erase episodes")
-                                Text(stringResource(id = R.string.erase_episodes_label))
-                            }
+                            Text(stringResource(id = R.string.multicast_to_devices)) }
                         }
                     }
                     if (isExpanded) CommonPopupCard(onDismissRequest = { isExpanded = false }) {

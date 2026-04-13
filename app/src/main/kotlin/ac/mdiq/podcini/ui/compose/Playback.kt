@@ -5,7 +5,8 @@ import ac.mdiq.podcini.playback.SleepTimer.autoEnableFrom
 import ac.mdiq.podcini.playback.SleepTimer.autoEnableTo
 import ac.mdiq.podcini.playback.SleepTimer.lastTimerValue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.curTempSpeed
+import ac.mdiq.podcini.playback.base.InTheatre.curPitch
+import ac.mdiq.podcini.playback.base.InTheatre.curSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.tempSkipSilence
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curPBSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isFallbackSpeed
@@ -59,6 +60,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -190,7 +192,7 @@ fun PlaybackSpeedDialog(feeds: List<Feed>, initSpeed: Float, maxSpeed: Float, is
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpeed: Float, onDismiss: () -> Unit) {
+fun PlaybackSpeedFullDialog(indexDefault: Int, maxSpeed: Float, onDismiss: () -> Unit) {
     val TAG = "PlaybackSpeedFullDialog"
     fun readPlaybackSpeedArray(valueFromPrefs: String?): List<Float> {
         if (valueFromPrefs != null) {
@@ -274,24 +276,13 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                     speeds.forEach { chipSpeed ->
                         FilterChip(label = { Text(chipSpeed.format(2)) }, selected = false,
                             onClick = {
-                                Logd("VariableSpeedDialog", "holder.chip settingCode0: ${settingCode[0]} ${settingCode[1]} ${settingCode[2]}")
-                                settingCode[0] = forCurrent
-                                settingCode[1] = forPodcast
-                                settingCode[2] = forGlobal
-                                Logd("VariableSpeedDialog", "holder.chip settingCode: ${settingCode[0]} ${settingCode[1]} ${settingCode[2]}")
                                 if (playbackService != null) {
                                     isSpeedForward = false
                                     isFallbackSpeed = false
-                                    if (settingCode.size == 3) {
-                                        Logd(TAG, "setSpeed codeArray: ${settingCode[0]} ${settingCode[1]} ${settingCode[2]}")
-                                        if (settingCode[2]) upsertBlk(appPrefs) { it.playbackSpeed = chipSpeed }
-                                        if (settingCode[1] && curEpisode?.feed != null) upsertBlk(curEpisode!!.feed!!) { it.playSpeed = chipSpeed }
-                                        if (settingCode[0]) {
-                                            curTempSpeed = chipSpeed
-                                            mPlayer?.setPlaybackParams(chipSpeed)
-                                        }
-                                    } else {
-                                        curTempSpeed = chipSpeed
+                                    if (forGlobal) upsertBlk(appPrefs) { it.playbackSpeed = chipSpeed }
+                                    if (forPodcast && curEpisode?.feed != null) upsertBlk(curEpisode!!.feed!!) { it.playSpeed = chipSpeed }
+                                    if (forCurrent) {
+                                        curSpeed = chipSpeed
                                         mPlayer?.setPlaybackParams(chipSpeed)
                                     }
                                 }
@@ -310,6 +301,52 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                 var showMore by remember { mutableStateOf(false) }
                 TextButton(onClick = { showMore = !showMore }) { Text("More>>", style = MaterialTheme.typography.headlineSmall) }
                 if (showMore) {
+                    Text(stringResource(R.string.playback_pitch), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp))
+                    var tmpPitch by remember(curEpisode?.id) { mutableStateOf(true) }
+                    var feedPitch by remember(curEpisode?.id) { mutableStateOf(false) }
+                    var glPitch by remember { mutableStateOf(false) }
+                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Spacer(Modifier.weight(1f))
+                        Checkbox(checked = tmpPitch, onCheckedChange = { isChecked -> tmpPitch = isChecked })
+                        Text(stringResource(R.string.current_episode))
+                        Spacer(Modifier.weight(1f))
+                        Checkbox(checked = feedPitch, onCheckedChange = { isChecked -> feedPitch = isChecked })
+                        Text(stringResource(R.string.current_podcast))
+                        Spacer(Modifier.weight(1f))
+                        Checkbox(checked = glPitch, onCheckedChange = { isChecked -> glPitch = isChecked })
+                        Text(stringResource(R.string.global))
+                        Spacer(Modifier.weight(1f))
+                    }
+                    var pitchStr by remember { mutableStateOf(curPitch.toString()) }
+                    var showSet by remember { mutableStateOf(false) }
+                    var unit by remember { mutableStateOf("Ratio") }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TextField(value = pitchStr, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("float", style = MaterialTheme.typography.bodySmall) }, singleLine = true, modifier = Modifier.width(100.dp),
+                            onValueChange = {
+                                val value = it.toFloatOrNull()
+                                if (it.isEmpty() || value != null) pitchStr = it
+                                if (value != null && value > 0f) {
+                                    if ((unit == "Hz" && value > 50) || (unit == "Ratio" && value < 10)) showSet = true
+                                }
+                            },
+                            trailingIcon = { if (showSet) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).clickable {
+                                val pitch = if (unit == "Ratio") pitchStr.toFloat() else pitchStr.toFloat() / 440f
+                                Logd(TAG, "pitch set to $pitch")
+                                if (tmpPitch) {
+                                    curPitch = pitch
+                                    mPlayer?.setPlaybackParams(curSpeed, pitch)
+                                }
+                                if (feedPitch) upsertBlk(curEpisode!!.feed!!) { it.playPitch = pitch }
+                                if (glPitch) upsertBlk(appPrefs) { it.playbackPitch = pitch }
+                            }) }
+                        )
+                        Checkbox(checked = unit == "Hz", onCheckedChange = { unit = "Hz" })
+                        Text(stringResource(R.string.hz))
+                        Checkbox(checked = unit == "Ratio", onCheckedChange = { unit = "Ratio" })
+                        Text(stringResource(R.string.ratio))
+                    }
+                    HorizontalDivider(thickness = 5.dp, modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
+
                     Text(stringResource(R.string.pref_skip_silence_title), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp))
                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                         Spacer(Modifier.weight(1f))

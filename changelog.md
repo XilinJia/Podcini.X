@@ -1,3 +1,10 @@
+# 10.14.13
+
+* added a pitch setting in the full speed settings dialog
+	* it can be set in Ratio (1.0 being normal), or in Hz (440Hz being normal)
+	* like for speed, it can be set for current media, podcast, and global
+* adjusted items order of episodes multi-select menu
+
 # 10.14.12
 
 * added "remove from current queue" in multi-select menu, accessible in Queues screen

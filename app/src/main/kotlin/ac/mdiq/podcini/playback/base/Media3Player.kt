@@ -269,7 +269,6 @@ class Media3Player : MediaPlayerBase() {
             createStaticPlayer()
         }
         playbackParameters = exoPlayer!!.playbackParameters
-
         timeIt("$TAG end of init")
     }
 
@@ -529,7 +528,7 @@ class Media3Player : MediaPlayerBase() {
         resetMediaPlayer()
 
         this.startWhenPrepared.set(startWhenPrepared)
-        setPlaybackParams(prefSpeedOf(curEpisode))
+        prefSpeedOf(curEpisode).let { (sp, pi)-> setPlaybackParams(sp, pi) }
         setRepeat(shouldRepeat)
         setSkipSilence()
         CoroutineScope(Dispatchers.IO).launch {
@@ -593,7 +592,7 @@ class Media3Player : MediaPlayerBase() {
         Logd(TAG, "play(): status: $status exoPlayer?.playbackState: ${exoPlayer?.playbackState}")
         if (isPaused || isPrepared) {
             Logd(TAG, "Resuming/Starting playback")
-            setPlaybackParams(prefSpeedOf(curEpisode))
+            prefSpeedOf(curEpisode).let { (sp, pi)-> setPlaybackParams(sp, pi) }
             setRepeat(shouldRepeat)
             setSkipSilence()
             val volAdpFac = if (curEpisode != null) curEpisode!!.feed?.volumeAdaptionSetting?.adaptionFactor ?: 1f else 1f
@@ -623,7 +622,7 @@ class Media3Player : MediaPlayerBase() {
         if (isInitialized) {
             Logd(TAG, "prepare Preparing media player: status: $status")
             setPlayerStatus(PlayerStatus.PREPARING, curEpisode)
-            setPlaybackParams(prefSpeedOf(curEpisode))
+            prefSpeedOf(curEpisode).let { (sp, pi)-> setPlaybackParams(sp, pi) }
             setSkipSilence()
             setSource()
 
@@ -690,7 +689,7 @@ class Media3Player : MediaPlayerBase() {
         return retVal
     }
 
-    override fun setPlaybackParams(speed: Float) {
+    override fun setPlaybackParams(speed: Float, pitch: Float) {
         if (exoPlayer == null || abs(exoPlayer!!.playbackParameters.speed - speed) < 0.01f) return
 
         EventFlow.postEvent(FlowEvent.SpeedChangedEvent(speed))
@@ -701,7 +700,7 @@ class Media3Player : MediaPlayerBase() {
             needChangeOffload = true
             if (isPlaying) switchOffload()
         }
-        playbackParameters = PlaybackParameters(speed, playbackParameters.pitch)
+        playbackParameters = PlaybackParameters(if (speed <= 0) playbackParameters.speed else speed, if (pitch <= 0f) playbackParameters.pitch else pitch)
         exoPlayer?.playbackParameters = playbackParameters
         Logd(TAG, "setPlaybackParams offloadEnabled $speedEnablesOffload")
     }

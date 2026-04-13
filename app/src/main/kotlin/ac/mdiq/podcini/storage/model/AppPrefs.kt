@@ -103,6 +103,8 @@ class AppPrefs: RealmObject {
 
     // Mediaplayer
     var playbackSpeed: Float = 1.0f
+    var playbackPitch: Float = 1.0f
+
     var skipSilence: Boolean = false
     var fastForwardSecs: Int = 30
     var rewindSecs: Int = 10

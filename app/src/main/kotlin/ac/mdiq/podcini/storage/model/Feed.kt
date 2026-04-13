@@ -204,6 +204,7 @@ class Feed : RealmObject {
     var videoMode: Int = VideoMode.DEFAULT.code
 
     var playSpeed: Float = SPEED_USE_GLOBAL
+    var playPitch: Float = SPEED_USE_GLOBAL
 
     var skipSilence: Boolean? = null
 

@@ -680,6 +680,7 @@
     <string name="pref_no_browser_found">No web browser found.</string>
     <string name="pref_enqueue_downloaded_title">Enqueue downloaded</string>
     <string name="pref_enqueue_downloaded_summary">Add downloaded episodes to the queue</string>
+
     <string name="pref_skip_silence_title">Skip silence in audio</string>
     <string name="pref_skip_silence_sum">Whether silence in playback is skipped</string>
     <string name="behavior">Behavior</string>
@@ -1027,6 +1028,10 @@
     <!-- Audio controls -->
     <string name="audio_controls">Audio controls</string>
     <string name="playback_speed">Playback speed</string>
+    <string name="playback_pitch">Playback pitch</string>
+    <string name="hz">Hz</string>
+    <string name="ratio">Ratio</string>
+
     <string name="player_switch_to_audio_only">Audio only</string>
 
     <string name="use_ring_tone">Use a ring tone</string>

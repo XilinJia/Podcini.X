@@ -63,7 +63,8 @@ object InTheatre {
 
     var curEpisode by mutableStateOf<Episode?>(null)
 
-    var curTempSpeed: Float = SPEED_USE_GLOBAL
+    var curSpeed: Float = SPEED_USE_GLOBAL
+    var curPitch: Float = SPEED_USE_GLOBAL
 
     var tempSkipSilence: Boolean? = null
 
@@ -149,7 +150,7 @@ object InTheatre {
                 playVideo = (episode_.forceVideo || (episode_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && episode_.getMediaType() == MediaType.VIDEO))
                 tempSkipSilence = null
                 shouldRepeat = false
-                curTempSpeed = SPEED_USE_GLOBAL
+                curSpeed = SPEED_USE_GLOBAL
                 Logd(TAG, "setCurEpisode start monitoring curEpisode ${curEpisode?.title}")
                 runOnIOScope {
                     val qes = realm.query(QueueEntry::class).query("episodeId == ${curEpisode!!.id}").find()

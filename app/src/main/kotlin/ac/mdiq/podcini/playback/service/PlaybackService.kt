@@ -106,11 +106,9 @@ class PlaybackService : MediaLibraryService() {
         override fun onReceive(context: Context, intent: Intent) {
             Logd(TAG, "autoStateUpdated onReceive called with action: ${intent.action}")
             val status = intent.getStringExtra("media_connection_status")
-            val isConnectedToCar = "media_connected" == status
             Logd(TAG, "Received Auto Connection update: $status")
-            if (!isConnectedToCar) Logd(TAG, "Car was unplugged during playback.")
+            if ("media_connected" != status) Logd(TAG, "Car was unplugged during playback.")
             else {
-//                val playerStatus = MediaPlayerBase.status
                 when  {
                     isPaused || isPrepared -> mPlayer?.play()
                     isPreparing -> mPlayer?.startWhenPrepared?.set(!mPlayer!!.startWhenPrepared.get())
@@ -142,15 +140,11 @@ class PlaybackService : MediaLibraryService() {
             if (intent.action == Intent.ACTION_HEADSET_PLUG) {
                 val state = intent.getIntExtra("state", -1)
                 Logd(TAG, "Headset plug event. State is $state")
-                if (state != -1) {
-                    when (state) {
-                        UNPLUGGED -> Logd(TAG, "Headset was unplugged during playback.")
-                        PLUGGED -> {
-                            Logd(TAG, "Headset was plugged in during playback.")
-                            unpauseIfPauseOnDisconnect(false)
-                        }
-                    }
-                } else Logpe(TAG, "Received invalid ACTION_HEADSET_PLUG intent")
+                when (state) {
+                    -1 -> Logpe(TAG, "Received invalid ACTION_HEADSET_PLUG intent")
+                    UNPLUGGED -> {}
+                    PLUGGED -> unpauseIfPauseOnDisconnect(false)
+                }
             }
         }
     }
@@ -186,16 +180,6 @@ class PlaybackService : MediaLibraryService() {
             if (intent.action == ACTION_SHUTDOWN_PLAYBACK_SERVICE) EventFlow.postEvent(FlowEvent.PlaybackServiceEvent(FlowEvent.PlaybackServiceEvent.Action.SERVICE_SHUT_DOWN))
         }
     }
-
-//    private val screenStateReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-//        override fun onReceive(context: Context, intent: Intent) {
-//            Logd(TAG, "screenStateReceiver onReceive called with action: ${intent.action}")
-//            when (intent.action) {
-//                Intent.ACTION_SCREEN_OFF -> episodeChangedWhenScreenOff = false
-//                Intent.ACTION_SCREEN_ON  -> {}
-//            }
-//        }
-//    }
 
     inner class MediaLibrarySessionCK : MediaLibrarySession.Callback {
         override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
@@ -305,12 +289,7 @@ class PlaybackService : MediaLibraryService() {
 //            return super.onGetChildren(session, browser, parentId, page, pageSize, params)
             val mediaItemsInQueue: MutableList<MediaItem> by lazy {
                 val list = mutableListOf<MediaItem>()
-                actQueue.episodesSorted.forEach { e->
-                    e.downloadUrl?.let {
-                        val item = MediaItem.Builder().setMediaId(it).setUri(it.toSafeUri()).setMediaMetadata(buildMetadata(e)).build()
-                        if (item != null) list += item
-                    }
-                }
+                actQueue.episodesSorted.forEach { e-> e.downloadUrl?.let { list += MediaItem.Builder().setMediaId(it).setUri(it.toSafeUri()).setMediaMetadata(buildMetadata(e)).build() } }
                 Logd(TAG, "mediaItemsInQueue: ${list.size}")
                 list
             }
@@ -399,9 +378,6 @@ class PlaybackService : MediaLibraryService() {
         if (mPlayer == null) mPlayer = Media3Player() // Cast not supported or not connected
 
         Logd(TAG, "recreateMediaPlayer mPlayer casting: ${mPlayer?.isCasting()} wasPlaying: $wasPlaying curEpisode: ${curEpisode?.title}")
-//        // TODO: test not preparing on first start
-//        val media = curEpisode
-//        if (media != null) mPlayer!!.prepareMedia(playable = media, streaming = !media.isDownloaded(), startWhenPrepared = wasPlaying, prepareImmediately = true, doPostPlayback = true)
         isCasting = mPlayer!!.isCasting()
     }
 
@@ -526,7 +502,7 @@ class PlaybackService : MediaLibraryService() {
             try {
                 restoreMediaFromPreferences()
                 startPlaying()
-            } catch (e: Throwable) { Logps(TAG, e, "EpisodeMedia was not loaded from preferences. Stopping service.") }
+            } catch (e: Throwable) { Logps(TAG, e, "EpisodeMedia was not loaded from preferences.") }
         }
         when (keycode) {
             KeyEvent.KEYCODE_HEADSETHOOK, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {

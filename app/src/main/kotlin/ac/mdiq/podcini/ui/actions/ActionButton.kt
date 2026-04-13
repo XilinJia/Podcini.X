@@ -12,7 +12,7 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.playback.base.InTheatre.curTempSpeed
+import ac.mdiq.podcini.playback.base.InTheatre.curSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
 import ac.mdiq.podcini.playback.base.InTheatre.playVideo
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
@@ -279,7 +279,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                     mPlayer?.play()
                     sleepManager?.restartSleepTimer()
                 } else {
-                    curTempSpeed = SPEED_USE_GLOBAL
+                    curSpeed = SPEED_USE_GLOBAL
                     PlaybackStarter(item).start()
                     if (item.playState < EpisodeState.PROGRESS.code || item.playState == EpisodeState.SKIPPED.code || item.playState == EpisodeState.AGAIN.code)
                         item = upsertBlk(item) { it.setPlayState(EpisodeState.PROGRESS) }

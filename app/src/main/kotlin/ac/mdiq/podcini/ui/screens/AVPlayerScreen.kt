@@ -346,7 +346,7 @@ fun ControlUI(vm: AVPlayerVM) {
     }
 
     var showSpeedDialog by remember { mutableStateOf(false) }
-    if (showSpeedDialog) PlaybackSpeedFullDialog(settingCode = booleanArrayOf(true, true, true), indexDefault = 0, maxSpeed = 3f, onDismiss = {showSpeedDialog = false})
+    if (showSpeedDialog) PlaybackSpeedFullDialog(indexDefault = 0, maxSpeed = 3f, onDismiss = {showSpeedDialog = false})
 
     var showVolumeDialog by remember { mutableStateOf(false) }
     if (showVolumeDialog) VolumeDialog(vm) { showVolumeDialog = false }
@@ -683,7 +683,7 @@ fun AVPlayerScreen() {
     if (showSleepTimeDialog) SleepTimerDialog { showSleepTimeDialog = false }
 
     var showSpeedDialog by remember { mutableStateOf(false) }
-    if (showSpeedDialog) PlaybackSpeedFullDialog(settingCode = booleanArrayOf(true, true, true), indexDefault = 0, maxSpeed = 3f, onDismiss = {showSpeedDialog = false})
+    if (showSpeedDialog) PlaybackSpeedFullDialog(indexDefault = 0, maxSpeed = 3f, onDismiss = {showSpeedDialog = false})
 
     @Composable
     fun PlayerUI(modifier: Modifier) {
