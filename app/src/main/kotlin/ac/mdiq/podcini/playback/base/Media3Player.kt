@@ -425,13 +425,14 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             }
             override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink {
                 val builder = DefaultAudioSink.Builder(context)
-                    .setEnableFloatOutput(true)
+                    .setEnableFloatOutput(false)
                     .setEnableAudioOutputPlaybackParameters(enableAudioTrackPlaybackParams)
                 if (lr == -1) builder.setAudioProcessors(arrayOf(LeftChannelAudioProcessor()))
                 else if (lr == 1) builder.setAudioProcessors(arrayOf(RightChannelAudioProcessor()))
                 return builder.build()
             }
         }
+
         val extractorsFactory = DefaultExtractorsFactory().setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING)
         val mediaSourceFactory = DefaultMediaSourceFactory(context, extractorsFactory)
         exoPlayer = ExoPlayer.Builder(context, renderersFactory)
