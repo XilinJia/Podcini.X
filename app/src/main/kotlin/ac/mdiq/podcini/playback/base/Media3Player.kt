@@ -706,10 +706,12 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
         bufferingUpdateListener = { percent: Int ->
             Logd(TAG, "bufferingUpdateListener $percent")
-            when (percent) {
-                BUFFERING_STARTED -> EventFlow.postEvent(FlowEvent.BufferUpdateEvent.started(curEpisode!!))
-                BUFFERING_ENDED -> EventFlow.postEvent(FlowEvent.BufferUpdateEvent.ended(curEpisode!!))
-                else -> EventFlow.postEvent(FlowEvent.BufferUpdateEvent.progressUpdate(curEpisode!!, 0.01f * percent))
+            if (curEpisode != null) {
+                when (percent) {
+                    BUFFERING_STARTED -> EventFlow.postEvent(FlowEvent.BufferUpdateEvent.started(curEpisode!!))
+                    BUFFERING_ENDED -> EventFlow.postEvent(FlowEvent.BufferUpdateEvent.ended(curEpisode!!))
+                    else -> EventFlow.postEvent(FlowEvent.BufferUpdateEvent.progressUpdate(curEpisode!!, 0.01f * percent))
+                }
             }
         }
     }

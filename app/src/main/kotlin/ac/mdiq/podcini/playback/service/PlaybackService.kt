@@ -345,6 +345,7 @@ class PlaybackService : MediaLibraryService() {
         setMediaNotificationProvider(CustomMediaNotificationProvider())
 
         recreateMediaPlayers()
+        startTheatres()
 
         val intent = packageManager.getLaunchIntentForPackage(packageName)
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)

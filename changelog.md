@@ -11,7 +11,7 @@
 	* 2 PlayerUI's to control each separately, bottom for Default and top for Secondary
 	* a slider bar in between adjust volume balance of each player
 	* on earphones, Default plays to the left and Secondary to the right
-* old cast player is replaced by media3's CastPlayer
+* old cast player is replaced by media3's CastPlayer (on Play app)
 * code to move clips in migration since 10.12 is removed
 * removed old code RatingDialog for Google Play (on Play app)
 * upped SDK and target to 37 (Android 17)

@@ -97,6 +97,8 @@ object InTheatre {
                         realm.query(PlayQueue::class).query("id == ${qes[0].queueId}").first().find()?. let { actQueue = it }
                     }
                 }
+                theatres[i].curStateMonitor?.cancel()
+                theatres[i].curStateMonitor = null
                 theatres[i].monitorState()
             }
         }
