@@ -209,6 +209,9 @@
     <string name="null_zap_label">Null</string>
     <string name="delete_label">削除</string>
     <string name="delete_failed_simple">ファイルを削除できません。</string>
+    <string name="select_player">Select player</string>
+    <string name="the_default">Default</string>
+    <string name="secondary">Secondary</string>
     <string name="delete_local_failed">ファイルを削除できません。Podcast 情報画面からローカルフォルダを再接続してみてください。</string>
     <string name="delete_episode_label">エピソードメディアの削除</string>
     <string name="set_related">エピソードに関連する設定</string>
