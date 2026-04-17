@@ -5,7 +5,8 @@ import ac.mdiq.podcini.automation.AutoDownloadAlgorithm
 import ac.mdiq.podcini.automation.AutoEnqueueAlgorithm
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
+import ac.mdiq.podcini.playback.base.InTheatre.theatres
+
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.mediaBrowser
 import ac.mdiq.podcini.storage.database.appAttribs
@@ -456,7 +457,7 @@ fun QueuesScreen(id: Long = -1L) {
     fun TopBar() {
         var expanded by remember { mutableStateOf(false) }
         Box(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
-            if (vm.curQueue.id == actQueue.id) AsyncImage(model = curEpisode?.imageUrl?:curEpisode?.feed?.imageUrl?:"", contentDescription = "bgImage", contentScale = ContentScale.FillBounds, error = painterResource(R.drawable.teaser), modifier = Modifier.matchParentSize().blur(radiusX = 5.dp, radiusY = 5.dp))
+            if (vm.curQueue.id == actQueue.id) AsyncImage(model = theatres[0].mPlayer?.curEpisode?.imageUrl?:theatres[0].mPlayer?.curEpisode?.feed?.imageUrl?:"", contentDescription = "bgImage", contentScale = ContentScale.FillBounds, error = painterResource(R.drawable.teaser), modifier = Modifier.matchParentSize().blur(radiusX = 5.dp, radiusY = 5.dp))
             Box(modifier = Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)))
             Column {
                 Row(modifier = Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -465,7 +466,7 @@ fun QueuesScreen(id: Long = -1L) {
                         Text((if (vm.curQueue.id == actQueue.id) "> " else "") + if (vm.curIndex in vm.queueNames.indices) vm.queueNames[vm.curIndex].ifBlank { "No name" } else "No name", maxLines = 1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).combinedClickable(onClick = { showChooseQueue = true }, onLongClick = {
                             if (vm.curQueue.id == actQueue.id) {
                                 if (episodes.size > 5) {
-                                    val index = episodes.indexOfFirst { it.id == curEpisode?.id }
+                                    val index = episodes.indexOfFirst { it.id == theatres[0].mPlayer?.curEpisode?.id }
                                     if (index >= 0) scope.launch { lazyListState.scrollToItem(index) }
                                     else Logt(TAG, "can not find curEpisode to scroll to")
                                 } else Logt(TAG, "only scroll in actQueue when size is larger than 5")
@@ -763,11 +764,11 @@ fun QueuesScreen(id: Long = -1L) {
                                 }
                             }
                         }
-                        var scrollToOnStart by remember(vm.queuesMode, vm.curQueue, episodes.size, curEpisode?.id, vm.cameBack) {
+                        var scrollToOnStart by remember(vm.queuesMode, vm.curQueue, episodes.size, theatres[0].mPlayer?.curEpisode?.id, vm.cameBack) {
                             mutableIntStateOf(when {
                                 vm.queuesMode != QueuesScreenMode.Queue -> -1
                                 vm.cameBack -> -1
-                                vm.curQueue.id == actQueue.id -> episodes.indexOfFirst { it.id == curEpisode?.id }
+                                vm.curQueue.id == actQueue.id -> episodes.indexOfFirst { it.id == theatres[0].mPlayer?.curEpisode?.id }
                                 else -> curQueuePosition
                             }) }
                         Logd(TAG, "Scaffold scrollToOnStart: cameBack: ${vm.cameBack} $scrollToOnStart $curQueuePosition")

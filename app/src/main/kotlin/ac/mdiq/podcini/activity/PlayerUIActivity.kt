@@ -1,6 +1,6 @@
 package ac.mdiq.podcini.activity
 
-import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
+import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.ui.compose.AppThemes
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.appTheme
@@ -55,7 +55,7 @@ class PlayerUIActivity : ComponentActivity() {
                     val vm: AVPlayerVM = viewModel()
                     Box(modifier = Modifier.fillMaxWidth().height(100.dp).border(1.dp, MaterialTheme.colorScheme.tertiary).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))) {
                         Column {
-                            Text(curEpisode?.title ?: "No title", maxLines = 1, color = textColor, style = MaterialTheme.typography.bodyMedium)
+                            Text(theatres[0].mPlayer?.curEpisode?.title ?: "No title", maxLines = 1, color = textColor, style = MaterialTheme.typography.bodyMedium)
                             ProgressBar(vm)
                             ControlUI(vm)
                         }

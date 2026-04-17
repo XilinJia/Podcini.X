@@ -105,7 +105,7 @@ object TTSEngine {
             speaking.value = true
             if (!item.feed?.langSet.isNullOrEmpty()) {
                 val lang = item.feed!!.langSet.first()
-                val result = tts?.setLanguage(Locale(lang))
+                val result = tts?.setLanguage(Locale.forLanguageTag(lang))
                 if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) Loge(TAG, getAppContext().getString(R.string.language_not_supported_by_tts) + lang)
             }
             var startIndex = 0
@@ -156,7 +156,7 @@ object TTSEngine {
                 ttsWorking = true
                 if (!item.feed?.langSet.isNullOrEmpty()) {
                     val lang = item.feed!!.langSet.first()
-                    val result = tts?.setLanguage(Locale(lang))
+                    val result = tts?.setLanguage(Locale.forLanguageTag(lang))
                     if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) Loge(TAG, getAppContext().getString(R.string.language_not_supported_by_tts) + " $lang $result")
                 }
 

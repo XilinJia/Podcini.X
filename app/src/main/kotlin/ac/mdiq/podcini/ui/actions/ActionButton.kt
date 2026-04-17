@@ -12,12 +12,9 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.playback.base.InTheatre.curSpeed
+import ac.mdiq.podcini.playback.base.InTheatre.activeTheatres
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
-import ac.mdiq.podcini.playback.base.InTheatre.playVideo
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
-import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
+import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.base.TTSEngine
 import ac.mdiq.podcini.playback.base.TTSEngine.doTTS
 import ac.mdiq.podcini.playback.base.TTSEngine.doTTSNow
@@ -31,7 +28,6 @@ import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
-import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.tmpQueue
@@ -130,6 +126,16 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 return
             } else stream()
         }
+        fun askForPlayer(play: (Int)->Unit) {
+            commonConfirm = CommonConfirmAttrib(
+                title = context.getString(R.string.select_player),
+                message = "",
+                confirmRes = R.string.the_default,
+                cancelRes = R.string.secondary,
+                onConfirm = { play(0) },
+                onCancel = { play(1) })
+            return
+        }
         Logd(TAG, "onClick type: $type")
         when (type) {
             ButtonTypes.WEBSITE -> if (!item.link.isNullOrEmpty()) openInBrowser(item.link!!)
@@ -149,47 +155,64 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
             }
             ButtonTypes.PLAY -> {
                 if (fileNotExist()) return
-                PlaybackStarter(item).start()
-                playVideoIfNeeded(item)
-//                type = ButtonTypes.PAUSE  leave it to playerStat
+                if (activeTheatres == 1) {
+                    PlaybackStarter(item).start(0)
+                    playVideoIfNeeded(item)
+                } else askForPlayer { i-> PlaybackStarter(item).start(i) }
             }
             ButtonTypes.PLAY_ONE -> {
                 if (fileNotExist()) return
-                PlaybackStarter(item).start()
-                playVideoIfNeeded(item)
-                actQueue = tmpQueue()
-                //                type = ButtonTypes.PAUSE  leave it to playerStat
+                if (activeTheatres == 1) {
+                    PlaybackStarter(item).start(0)
+                    playVideoIfNeeded(item)
+                    actQueue = tmpQueue()
+                } else askForPlayer { i->
+                    PlaybackStarter(item).start(i)
+                    actQueue = tmpQueue()
+                }
             }
             ButtonTypes.PLAY_REPEAT -> {
                 if (fileNotExist()) return
-                PlaybackStarter(item).setToRepeat(true).start()
-                playVideoIfNeeded(item)
-                actQueue = tmpQueue()
-                //                type = ButtonTypes.PAUSE  leave it to playerStat
+                if (activeTheatres == 1) {
+                    PlaybackStarter(item).setToRepeat(true).start(0)
+                    playVideoIfNeeded(item)
+                    actQueue = tmpQueue()
+                } else askForPlayer { i->
+                    PlaybackStarter(item).setToRepeat(true).start(i)
+                    actQueue = tmpQueue()
+                }
             }
             ButtonTypes.STREAM -> {
                 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
                 askToStream {
-                    PlaybackStarter(item).shouldStreamThisTime(true).start()
-                    playVideoIfNeeded(item)
+                    if (activeTheatres == 1) {
+                        PlaybackStarter(item).shouldStreamThisTime(true).start(0)
+                        playVideoIfNeeded(item)
+                    } else askForPlayer { i-> PlaybackStarter(item).shouldStreamThisTime(true).start(i) }
                 }
-//                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.STREAM_REPEAT -> {
                 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
                 askToStream {
-                    PlaybackStarter(item).shouldStreamThisTime(true).setToRepeat(true).start()
-                    playVideoIfNeeded(item)
-                    actQueue = tmpQueue()
+                    if (activeTheatres == 1) {
+                        PlaybackStarter(item).shouldStreamThisTime(true).setToRepeat(true).start(0)
+                        playVideoIfNeeded(item)
+                        actQueue = tmpQueue()
+                    } else askForPlayer { i->
+                        PlaybackStarter(item).shouldStreamThisTime(true).setToRepeat(true).start(i)
+                        actQueue = tmpQueue()
+                    }
                 }
-                //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.STREAM_ONE -> {
-                //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
-                PlaybackStarter(item).shouldStreamThisTime(true).start()
-                playVideoIfNeeded(item)
-                actQueue = tmpQueue()
-                //                type = ButtonTypes.PAUSE  leave it to playerStat
+                if (activeTheatres == 1) {
+                    PlaybackStarter(item).shouldStreamThisTime(true).start(0)
+                    playVideoIfNeeded(item)
+                    actQueue = tmpQueue()
+                } else askForPlayer { i->
+                    PlaybackStarter(item).shouldStreamThisTime(true).start(i)
+                    actQueue = tmpQueue()
+                }
             }
             ButtonTypes.DELETE -> {
                 runOnIOScope { deleteEpisodesWarnLocalRepeat(listOf(item)) }
@@ -197,8 +220,11 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
             }
             ButtonTypes.PAUSE -> {
                 if (isCurrentlyPlaying(item)) {
-                    playPause()
-                    update(item)
+                    for (i in 0..1) {
+                        if (item.id != theatres[i].mPlayer?.curEpisode?.id) continue
+                        theatres[i].mPlayer?.pause(false)
+                        update(item)
+                    }
                 }
                 if (tts?.isSpeaking == true) tts?.stop()
             }
@@ -276,13 +302,18 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
             }
             ButtonTypes.PLAY_LOCAL -> {
                 if (PlaybackService.playbackService?.isServiceReady() == true && InTheatre.isCurMedia(item)) {
-                    mPlayer?.play()
-                    sleepManager?.restartSleepTimer()
+                    for (i in 0..1) {
+                        if (item.id != theatres[i].mPlayer?.curEpisode?.id) continue
+                        theatres[i].mPlayer?.play()
+                    }
                 } else {
-                    curSpeed = SPEED_USE_GLOBAL
-                    PlaybackStarter(item).start()
-                    if (item.playState < EpisodeState.PROGRESS.code || item.playState == EpisodeState.SKIPPED.code || item.playState == EpisodeState.AGAIN.code)
-                        item = upsertBlk(item) { it.setPlayState(EpisodeState.PROGRESS) }
+                    if (activeTheatres == 1) {
+                        PlaybackStarter(item).start(0)
+                        if (item.playState < EpisodeState.PROGRESS.code || item.playState == EpisodeState.SKIPPED.code || item.playState == EpisodeState.AGAIN.code) item = upsertBlk(item) { it.setPlayState(EpisodeState.PROGRESS) }
+                    } else askForPlayer { i->
+                        PlaybackStarter(item).start(i)
+                        if (item.playState < EpisodeState.PROGRESS.code || item.playState == EpisodeState.SKIPPED.code || item.playState == EpisodeState.AGAIN.code) item = upsertBlk(item) { it.setPlayState(EpisodeState.PROGRESS) }
+                    }
                 }
                 playVideoIfNeeded(item)
 //                type = ButtonTypes.PAUSE  leave it to playerStat
@@ -471,10 +502,13 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
     companion object {
         @OptIn(ExperimentalMaterial3Api::class)
         fun playVideoIfNeeded(item: Episode) {
-            if (item.forceVideo || (item.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && item.getMediaType() == MediaType.VIDEO)) {
-                playVideo = true
-                psState = PSState.Expanded
-            } else playVideo = false
+            for (i in 0..1) {
+                if (item.id != theatres[i].mPlayer?.curEpisode?.id) continue
+                if (item.forceVideo || (item.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && item.getMediaType() == MediaType.VIDEO)) {
+                    theatres[i].mPlayer?.playVideo = true
+                    psState = PSState.Expanded
+                } else theatres[i].mPlayer?.playVideo = false
+            }
         }
     }
 }

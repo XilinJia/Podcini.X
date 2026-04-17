@@ -1,0 +1,8 @@
+* largely re-organized the playback routines
+* replay the same episode no longer goes through player prepare process
+* fixed not seeking past the recorded duration of an episode
+* duration if less than played position is amended to played position
+* long-press on Rewind also sets slider position to 0
+* added experimental feature of playing 2 episodes at same time
+* code to move clips in migration since 10.12 is removed
+* upped SDK and target to 37 (Android 17)

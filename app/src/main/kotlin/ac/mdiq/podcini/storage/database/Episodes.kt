@@ -6,9 +6,8 @@ import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
-import ac.mdiq.podcini.playback.base.InTheatre.curState
-import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.prefSpeedOf
+
+import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.ACTION_SHUTDOWN_PLAYBACK_SERVICE
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.SubscriptionLog
@@ -200,11 +199,13 @@ suspend fun deleteMedia(episode: Episode): Episode {
         } catch (e: Throwable) { Logs(TAG, e, "deleteMedia failed") }
     }
 
-    if (episode.id == curState.curMediaId) {
-        savePlayerStatus(null)
-        sendLocalBroadcast(ACTION_SHUTDOWN_PLAYBACK_SERVICE)
-        val nm = NotificationManagerCompat.from(context)
-        nm.cancel(R.id.notification_playing)
+    for (i in 0..1) {
+        if (episode.id == theatres[i].mPlayer?.curState?.curMediaId) {
+            theatres[i].mPlayer?.savePlayerStatus(null, null)
+            sendLocalBroadcast(ACTION_SHUTDOWN_PLAYBACK_SERVICE)
+            val nm = NotificationManagerCompat.from(context)
+            nm.cancel(R.id.notification_playing)
+        }
     }
 
     if (isProviderConnected) {
@@ -261,7 +262,7 @@ fun buildListInfo(episodes: List<Episode>, total: Int = 0): String {
     if (total > 0) infoText += "/$total"
     if (episodes.isNotEmpty()) {
         var timeLeft: Long = 0
-        for (item in episodes) timeLeft += ((item.duration - item.position) / (prefSpeedOf(item).first.takeIf { it > 0 } ?: 1f)).toLong()
+        for (item in episodes) timeLeft += ((item.duration - item.position) / (theatres[0].mPlayer!!.prefSpeedOf(item).first.takeIf { it > 0 } ?: 1f)).toLong()
         infoText += " * " + durationStringShort(timeLeft, true)
     }
     return infoText

@@ -13,7 +13,8 @@ import ac.mdiq.podcini.net.download.Downloader.Companion.downloadStates
 import ac.mdiq.podcini.net.utils.NetworkUtils.fetchHtmlSource
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.playback.base.InTheatre
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
+import ac.mdiq.podcini.playback.base.InTheatre.theatres
+
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
@@ -201,7 +202,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
     var showAltActionsDialog by remember { mutableStateOf(false) }
     var actionButton by remember { mutableStateOf<ActionButton?>(null) }
     if (showAltActionsDialog) actionButton?.AltActionsDialog(onDismiss = { showAltActionsDialog = false })
-    LaunchedEffect(key1 = status, episode) {
+    LaunchedEffect(key1 = theatres[0].mPlayer?.status, theatres[1].mPlayer?.status, episode) {
         actionButton = ActionButton(episode)
         actionButton?.type = when {
             InTheatre.isCurrentlyPlaying(episode) -> ButtonTypes.PAUSE
@@ -377,7 +378,7 @@ fun EpisodeWebView(episode: Episode) {
                                 if (status == TextToSpeech.SUCCESS) {
                                     if (!episodeFeed?.langSet.isNullOrEmpty()) {
                                         val lang = episodeFeed.langSet.first()
-                                        val result = tts?.setLanguage(Locale(lang))
+                                        val result = tts?.setLanguage(Locale.forLanguageTag(lang))
                                         if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED)
                                             Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + lang)
                                     }

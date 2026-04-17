@@ -1,7 +1,8 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
+import ac.mdiq.podcini.playback.base.InTheatre.theatres
+
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.upsert
@@ -102,13 +103,13 @@ fun MainActivityUI() {
     LaunchedEffect(sheetState.bottomSheetState) { snapshotFlow { sheetState.bottomSheetState.currentValue }.collect { state -> psState = PSState.fromSheet(state) } }
 
     var firstRun by remember { mutableStateOf(true) }
-    LaunchedEffect(key1 = psState, key2 = curEpisode?.id, firstRun) {
+    LaunchedEffect(key1 = psState, key2 = theatres[0].mPlayer?.curEpisode?.id, firstRun) {
         Logd(TAG, "LaunchedEffect(key1 = bsState, key2 = curEpisode?.id, firstRun)")
         if (firstRun) {
             firstRun = false
             return@LaunchedEffect
         }
-        if ((curEpisode?.id ?: -1L) > 0) {
+        if ((theatres[0].mPlayer?.curEpisode?.id ?: -1L) > 0) {
             when (psState) {
                 PSState.Expanded -> sheetState.bottomSheetState.expand()
                 PSState.PartiallyExpanded -> sheetState.bottomSheetState.partialExpand()
@@ -184,7 +185,7 @@ fun MainActivityUI() {
 //    Logd(TAG, "before CompositionLocalProvider")
     CompositionLocalProvider(LocalDrawerController provides drawerCtrl, LocalDrawerState provides drawerState) {
         ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
-            BottomSheetScaffold(sheetContent = { AVPlayerScreen() }, scaffoldState = sheetState, sheetMaxWidth = screenWidth, sheetPeekHeight = bottomInsetPadding + 100.dp, sheetDragHandle = {}, sheetShape = RectangleShape, topBar = {}) { paddingValues ->
+            BottomSheetScaffold(sheetContent = { AVPlayerScreen() }, scaffoldState = sheetState, sheetMaxWidth = screenWidth, sheetPeekHeight = bottomInsetPadding + playerMinHeight.dp, sheetDragHandle = {}, sheetShape = RectangleShape, topBar = {}) { paddingValues ->
                 Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(top = paddingValues.calculateTopPadding(), bottom = dynamicBottomPadding)) {
                     NavDisplay(backStack = backStack, onBack = { navBack() }, entryProvider = anyEntryProvider)
                 }

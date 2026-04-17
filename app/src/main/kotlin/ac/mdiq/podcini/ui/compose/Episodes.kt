@@ -14,11 +14,7 @@ import ac.mdiq.podcini.net.sync.transceive.listenForUDPBroadcasts
 import ac.mdiq.podcini.net.sync.transceive.sendEpisodes
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.Media3Player.Companion.exoPlayer
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
+import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.addToQueue
 import ac.mdiq.podcini.storage.database.allowForAutoDelete
@@ -420,9 +416,9 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                 episode.marks.forEach { mark ->
                     FilterChip(label = { Text(durationStringShort(mark, false)) }, selected = false,
                         onClick = {
-                            if (curEpisode != null && exoPlayer != null && episode.id == curEpisode?.id) {
-                                if (!isPlaying) playPause()
-                                mPlayer?.seekTo(mark.toInt())
+                            if (episode.id == theatres[0].mPlayer?.curEpisode?.id) {
+                                if (!theatres[0].mPlayer!!.isPlaying) theatres[0].mPlayer?.play()
+                                theatres[0].mPlayer?.seekTo(mark.toInt())
                             } else Logt(TAG, context.getString(R.string.play_mark_msg))
                         },
                         trailingIcon = { Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete", modifier = Modifier.size(FilterChipDefaults.IconSize).padding(start = 3.dp).clickable { markToRemove = mark }) }
@@ -473,9 +469,6 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
         //                    if (!episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
         if (episode.chapters.isNotEmpty()) {
             val chapters = remember { episode.chapters }
-            
-            
-//            val context = LocalContext.current
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp)) {
                 Text(stringResource(R.string.chapters_label))
                 var curChapterIndex by remember { mutableIntStateOf(-1) }
@@ -483,13 +476,15 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                     val ch = remember(index) { chapters[index] }
                     //            Text(ch.link?: "")
                     Row(modifier = Modifier.clickable {
-                        if (curEpisode == episode) {
-                            if (!isPlaying) playPause()
-                        } else {
-                            PlaybackStarter(episode).shouldStreamThisTime(episode.fileUrl == null).start()
-                            playVideoIfNeeded(episode)
+                        when {
+                            theatres[0].mPlayer?.curEpisode?.id == episode.id -> if (!theatres[0].mPlayer!!.isPlaying) theatres[0].mPlayer?.play()
+                            theatres[1].mPlayer?.curEpisode?.id == episode.id -> if (!theatres[1].mPlayer!!.isPlaying) theatres[1].mPlayer?.play()
+                            else -> {
+                                PlaybackStarter(episode).shouldStreamThisTime(episode.fileUrl == null).start(0)
+                                playVideoIfNeeded(episode)
+                            }
                         }
-                        mPlayer?.seekTo(ch.start.toInt())
+                        theatres[0].mPlayer?.seekTo(ch.start.toInt())
                         curChapterIndex = index
                     }) {
                         Text(durationStringFull(ch.start.toInt()), color = buttonColor, modifier = Modifier.padding(end = 5.dp))
@@ -523,7 +518,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
         AndroidView(modifier = Modifier.fillMaxSize(),
             factory = { context ->
                 ShownotesWebView(context).apply {
-                    setTimecodeSelectedListener { time: Int -> mPlayer?.seekTo(time) }
+                    setTimecodeSelectedListener { time: Int -> theatres[0].mPlayer?.seekTo(time) }
                     setPageFinishedListener { postDelayed({ }, 50) }    // Restoring the scroll position might not always work
                 } },
             update = { view ->

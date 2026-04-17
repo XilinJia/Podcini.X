@@ -8,8 +8,7 @@ import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.playerStat
+import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.base.PlayerStatusInt
 import ac.mdiq.podcini.storage.database.addRemoteToMiscSyndicate
 import ac.mdiq.podcini.storage.database.addToAssQueue
@@ -294,7 +293,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
         val imageWidth = if (layoutMode == LayoutMode.WideImage.ordinal) 150.dp else 56.dp
         val imageHeight = if (layoutMode == LayoutMode.WideImage.ordinal) 100.dp else 56.dp
 
-        Logd(TAG, "outside of LazyColumn")
+//        Logd(TAG, "outside of LazyColumn")
         LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize().padding(start = 5.dp, end = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(items = episodes, key = { it.id }) { episode_ ->
                 val episode by rememberUpdatedState(episode_)
@@ -507,11 +506,16 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                         }
                                     }
                                     LaunchedEffect(episode.fileUrl) { actionButton.update(episode) }
-                                    LaunchedEffect(playerStat, curEpisode?.id, actionButton.speaking) {
+                                    LaunchedEffect(theatres[0].mPlayer?.curState?.curPlayerStatus, theatres[0].mPlayer?.curEpisode?.id, theatres[1].mPlayer?.curState?.curPlayerStatus, theatres[1].mPlayer?.curEpisode?.id, actionButton.speaking) {
                                         when {
-                                            episode.id == curEpisode?.id -> {
-                                                Logd(TAG, "playerStat: $playerStat episode: ${episode.title}")
-                                                if (playerStat == PlayerStatusInt.PLAYING.code) actionButton.type = ButtonTypes.PAUSE
+                                            episode.id == theatres[0].mPlayer?.curEpisode?.id -> {
+                                                Logd(TAG, "playerStat: ${theatres[0].mPlayer?.curState?.curPlayerStatus} episode: ${episode.title}")
+                                                if (theatres[0].mPlayer?.curState?.curPlayerStatus == PlayerStatusInt.PLAYING.code) actionButton.type = ButtonTypes.PAUSE
+                                                else actionButton.update(episode)
+                                            }
+                                            episode.id == theatres[1].mPlayer?.curEpisode?.id -> {
+                                                Logd(TAG, "playerStat: ${theatres[1].mPlayer?.curState?.curPlayerStatus} episode: ${episode.title}")
+                                                if (theatres[1].mPlayer?.curState?.curPlayerStatus == PlayerStatusInt.PLAYING.code) actionButton.type = ButtonTypes.PAUSE
                                                 else actionButton.update(episode)
                                             }
                                             actionButton.speaking.value -> actionButton.type = ButtonTypes.PAUSE
@@ -534,7 +538,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                             }
                         }
 
-                        if (showActionButtons && (episode.position > 0 || curEpisode?.id == episode.id)) {
+                        if (showActionButtons && (episode.position > 0 || theatres[0].mPlayer?.curEpisode?.id == episode.id || theatres[1].mPlayer?.curEpisode?.id == episode.id)) {
                             fun calcProg(): Float {
                                 val pos = episode.position
                                 val dur = episode.duration

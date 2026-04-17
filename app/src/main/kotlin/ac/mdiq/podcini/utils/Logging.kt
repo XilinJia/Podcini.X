@@ -3,8 +3,8 @@
 package ac.mdiq.podcini.utils
 
 import ac.mdiq.podcini.BuildConfig
-import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.model.Episode
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -44,12 +44,12 @@ fun Loge(t: String, m: String) {
     }
 }
 
-fun Logpe(t: String, m: String) {
+fun Logpe(t: String, episode: Episode?, m: String) {
     if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m)
     LogScope.launch {
         trimToasts()
         if (appPrefs.showErrorToasts) toastMassege = "$t: Error: $m"
-        sessionLogs.add("${fullDateTimeString()} $t: ${curEpisode?.id} Error: $m")
+        sessionLogs.add("${fullDateTimeString()} $t: ${episode?.id} Error: $m")
     }
 }
 
@@ -63,13 +63,13 @@ fun Logs(t: String, m: String) {
     }
 }
 
-fun Logps(t: String, m: String) {
+fun Logps(t: String, episode: Episode?, m: String) {
     if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m)
     showStackTrace()
     LogScope.launch {
         trimToasts()
         if (appPrefs.showErrorToasts) toastMassege = "$t: Error: $m "
-        sessionLogs.add("${fullDateTimeString()} $t: ${curEpisode?.id} Error: $m ")
+        sessionLogs.add("${fullDateTimeString()} $t: ${episode?.id} Error: $m ")
     }
 }
 
@@ -83,13 +83,13 @@ fun Logs(t: String, e: Throwable, m: String = "") {
     }
 }
 
-fun Logps(t: String, e: Throwable, m: String = "") {
+fun Logps(t: String, episode: Episode?, e: Throwable, m: String = "") {
     if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m + ": "+ e.message + "\n" + Log.getStackTraceString(e))
     val me = e.message
     LogScope.launch {
         trimToasts()
         if (appPrefs.showErrorToasts) toastMassege = "$t: $m Error: $me"
-        sessionLogs.add("${fullDateTimeString()} $t: ${curEpisode?.id} $m Error: $me")
+        sessionLogs.add("${fullDateTimeString()} $t: ${episode?.id} $m Error: $me")
     }
 }
 
@@ -102,12 +102,12 @@ fun Logt(t: String, m: String) {
     }
 }
 
-fun Logpt(t: String, m: String) {
+fun Logpt(t: String, episode: Episode?, m: String) {
     if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.d(t, m)
     LogScope.launch {
         trimToasts()
         toastMassege = "$t: $m"
-        sessionLogs.add("${fullDateTimeString()} $t: ${curEpisode?.id} $m")
+        sessionLogs.add("${fullDateTimeString()} $t: ${episode?.id} $m")
     }
 }
 

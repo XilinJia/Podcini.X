@@ -1,29 +1,17 @@
 package ac.mdiq.podcini.playback.base
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.shouldRepeat
 import ac.mdiq.podcini.playback.service.PlaybackService
-import ac.mdiq.podcini.storage.database.MonitorEntity
-import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.episodeById
-import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
-import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.subscribeEpisode
 import ac.mdiq.podcini.storage.database.unsubscribeEpisode
-import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.LONG_MINUS_1
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.LONG_PLUS_1
-import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.QueueEntry
-import ac.mdiq.podcini.storage.specs.MediaType
-import ac.mdiq.podcini.storage.specs.VideoMode
-import ac.mdiq.podcini.ui.screens.curVideoMode
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logpe
 import ac.mdiq.podcini.utils.timeIt
@@ -44,12 +32,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 object InTheatre {
     private val TAG: String = InTheatre::class.simpleName ?: "Anonymous"
-
-    const val VIRTUAL_QUEUE_SIZE = 50
 
     internal var aCtrlFuture: ListenableFuture<MediaController>? = null
     var aController: MediaController? = null
@@ -59,39 +44,62 @@ object InTheatre {
 
     var actQueue by mutableStateOf(PlayQueue())
 
-    var playVideo by mutableStateOf(false)
+    var activeTheatres by mutableIntStateOf(1)
 
-    var curEpisode by mutableStateOf<Episode?>(null)
+    class Theatre(val id: Int) {
+        var mPlayer by mutableStateOf<MediaPlayerBase?>(null)
 
-    var curSpeed: Float = SPEED_USE_GLOBAL
-    var curPitch: Float = SPEED_USE_GLOBAL
+        var curStateMonitor: Job? = null
 
-    var tempSkipSilence: Boolean? = null
-
-    private var curStateMonitor: Job? = null
-    var curState: CurrentState = CurrentState()
-
-    var playerStat by mutableIntStateOf(PlayerStatusInt.OTHER.code)
-
-    var bitrate by mutableIntStateOf(0)
-
-    init {
-//        showStackTrace()
-        timeIt("$TAG start of init")
-        CoroutineScope(Dispatchers.IO).launch {
-            Logd(TAG, "starting curState")
-            curState = realm.query(CurrentState::class).query("id == 0").first().find() ?: upsertBlk(CurrentState()) {}
-            restoreMediaFromPreferences()
-            Logd(TAG, "curEpisode from preference: ${curEpisode?.title}")
-            if (curEpisode != null) {
-                val qes = realm.query(QueueEntry::class).query("episodeId == ${curEpisode!!.id}").find()
-                if (qes.isNotEmpty()) {
-                    val q = realm.query(PlayQueue::class).query("id == ${qes[0].queueId}").first().find()
-                    if (q != null) actQueue = q
+        fun monitorState() {
+            if (curStateMonitor == null) curStateMonitor = CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                val cst = realm.query(CurrentState::class).query("id == $id").first()
+                Logd(TAG, "start monitoring curState: ")
+                val stateFlow = cst.asFlow()
+                stateFlow.collect { changes: SingleQueryChange<CurrentState> ->
+                    when (changes) {
+                        is UpdatedObject -> {
+                            mPlayer?.curState = changes.obj
+                            Logd(TAG, "stateMonitor UpdatedObject ${changes.obj.curMediaId} playerStat: $theatres[0].playerStat ${changes.changedFields.joinToString()}")
+                        }
+                        is InitialObject -> {
+                            mPlayer?.curState = changes.obj
+                            Logd(TAG, "stateMonitor InitialObject ${changes.obj.curMediaId}")
+                        }
+                        else -> Logd(TAG, "stateMonitor other changes: $changes")
+                    }
                 }
             }
         }
-        monitorState()
+    }
+
+    val theatres: List<Theatre> = listOf(Theatre(0), Theatre(1))
+
+    fun startTheatres() {
+        timeIt("$TAG start of init")
+        CoroutineScope(Dispatchers.IO).launch {
+            for (i in 0..1) {
+                Logd(TAG, "starting curState for player: ${theatres[i].mPlayer?.playerId}")
+                theatres[i].mPlayer?.curState = realm.query(CurrentState::class).query("id == $i").first().find() ?: run {
+                    val cs = CurrentState()
+                    cs.id = i.toLong()
+                    upsertBlk(cs) { }
+                }
+                if (theatres[i].mPlayer?.curState?.curMediaType != LONG_MINUS_1) {
+                    if (theatres[i].mPlayer?.curState?.curMediaType == LONG_PLUS_1) {
+                        if (theatres[i].mPlayer?.curState?.curMediaId != 0L) theatres[i].mPlayer?.setAsCurEpisode(episodeById(theatres[i].mPlayer?.curState?.curMediaId?:-1))
+                    } else Logpe(TAG, theatres[i].mPlayer?.curEpisode,  "Could not restore EpisodeMedia object from preferences for theatre $i, curMediaType: ${theatres[i].mPlayer?.curState?.curMediaType} ")
+                }
+                Logd(TAG, "curEpisode from preference: ${theatres[i].mPlayer?.curEpisode?.title}")
+                if (theatres[i].mPlayer?.curEpisode != null) {
+                    val qes = realm.query(QueueEntry::class).query("episodeId == ${theatres[i].mPlayer?.curEpisode!!.id}").find()
+                    if (qes.isNotEmpty()) {
+                        realm.query(PlayQueue::class).query("id == ${qes[0].queueId}").first().find()?. let { actQueue = it }
+                    }
+                }
+                theatres[i].monitorState()
+            }
+        }
         timeIt("$TAG end of init")
     }
 
@@ -111,128 +119,33 @@ object InTheatre {
             aCtrlFuture = null
         }
     }
-    fun monitorState() {
-        if (curStateMonitor == null) curStateMonitor = CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-//            curState = realm.query(CurrentState::class).query("id == 0").first().find() ?: upsertBlk(CurrentState()) {}
-            val item_ = realm.query(CurrentState::class).first()
-            Logd(TAG, "start monitoring curState: ")
-            val stateFlow = item_.asFlow()
-            stateFlow.collect { changes: SingleQueryChange<CurrentState> ->
-                when (changes) {
-                    is UpdatedObject -> {
-                        curState = changes.obj
-                        if (changes.changedFields.contains("curPlayerStatus")) withContext(Dispatchers.Main) { playerStat = curState.curPlayerStatus }
-                        Logd(TAG, "stateMonitor UpdatedObject ${changes.obj.curMediaId} playerStat: $playerStat ${changes.changedFields.joinToString()}")
-                    }
-                    is InitialObject -> {
-                        curState = changes.obj
-                        Logd(TAG, "stateMonitor InitialObject ${changes.obj.curMediaId}")
-                    }
-                    else -> Logd(TAG, "stateMonitor other changes: $changes")
-                }
-            }
-        }
+
+    fun isCurrentlyPlaying(mPlayer: MediaPlayerBase?, media: Episode?): Boolean {
+        return isCurMedia(mPlayer, media) && PlaybackService.isRunning && mPlayer?.isPlaying == true
     }
 
-    // TODO: these appear not needed
-    var onCurInitUICB: (suspend (e: Episode)->Unit)? = null
-    var onCurChangedUICB: (suspend (e: Episode, fields: Array<String>)->Unit)? = null
-
-    fun setAsCurEpisode(episode: Episode?, force: Boolean = false) {
-        Logd(TAG, "setCurEpisode episode: ${episode?.title}")
-//        showStackTrace()
-        if (episode != null && episode.id == curEpisode?.id && !force) return
-        if (curEpisode != null) unsubscribeEpisode(curEpisode!!, TAG)
-        val episode_ = if (episode != null) episodeById(episode.id) else null
-        when {
-            episode_ != null -> {
-                curEpisode = episode_
-                playVideo = (episode_.forceVideo || (episode_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && episode_.getMediaType() == MediaType.VIDEO))
-                tempSkipSilence = null
-                shouldRepeat = false
-                curSpeed = SPEED_USE_GLOBAL
-                Logd(TAG, "setCurEpisode start monitoring curEpisode ${curEpisode?.title}")
-                runOnIOScope {
-                    val qes = realm.query(QueueEntry::class).query("episodeId == ${curEpisode!!.id}").find()
-                    if (qes.isNotEmpty()) {
-                        val q = queuesLive.find { it.id == qes[0].queueId }
-                        if (q != null) actQueue = q
-                    }
-                    subscribeEpisode(curEpisode!!,
-                        MonitorEntity(TAG,
-                            onInit = { e -> onCurInitUICB?.invoke(e) },
-                            onChanges = { e, f ->
-                                if (e.id == curEpisode?.id) {
-                                    curEpisode = e
-                                    Logd(TAG, "setCurEpisode updating curEpisode [${curEpisode?.title}] ${f.joinToString()}")
-                                    onCurChangedUICB?.invoke(e, f)
-                                }
-                            }
-                        ))
-                }
-            }
-            else -> {
-                curEpisode = null
-                savePlayerStatus(null)
-            }
-        }
+    fun isCurMedia(mPlayer: MediaPlayerBase?, media: Episode?): Boolean {
+        return media != null && mPlayer?.curEpisode?.id == media.id
     }
 
-    fun savePlayerStatus(playerStatus: PlayerStatus?) {
-        runOnIOScope {
-            if (playerStatus != null) upsert(curState) { it.curPlayerStatus = playerStatus.getAsInt() }
-            else upsert(curState) {
-                it.curMediaType = LONG_MINUS_1
-                it.curFeedId = LONG_MINUS_1
-                it.curMediaId = LONG_MINUS_1
-                it.curPlayerStatus = PlayerStatusInt.OTHER.code
-            }
-        }
-    }
-
-    fun savePlayerStatus(episode: Episode?, playerStatus: PlayerStatus) {
-        Logd(TAG, "Writing playback preferences ${episode?.id}")
-        if (episode == null) savePlayerStatus(null)
-        else runOnIOScope {
-            upsert(curState) {
-                it.curPlayerStatus = playerStatus.getAsInt()
-                it.curMediaType = LONG_PLUS_1
-                it.curIsVideo = episode.getMediaType() == MediaType.VIDEO
-                val feedId = episode.feed?.id
-                if (feedId != null) it.curFeedId = feedId
-                it.curMediaId = episode.id
-            }
-        }
-    }
-
-    // TODO: check out this
-    /**
-     * Restores a playable object from a sharedPreferences file. This method might load data from the database,
-     * depending on the type of playable that was restored.
-     * @return The restored EpisodeMedia object
-     */
-    fun restoreMediaFromPreferences() {
-        Logd(TAG, "loadPlayableFromPreferences currentlyPlayingType: $curState.curMediaType")
-        if (curState.curMediaType != LONG_MINUS_1) {
-            if (curState.curMediaType == LONG_PLUS_1) {
-                if (curState.curMediaId != 0L) setAsCurEpisode(episodeById(curState.curMediaId))
-            } else Logpe(TAG, "Could not restore EpisodeMedia object from preferences")
-        }
-    }
-
-    
     fun isCurrentlyPlaying(media: Episode?): Boolean {
-        return isCurMedia(media) && PlaybackService.isRunning && isPlaying
+        return isCurMedia(media) && PlaybackService.isRunning && (theatres[0].mPlayer?.isPlaying == true || theatres[1].mPlayer?.isPlaying == true)
     }
 
     fun isCurMedia(media: Episode?): Boolean {
-        return media != null && curEpisode?.id == media.id
+        return media != null && (theatres[0].mPlayer?.curEpisode?.id == media.id || theatres[1].mPlayer?.curEpisode?.id == media.id)
+    }
+
+    fun isCurMedia(id: Long): Boolean {
+        return (theatres[0].mPlayer?.curEpisode?.id == id || theatres[1].mPlayer?.curEpisode?.id == id)
     }
 
     fun cleanup() {
         Logd(TAG, "cleanup()")
-        if (curEpisode != null) unsubscribeEpisode(curEpisode!!, TAG)
-        curStateMonitor?.cancel()
-        curStateMonitor = null
+        for (i in 0..1) {
+            if (theatres[i].mPlayer?.curEpisode != null) unsubscribeEpisode(theatres[i].mPlayer?.curEpisode!!, TAG)
+            theatres[i].curStateMonitor?.cancel()
+            theatres[i].curStateMonitor = null
+        }
     }
 }

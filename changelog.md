@@ -1,3 +1,22 @@
+# 11.0.0
+
+* largely re-organized the playback routines
+* replay the same episode no longer goes through player prepare process
+* fixed not seeking past the recorded duration of an episode
+* duration if less than played position is amended to played position
+* long-press on Rewind also sets slider position to 0
+* added experimental feature of playing 2 episodes at same time
+	* 2-player mode can be toggled in drawer on the Podcini icons, by Settings
+	* once on, click Play/Stream button on a list prompt for player: Default or Secondary
+	* 2 PlayerUI's to control each separately, bottom for Default and top for Secondary
+	* a slider bar in between adjust volume balance of each player
+	* on earphones, Default plays to the left and Secondary to the right
+* old cast player is replaced by media3's CastPlayer
+* code to move clips in migration since 10.12 is removed
+* removed old code RatingDialog for Google Play (on Play app)
+* upped SDK and target to 37 (Android 17)
+* updated some media3 deprecations and removed some unnecessary dependencies
+
 # 10.14.13
 
 * added a pitch setting in the full speed settings dialog

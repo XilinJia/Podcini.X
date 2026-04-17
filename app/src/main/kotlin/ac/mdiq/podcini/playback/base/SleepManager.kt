@@ -23,21 +23,27 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.sqrt
 import ac.mdiq.podcini.storage.utils.nowInMillis
+import ac.mdiq.podcini.utils.showStackTrace
+import android.content.Context.VIBRATOR_MANAGER_SERVICE
+import android.os.Build
+import android.os.Build.VERSION_CODES
+import android.os.VibrationEffect
+import android.os.VibratorManager
 
 class SleepManager {
-    private var sleepTimer: SleepTimer? = null
-    private var sleepTimerJob: Job? = null
+    private var timer: SleepTimer? = null
+    private var timerJob: Job? = null
 
     @get:Synchronized
-    val isSleepTimerActive: Boolean
-        get() = sleepTimerJob != null && (sleepTimer?.timeLeft ?: 0) > 0
+    val isActive: Boolean
+        get() = timerJob != null && (timer?.timeLeft ?: 0) > 0
 
     /**
      * Returns the current sleep timer time or 0 if the sleep timer is not active.
      */
     @get:Synchronized
-    val sleepTimerTimeLeft: Long
-        get() = if (isSleepTimerActive) sleepTimer!!.timeLeft else 0
+    val timeLeft: Long
+        get() = if (isActive) timer!!.timeLeft else 0
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
@@ -48,34 +54,35 @@ class SleepManager {
      * @throws java.lang.IllegalArgumentException if waitingTime <= 0
      */
     @Synchronized
-    fun setSleepTimer(waitingTime: Long) {
+    fun setTimer(waitingTime: Long) {
         require(waitingTime > 0) { "Waiting time <= 0" }
-        Logd(TAG, "Setting sleep timer to $waitingTime milliseconds")
-        if (isSleepTimerActive) sleepTimerJob!!.cancel()
-        sleepTimer = SleepTimer(waitingTime)
-        sleepTimerJob = sleepTimer!!.start()
+//        showStackTrace()
+        Logt(TAG, "Setting sleep timer to ${waitingTime/1000} seconds")
+        if (isActive) timerJob!!.cancel()
+        timer = SleepTimer(waitingTime)
+        timerJob = timer!!.start()
     }
 
     @Synchronized
-    fun disableSleepTimer() {
-        sleepTimer?.cancel()
-        sleepTimer = null
+    fun disable() {
+        Logt(TAG, "Sleep timer disabled")
+        timer?.cancel()
+        timer = null
     }
 
     @Synchronized
-    fun restartSleepTimer() {
-        if (isSleepTimerActive) {
-            Logd(TAG, "Restarting sleep timer")
-            sleepTimer!!.restart()
+    fun restart() {
+        if (isActive) {
+            Logt(TAG, "Sleep timer restarted")
+            timer!!.restart()
         }
     }
 
     /**
      * Sleeps for a given time and then pauses playback.
      */
-    internal inner class SleepTimer(private val waitingTime: Long) {
+    inner class SleepTimer(private val waitingTime: Long) {
         var timeLeft = waitingTime
-
         private var hasVibrated = false
         private var shakeListener: ShakeListener? = null
 
@@ -100,11 +107,13 @@ class SleepManager {
                         postTimeLeft()
                         Logd(TAG, "Sleep timer is about to expire")
                         if (sleepPrefs.Vibrate && !hasVibrated) {
-                            val v = getAppContext().getSystemService(VIBRATOR_SERVICE) as? Vibrator
-                            if (v != null) {
-                                v.vibrate(500)
-                                hasVibrated = true
+                            val vibrator = if (Build.VERSION.SDK_INT >= VERSION_CODES.S) (getAppContext().getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
+                            else {
+                                @Suppress("DEPRECATION")
+                                getAppContext().getSystemService(VIBRATOR_SERVICE) as Vibrator
                             }
+                            vibrator.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE))
+                            hasVibrated = true
                         }
                         if (shakeListener == null && sleepPrefs.ShakeToReset) shakeListener = ShakeListener(this@SleepTimer)
                         if (timeLeft <= 0) {
@@ -124,28 +133,24 @@ class SleepManager {
 
         fun restart() {
             EventFlow.postEvent(FlowEvent.SleepTimerUpdatedEvent.cancelled())
-            setSleepTimer(waitingTime)
+            setTimer(waitingTime)
             shakeListener?.pause()
             shakeListener = null
         }
 
         fun cancel() {
-            sleepTimerJob?.cancel()
-            sleepTimerJob = null
+            timerJob?.cancel()
+            timerJob = null
             shakeListener?.pause()
             EventFlow.postEvent(FlowEvent.SleepTimerUpdatedEvent.cancelled())
         }
     }
 
-    internal class ShakeListener(private val mSleepTimer: SleepTimer) : SensorEventListener {
+    class ShakeListener(private val mSleepTimer: SleepTimer) : SensorEventListener {
         private var mAccelerometer: Sensor? = null
         private var mSensorMgr: SensorManager? = null
 
         init {
-            resume()
-        }
-
-        private fun resume() {
             // only a precaution, the user should actually not be able to activate shake to reset
             // when the accelerometer is not available
             mSensorMgr = getAppContext().getSystemService(SENSOR_SERVICE) as SensorManager
@@ -154,7 +159,7 @@ class SleepManager {
             mAccelerometer = mSensorMgr!!.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
             if (!mSensorMgr!!.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_UI)) { // if not supported
                 mSensorMgr!!.unregisterListener(this)
-//                throw UnsupportedOperationException("Accelerometer not supported")
+                //                throw UnsupportedOperationException("Accelerometer not supported")
                 Logt(TAG, "Shaking and Accelerometer not supported on device")
             }
         }
@@ -187,6 +192,23 @@ class SleepManager {
         @SuppressLint("StaticFieldLeak")
         internal var sleepManager: SleepManager? = null
 
-        fun isSleepTimerActive(): Boolean = sleepManager?.isSleepTimerActive == true
+        fun isSleepTimerActive(): Boolean = sleepManager?.isActive == true
+
+        val lastTimerValue: Long
+            get() = sleepPrefs.LastValue.takeIf { it != 0L } ?: 15L    // in minutes
+
+        val autoEnableFrom: Int
+            get() = sleepPrefs.AutoEnableFrom.takeIf { it != 0 } ?: 22
+
+        val autoEnableTo: Int
+            get() = sleepPrefs.AutoEnableTo.takeIf { it != 0 } ?: 6
+
+        fun isInTimeRange(from: Int, to: Int, current: Int): Boolean {
+            return when {
+                from < to -> current in from..<to   // Range covers one day
+                from <= current -> true     // Range covers two days
+                else -> current < to
+            }
+        }
     }
 }

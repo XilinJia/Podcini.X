@@ -6,7 +6,8 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.RequestTye
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.sync.transceive.sendFeed
-import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
+import ac.mdiq.podcini.playback.base.InTheatre.theatres
+
 import ac.mdiq.podcini.storage.database.FeedAssistant
 import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedOperationText
@@ -250,7 +251,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
     val drawerController = LocalDrawerController.current
-    
 
     val vm: FeedDetailsVM = viewModel(key = feedId.toString(), factory = viewModelFactory { initializer { FeedDetailsVM(feedId = feedId, modeName = modeName) } })
 
@@ -364,15 +364,17 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
     val lazyListState = rememberLazyListState()
     fun onImgLongClick() {
-        if (curEpisode?.feedId == feedId) {
-            if (screenMode == FeedScreenMode.List) {
-                if (episodes.size > 5) {
-                    val index = episodes.indexOfFirst { it.id == curEpisode?.id }
-                    if (index >= 0) scope.launch { lazyListState.scrollToItem(index) }
-                    else Logt(TAG, "can not find curEpisode to scroll to")
-                } else Logt(TAG, "only scroll when episodes number is larger than 5")
-            } else vm.screenModeFlow.value = (FeedScreenMode.List)
-        } else if (curEpisode?.feedId != null) navTo(FeedDetails(feedId = curEpisode!!.feedId!!))
+        for (i in 0..1) {
+            if (theatres[i].mPlayer?.curEpisode?.feedId == feedId) {
+                if (screenMode == FeedScreenMode.List) {
+                    if (episodes.size > 5) {
+                        val index = episodes.indexOfFirst { it.id == theatres[i].mPlayer?.curEpisode?.id }
+                        if (index >= 0) scope.launch { lazyListState.scrollToItem(index) }
+                        else Logt(TAG, "can not find curEpisode to scroll to")
+                    } else Logt(TAG, "only scroll when episodes number is larger than 5")
+                } else vm.screenModeFlow.value = (FeedScreenMode.List)
+            } else if (theatres[i].mPlayer?.curEpisode?.feedId != null) navTo(FeedDetails(feedId = theatres[i].mPlayer?.curEpisode!!.feedId!!))
+        }
     }
 
     val maxHeaderHeight = 60.dp
@@ -659,11 +661,12 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     else Scaffold(topBar = { TopHeader() }) { innerPadding ->
         if (screenMode in listOf(FeedScreenMode.List, FeedScreenMode.History)) {
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface).nestedScroll(nestedScrollConnection)) {
-                var scrollToOnStart by remember(episodes.size, curEpisode?.id, vm.cameBack, screenMode) { mutableIntStateOf(
+                var scrollToOnStart by remember(episodes.size, theatres[0].mPlayer?.curEpisode?.id, theatres[1].mPlayer?.curEpisode?.id, vm.cameBack, screenMode) { mutableIntStateOf(
                     when {
                         screenMode == FeedScreenMode.History || screenMode == FeedScreenMode.Info -> -1
                         vm.cameBack -> -1
-                        curEpisode?.feedId == feedId -> episodes.indexOfFirst { it.id == curEpisode?.id }
+                        theatres[0].mPlayer?.curEpisode?.feedId == feedId -> episodes.indexOfFirst { it.id == theatres[0].mPlayer?.curEpisode?.id }
+                        theatres[1].mPlayer?.curEpisode?.feedId == feedId -> episodes.indexOfFirst { it.id == theatres[1].mPlayer?.curEpisode?.id }
                         else -> -1
                     }
                 ) }

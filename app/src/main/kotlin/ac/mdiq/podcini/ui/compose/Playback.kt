@@ -1,18 +1,10 @@
 package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.playback.SleepTimer.autoEnableFrom
-import ac.mdiq.podcini.playback.SleepTimer.autoEnableTo
-import ac.mdiq.podcini.playback.SleepTimer.lastTimerValue
-import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.curPitch
-import ac.mdiq.podcini.playback.base.InTheatre.curSpeed
-import ac.mdiq.podcini.playback.base.InTheatre.tempSkipSilence
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curPBSpeed
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isFallbackSpeed
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isSpeedForward
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.shouldRepeat
+import ac.mdiq.podcini.playback.base.InTheatre.theatres
+import ac.mdiq.podcini.playback.base.SleepManager.Companion.autoEnableFrom
+import ac.mdiq.podcini.playback.base.SleepManager.Companion.autoEnableTo
+import ac.mdiq.podcini.playback.base.SleepManager.Companion.lastTimerValue
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
@@ -192,7 +184,7 @@ fun PlaybackSpeedDialog(feeds: List<Feed>, initSpeed: Float, maxSpeed: Float, is
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun PlaybackSpeedFullDialog(indexDefault: Int, maxSpeed: Float, onDismiss: () -> Unit) {
+fun PlaybackSpeedFullDialog(playerId: Int, indexDefault: Int, maxSpeed: Float, onDismiss: () -> Unit) {
     val TAG = "PlaybackSpeedFullDialog"
     fun readPlaybackSpeedArray(valueFromPrefs: String?): List<Float> {
         if (valueFromPrefs != null) {
@@ -215,7 +207,7 @@ fun PlaybackSpeedFullDialog(indexDefault: Int, maxSpeed: Float, onDismiss: () ->
         dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
         Card(modifier = Modifier.fillMaxWidth().wrapContentHeight().padding(top = 10.dp, bottom = 10.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
             Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-                var speed by remember { mutableFloatStateOf(curPBSpeed) }
+                var speed by remember { mutableFloatStateOf(theatres[playerId].mPlayer?.curPBSpeed?:0f) }
                 val speeds = remember { readPlaybackSpeedArray(appPrefs.playbackSpeedArray).toMutableStateList() }
                 var showEdit by remember { mutableStateOf(false) }
                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -277,18 +269,18 @@ fun PlaybackSpeedFullDialog(indexDefault: Int, maxSpeed: Float, onDismiss: () ->
                         FilterChip(label = { Text(chipSpeed.format(2)) }, selected = false,
                             onClick = {
                                 if (playbackService != null) {
-                                    isSpeedForward = false
-                                    isFallbackSpeed = false
+                                    theatres[playerId].mPlayer?.isSpeedForward = false
+                                    theatres[playerId].mPlayer?.isFallbackSpeed = false
                                     if (forGlobal) upsertBlk(appPrefs) { it.playbackSpeed = chipSpeed }
-                                    if (forPodcast && curEpisode?.feed != null) upsertBlk(curEpisode!!.feed!!) { it.playSpeed = chipSpeed }
+                                    if (forPodcast && theatres[playerId].mPlayer?.curEpisode?.feed != null) upsertBlk(theatres[playerId].mPlayer?.curEpisode!!.feed!!) { it.playSpeed = chipSpeed }
                                     if (forCurrent) {
-                                        curSpeed = chipSpeed
-                                        mPlayer?.setPlaybackParams(chipSpeed)
+                                        theatres[playerId].mPlayer?.curSpeed = chipSpeed
+                                        theatres[playerId].mPlayer?.setPlaybackParams(chipSpeed)
                                     }
                                 }
                                 else {
                                     upsertBlk(appPrefs) { it.playbackSpeed = chipSpeed }
-                                    EventFlow.postEvent(FlowEvent.SpeedChangedEvent(chipSpeed))
+                                    EventFlow.postEvent(FlowEvent.SpeedChangedEvent(playerId, chipSpeed))
                                 }
                                 onDismiss()
                             },
@@ -302,8 +294,8 @@ fun PlaybackSpeedFullDialog(indexDefault: Int, maxSpeed: Float, onDismiss: () ->
                 TextButton(onClick = { showMore = !showMore }) { Text("More>>", style = MaterialTheme.typography.headlineSmall) }
                 if (showMore) {
                     Text(stringResource(R.string.playback_pitch), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp))
-                    var tmpPitch by remember(curEpisode?.id) { mutableStateOf(true) }
-                    var feedPitch by remember(curEpisode?.id) { mutableStateOf(false) }
+                    var tmpPitch by remember(theatres[playerId].mPlayer?.curEpisode?.id) { mutableStateOf(true) }
+                    var feedPitch by remember(theatres[playerId].mPlayer?.curEpisode?.id) { mutableStateOf(false) }
                     var glPitch by remember { mutableStateOf(false) }
                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                         Spacer(Modifier.weight(1f))
@@ -317,7 +309,7 @@ fun PlaybackSpeedFullDialog(indexDefault: Int, maxSpeed: Float, onDismiss: () ->
                         Text(stringResource(R.string.global))
                         Spacer(Modifier.weight(1f))
                     }
-                    var pitchStr by remember { mutableStateOf(curPitch.toString()) }
+                    var pitchStr by remember { mutableStateOf((theatres[playerId].mPlayer?.curPitch?:1f).toString()) }
                     var showSet by remember { mutableStateOf(false) }
                     var unit by remember { mutableStateOf("Ratio") }
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -333,10 +325,10 @@ fun PlaybackSpeedFullDialog(indexDefault: Int, maxSpeed: Float, onDismiss: () ->
                                 val pitch = if (unit == "Ratio") pitchStr.toFloat() else pitchStr.toFloat() / 440f
                                 Logd(TAG, "pitch set to $pitch")
                                 if (tmpPitch) {
-                                    curPitch = pitch
-                                    mPlayer?.setPlaybackParams(curSpeed, pitch)
+                                    theatres[playerId].mPlayer?.curPitch = pitch
+                                    theatres[playerId].mPlayer?.setPlaybackParams(theatres[playerId].mPlayer!!.curSpeed, pitch)
                                 }
-                                if (feedPitch) upsertBlk(curEpisode!!.feed!!) { it.playPitch = pitch }
+                                if (feedPitch) upsertBlk(theatres[playerId].mPlayer?.curEpisode!!.feed!!) { it.playPitch = pitch }
                                 if (glPitch) upsertBlk(appPrefs) { it.playbackPitch = pitch }
                             }) }
                         )
@@ -350,18 +342,18 @@ fun PlaybackSpeedFullDialog(indexDefault: Int, maxSpeed: Float, onDismiss: () ->
                     Text(stringResource(R.string.pref_skip_silence_title), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp))
                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                         Spacer(Modifier.weight(1f))
-                        var tmpChecked by remember(curEpisode?.id) { mutableStateOf(tempSkipSilence) }
+                        var tmpChecked by remember(theatres[playerId].mPlayer?.curEpisode?.id) { mutableStateOf(theatres[playerId].mPlayer?.skipSilence) }
                         Checkbox(checked = tmpChecked?: false, onCheckedChange = { isChecked ->
                             tmpChecked = isChecked
-                            tempSkipSilence = isChecked
-                            mPlayer?.setSkipSilence()
+                            theatres[playerId].mPlayer?.skipSilence = isChecked
+                            theatres[playerId].mPlayer?.setSkipSilence()
                         })
                         Text(stringResource(R.string.current_episode))
-                        var feedChecked by remember(curEpisode?.id) { mutableStateOf(curEpisode!!.feed?.skipSilence?: false) }
+                        var feedChecked by remember(theatres[playerId].mPlayer?.curEpisode?.id) { mutableStateOf(theatres[playerId].mPlayer?.curEpisode!!.feed?.skipSilence?: false) }
                         Spacer(Modifier.weight(1f))
                         Checkbox(checked = feedChecked, onCheckedChange = { isChecked ->
                             feedChecked = isChecked
-                            if (curEpisode?.feed != null) upsertBlk(curEpisode!!.feed!!) { it.skipSilence = isChecked }
+                            if (theatres[playerId].mPlayer?.curEpisode?.feed != null) upsertBlk(theatres[playerId].mPlayer?.curEpisode!!.feed!!) { it.skipSilence = isChecked }
                         })
                         Text(stringResource(R.string.current_podcast))
                         Spacer(Modifier.weight(1f))
@@ -375,9 +367,9 @@ fun PlaybackSpeedFullDialog(indexDefault: Int, maxSpeed: Float, onDismiss: () ->
                     }
                     HorizontalDivider(thickness = 5.dp, modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = shouldRepeat, onCheckedChange = { isChecked ->
-                            shouldRepeat = isChecked
-                            mPlayer?.setRepeat(isChecked)
+                        Checkbox(checked = theatres[playerId].mPlayer?.shouldRepeat == true, onCheckedChange = { isChecked ->
+                            theatres[playerId].mPlayer?.shouldRepeat = isChecked
+                            theatres[playerId].mPlayer?.setRepeat(isChecked)
                         })
                         Text(stringResource(R.string.repeat_current_media))
                     }
@@ -431,7 +423,7 @@ fun PlaybackSpeedFullDialog(indexDefault: Int, maxSpeed: Float, onDismiss: () ->
 fun SleepTimerDialog(onDismiss: () -> Unit) {
     val TAG = "SleepTimerDialog"
 
-    val timeLeft by remember { mutableLongStateOf(sleepManager?.sleepTimerTimeLeft?:0) }
+    val timeLeft by remember { mutableLongStateOf(sleepManager?.timeLeft?:0) }
     var showTimeDisplay by remember { mutableStateOf(false) }
     var showTimeSetup by remember { mutableStateOf(true) }
     var timerText by remember { mutableStateOf(durationStringFull(timeLeft.toInt())) }
@@ -453,8 +445,8 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
     var toEnd by remember { mutableStateOf(false) }
     var etxtTime by remember { mutableStateOf(lastTimerValue.toString()) }
     fun extendSleepTimer(extendTime: Long) {
-        val timeLeft = sleepManager?.sleepTimerTimeLeft ?: Episode.INVALID_TIME.toLong()
-        if (timeLeft != Episode.INVALID_TIME.toLong()) sleepManager?.setSleepTimer(timeLeft + extendTime)
+        val timeLeft = sleepManager?.timeLeft ?: Episode.INVALID_TIME.toLong()
+        if (timeLeft != Episode.INVALID_TIME.toLong()) sleepManager?.setTimer(timeLeft + extendTime)
     }
 
     AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.sleep_timer_label)) },
@@ -468,16 +460,17 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
                     if (!toEnd) TextField(value = etxtTime, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.time_minutes)) }, singleLine = true,
                         onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) etxtTime = it })
                     Button(modifier = Modifier.fillMaxWidth(), onClick = {
+                        if (theatres[0].mPlayer?.curEpisode == null) return@Button
                         if (!PlaybackService.isRunning) {
                             Logt(TAG, context.getString(R.string.no_media_playing_label))
                             return@Button
                         }
                         try {
-                            val time = if (!toEnd) etxtTime.toLong() else (max(((curEpisode?.duration ?: 0) - (curEpisode?.position ?: 0)), 0) / curPBSpeed).toLong().milliseconds.inWholeMinutes // ms to minutes
+                            val time = if (!toEnd) etxtTime.toLong() else (max(((theatres[0].mPlayer!!.curEpisode!!.duration) - (theatres[0].mPlayer!!.curEpisode!!.position)), 0) / theatres[0].mPlayer!!.curPBSpeed).toLong().milliseconds.inWholeMinutes // ms to minutes
                             Logd("SleepTimerDialog", "Sleep timer set: $time")
                             if (time == 0L) throw NumberFormatException("Timer must not be zero")
                             upsertBlk(sleepPrefs) { it.LastValue = time }
-                            sleepManager?.setSleepTimer(lastTimerValue.minutes.inWholeMilliseconds)
+                            sleepManager?.setTimer(lastTimerValue.minutes.inWholeMilliseconds)
                             showTimeSetup = false
                             showTimeDisplay = true
                             //                        closeKeyboard(content)
@@ -486,7 +479,7 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
                 }
                 if (showTimeDisplay || timeLeft > 0) {
                     Text(timerText, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-                    Button(modifier = Modifier.fillMaxWidth(), onClick = { sleepManager?.disableSleepTimer() }) { Text(stringResource(R.string.disable_sleeptimer_label)) }
+                    Button(modifier = Modifier.fillMaxWidth(), onClick = { sleepManager?.disable() }) { Text(stringResource(R.string.disable_sleeptimer_label)) }
                     Row {
                         Button(onClick = { extendSleepTimer((10 * 1000 * 60).toLong()) }) { Text(stringResource(R.string.extend_sleep_timer_label, 10)) }
                         Spacer(Modifier.weight(1f))

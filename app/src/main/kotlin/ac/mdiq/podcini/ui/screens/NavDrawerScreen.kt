@@ -1,6 +1,8 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.playback.base.InTheatre.activeTheatres
+import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.queuesLive
@@ -143,6 +145,14 @@ fun NavDrawerScreen() {
             }) {
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), tint = textColor, contentDescription = "settings", modifier = Modifier.padding(start = 10.dp))
                 Text(stringResource(R.string.settings_label), color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 20.dp))
+                Spacer(Modifier.weight(1f))
+                val playersRes = remember(activeTheatres) { if (activeTheatres == 1) R.drawable.teaser else R.drawable.ic_launcher_foreground }
+                AsyncImage(model = playersRes, contentDescription = "Players", modifier = Modifier.height(24.dp).clickable {
+                    activeTheatres = if (activeTheatres == 1) 2 else 1
+                    playerMinHeight = if (activeTheatres == 1) 100 else 210
+                    playbackService?.switchPlayersMode()
+                })
+                Spacer(Modifier.width(10.dp))
             }
             HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
             for (f in feedBriefs) {

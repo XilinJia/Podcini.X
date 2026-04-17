@@ -13,7 +13,6 @@ import ac.mdiq.podcini.net.feed.FeedUpdateManager.scheduleUpdateTaskOnce
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.TTSEngine.closeTTS
 import ac.mdiq.podcini.playback.cast.BaseActivity
-import ac.mdiq.podcini.playback.moveClips
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -22,7 +21,6 @@ import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.appTheme
 import ac.mdiq.podcini.ui.compose.commonConfirm
-import ac.mdiq.podcini.ui.dialog.RatingDialog
 import ac.mdiq.podcini.ui.screens.Facets
 import ac.mdiq.podcini.ui.screens.FeedDetails
 import ac.mdiq.podcini.ui.screens.FindFeeds
@@ -169,8 +167,6 @@ class MainActivity : BaseActivity() {
 
         timeIt("$TAG after setContent")
 
-        if (!appPrefs.clipsMoved) moveClips()
-
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) postFornotificationPermission()
         else checkAndRequestUnrestrictedBackgroundActivity()
         timeIt("$TAG after checking permission")
@@ -309,7 +305,6 @@ class MainActivity : BaseActivity() {
     public override fun onStart() {
         super.onStart()
         procFlowEvents()
-        RatingDialog.init(this)
         timeIt("$TAG end of onStart")
     }
 
@@ -321,7 +316,6 @@ class MainActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         autoBackup()
-        RatingDialog.check()
         if (lastTheme != appTheme) {
             finish()
             forceRestart()

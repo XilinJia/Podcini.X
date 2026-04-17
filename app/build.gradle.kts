@@ -21,15 +21,15 @@ val metaInfExcludes = listOf("DEPENDENCIES", "LICENSE", "NOTICE", "CHANGES", "RE
 configure<ApplicationExtension> {
     namespace = "ac.mdiq.podcini"
 
-    compileSdk = 36
-    buildToolsVersion = "36.1.0"
+    compileSdk = 37
+    buildToolsVersion = "37.0.0"
 
     defaultConfig {
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
 
-        versionCode = 288
-        versionName = "10.14.13"
+        versionCode = 289
+        versionName = "11.0.0"
 
         ndkVersion = "29.0.14206865"
 
@@ -200,6 +200,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect:${project.property("kotlin_version")}")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
+    implementation("org.jetbrains.kotlinx:atomicfu:0.32.1")
 
     implementation("io.github.xilinjia.krdb:library-base:${project.property("krdb_version")}")
 
@@ -230,16 +231,14 @@ dependencies {
 
     implementation("net.dankito.readability4j:readability4j:1.0.8")
 
-    compileOnly("com.google.android.wearable:wearable:2.9.0")
-
     "freeImplementation"("org.conscrypt:conscrypt-android:2.5.3")
     debugImplementation("androidx.compose.ui:ui-tooling:1.10.6")
     debugImplementation("androidx.compose.ui:ui-tooling-preview:1.10.6")
 
-    "playImplementation"("com.google.android.play:core-ktx:1.8.1")
+    "playImplementation"("androidx.media3:media3-cast:1.10.0")
     "playImplementation"("com.google.android.gms:play-services-base:18.9.0")
-    "playApi"("androidx.mediarouter:mediarouter:1.8.1")
-    "playApi"("com.google.android.gms:play-services-cast-framework:22.2.0")
+    "playImplementation"("androidx.mediarouter:mediarouter:1.8.1")
+    "playImplementation"("com.google.android.gms:play-services-cast-framework:22.2.0")
 }
 
 val copyLicenseTask = tasks.register<Copy>("copyLicense") {

@@ -7,17 +7,9 @@ import ac.mdiq.podcini.activity.PlayerUIActivity
 import ac.mdiq.podcini.activity.QueuePickerActivity
 import ac.mdiq.podcini.activity.starter.MainActivityStarter
 import ac.mdiq.podcini.playback.PlaybackStarter
-import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.ensureAController
-import ac.mdiq.podcini.playback.base.InTheatre.playVideo
-import ac.mdiq.podcini.playback.base.InTheatre.setAsCurEpisode
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.currentMediaType
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPaused
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
+
+import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isCasting
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isRunning
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
@@ -155,7 +147,7 @@ class PodciniWidget : GlanceAppWidget() {
                         Row(modifier = GlanceModifier.fillMaxWidth().padding(bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                             Image(provider = ImageProvider(R.drawable.ic_close_white), contentDescription = "remove", colorFilter = ColorFilter.tint(buttonColorProvider),
                                 modifier = GlanceModifier.size(36.dp).clickable(actionRunCallback<RemoveAction>(parameters = actionParametersOf(EPISODE_ID_KEY to episode.id, QUEUE_ID_KEY to queueId)), rippleOverride = R.drawable.widget_ripple).background(ImageProvider(R.drawable.widget_ripple)))
-                            val isMarked = episode.id == markedId || episode.id == curEpisode?.id
+                            val isMarked = episode.id == markedId || episode.id == theatres[0].mPlayer?.curEpisode?.id
                             Column(modifier = GlanceModifier.defaultWeight().clickable(actionStartActivity<EpisodeInfoActivity>(parameters = actionParametersOf(EPISODE_INFO_ID_KEY to episode.id)), rippleOverride = R.drawable.widget_ripple).background(ImageProvider(R.drawable.widget_ripple))) {
                                 Text(episode.t ?: "", style = TextStyle(color = textColorProvider, fontSize = 13.sp, fontWeight = if (isMarked) FontWeight.Bold else FontWeight.Normal), maxLines = 1)
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -282,28 +274,28 @@ class ToggleAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         Logd(TAG, "onReceive")
         ensureAController()
-        Logd(TAG, "ToggleAction onAction isPlaying: $isPlaying")
-        if (curEpisode == null) {
+        Logd(TAG, "ToggleAction onAction isPlaying: $theatres[0].isPlaying")
+        if (theatres[0].mPlayer?.curEpisode == null) {
             val id = parameters[EPISODE_ID_KEY]
             if (id != null) {
                 val e = realm.query(Episode::class).query("id == $id").first().find()
-                if (e != null) setAsCurEpisode(e)
+                if (e != null) theatres[0].mPlayer?.setAsCurEpisode(e)
             }
         }
-        if (curEpisode != null) {
+        if (theatres[0].mPlayer?.curEpisode != null) {
             fun getPlayerActivityIntent(context: Context, mediaType_: MediaType? = null): Intent {
-                val mediaType = mediaType_ ?: currentMediaType
-                val showVideoPlayer = if (isRunning) mediaType == MediaType.VIDEO && !isCasting else curState.curIsVideo
-                playVideo = showVideoPlayer
+                val mediaType = mediaType_ ?: theatres[0].mPlayer!!.currentMediaType
+                val showVideoPlayer = if (isRunning) mediaType == MediaType.VIDEO && !isCasting else theatres[0].mPlayer?.curState?.curIsVideo ?: false
+                theatres[0].mPlayer?.playVideo = showVideoPlayer
                 return MainActivityStarter(context).withOpenPlayer().getIntent()
             }
             withContext(Dispatchers.Main) {
-                if (curEpisode!!.getMediaType() == MediaType.VIDEO && !isPlaying && (curEpisode?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
-                    playPause()
-                    context.startActivity(getPlayerActivityIntent(context, curEpisode!!.getMediaType()))
+                if (theatres[0].mPlayer?.curEpisode!!.getMediaType() == MediaType.VIDEO && !theatres[0].mPlayer!!.isPlaying && (theatres[0].mPlayer?.curEpisode?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
+                    theatres[0].mPlayer?.playPause()
+                    context.startActivity(getPlayerActivityIntent(context, theatres[0].mPlayer?.curEpisode!!.getMediaType()))
                 } else {
-                    Logd(TAG, "Play button clicked: status: $status is ready: ${playbackService?.isServiceReady()}")
-                    PlaybackStarter(curEpisode!!).setWidgetId(glanceId.toString()).shouldStreamThisTime(null).start()
+                    Logd(TAG, "Play button clicked: status: $theatres[0].status is ready: ${playbackService?.isServiceReady()}")
+                    PlaybackStarter(theatres[0].mPlayer?.curEpisode!!).setWidgetId(glanceId.toString()).shouldStreamThisTime(null).start()
                 }
             }
             PodciniWidget().update(context, glanceId)
@@ -314,7 +306,7 @@ class ToggleAction : ActionCallback {
 class PrevAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         Logd(TAG, "PrevAction onAction")
-        withContext(Dispatchers.Main) { mPlayer?.seekTo(0) }
+        withContext(Dispatchers.Main) { theatres[0].mPlayer?.seekTo(0) }
         PodciniWidget().update(context, glanceId)
     }
 }
@@ -322,7 +314,7 @@ class PrevAction : ActionCallback {
 class RewindAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         Logd(TAG, "RewindAction onAction")
-        withContext(Dispatchers.Main) { mPlayer?.seekDelta(-rewindSecs * 1000) }
+        withContext(Dispatchers.Main) { theatres[0].mPlayer?.seekDelta(-rewindSecs * 1000) }
         PodciniWidget().update(context, glanceId)
     }
 }
@@ -330,7 +322,7 @@ class RewindAction : ActionCallback {
 class ForwardAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         Logd(TAG, "ForwardAction onAction")
-        withContext(Dispatchers.Main) { mPlayer?.seekDelta(fastForwardSecs * 1000) }
+        withContext(Dispatchers.Main) { theatres[0].mPlayer?.seekDelta(fastForwardSecs * 1000) }
         PodciniWidget().update(context, glanceId)
     }
 }
@@ -338,8 +330,8 @@ class NextAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         Logd(TAG, "NextAction onAction")
         withContext(Dispatchers.Main) {
-            Logd(TAG, "NextAction onAction isPlaying: $isPlaying isPaused: $isPaused")
-            if (isPlaying || isPaused) mPlayer?.skip() }
+            Logd(TAG, "NextAction onAction isPlaying: $theatres[0].isPlaying isPaused: $theatres[0].isPaused")
+            if (theatres[0].mPlayer!!.isPlaying || theatres[0].mPlayer!!.isPaused) theatres[0].mPlayer?.skip() }
         PodciniWidget().update(context, glanceId)
     }
 }

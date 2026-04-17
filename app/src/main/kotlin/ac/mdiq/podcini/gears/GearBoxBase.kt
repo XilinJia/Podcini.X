@@ -6,6 +6,7 @@ import ac.mdiq.podcini.net.feed.FeedUpdaterBase
 import ac.mdiq.podcini.net.feed.PodcastSearchResult
 import ac.mdiq.podcini.net.feed.PodcastSearcher
 import ac.mdiq.podcini.net.utils.NetworkUtils.getFinalRedirectedUrl
+import ac.mdiq.podcini.playback.base.MediaPlayerBase
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
@@ -14,7 +15,6 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.ShownotesCleaner
 import androidx.compose.runtime.Composable
-import androidx.media3.common.MediaMetadata
 import androidx.media3.exoplayer.source.MediaSource
 
 open class GearBoxBase {
@@ -62,9 +62,7 @@ open class GearBoxBase {
 
     open fun feedFilter(properties: HashSet<String>, statements: MutableList<String>) {}
 
-    open fun formMediaSource(metadata: MediaMetadata, media: Episode): MediaSource? = null
-
-    open fun formCastMediaSource(media: Episode): Boolean = false
+    open fun formMediaSource(mPlayer: MediaPlayerBase, media: Episode): MediaSource? = null
 
     open fun hasSearcher(): Boolean = false
 

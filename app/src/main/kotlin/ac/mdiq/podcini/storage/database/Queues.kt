@@ -1,10 +1,8 @@
 package ac.mdiq.podcini.storage.database
 
-import ac.mdiq.podcini.playback.base.InTheatre.VIRTUAL_QUEUE_SIZE
+
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.episodeChangedWhenScreenOff
+import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.QueueEntry
@@ -12,6 +10,7 @@ import ac.mdiq.podcini.storage.model.VIRTUAL_QUEUE_ID
 import ac.mdiq.podcini.storage.specs.EnqueueLocation
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent.QueueEvent
 import ac.mdiq.podcini.utils.Logd
@@ -28,14 +27,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-
 import kotlin.math.min
 import kotlin.random.Random
-import ac.mdiq.podcini.storage.utils.nowInMillis
 
 private const val TAG: String = "Queues"
 
 const val QUEUE_POSITION_DELTA = 10000L
+const val VIRTUAL_QUEUE_SIZE = 50
 
 val queuesFlow = realm.query(PlayQueue::class).sort("name").asFlow()
 var queuesLive = listOf<PlayQueue>()
@@ -142,7 +140,7 @@ suspend fun addToQueue(episodes: List<Episode>, queue: PlayQueue) {
             if (qes.indexOfFirst { it.episodeId == e.id } >= 0) continue
             val insertPosition = if (queue.autoSort) 0 else {
                 qes = queue.entries
-                calcPosition(qes, EnqueueLocation.fromCode(queue.enqueueLocation), (if (queue.id == actQueue.id) curEpisode else null))
+                calcPosition(qes, EnqueueLocation.fromCode(queue.enqueueLocation), (if (queue.id == actQueue.id) theatres[0].mPlayer?.curEpisode else null))
             }
             Logd(TAG, "addToQueue insertPosition: $insertPosition")
             val qe = QueueEntry().apply {
@@ -219,7 +217,7 @@ suspend fun smartRemoveFromQueues(item_: Episode, queues_: List<PlayQueue> = lis
     if (actQueue.id in queues.map { it.id }) {
         Logd(TAG, "actQueue: [${actQueue.name}]")
         val qes = actQueue.entries
-        if (curEpisode != null) curIndexInActQueue = qes.indexOfFirst { it.episodeId == curEpisode!!.id }
+        if (theatres[0].mPlayer?.curEpisode != null) curIndexInActQueue = qes.indexOfFirst { it.episodeId == theatres[0].mPlayer?.curEpisode!!.id }
         if (actQueue.size() > 0 && actQueue.contains(item)) removeFromQueue(actQueue, listOf(item))
         else upsertBlk(actQueue) { it.update() }
     }
@@ -232,7 +230,7 @@ fun removeFromAllQueues(episodes: Collection<Episode>, playState: EpisodeState? 
     }
     //        ensure actQueue is last updated
     val qes = actQueue.entries
-    if (curEpisode != null) curIndexInActQueue = qes.indexOfFirst { it.episodeId == curEpisode!!.id }
+    if (theatres[0].mPlayer?.curEpisode != null) curIndexInActQueue = qes.indexOfFirst { it.episodeId == theatres[0].mPlayer?.curEpisode!!.id }
     if (actQueue.size() > 0) removeFromQueue(actQueue, episodes, playState)
 }
 
@@ -316,43 +314,6 @@ suspend fun removeFromAllQueuesQuiet(episodeIds: List<Long>, updateState: Boolea
     }
     //        ensure actQueue is last updated
     doit(actQueue, true)
-}
-
-fun getNextInQueue(currentMedia: Episode?): Episode? {
-    Logd(TAG, "getNextInQueue called currentMedia: ${currentMedia?.getEpisodeTitle()}")
-    if (!actQueue.playInSequence) {
-        Logd(TAG, "getNextInQueue(), but follow queue is not enabled.")
-        savePlayerStatus(null)
-        return null
-    }
-    val qes = actQueue.entries
-    if (qes.isEmpty()) {
-        Logd(TAG, "getNextInQueue queue is empty")
-        savePlayerStatus(null)
-        return null
-    }
-    var curIndex = if (currentMedia != null) qes.indexOfFirst { it.episodeId == currentMedia.id } else 0
-    if (curIndex < 0 && curIndexInActQueue >= 0) {
-        curIndex = curIndexInActQueue
-        curIndexInActQueue = -1
-    }
-    Logd(TAG, "getNextInQueue curIndexInQueue: $curIndex ${qes.size}")
-    val nextQE = if (curIndex >= 0 && curIndex < qes.size) {
-        when {
-            qes[curIndex].episodeId != currentMedia?.id -> qes[curIndex]
-            qes.size == 1 -> return null
-            else -> {
-                val j = if (curIndex < qes.size - 1) curIndex + 1 else 0
-                Logd(TAG, "getNextInQueue next j: $j")
-                qes[j]
-            }
-        }
-    } else qes[0]
-    var nextItem = episodeById(nextQE.episodeId) ?: return null
-    Logd(TAG, "getNextInQueue nextItem ${nextItem.title}")
-    nextItem = checkAndMarkDuplicates(nextItem)
-    episodeChangedWhenScreenOff = true
-    return nextItem
 }
 
 private fun calcPosition(queueEntries: List<QueueEntry>, loc: EnqueueLocation, currentPlaying: Episode?): Long {

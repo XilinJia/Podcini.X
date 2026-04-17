@@ -117,7 +117,6 @@ class AppPrefs: RealmObject {
     var restrictedModeEnabled: Boolean = false
 
 //    =====================
-    var clipsMoved: Boolean = false
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -176,7 +175,6 @@ class AppPrefs: RealmObject {
         if (streamingCacheSizeMB != other.streamingCacheSizeMB) return false
         if (videoPlaybackMode != other.videoPlaybackMode) return false
         if (restrictedModeEnabled != other.restrictedModeEnabled) return false
-        if (clipsMoved != other.clipsMoved) return false
         if (lastVersion != other.lastVersion) return false
         if (theme != other.theme) return false
         if (defaultPage != other.defaultPage) return false
@@ -252,7 +250,6 @@ class AppPrefs: RealmObject {
         result = 31 * result + streamingCacheSizeMB
         result = 31 * result + videoPlaybackMode
         result = 31 * result + restrictedModeEnabled.hashCode()
-        result = 31 * result + clipsMoved.hashCode()
         result = 31 * result + lastVersion.hashCode()
         result = 31 * result + theme.hashCode()
         result = 31 * result + defaultPage.hashCode()
