@@ -214,6 +214,9 @@
     <string name="null_zap_label">فارغ</string>
     <string name="delete_label">حذف</string>
     <string name="delete_failed_simple">تعذر حذف الملف.</string>
+    <string name="select_player">Select player</string>
+    <string name="the_default">Default</string>
+    <string name="secondary">Secondary</string>
     <string name="delete_local_failed">غير قادر على حذف الملف. حاول إعادة توصيل المجلد المحلي من شاشة معلومات podcast</string>
     <string name="delete_episode_label">حذف وسائط الحلقة</string>
     <string name="set_related">تعيين الحلقات ذات الصلة</string>
