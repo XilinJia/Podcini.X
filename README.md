@@ -30,12 +30,13 @@ An open source podcast instrument, attuned to Puccini ![Puccini](./images/Puccin
 8. Handles auto-download or auto-enqueue governed by policy and limit settings of individual feed (podcast).
 9. Supports spaced repetition of repeat episodes: auto-download or auto-enqueue them at preset intervals specified in the feed.
 10. Caches streamed audio for seamless local rewind and replay.
-11. Features audio clips recording and position marking on any episodes for better review.
-12. Allows linking/relating multiple episodes for better grouping.
-13. Is capable to preserve important episodes when a podcast is unsubscribed.
-14. Spotlights sending/receiving feeds and subscriptions catalogue across devices.
-15. Offers Readability and Text-to-Speech for RSS contents.
-16. Supports auto-backups, customized media folder and importing DB from other apps
+11. is capable of playing 2 episodes simultaneously (one in each ear with earphones) with independent controls.
+12. Features audio clips recording and position marking on any episodes for better review.
+13. Allows linking/relating multiple episodes for better grouping.
+14. Is capable of preserving important episodes when a podcast is unsubscribed.
+15. Spotlights sending/receiving feeds and subscriptions catalogue across devices.
+16. Offers Readability and Text-to-Speech for RSS contents.
+17. Supports auto-backups, customized media folder and importing DB from other apps
 
 ### Note:
 
