@@ -1,6 +1,5 @@
 package ac.mdiq.podcini.config
 
-import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.net.download.PodciniHttpClient.configProxy
@@ -10,7 +9,6 @@ import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkChangedDetected
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.InTheatre.releaseAController
-import ac.mdiq.podcini.playback.base.OKHTTP.setOKHTTPCacheDirectory
 import ac.mdiq.podcini.storage.database.cancelAppPrefs
 import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
 import ac.mdiq.podcini.storage.database.cancelQueuesJob
@@ -30,7 +28,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import java.io.File
 
 
 object ClientConfig {
@@ -61,7 +58,7 @@ object ClientConfig {
         SslProviderInstaller.install()
         EpisodeAdrDLManager.manager = EpisodeAdrDLManager()
         SynchronizationQueueSink.setServiceStarterImpl { SyncService.sync() }
-        setOKHTTPCacheDirectory(File(getAppContext().cacheDir, "okhttp"))
+//        setOKHTTPCacheDirectory(File(getAppContext().cacheDir, "okhttp"))
         configProxy(proxyConfig)
         createChannels()
         gearbox.init()

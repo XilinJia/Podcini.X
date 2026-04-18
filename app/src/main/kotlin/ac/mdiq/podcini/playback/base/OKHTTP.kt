@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.playback.base
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.config.ClientConfig
 import ac.mdiq.podcini.net.download.DownloadRequest
 import ac.mdiq.podcini.net.download.PodciniHttpClient.CONNECTION_TIMEOUT
@@ -37,7 +38,7 @@ object OKHTTP {
     private const val TAG = "OKHTTP"
     private const val MAX_CONNECTIONS = 8
 
-    private var okhttpCacheDirectory: File? = null
+    private val okhttpCacheDirectory: File by lazy { File(getAppContext().cacheDir, "okhttp") }
 
     class UserAgentInterceptor : Interceptor {
         @Throws(IOException::class)
@@ -47,9 +48,9 @@ object OKHTTP {
         }
     }
 
-    fun setOKHTTPCacheDirectory(cacheDirectory_: File?) {
-        okhttpCacheDirectory = cacheDirectory_
-    }
+//    fun setOKHTTPCacheDirectory(cacheDirectory_: File?) {
+//        okhttpCacheDirectory = cacheDirectory_
+//    }
 
     //        fun resetMemoryBuffer() {
     //            val memoryBufferSize = (128 * 1024 / 8) * BufferDurationSeconds
@@ -89,7 +90,7 @@ object OKHTTP {
         builder.connectTimeout(CONNECTION_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
         builder.readTimeout(READ_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
         builder.writeTimeout(READ_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
-        builder.cache(Cache(okhttpCacheDirectory!!, 20L * 1000000)) // 20MB
+        builder.cache(Cache(okhttpCacheDirectory, 20L * 1000000)) // 20MB
 
         // configure redirects
         builder.followRedirects(true)

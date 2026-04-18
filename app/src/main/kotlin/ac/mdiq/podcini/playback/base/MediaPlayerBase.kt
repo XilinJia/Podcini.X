@@ -289,7 +289,7 @@ abstract class MediaPlayerBase {
             savePlayerStatus(null, null)
             return null
         }
-        var curIndex = if (curEpisode != null) qes.indexOfFirst { !isCurMedia(it.episodeId) } else 0
+        var curIndex = qes.indexOfFirst { isCurMedia(it.episodeId) }
         if (curIndex < 0 && curIndexInActQueue >= 0) {
             curIndex = curIndexInActQueue
             curIndexInActQueue = -1
@@ -300,8 +300,8 @@ abstract class MediaPlayerBase {
                 !isCurMedia(qes[curIndex].episodeId) -> qes[curIndex]
                 qes.size == 1 -> return null
                 else -> {
-                    val j = if (curIndex < qes.size - 1) curIndex + 1 else 0
-                    Logd(TAG, "getNextInQueue next j: $j")
+                    var j = if (curIndex < qes.size - 1) curIndex + 1 else 0
+                    while (isCurMedia(qes[j].episodeId)) j = if (j < qes.size - 1) j + 1 else 0
                     qes[j]
                 }
             }
@@ -943,6 +943,14 @@ abstract class MediaPlayerBase {
         currentMediaType = MediaType.UNKNOWN
         cancelPositionSaver()
         shutdown()
+    }
+
+    fun isCurrentlyPlaying(media: Episode?): Boolean {
+        return isCurMedia(media) && PlaybackService.isRunning && isPlaying
+    }
+
+    fun isCurMedia(media: Episode?): Boolean {
+        return media != null && curEpisode?.id == media.id
     }
 
     companion object {

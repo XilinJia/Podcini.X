@@ -5,9 +5,8 @@ import ac.mdiq.podcini.activity.MainActivity.Companion.findActivity
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.playback.base.InTheatre.ensureAController
-import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
 import ac.mdiq.podcini.playback.base.InTheatre.activeTheatres
+import ac.mdiq.podcini.playback.base.InTheatre.ensureAController
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.base.Media3Player.Companion.getCache
 import ac.mdiq.podcini.playback.base.Media3Player.Companion.simpleCache
@@ -255,7 +254,7 @@ class AVPlayerVM(val playerId: Int): ViewModel() {
         timeIt("$TAG start of init")
         procFlowEvents()
 
-        viewModelScope.launch { snapshotFlow { theatres[playerId].mPlayer?.curEpisode?.position }.distinctUntilChanged().collect { if (showPlayButton) showPlayButton = !isCurrentlyPlaying(theatres[playerId].mPlayer, theatres[playerId].mPlayer?.curEpisode) } }
+        viewModelScope.launch { snapshotFlow { theatres[playerId].mPlayer?.curEpisode?.position }.distinctUntilChanged().collect { if (showPlayButton) showPlayButton = theatres[playerId].mPlayer?.isCurrentlyPlaying(theatres[playerId].mPlayer?.curEpisode) != true } }
         viewModelScope.launch { snapshotFlow { theatres[playerId].mPlayer?.curEpisode?.id }.distinctUntilChanged().collect {
             Logd(TAG, "snapshotFlow { curEpisode?.id } collect")
             episodeFeed = theatres[playerId].mPlayer?.curEpisode?.feed

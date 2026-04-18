@@ -217,7 +217,7 @@ suspend fun smartRemoveFromQueues(item_: Episode, queues_: List<PlayQueue> = lis
     if (actQueue.id in queues.map { it.id }) {
         Logd(TAG, "actQueue: [${actQueue.name}]")
         val qes = actQueue.entries
-        if (theatres[0].mPlayer?.curEpisode != null) curIndexInActQueue = qes.indexOfFirst { it.episodeId == theatres[0].mPlayer?.curEpisode!!.id }
+        curIndexInActQueue = qes.indexOfFirst { it.episodeId == theatres[0].mPlayer?.curEpisode?.id || it.episodeId == theatres[1].mPlayer?.curEpisode?.id }
         if (actQueue.size() > 0 && actQueue.contains(item)) removeFromQueue(actQueue, listOf(item))
         else upsertBlk(actQueue) { it.update() }
     }
@@ -230,7 +230,7 @@ fun removeFromAllQueues(episodes: Collection<Episode>, playState: EpisodeState? 
     }
     //        ensure actQueue is last updated
     val qes = actQueue.entries
-    if (theatres[0].mPlayer?.curEpisode != null) curIndexInActQueue = qes.indexOfFirst { it.episodeId == theatres[0].mPlayer?.curEpisode!!.id }
+    curIndexInActQueue = qes.indexOfFirst { it.episodeId == theatres[0].mPlayer?.curEpisode?.id || it.episodeId == theatres[1].mPlayer?.curEpisode?.id }
     if (actQueue.size() > 0) removeFromQueue(actQueue, episodes, playState)
 }
 

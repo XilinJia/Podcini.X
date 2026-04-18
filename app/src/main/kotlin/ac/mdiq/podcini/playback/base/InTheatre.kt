@@ -122,14 +122,6 @@ object InTheatre {
         }
     }
 
-    fun isCurrentlyPlaying(mPlayer: MediaPlayerBase?, media: Episode?): Boolean {
-        return isCurMedia(mPlayer, media) && PlaybackService.isRunning && mPlayer?.isPlaying == true
-    }
-
-    fun isCurMedia(mPlayer: MediaPlayerBase?, media: Episode?): Boolean {
-        return media != null && mPlayer?.curEpisode?.id == media.id
-    }
-
     fun isCurrentlyPlaying(media: Episode?): Boolean {
         return isCurMedia(media) && PlaybackService.isRunning && (theatres[0].mPlayer?.isPlaying == true || theatres[1].mPlayer?.isPlaying == true)
     }

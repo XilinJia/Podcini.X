@@ -1,0 +1,1 @@
+* corrected getNextInQueue to get episode not played in either players

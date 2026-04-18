@@ -1,3 +1,7 @@
+# 11.0.1
+
+* corrected getNextInQueue to get episode not played in either players
+
 # 11.0.0
 
 * largely re-organized the playback routines
@@ -5,6 +9,7 @@
 * fixed not seeking past the recorded duration of an episode
 * duration if less than played position is amended to played position
 * long-press on Rewind also sets slider position to 0
+* fixed crash on older phones due to codec error when playing an episode, introduced in 10.14.11
 * added experimental feature of playing 2 episodes at same time
 	* 2-player mode can be toggled in drawer on the Podcini icons, by Settings
 	* once on, click Play/Stream button on a list prompt for player: Default or Secondary
