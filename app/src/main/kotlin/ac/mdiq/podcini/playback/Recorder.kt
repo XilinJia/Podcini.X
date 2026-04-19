@@ -50,7 +50,7 @@ class SegmentSavingDataSource(private val mPlayer: MediaPlayerBase, private val 
                 Logd(TAG, "Span removed: key=$mediaId, position=${span.position}, length=${span.length}")
             }
             override fun onSpanTouched(cache: Cache, oldSpan: CacheSpan, newSpan: CacheSpan) {
-                Logd(TAG, "Span touched: key=$mediaId, oldPos=${oldSpan.position}, newPos=${newSpan.position}")
+//                Logd(TAG, "Span touched: key=$mediaId, oldPos=${oldSpan.position}, newPos=${newSpan.position}")
             }
         }
         simpleCache?.addListener(mediaId, cacheListener!!)

@@ -158,7 +158,7 @@ abstract class MediaPlayerBase {
 
     var widgetId: String = ""
 
-    var curSpeed: Float = SPEED_USE_GLOBAL
+    var curSpeed by mutableStateOf(SPEED_USE_GLOBAL)
     var curPitch: Float = SPEED_USE_GLOBAL
 
     var curEpisode by mutableStateOf<Episode?>(null)

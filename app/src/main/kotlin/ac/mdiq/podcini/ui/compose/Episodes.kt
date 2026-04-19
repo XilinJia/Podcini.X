@@ -336,7 +336,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                 withContext(Dispatchers.IO) {
                     episode.let {
                         webviewData = gearbox.buildWebviewData(it)
-                        if (webviewData != null) webDataCache.put(it.id, webviewData!!)
+                        if (!webviewData.isNullOrBlank()) webDataCache.put(it.id, webviewData!!)
                     }
                 }
             }
@@ -519,7 +519,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
             factory = { context ->
                 ShownotesWebView(context).apply {
                     setTimecodeSelectedListener { time: Int -> theatres[0].mPlayer?.seekTo(time) }
-                    setPageFinishedListener { postDelayed({ }, 50) }    // Restoring the scroll position might not always work
+                    setPageFinishedListener { postDelayed({ }, 50) }
                 } },
             update = { view ->
                 val currentTag = view.tag as? String

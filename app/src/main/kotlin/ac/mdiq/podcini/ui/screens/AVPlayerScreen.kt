@@ -168,13 +168,14 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sin
+
+private const val TAG = "AudioPlayerScreen"
 
 enum class PSState {
     Hidden, PartiallyExpanded, Expanded;
@@ -190,31 +191,17 @@ enum class PSState {
     }
 }
 
-var activePlayer by mutableIntStateOf(0)
+private var activePlayer by mutableIntStateOf(0)
 
 var psState by mutableStateOf(PSState.PartiallyExpanded)
 
 var curVideoMode by mutableStateOf(VideoMode.DEFAULT)
 
-class AVPlayerVM(val playerId: Int): ViewModel() {
-    var episodeFeed = theatres[playerId].mPlayer?.curEpisode?.feed
-
+class AVPlayerVM0: ViewModel() {
     var landscape by mutableStateOf(false)
-    
-    var showActionBar by mutableStateOf(true)
-
-    internal var txtvPlaybackSpeed by mutableStateOf("")
-    internal var curPlaybackSpeed by mutableFloatStateOf(1f)
-
     internal var sleepTimerActive by mutableStateOf(isSleepTimerActive())
 
-    internal var bufferValue by mutableFloatStateOf(0f)
-
-    var volumeAdaption by mutableStateOf(VolumeAdaptionSetting.OFF)
-
-    var showPlayButton by mutableStateOf(true)
-
-    var eventSink by mutableStateOf<Job?>(null)
+    private var eventSink by mutableStateOf<Job?>(null)
     fun procFlowEvents() {
         Logd(TAG, "procFlowEvents")
         if (eventSink == null) eventSink = viewModelScope.launch {
@@ -230,20 +217,7 @@ class AVPlayerVM(val playerId: Int): ViewModel() {
                         //                PlaybackServiceEvent.Action.SERVICE_RESTARTED -> (context as MainActivity).setPlayerVisible(true)
                         //                        }
                     }
-                    is BufferUpdateEvent -> {
-                        when {
-                            event.hasStarted() || event.hasEnded() -> {}
-                            theatres[playerId].mPlayer?.isStreaming == true -> bufferValue = event.progress
-                            else -> bufferValue = 0f
-                        }
-                    }
                     is FlowEvent.SleepTimerUpdatedEvent -> sleepTimerActive = isSleepTimerActive()
-                    is FlowEvent.SpeedChangedEvent -> {
-                        if (event.playerId == playerId) {
-                            curPlaybackSpeed = event.newSpeed
-                            txtvPlaybackSpeed = formatNumberKmp(event.newSpeed.toDouble())
-                        }
-                    }
                     else -> {}
                 }
             }
@@ -251,30 +225,91 @@ class AVPlayerVM(val playerId: Int): ViewModel() {
     }
 
     init {
-        timeIt("$TAG start of init")
         procFlowEvents()
-
-        viewModelScope.launch { snapshotFlow { theatres[playerId].mPlayer?.curEpisode?.position }.distinctUntilChanged().collect { if (showPlayButton) showPlayButton = theatres[playerId].mPlayer?.isCurrentlyPlaying(theatres[playerId].mPlayer?.curEpisode) != true } }
-        viewModelScope.launch { snapshotFlow { theatres[playerId].mPlayer?.curEpisode?.id }.distinctUntilChanged().collect {
-            Logd(TAG, "snapshotFlow { curEpisode?.id } collect")
-            episodeFeed = theatres[playerId].mPlayer?.curEpisode?.feed
-            volumeAdaption = VolumeAdaptionSetting.OFF
-            val pbs = theatres[playerId].mPlayer?.curPBSpeed?:1f
-            txtvPlaybackSpeed = formatNumberKmp(pbs.toDouble())
-            curPlaybackSpeed = pbs
-        } }
-        viewModelScope.launch { snapshotFlow { theatres[playerId].mPlayer?.curState?.curPlayerStatus }.distinctUntilChanged().collect {
-            showPlayButton = theatres[playerId].mPlayer?.curState?.curPlayerStatus != PlayerStatusInt.PLAYING.code }
-            Logd(TAG, "curPlayerStatus changed playerId: $playerId showPlayButton $showPlayButton")
-        }
-
-        timeIt("$TAG end of vm init")
     }
 
     override fun onCleared() {
         super.onCleared()
         eventSink?.cancel()
         eventSink = null
+    }
+}
+
+class AVPlayerVM(val playerId: Int): ViewModel() {
+    var episodeFeed = theatres[playerId].mPlayer?.curEpisode?.feed
+
+    var showActionBar by mutableStateOf(true)
+
+    internal var curPlaybackSpeed by mutableFloatStateOf(1f)
+
+    internal var bufferValue by mutableFloatStateOf(0f)
+
+    var volumeAdaption by mutableStateOf(VolumeAdaptionSetting.OFF)
+
+    var showPlayButton by mutableStateOf(true)
+
+    private var eventSink by mutableStateOf<Job?>(null)
+    fun procFlowEvents() {
+        Logd(TAG, "procFlowEvents")
+        if (eventSink == null) eventSink = viewModelScope.launch {
+            EventFlow.events.collectLatest { event ->
+                Logd(TAG, "Received event: ${event.TAG}")
+                when (event) {
+                    is BufferUpdateEvent -> {
+                        when {
+                            event.hasStarted() || event.hasEnded() -> {}
+                            theatres[playerId].mPlayer?.isStreaming == true -> bufferValue = event.progress
+                            else -> bufferValue = 0f
+                        }
+                    }
+                    is FlowEvent.SpeedChangedEvent -> if (event.playerId == playerId) curPlaybackSpeed = event.newSpeed
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    private var posJob: Job? = null
+    private var curIdJob: Job? = null
+    private var curStateJob: Job? = null
+
+    fun start() {
+        timeIt("$TAG start of init vm $playerId")
+        procFlowEvents()
+
+        posJob = viewModelScope.launch { snapshotFlow { theatres[playerId].mPlayer?.curEpisode?.position }.distinctUntilChanged().collect { if (showPlayButton) showPlayButton = theatres[playerId].mPlayer?.isCurrentlyPlaying(theatres[playerId].mPlayer?.curEpisode) != true } }
+        curIdJob = viewModelScope.launch { snapshotFlow { theatres[playerId].mPlayer?.curEpisode?.id }.distinctUntilChanged().collect {
+            Logd(TAG, "snapshotFlow { curEpisode?.id } collect")
+            episodeFeed = theatres[playerId].mPlayer?.curEpisode?.feed
+            volumeAdaption = VolumeAdaptionSetting.OFF
+            curPlaybackSpeed = theatres[playerId].mPlayer?.curPBSpeed?:1f
+        } }
+        curStateJob = viewModelScope.launch { snapshotFlow { theatres[playerId].mPlayer?.curState?.curPlayerStatus }.distinctUntilChanged().collect {
+            showPlayButton = theatres[playerId].mPlayer?.curState?.curPlayerStatus != PlayerStatusInt.PLAYING.code
+            Logd(TAG, "curPlayerStatus changed playerId: $playerId showPlayButton $showPlayButton")
+        } }
+//        viewModelScope.launch { snapshotFlow { theatres[playerId].mPlayer?.curSpeed }.distinctUntilChanged().collect {
+//            curPlaybackSpeed = theatres[playerId].mPlayer?.curPBSpeed ?: 1f
+//            Logd(TAG, "curPlaybackSpeed changed playerId: $playerId curPlaybackSpeed $curPlaybackSpeed")
+//        } }
+
+        timeIt("$TAG end of vm init")
+    }
+
+    fun stop() {
+        posJob?.cancel()
+        posJob = null
+        curIdJob?.cancel()
+        curIdJob = null
+        curStateJob?.cancel()
+        curStateJob = null
+        eventSink?.cancel()
+        eventSink = null
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stop()
     }
 }
 
@@ -415,7 +450,7 @@ fun ControlUI(vm: AVPlayerVM) {
         )) {
             SpeedometerWithArc(speed = vm.curPlaybackSpeed*100, maxSpeed = 300f, trackColor = buttonColor, modifier = Modifier.width(40.dp).height(40.dp).align(Alignment.TopCenter))
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_volume_adaption), tint = buttonColor1, contentDescription = "Volume adaptation", modifier = Modifier.align(Alignment.Center))
-            Text(vm.txtvPlaybackSpeed, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
+            Text(formatNumberKmp(vm.curPlaybackSpeed.toDouble()), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
         }
         Spacer(Modifier.weight(0.1f))
         val recordColor = if (recordingStartTime == null) { if (theatres[vm.playerId].mPlayer?.curEpisode != null && theatres[vm.playerId].mPlayer != null && theatres[vm.playerId].mPlayer!!.isPlaying) buttonColor else Color.Gray } else Color.Red
@@ -545,10 +580,24 @@ fun AVPlayerScreen() {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    val vm0: AVPlayerVM0 = viewModel()
     val vms: List<AVPlayerVM> = listOf(
         viewModel(key = "0", factory = viewModelFactory { initializer { AVPlayerVM(playerId = 0) } }),
         viewModel(key = "1", factory = viewModelFactory { initializer { AVPlayerVM(playerId = 1) } })
     )
+
+    DisposableEffect(vms[0]) {
+        vms[0].start()
+        onDispose { vms[0].stop() }
+    }
+
+    DisposableEffect(vms[1], activeTheatres) {
+        if (activeTheatres == 2) vms[1].start()
+        else vms[1].stop()
+        onDispose { vms[1].stop() }
+    }
+
+    LaunchedEffect(activeTheatres) { if (activeTheatres ==1) activePlayer = 0 }
 
     var showHomeText by remember { mutableStateOf(false) }
 
@@ -578,10 +627,10 @@ fun AVPlayerScreen() {
     }
 
     val configuration = LocalConfiguration.current
-    if (isRotationEnabled) vms[activePlayer].landscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    if (isRotationEnabled) vm0.landscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     else if (theatres[vms[activePlayer].playerId].mPlayer?.isPlayingVideoLocally == true && vms[activePlayer].episodeFeed != null && vms[activePlayer].episodeFeed!!.videoModePolicy != VideoMode.AUDIO_ONLY)
-        vms[activePlayer].landscape = vms[activePlayer].episodeFeed!!.videoModePolicy == VideoMode.FULL_SCREEN || appPrefs.videoPlaybackMode == VideoMode.FULL_SCREEN.code
-    if (!vms[activePlayer].landscape) vms[activePlayer].showActionBar = true
+        vm0.landscape = vms[activePlayer].episodeFeed!!.videoModePolicy == VideoMode.FULL_SCREEN || appPrefs.videoPlaybackMode == VideoMode.FULL_SCREEN.code
+    if (!vm0.landscape) vms[activePlayer].showActionBar = true
 
     LaunchedEffect(key1 = theatres[vms[0].playerId].mPlayer?.curEpisode?.id) {
         Logd(TAG, "LaunchedEffect curMediaId: ${theatres[vms[0].playerId].mPlayer?.curEpisode?.title}")
@@ -599,15 +648,12 @@ fun AVPlayerScreen() {
         if (psState == PSState.Hidden) psState = PSState.PartiallyExpanded
     }
 
-    LaunchedEffect(psState, theatres[vms[activePlayer].playerId].mPlayer?.curEpisode?.id) {
+    LaunchedEffect(psState, activePlayer, theatres[vms[activePlayer].playerId].mPlayer?.curEpisode?.id) {
         Logd(TAG, "LaunchedEffect(isBSExpanded, curItem?.id) isBSExpanded: $psState")
-        if (psState == PSState.Expanded && theatres[vms[activePlayer].playerId].mPlayer?.curEpisode != null) {
-            Logd(TAG, "LaunchedEffect loading details ${theatres[vms[activePlayer].playerId].mPlayer?.curEpisode?.id}")
-            withContext(Dispatchers.IO) { vms[activePlayer].sleepTimerActive = isSleepTimerActive() }
-        }
+        if (psState == PSState.Expanded) vm0.sleepTimerActive = isSleepTimerActive()
     }
 
-    LaunchedEffect(theatres[vms[activePlayer].playerId].mPlayer?.curEpisode?.position) {
+    LaunchedEffect(activePlayer, theatres[vms[activePlayer].playerId].mPlayer?.curEpisode?.position) {
         if (theatres[vms[activePlayer].playerId].mPlayer?.curEpisode != null) {
             if (psState == PSState.Expanded) {
                 chapterIndex = theatres[vms[activePlayer].playerId].mPlayer?.curEpisode!!.getCurrentChapterIndex(theatres[vms[activePlayer].playerId].mPlayer?.curEpisode!!.position)
@@ -622,9 +668,7 @@ fun AVPlayerScreen() {
             Logd(TAG, "DisposableEffect Lifecycle.Event: $event")
             when (event) {
                 Lifecycle.Event.ON_CREATE -> psState = PSState.PartiallyExpanded
-                Lifecycle.Event.ON_START -> {
-//                    if (theatres[vms[pi].playerId].mPlayer?.curEpisode != null) vms[pi].showPlayButton = !isCurrentlyPlaying(theatres[vms[pi].playerId].mPlayer, theatres[vms[pi].playerId].mPlayer?.curEpisode)
-                }
+                Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {}
                 Lifecycle.Event.ON_DESTROY -> {}
@@ -682,7 +726,7 @@ fun AVPlayerScreen() {
         var expanded by remember { mutableStateOf(false) }
         if (vm.showActionBar) Row(modifier = modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable { psState = PSState.PartiallyExpanded })
-            if (vm.landscape) Column {
+            if (vm0.landscape) Column {
                 Text(text = theatres[vm.playerId].mPlayer?.curEpisode?.title?:"", fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(text = theatres[vm.playerId].mPlayer?.curEpisode?.feed?.title?:"", fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             } else {
@@ -697,12 +741,12 @@ fun AVPlayerScreen() {
                 var sleepIconRes by remember { mutableIntStateOf(if (!isSleepTimerActive()) R.drawable.ic_sleep else R.drawable.ic_sleep_off) }
                 IconButton(onClick = { showSleepTimeDialog = true }) { Icon(imageVector = ImageVector.vectorResource(sleepIconRes), contentDescription = "sleeper") }
                 (context as? BaseActivity)?.CastIconButton()
-                IconButton(onClick = { showShareDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_share), contentDescription = "share") }
+                IconButton(onClick = { activePlayer = vm.playerId; showShareDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_share), contentDescription = "share") }
             }
             Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
-                    if (vm.landscape) {
+                    if (vm0.landscape) {
                         var sleeperRes by remember { mutableIntStateOf(if (!isSleepTimerActive()) R.string.set_sleeptimer_label else R.string.sleep_timer_label) }
                         DropdownMenuItem(text = { Text(stringResource(sleeperRes)) }, onClick = {
                             showSleepTimeDialog = true
@@ -717,15 +761,18 @@ fun AVPlayerScreen() {
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
+                            activePlayer = vm.playerId
                             showShareDialog = true
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.playback_speed)) }, onClick = {
+                            activePlayer = vm.playerId
                             showSpeedDialog = true
                             expanded = false
                         })
                     }
                     if (theatres[vm.playerId].mPlayer!!.audioTracks.size >= 2) DropdownMenuItem(text = { Text(stringResource(R.string.audio_controls)) }, onClick = {
+                        activePlayer = vm.playerId
                         showAudioControlDialog = true
                         expanded = false
                     })
@@ -755,14 +802,19 @@ fun AVPlayerScreen() {
                     theatres[vm.playerId].mPlayer?.pause(reinit = true)
                     PlaybackStarter(theatres[vm.playerId].mPlayer?.curEpisode!!).shouldStreamThisTime(null).start(force = true)
                 })
-            Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_volume_adaption), tint = textColor, contentDescription = "Volume adaptation", modifier = Modifier.clickable { if (theatres[vm.playerId].mPlayer?.curEpisode != null) showVolumeDialog = true })
-            val sleepRes = if (vm.sleepTimerActive) R.drawable.ic_sleep_off else R.drawable.ic_sleep
+            Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_volume_adaption), tint = textColor, contentDescription = "Volume adaptation", modifier = Modifier.clickable {
+                if (theatres[vm.playerId].mPlayer?.curEpisode != null) {
+                    activePlayer = vm.playerId
+                    showVolumeDialog = true
+                } })
+            val sleepRes = if (vm0.sleepTimerActive) R.drawable.ic_sleep_off else R.drawable.ic_sleep
             Icon(imageVector = ImageVector.vectorResource(sleepRes), tint = textColor, contentDescription = "Sleep timer", modifier = Modifier.clickable { showSleepTimeDialog = true })
             (context as? BaseActivity)?.CastIconButton()
             Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
                     if (theatres[vm.playerId].mPlayer?.curEpisode != null) DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
+                        activePlayer = vm.playerId
                         showShareDialog = true
                         expanded = false
                     })
@@ -917,7 +969,7 @@ fun AVPlayerScreen() {
 
 //    Logd(TAG, "landscape: ${vm.landscape}")
 //    if ((landscape || curVideoMode == VideoMode.FULL_SCREEN || (curVideoMode == VideoMode.DEFAULT && appPrefs.videoPlaybackMode == VideoMode.FULL_SCREEN.code)) && playVideo && bsState == BSState.Expanded) {
-    if (vms[activePlayer].landscape && theatres[vms[activePlayer].playerId].mPlayer?.playVideo == true && psState == PSState.Expanded) {
+    if (vm0.landscape && theatres[vms[activePlayer].playerId].mPlayer?.playVideo == true && psState == PSState.Expanded) {
         Box {
             FullScreenVideoPlayer(vms[activePlayer])
             VideoToolBar(vms[activePlayer], modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter))
@@ -967,5 +1019,3 @@ fun AVPlayerScreen() {
         }
     }
 }
-
-private const val TAG = "AudioPlayerScreen"

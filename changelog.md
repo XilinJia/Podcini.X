@@ -1,3 +1,13 @@
+# 11.0.2
+
+* in AVPlayer screen 
+	* moved play-agnostic properties to a separate viewmodel
+	* ensure only necessary viewmodels are activated
+	* ensures active player is properly set
+* when switch player mode, ensure to close old players
+* removed some more unneeded old castplayer code
+* move SDK to 36 for build stability
+
 # 11.0.1
 
 * corrected getNextInQueue to get episode not played in either players

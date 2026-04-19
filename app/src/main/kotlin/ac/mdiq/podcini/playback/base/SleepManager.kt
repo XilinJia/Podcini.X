@@ -2,18 +2,24 @@ package ac.mdiq.podcini.playback.base
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.storage.database.sleepPrefs
+import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logt
 import android.annotation.SuppressLint
 import android.content.Context.SENSOR_SERVICE
+import android.content.Context.VIBRATOR_MANAGER_SERVICE
 import android.content.Context.VIBRATOR_SERVICE
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Build
+import android.os.Build.VERSION_CODES
+import android.os.VibrationEffect
 import android.os.Vibrator
+import android.os.VibratorManager
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,13 +28,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.sqrt
-import ac.mdiq.podcini.storage.utils.nowInMillis
-import ac.mdiq.podcini.utils.showStackTrace
-import android.content.Context.VIBRATOR_MANAGER_SERVICE
-import android.os.Build
-import android.os.Build.VERSION_CODES
-import android.os.VibrationEffect
-import android.os.VibratorManager
 
 class SleepManager {
     private var timer: SleepTimer? = null

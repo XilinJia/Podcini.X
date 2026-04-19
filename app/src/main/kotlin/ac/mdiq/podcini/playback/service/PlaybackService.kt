@@ -81,7 +81,6 @@ class PlaybackService : MediaLibraryService() {
 
     private var mediaSession: MediaLibrarySession? = null
     private val notificationCustomButtons = NotificationCustomButton.entries.map { command -> command.commandButton }
-//    private lateinit var castStateListener: CastStateListener
 
     private var clickCount = 0
     private val clickHandler = Handler(Looper.getMainLooper())
@@ -370,6 +369,8 @@ class PlaybackService : MediaLibraryService() {
     }
 
     fun switchPlayersMode() {
+        theatres[0].mPlayer?.onDestroy()
+        theatres[1].mPlayer?.onDestroy()
         recreateMediaPlayers()
         startTheatres()
         mediaSession?.player = theatres[0].mPlayer!!.castPlayer!!

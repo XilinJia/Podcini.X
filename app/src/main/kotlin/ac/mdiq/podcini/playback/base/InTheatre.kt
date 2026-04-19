@@ -88,7 +88,8 @@ object InTheatre {
                 if (theatres[i].mPlayer?.curState?.curMediaType != LONG_MINUS_1) {
                     if (theatres[i].mPlayer?.curState?.curMediaType == LONG_PLUS_1) {
                         if (theatres[i].mPlayer?.curState?.curMediaId != 0L) theatres[i].mPlayer?.setAsCurEpisode(episodeById(theatres[i].mPlayer?.curState?.curMediaId?:-1))
-                    } else Logpe(TAG, theatres[i].mPlayer?.curEpisode,  "Could not restore EpisodeMedia object from preferences for theatre $i, curMediaType: ${theatres[i].mPlayer?.curState?.curMediaType} ")
+                    }
+//                    else Logpe(TAG, theatres[i].mPlayer?.curEpisode,  "Could not restore EpisodeMedia object from preferences for theatre $i, curMediaType: ${theatres[i].mPlayer?.curState?.curMediaType} ")
                 }
                 Logd(TAG, "curEpisode from preference: ${theatres[i].mPlayer?.curEpisode?.title}")
                 if (theatres[i].mPlayer?.curEpisode != null) {
