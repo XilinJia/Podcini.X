@@ -369,8 +369,6 @@ class PlaybackService : MediaLibraryService() {
     }
 
     fun switchPlayersMode() {
-        theatres[0].mPlayer?.onDestroy()
-        theatres[1].mPlayer?.onDestroy()
         recreateMediaPlayers()
         startTheatres()
         mediaSession?.player = theatres[0].mPlayer!!.castPlayer!!

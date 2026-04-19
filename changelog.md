@@ -4,7 +4,6 @@
 	* moved play-agnostic properties to a separate viewmodel
 	* ensure only necessary viewmodels are activated
 	* ensures active player is properly set
-* when switch player mode, ensure to close old players
 * removed some more unneeded old castplayer code
 * move SDK to 36 for build stability
 
