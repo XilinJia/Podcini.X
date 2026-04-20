@@ -34,7 +34,7 @@ An open source podcast instrument, attuned to Puccini ![Puccini](./images/Puccin
 12. Features audio clips recording and position marking on any episodes for better review.
 13. Allows linking/relating multiple episodes for better grouping.
 14. Is capable of preserving important episodes when a podcast is unsubscribed.
-15. Spotlights sending/receiving feeds and subscriptions catalogue across devices.
+15. Spotlights sending/receiving feeds and subscriptions catalogue across devices without a server.
 16. Offers Readability and Text-to-Speech for RSS contents.
 17. Supports auto-backups, customized media folder and importing DB from other apps
 
@@ -45,7 +45,7 @@ An open source podcast instrument, attuned to Puccini ![Puccini](./images/Puccin
 
 Podcini.X requests for permission for unrestricted background activities for uninterrupted background play of a playlist.  For more see [this issue](https://github.com/XilinJia/Podcini.X/issues/88)
 
-If you intend to sync through a server, NextCloud server has been tested, but caution is advised. 
+If you intend to sync through a server, NextCloud server has been tested, but note only very limited properties (as defined by that standard) are included.
 
 ## Usage and notable features description 
 <details> <summary>Click to expand</summary>
