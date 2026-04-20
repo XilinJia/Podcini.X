@@ -571,8 +571,6 @@ fun ProgressBar(vm: AVPlayerVM) {
     }
 }
 
-var playerMinHeight by mutableIntStateOf(100)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AVPlayerScreen() {

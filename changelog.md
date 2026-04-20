@@ -1,3 +1,9 @@
+# 11.0.3
+
+* ensure screens' bottom padding is properly set when 2 player mode is activated
+* enabled floating point audio sampling for Android 10 and above, on failure, reset players to PCM16
+* fixed episode in mono not being played in 2 player mode
+
 # 11.0.2
 
 * in AVPlayer screen 

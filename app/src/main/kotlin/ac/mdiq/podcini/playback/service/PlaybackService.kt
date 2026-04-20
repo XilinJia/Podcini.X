@@ -439,13 +439,13 @@ class PlaybackService : MediaLibraryService() {
         }
         Logd(TAG, "onStartCommand mPlayer?.prevMedia: ${theatres[0].mPlayer?.prevMedia?.title}")
         Logd(TAG, "onStartCommand curEpisode: ${theatres[0].mPlayer?.curEpisode?.title}")
-        Logd(TAG, "onStartCommand status: $theatres[0].status")
+        Logd(TAG, "onStartCommand status: ${theatres[0].mPlayer?.status}")
 
         if (keycode == -1 && theatres[0].mPlayer?.curEpisode != null) {
             if (theatres[0].mPlayer?.prevMedia?.id == theatres[0].mPlayer?.curEpisode?.id) {
-                Logd(TAG, "onStartCommand playing same media: $theatres[0].status")
+                Logd(TAG, "onStartCommand playing same media: ${theatres[0].mPlayer?.status}")
                 if (theatres[0].mPlayer!!.isPlaying || theatres[0].mPlayer!!.isPaused) return super.onStartCommand(intent, flags, startId)
-                Logd(TAG, "onStartCommand playing same media: $theatres[0].status proceed")
+                Logd(TAG, "onStartCommand playing same media: ${theatres[0].mPlayer?.status} proceed")
             }
         }
         when {

@@ -10,6 +10,7 @@ import ac.mdiq.podcini.playback.base.OKHTTP.encodeCredentials
 import ac.mdiq.podcini.playback.base.OKHTTP.getOKHttpClient
 import ac.mdiq.podcini.playback.cast.CastMediaPlayer.buildCastPlayer
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isCasting
+import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.playback.service.QuickSettingsTileService
 import ac.mdiq.podcini.receiver.PodciniWidget
 import ac.mdiq.podcini.storage.database.appPrefs
@@ -36,6 +37,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logpe
 import ac.mdiq.podcini.utils.Logps
 import ac.mdiq.podcini.utils.Logpt
+import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.sendLocalBroadcast
 import ac.mdiq.podcini.utils.timeIt
 import android.content.ComponentName
@@ -221,6 +223,13 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                             Logpe(TAG, curEpisode, "Permanent error: ${error.localizedMessage}")
                             val cause = error.cause
                             when {
+                                error.cause is AudioSink.InitializationException -> {
+                                    if (enableFloat) {
+                                        Logt(TAG, "system can not handle float sampling, recreating players with float off")
+                                        enableFloat = false
+                                        playbackService?.switchPlayersMode()
+                                    }
+                                }
                                 // CASE: 404 Not Found
                                 error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND || (cause is HttpDataSource.InvalidResponseCodeException && cause.responseCode == 404) -> {
                                     handleTerminalError("Episode not found on server (404).")
@@ -355,25 +364,36 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     }
 
     abstract class ChannelAudioProcessor : BaseAudioProcessor() {
-        override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
-            return AudioProcessor.AudioFormat(inputAudioFormat.sampleRate, 2, inputAudioFormat.encoding)
+        override fun onConfigure(inputFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+            return AudioProcessor.AudioFormat(inputFormat.sampleRate, 2, inputFormat.encoding)
         }
         abstract fun setOutputBuffer(outputBuffer: ByteBuffer, mono: Float)
         abstract fun setOutputBuffer(outputBuffer: ByteBuffer, mono: Short)
 
         override fun queueInput(inputBuffer: ByteBuffer) {
-            val outputBuffer = replaceOutputBuffer(inputBuffer.remaining())
-            if (inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT) {
-                while (inputBuffer.remaining() >= 8) {
+            val encoding = inputAudioFormat.encoding
+            val inChannels = inputAudioFormat.channelCount
+
+            val bytesPerSample = if (encoding == C.ENCODING_PCM_FLOAT) 4 else 2
+            val frameSize = bytesPerSample * inChannels
+            val frameCount = inputBuffer.remaining() / frameSize
+
+            val outputSize = frameCount * 2 * bytesPerSample // always stereo output
+            val outputBuffer = replaceOutputBuffer(outputSize)
+
+            if (encoding == C.ENCODING_PCM_FLOAT) {
+                while (inputBuffer.remaining() >= frameSize) {
                     val left = inputBuffer.float
-                    val right = inputBuffer.float
-                    setOutputBuffer(outputBuffer, (left + right) / 2f)
+                    val right = if (inChannels > 1) inputBuffer.float else left
+                    val mono = (left + right) / 2f
+                    setOutputBuffer(outputBuffer, mono)
                 }
             } else {
-                while (inputBuffer.remaining() >= 4) {
+                while (inputBuffer.remaining() >= frameSize) {
                     val left = inputBuffer.short.toInt()
-                    val right = inputBuffer.short.toInt()
-                    setOutputBuffer(outputBuffer, ((left + right) / 2).toShort())
+                    val right = if (inChannels > 1) inputBuffer.short.toInt() else left
+                    val mono = ((left + right) / 2).coerceIn(-32768, 32767).toShort()
+                    setOutputBuffer(outputBuffer, mono)
                 }
             }
             outputBuffer.flip()
@@ -425,7 +445,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             }
             override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink {
                 val builder = DefaultAudioSink.Builder(context)
-                    .setEnableFloatOutput(false)
+                    .setEnableFloatOutput(enableFloat)
                     .setEnableAudioOutputPlaybackParameters(enableAudioTrackPlaybackParams)
                 if (lr == -1) builder.setAudioProcessors(arrayOf(LeftChannelAudioProcessor()))
                 else if (lr == 1) builder.setAudioProcessors(arrayOf(RightChannelAudioProcessor()))

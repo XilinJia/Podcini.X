@@ -43,7 +43,7 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") {
 
     fun queryString(): String {
         Logd(TAG, "queryString propertySet: ${propertySet.size} $propertySet")
-        Logd(TAG, "actual type: ${propertySet::class}")
+//        Logd(TAG, "actual type: ${propertySet::class}")
 //        propertySet.forEach { Logd(TAG, "element: [$it] hash=${it.hashCode()}") }
 
         val statements: MutableList<String> = mutableListOf()

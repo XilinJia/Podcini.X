@@ -294,7 +294,7 @@ class ToggleAction : ActionCallback {
                     theatres[0].mPlayer?.playPause()
                     context.startActivity(getPlayerActivityIntent(context, theatres[0].mPlayer?.curEpisode!!.getMediaType()))
                 } else {
-                    Logd(TAG, "Play button clicked: status: $theatres[0].status is ready: ${playbackService?.isServiceReady()}")
+                    Logd(TAG, "Play button clicked: status: ${theatres[0].mPlayer?.status} is ready: ${playbackService?.isServiceReady()}")
                     PlaybackStarter(theatres[0].mPlayer?.curEpisode!!).setWidgetId(glanceId.toString()).shouldStreamThisTime(null).start()
                 }
             }

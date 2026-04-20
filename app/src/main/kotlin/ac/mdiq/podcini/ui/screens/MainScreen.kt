@@ -42,6 +42,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,6 +70,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
 private const val TAG = "MainScreen"
+
+var playerMinHeight by mutableIntStateOf(100)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -125,7 +128,7 @@ fun MainActivityUI() {
         derivedStateOf {
             when (sheetState.bottomSheetState.currentValue) {
                 SheetValue.Expanded -> bottomInsetPadding + 300.dp
-                SheetValue.PartiallyExpanded -> bottomInsetPadding + 100.dp
+                SheetValue.PartiallyExpanded -> bottomInsetPadding + playerMinHeight.dp
                 else -> bottomInsetPadding
             }
         }
