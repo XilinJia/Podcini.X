@@ -1,6 +1,5 @@
 package ac.mdiq.podcini.storage.model
 
-import ac.mdiq.podcini.playback.base.PlayerStatusInt
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 
@@ -16,7 +15,7 @@ class CurrentState : RealmObject {
 
     var curIsVideo: Boolean = false
 
-    var curPlayerStatus: Int = PlayerStatusInt.OTHER.code
+//    var curPlayerStatus: Int = PlayerStatusInt.OTHER.code
 
     constructor() {}
 

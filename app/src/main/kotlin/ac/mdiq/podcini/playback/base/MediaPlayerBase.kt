@@ -53,8 +53,8 @@ import ac.mdiq.podcini.utils.Logpe
 import ac.mdiq.podcini.utils.Logps
 import ac.mdiq.podcini.utils.Logpt
 import ac.mdiq.podcini.utils.Logt
-import android.os.Build
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -95,6 +95,8 @@ abstract class MediaPlayerBase {
 
     @get:Synchronized
     var status by mutableStateOf(PlayerStatus.STOPPED)
+
+    var statusSimple by mutableStateOf(PlayerStatusSimple.OTHER)
 
     var curState by mutableStateOf(CurrentState())
 
@@ -159,7 +161,7 @@ abstract class MediaPlayerBase {
 
     var widgetId: String = ""
 
-    var curSpeed by mutableStateOf(SPEED_USE_GLOBAL)
+    var curSpeed by mutableFloatStateOf(SPEED_USE_GLOBAL)
     var curPitch: Float = SPEED_USE_GLOBAL
 
     var curEpisode by mutableStateOf<Episode?>(null)
@@ -167,12 +169,13 @@ abstract class MediaPlayerBase {
     var skipSilence: Boolean? = null
     var bitrate by mutableIntStateOf(0)
 
+    var isStereo by mutableStateOf(true)
+
     var shouldRepeat by mutableStateOf(false)
 
     var currentMediaType: MediaType? = MediaType.UNKNOWN
 
-    val curPBSpeed: Float
-        get() = getPlaybackSpeed()
+    var curPBSpeed by mutableFloatStateOf(1f)
 
     val isPlayingVideoLocally: Boolean
         get() = when {
@@ -258,20 +261,29 @@ abstract class MediaPlayerBase {
         Logd(TAG, "Writing playback preferences ${episode?.id}")
         runOnIOScope {
             when {
-                episode == null && playerStatus != null -> upsert(curState) { it.curPlayerStatus = playerStatus.getAsInt() }
-                episode == null || playerStatus == null -> upsert(curState) {
-                    it.curMediaType = LONG_MINUS_1
-                    it.curFeedId = LONG_MINUS_1
-                    it.curMediaId = LONG_MINUS_1
-                    it.curPlayerStatus = PlayerStatusInt.OTHER.code
+                episode == null && playerStatus != null -> {
+                    statusSimple = playerStatus.toStatusInt()
+//                    upsert(curState) { it.curPlayerStatus = playerStatus.getAsInt() }
                 }
-                else -> upsert(curState) {
-                    it.curPlayerStatus = playerStatus.getAsInt()
-                    it.curMediaType = LONG_PLUS_1
-                    it.curIsVideo = episode.getMediaType() == MediaType.VIDEO
-                    val feedId = episode.feed?.id
-                    if (feedId != null) it.curFeedId = feedId
-                    it.curMediaId = episode.id
+                episode == null || playerStatus == null -> {
+                    statusSimple = PlayerStatusSimple.OTHER
+                    upsert(curState) {
+                        it.curMediaType = LONG_MINUS_1
+                        it.curFeedId = LONG_MINUS_1
+                        it.curMediaId = LONG_MINUS_1
+//                        it.curPlayerStatus = PlayerStatusInt.OTHER.code
+                    }
+                }
+                else -> {
+                    statusSimple = playerStatus.toStatusInt()
+                    upsert(curState) {
+//                        it.curPlayerStatus = playerStatus.getAsInt()
+                        it.curMediaType = LONG_PLUS_1
+                        it.curIsVideo = episode.getMediaType() == MediaType.VIDEO
+                        val feedId = episode.feed?.id
+                        if (feedId != null) it.curFeedId = feedId
+                        it.curMediaId = episode.id
+                    }
                 }
             }
         }
@@ -956,8 +968,6 @@ abstract class MediaPlayerBase {
 
     companion object {
         private val TAG: String = MediaPlayerBase::class.simpleName ?: "Anonymous"
-
-        var enableFloat = Build.VERSION.SDK_INT >= 29
 
         private const val MIN_POSITION_SAVER_INTERVAL: Int = 5000   // in millisoconds
 

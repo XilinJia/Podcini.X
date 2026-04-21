@@ -307,6 +307,67 @@ fun FeedsSettingsScreen() {
                 Text(text = stringResource(R.string.feed_tags_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
 
+            //                    associated queue
+            Column {
+                curPrefQueue = feedToSet.queueTextExt
+                @Composable
+                fun SetAssociatedQueue(selectedOption: String, onDismissRequest: () -> Unit) {
+                    CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            val custom = "Custom"
+                            val none = "None"
+                            var selected by remember {mutableStateOf(if (selectedOption == none) none else custom)}
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(checked = none == selected,
+                                    onCheckedChange = { isChecked ->
+                                        selected = none
+                                        runOnIOScope {
+                                            realm.write { for (f in feedsToSet) { findLatest(f)?.let {
+                                                it.queueId = -2L
+                                                it.autoDownload = false
+                                                it.autoEnqueue = false
+                                            } } }
+                                        }
+                                        curPrefQueue = selected
+                                        onDismissRequest()
+                                    })
+                                Text(none)
+                                Spacer(Modifier.width(50.dp))
+                                Checkbox(checked = custom == selected, onCheckedChange = { isChecked -> selected = custom })
+                                Text(custom)
+                            }
+                            if (selected == custom) {
+                                Logd(TAG, "queues: ${queuesLive.size}")
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    for (i in queuesLive.indices) {
+                                        FilterChip(label = { Text(queuesLive[i].name) }, selected = false, border = BorderStroke(1.dp, borderColor),
+                                            onClick = {
+                                                val q = queuesLive[i]
+                                                runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.queue = q } } }
+                                                curPrefQueue = q.name
+                                                onDismissRequest()
+                                            })
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                var showDialog by remember { mutableStateOf(false) }
+                var selectedOption by remember { mutableStateOf(feedToSet.queueText) }
+                if (showDialog) SetAssociatedQueue(selectedOption = selectedOption, onDismissRequest = { showDialog = false })
+                Row(Modifier.fillMaxWidth()) {
+                    Icon(ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "", tint = textColor)
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Text(text = stringResource(R.string.pref_feed_associated_queue), style = CustomTextStyles.titleCustom, color = textColor,
+                        modifier = Modifier.clickable {
+                            selectedOption = feedToSet.queueText
+                            showDialog = true
+                        })
+                }
+                Text(text = curPrefQueue + " : " + stringResource(R.string.pref_feed_associated_queue_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+            }
+
             var useEpisodeImage by remember { mutableStateOf(feedToSet.useEpisodeImage) }
             TitleSummarySwitch(R.string.use_episode_image, R.string.use_episode_image_summary, R.drawable.outline_broken_image_24, useEpisodeImage) {
                 useEpisodeImage = it
@@ -490,66 +551,6 @@ fun FeedsSettingsScreen() {
                         Text(text = stringResource(R.string.pref_feed_video_quality_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
                     }
                 }
-            }
-            //                    associated queue
-            Column {
-                curPrefQueue = feedToSet.queueTextExt
-                @Composable
-                fun SetAssociatedQueue(selectedOption: String, onDismissRequest: () -> Unit) {
-                    CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            val custom = "Custom"
-                            val none = "None"
-                            var selected by remember {mutableStateOf(if (selectedOption == none) none else custom)}
-                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(checked = none == selected,
-                                    onCheckedChange = { isChecked ->
-                                        selected = none
-                                        runOnIOScope {
-                                            realm.write { for (f in feedsToSet) { findLatest(f)?.let {
-                                                it.queueId = -2L
-                                                it.autoDownload = false
-                                                it.autoEnqueue = false
-                                            } } }
-                                        }
-                                        curPrefQueue = selected
-                                        onDismissRequest()
-                                    })
-                                Text(none)
-                                Spacer(Modifier.width(50.dp))
-                                Checkbox(checked = custom == selected, onCheckedChange = { isChecked -> selected = custom })
-                                Text(custom)
-                            }
-                            if (selected == custom) {
-                                Logd(TAG, "queues: ${queuesLive.size}")
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    for (i in queuesLive.indices) {
-                                        FilterChip(label = { Text(queuesLive[i].name) }, selected = false, border = BorderStroke(1.dp, borderColor),
-                                            onClick = {
-                                                val q = queuesLive[i]
-                                                runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.queue = q } } }
-                                                curPrefQueue = q.name
-                                                onDismissRequest()
-                                            })
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                var showDialog by remember { mutableStateOf(false) }
-                var selectedOption by remember { mutableStateOf(feedToSet.queueText) }
-                if (showDialog) SetAssociatedQueue(selectedOption = selectedOption, onDismissRequest = { showDialog = false })
-                Row(Modifier.fillMaxWidth()) {
-                    Icon(ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "", tint = textColor)
-                    Spacer(modifier = Modifier.width(20.dp))
-                    Text(text = stringResource(R.string.pref_feed_associated_queue), style = CustomTextStyles.titleCustom, color = textColor,
-                        modifier = Modifier.clickable {
-                            selectedOption = feedToSet.queueText
-                            showDialog = true
-                        })
-                }
-                Text(text = curPrefQueue + " : " + stringResource(R.string.pref_feed_associated_queue_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
 
             //                    playback speed

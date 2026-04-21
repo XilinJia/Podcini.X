@@ -14,20 +14,16 @@ enum class PlayerStatus(private val statusValue: Int) {
         return other == null || this.statusValue >= other.statusValue
     }
 
-    fun getAsInt(): Int {
+    fun toStatusInt(): PlayerStatusSimple {
         return when (this) {
-            PLAYING -> PlayerStatusInt.PLAYING.code
-            PAUSED -> PlayerStatusInt.PAUSED.code
-            else -> PlayerStatusInt.OTHER.code
+            PLAYING -> PlayerStatusSimple.PLAYING
+            PAUSED -> PlayerStatusSimple.PAUSED
+            else -> PlayerStatusSimple.OTHER
         }
-    }
-
-    companion object {
-        private val fromOrdinalLookup = entries.toTypedArray()
     }
 }
 
-enum class PlayerStatusInt(val code: Int) {
+enum class PlayerStatusSimple(val code: Int) {
     PLAYING(1),   // Value of PREF_CURRENT_PLAYER_STATUS if media player status is playing.
     PAUSED(2),    // Value of PREF_CURRENT_PLAYER_STATUS if media player status is paused.
     OTHER(3),     // Value of PREF_CURRENT_PLAYER_STATUS if media player status is neither playing nor paused.

@@ -45,6 +45,7 @@ import android.content.Context
 import android.content.Intent
 import android.media.RingtoneManager
 import android.media.audiofx.LoudnessEnhancer
+import android.os.Build
 import android.service.quicksettings.TileService
 import androidx.core.net.toUri
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -279,11 +280,15 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                     Logd(TAG, "onTracksChanged tracks: ${tracks.groups.size}")
                     tracks.groups.forEach { group ->
                         for (i in 0 until group.length) {
-                            val format = group.getTrackFormat(i)
-                            Logd(TAG, "onTracksChanged $i ${format.averageBitrate} ${format.bitrate}")
-                            if (format.averageBitrate != Format.NO_VALUE) {
-                                bitrate = format.averageBitrate
-                                Logd(TAG, "onTracksChanged Bitrate detected: $bitrate bps")
+                            if (group.isTrackSelected(i)) {
+                                val format = group.getTrackFormat(i)
+                                val channels = format.channelCount
+                                isStereo = channels != 1
+                                Logd(TAG, "onTracksChanged $i ${format.averageBitrate} ${format.bitrate}")
+                                if (format.averageBitrate != Format.NO_VALUE) {
+                                    bitrate = format.averageBitrate
+                                    Logd(TAG, "onTracksChanged Bitrate detected: $bitrate bps")
+                                }
                                 return@forEach
                             }
                         }
@@ -586,6 +591,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
     override fun setPlaybackParams() {
         castPlayer?.playbackParameters = playbackParameters
+        curPBSpeed = playbackParameters.speed
     }
 
     override fun setPlaybackParams(speed: Float, pitch: Float) {
@@ -1009,6 +1015,8 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
         const val BUFFERING_STARTED: Int = -1
         const val BUFFERING_ENDED: Int = -2
+
+        var enableFloat = Build.VERSION.SDK_INT >= 29
 
         var simpleCache: SimpleCache? = null
 

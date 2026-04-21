@@ -1,3 +1,10 @@
+# 11.0.4
+
+* ensure speed indicator in PLayerUI updates
+* ensure action buttons not set to Pause on app start, not persisting player status
+* in PlayerUI, added text Stereo/Mono
+* in FeedSettings, moved associated queue toward the top
+
 # 11.0.3
 
 * ensure screens' bottom padding is properly set when 2 player mode is activated

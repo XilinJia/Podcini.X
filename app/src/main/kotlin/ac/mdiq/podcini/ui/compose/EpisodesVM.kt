@@ -9,7 +9,7 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
-import ac.mdiq.podcini.playback.base.PlayerStatusInt
+import ac.mdiq.podcini.playback.base.PlayerStatusSimple
 import ac.mdiq.podcini.storage.database.addRemoteToMiscSyndicate
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.addToQueue
@@ -506,16 +506,16 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                         }
                                     }
                                     LaunchedEffect(episode.fileUrl) { actionButton.update(episode) }
-                                    LaunchedEffect(theatres[0].mPlayer?.curState?.curPlayerStatus, theatres[0].mPlayer?.curEpisode?.id, theatres[1].mPlayer?.curState?.curPlayerStatus, theatres[1].mPlayer?.curEpisode?.id, actionButton.speaking) {
+                                    LaunchedEffect(theatres[0].mPlayer?.statusSimple, theatres[0].mPlayer?.curEpisode?.id, theatres[1].mPlayer?.statusSimple, theatres[1].mPlayer?.curEpisode?.id, actionButton.speaking) {
                                         when {
                                             episode.id == theatres[0].mPlayer?.curEpisode?.id -> {
-                                                Logd(TAG, "playerStat: ${theatres[0].mPlayer?.curState?.curPlayerStatus} episode: ${episode.title}")
-                                                if (theatres[0].mPlayer?.curState?.curPlayerStatus == PlayerStatusInt.PLAYING.code) actionButton.type = ButtonTypes.PAUSE
+                                                Logd(TAG, "playerStat: ${theatres[0].mPlayer?.statusSimple} episode: ${episode.title}")
+                                                if (theatres[0].mPlayer?.statusSimple == PlayerStatusSimple.PLAYING) actionButton.type = ButtonTypes.PAUSE
                                                 else actionButton.update(episode)
                                             }
                                             episode.id == theatres[1].mPlayer?.curEpisode?.id -> {
-                                                Logd(TAG, "playerStat: ${theatres[1].mPlayer?.curState?.curPlayerStatus} episode: ${episode.title}")
-                                                if (theatres[1].mPlayer?.curState?.curPlayerStatus == PlayerStatusInt.PLAYING.code) actionButton.type = ButtonTypes.PAUSE
+                                                Logd(TAG, "playerStat: ${theatres[1].mPlayer?.statusSimple} episode: ${episode.title}")
+                                                if (theatres[1].mPlayer?.statusSimple == PlayerStatusSimple.PLAYING) actionButton.type = ButtonTypes.PAUSE
                                                 else actionButton.update(episode)
                                             }
                                             actionButton.speaking.value -> actionButton.type = ButtonTypes.PAUSE

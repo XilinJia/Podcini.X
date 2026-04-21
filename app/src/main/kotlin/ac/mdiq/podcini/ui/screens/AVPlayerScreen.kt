@@ -10,7 +10,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.ensureAController
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.base.Media3Player.Companion.getCache
 import ac.mdiq.podcini.playback.base.Media3Player.Companion.simpleCache
-import ac.mdiq.podcini.playback.base.PlayerStatusInt
+import ac.mdiq.podcini.playback.base.PlayerStatusSimple
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.isSleepTimerActive
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
@@ -284,14 +284,14 @@ class AVPlayerVM(val playerId: Int): ViewModel() {
             volumeAdaption = VolumeAdaptionSetting.OFF
             curPlaybackSpeed = theatres[playerId].mPlayer?.curPBSpeed?:1f
         } }
-        curStateJob = viewModelScope.launch { snapshotFlow { theatres[playerId].mPlayer?.curState?.curPlayerStatus }.distinctUntilChanged().collect {
-            showPlayButton = theatres[playerId].mPlayer?.curState?.curPlayerStatus != PlayerStatusInt.PLAYING.code
+        curStateJob = viewModelScope.launch { snapshotFlow { theatres[playerId].mPlayer?.statusSimple }.distinctUntilChanged().collect {
+            showPlayButton = theatres[playerId].mPlayer?.statusSimple != PlayerStatusSimple.PLAYING
             Logd(TAG, "curPlayerStatus changed playerId: $playerId showPlayButton $showPlayButton")
         } }
-//        viewModelScope.launch { snapshotFlow { theatres[playerId].mPlayer?.curSpeed }.distinctUntilChanged().collect {
-//            curPlaybackSpeed = theatres[playerId].mPlayer?.curPBSpeed ?: 1f
-//            Logd(TAG, "curPlaybackSpeed changed playerId: $playerId curPlaybackSpeed $curPlaybackSpeed")
-//        } }
+        viewModelScope.launch { snapshotFlow { theatres[playerId].mPlayer?.curPBSpeed }.distinctUntilChanged().collect {
+            curPlaybackSpeed = theatres[playerId].mPlayer?.curPBSpeed ?: 1f
+            Logd(TAG, "curPlaybackSpeed changed playerId: $playerId curPlaybackSpeed $curPlaybackSpeed")
+        } }
 
         timeIt("$TAG end of vm init")
     }
@@ -558,7 +558,7 @@ fun ProgressBar(vm: AVPlayerVM) {
         val pastText = remember(theatres[vm.playerId].mPlayer?.curEpisode?.position) { if (theatres[vm.playerId].mPlayer?.curEpisode == null) "" else durationStringAdapt(theatres[vm.playerId].mPlayer?.curEpisode!!.position) + " *" + durationStringAdapt(theatres[vm.playerId].mPlayer?.curEpisode!!.timeSpent.toInt()) }
         Text(pastText, color = textColor, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.weight(1f))
-        if ((theatres[vm.playerId].mPlayer?.bitrate?:0) > 0) Text(formatLargeInteger(theatres[vm.playerId].mPlayer!!.bitrate) + "bits", color = textColor, style = MaterialTheme.typography.bodySmall)
+        if ((theatres[vm.playerId].mPlayer?.bitrate?:0) > 0) Text((if (theatres[vm.playerId].mPlayer?.isStereo == true) "Stereo" else "Mono") + ": " + formatLargeInteger(theatres[vm.playerId].mPlayer!!.bitrate) + "bits", color = textColor, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.weight(1f))
         val lengthText = remember(theatres[vm.playerId].mPlayer?.curPBSpeed, theatres[vm.playerId].mPlayer?.curEpisode?.position) {  run {
             if (theatres[vm.playerId].mPlayer?.curEpisode == null) return@run ""

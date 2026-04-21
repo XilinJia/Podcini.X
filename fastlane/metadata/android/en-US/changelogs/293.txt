@@ -1,0 +1,4 @@
+* ensure speed indicator in PLayerUI updates
+* ensure action buttons not set to Pause on app start, not persisting player status
+* in PlayerUI, added text Stereo/Mono
+* in FeedSettings, moved associated queue toward the top
