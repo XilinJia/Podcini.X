@@ -94,11 +94,11 @@ class PlaybackStarter(private val media: Episode) {
         }
         aCtrlFuture?.let { future ->
             if (future.isDone && aController?.isConnected == true) {
-                Logd(TAG, "aController ready, play, ${theatres[playerId].mPlayer?.status} $shouldStreamThisTime")
+                Logd(TAG, "aCtrlFuture aController ready, play, ${theatres[playerId].mPlayer?.status} $shouldStreamThisTime")
                 if (shouldStreamThisTime && !isStreamingCapable(media)) return
                 processTask()
             } else {
-                Logd(TAG, "starting PlaybackService")
+                Logd(TAG, "aCtrlFuture starting PlaybackService")
                 ContextCompat.startForegroundService(getAppContext(), Intent(getAppContext(), PlaybackService::class.java))
             }
         } ?: run {

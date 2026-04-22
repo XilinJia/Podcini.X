@@ -1,3 +1,11 @@
+# 11.0.5
+
+* avoid possibly calling endPlayback twice when an episode is finished
+* when setting curEpisode, avoid searching/setting actQueue when curEpisode is in actQueue
+	* fixed actQueue likely being changed if curEpisode is in multiple queues
+* some code cleaning, and removed redundant override of onStartCommand in PlaybackService
+* AGP upped to 9.2
+
 # 11.0.4
 
 * ensure speed indicator in PLayerUI updates

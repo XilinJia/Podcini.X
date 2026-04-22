@@ -286,7 +286,7 @@ class ToggleAction : ActionCallback {
             fun getPlayerActivityIntent(context: Context, mediaType_: MediaType? = null): Intent {
                 val mediaType = mediaType_ ?: theatres[0].mPlayer!!.currentMediaType
                 val showVideoPlayer = if (isRunning) mediaType == MediaType.VIDEO && !isCasting else theatres[0].mPlayer?.curState?.curIsVideo ?: false
-                theatres[0].mPlayer?.playVideo = showVideoPlayer
+                theatres[0].mPlayer?.playingVideo = showVideoPlayer
                 return MainActivityStarter(context).withOpenPlayer().getIntent()
             }
             withContext(Dispatchers.Main) {

@@ -505,9 +505,9 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
             for (i in 0..1) {
                 if (item.id != theatres[i].mPlayer?.curEpisode?.id) continue
                 if (item.forceVideo || (item.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && item.getMediaType() == MediaType.VIDEO)) {
-                    theatres[i].mPlayer?.playVideo = true
+                    theatres[i].mPlayer?.playingVideo = true
                     psState = PSState.Expanded
-                } else theatres[i].mPlayer?.playVideo = false
+                } else theatres[i].mPlayer?.playingVideo = false
             }
         }
     }

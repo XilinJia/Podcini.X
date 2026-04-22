@@ -13,7 +13,6 @@ import ac.mdiq.podcini.playback.base.Media3Player.Companion.buildMetadata
 import ac.mdiq.podcini.playback.base.Media3Player.Companion.releaseCache
 import ac.mdiq.podcini.playback.base.SleepManager
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
-import ac.mdiq.podcini.receiver.MediaButtonReceiver
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.episodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.fastForwardSecs
@@ -28,8 +27,6 @@ import ac.mdiq.podcini.utils.Logpt
 import ac.mdiq.podcini.utils.timeIt
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.app.PendingIntent.FLAG_UPDATE_CURRENT
@@ -411,75 +408,6 @@ class PlaybackService : MediaLibraryService() {
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? {
         return mediaSession
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Logd(TAG, "onStartCommand intent is null: ${intent == null} intent?.action ${intent?.action} running: $isRunning")
-        if (intent == null && flags == 0) {
-            Logd(TAG, "onStartCommand Service restarted by system with null intent. return")
-            return START_STICKY
-        }
-        val keycode = intent?.getIntExtra(MediaButtonReceiver.EXTRA_KEYCODE, -1) ?: -1
-        val customAction = intent?.getStringExtra(MediaButtonReceiver.EXTRA_CUSTOM_ACTION)
-        val hardwareButton = intent?.getBooleanExtra(MediaButtonReceiver.EXTRA_HARDWAREBUTTON, false) == true
-        val keyEvent: KeyEvent? = if (Build.VERSION.SDK_INT >= VERSION_CODES.TIRAMISU) intent?.getParcelableExtra(EXTRA_KEY_EVENT, KeyEvent::class.java)
-        else {
-            @Suppress("DEPRECATION")
-            intent?.getParcelableExtra(EXTRA_KEY_EVENT)
-        }
-
-        Logd(TAG, "onStartCommand flags=$flags startId=$startId keycode=$keycode keyEvent=$keyEvent customAction=$customAction hardwareButton=$hardwareButton action=${intent?.action.toString()} ${theatres[0].mPlayer?.curEpisode?.getEpisodeTitle()}")
-        if (keycode == -1 && theatres[0].mPlayer?.curEpisode == null && customAction == null) {
-            Logd(TAG, "onStartCommand PlaybackService was started with no arguments, return")
-            return START_NOT_STICKY
-        }
-        if ((flags and START_FLAG_REDELIVERY) != 0) {
-            Logd(TAG, "onStartCommand is a redelivered intent, calling stopForeground now. return")
-            return START_NOT_STICKY
-        }
-        Logd(TAG, "onStartCommand mPlayer?.prevMedia: ${theatres[0].mPlayer?.prevMedia?.title}")
-        Logd(TAG, "onStartCommand curEpisode: ${theatres[0].mPlayer?.curEpisode?.title}")
-        Logd(TAG, "onStartCommand status: ${theatres[0].mPlayer?.status}")
-
-        if (keycode == -1 && theatres[0].mPlayer?.curEpisode != null) {
-            if (theatres[0].mPlayer?.prevMedia?.id == theatres[0].mPlayer?.curEpisode?.id) {
-                Logd(TAG, "onStartCommand playing same media: ${theatres[0].mPlayer?.status}")
-                if (theatres[0].mPlayer!!.isPlaying || theatres[0].mPlayer!!.isPaused) return super.onStartCommand(intent, flags, startId)
-                Logd(TAG, "onStartCommand playing same media: ${theatres[0].mPlayer?.status} proceed")
-            }
-        }
-        when {
-            keycode != -1 -> {
-                // TODO: likely not happening
-                Logd(TAG, "onStartCommand Received hardware button event: $hardwareButton")
-                handleKeycode(keycode, !hardwareButton)
-                return super.onStartCommand(intent, flags, startId)
-            }
-            keyEvent?.keyCode == KEYCODE_MEDIA_STOP -> {
-                // TODO: likely not happening
-                Logd(TAG, "onStartCommand Received button event: ${keyEvent.keyCode}")
-                handleKeycode(keyEvent.keyCode, !hardwareButton)
-                return super.onStartCommand(intent, flags, startId)
-            }
-            theatres[0].mPlayer?.curEpisode != null -> {
-                Logd(TAG, "onStartCommand starting notification")
-                val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-                if (nm.getNotificationChannel(CHANNEL_ID) == null) {
-                    val channel = NotificationChannel(CHANNEL_ID, "Title", NotificationManager.IMPORTANCE_LOW).apply {
-                        setSound(null, null)
-                        enableVibration(false)
-                    }
-                    nm.createNotificationChannel(channel)
-                }
-                val notification = NotificationCompat.Builder(this, CHANNEL_ID).setSmallIcon(android.R.drawable.ic_media_play).setOngoing(true).setContentTitle("").setContentText("").build()
-                startForeground(1, notification)
-                if (mediaSession == null) createMediaSessionAndPlayers()
-                theatres[0].mPlayer?.startPlaying()
-                return START_STICKY
-            }
-            else -> Logd(TAG, "onStartCommand case when not (keycode != -1 and playable != null)")
-        }
-        return START_NOT_STICKY
     }
 
     /**

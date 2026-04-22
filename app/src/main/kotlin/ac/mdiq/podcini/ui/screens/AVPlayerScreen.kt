@@ -967,7 +967,7 @@ fun AVPlayerScreen() {
 
 //    Logd(TAG, "landscape: ${vm.landscape}")
 //    if ((landscape || curVideoMode == VideoMode.FULL_SCREEN || (curVideoMode == VideoMode.DEFAULT && appPrefs.videoPlaybackMode == VideoMode.FULL_SCREEN.code)) && playVideo && bsState == BSState.Expanded) {
-    if (vm0.landscape && theatres[vms[activePlayer].playerId].mPlayer?.playVideo == true && psState == PSState.Expanded) {
+    if (vm0.landscape && theatres[vms[activePlayer].playerId].mPlayer?.playingVideo == true && psState == PSState.Expanded) {
         Box {
             FullScreenVideoPlayer(vms[activePlayer])
             VideoToolBar(vms[activePlayer], modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter))
@@ -1001,7 +1001,7 @@ fun AVPlayerScreen() {
         }
         if (psState == PSState.Expanded) {
             Column(Modifier.padding(bottom = 100.dp)) {
-                if (theatres[vms[activePlayer].playerId].mPlayer?.playVideo == true) {
+                if (theatres[vms[activePlayer].playerId].mPlayer?.playingVideo == true) {
                     VideoToolBar(vms[activePlayer])
                     VideoPlayer(vms[activePlayer])
                 } else Toolbar(vms[activePlayer])

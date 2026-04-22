@@ -253,7 +253,7 @@ suspend fun <T : RealmObject> upsert(entity: T, block: MutableRealm.(T) -> Unit)
                 }
             } catch (e: Exception) {
                 Logs(TAG, e, "copyToRealm error")
-                showStackTrace()
+//                showStackTrace()
             }
         }
         result
@@ -282,7 +282,7 @@ fun <T : RealmObject> upsertBlk(entity: T, block: MutableRealm.(T) -> Unit) : T 
                 }
             } catch (e: Exception) {
                 Logs(TAG, e, "copyToRealm error")
-                showStackTrace()
+//                showStackTrace()
             }
         }
         result

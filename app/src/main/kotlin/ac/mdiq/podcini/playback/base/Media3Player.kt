@@ -123,13 +123,18 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     private var bufferingUpdateListener: ((Int) -> Unit)? = null
     private var loudnessEnhancer: LoudnessEnhancer? = null
 
-    var httpDataSourceFactory:  OkHttpDataSource.Factory? = null
+    private var httpDataSourceFactory:  OkHttpDataSource.Factory? = null
 
     private var trackSelector: DefaultTrackSelector? = null
 
     private var playbackParameters: PlaybackParameters
 
     private var bufferedPercentagePrev = 0
+
+    private var speedEnablesOffload = true
+    private var silenceEnablesOffload = !isSkipSilence
+    private var offloadEnabled = speedEnablesOffload && silenceEnablesOffload
+    private var needChangeOffload = false
 
     private val formats: List<Format>
         get() {
@@ -154,14 +159,14 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             return -1
         }
 
-    override val videoWidth: Int
-        get() = (exoPlayer as? ExoPlayer)?.videoFormat?.width ?: 0
-
-    override val videoHeight: Int
-        get() = (exoPlayer as? ExoPlayer)?.videoFormat?.height ?: 0
+//    override val videoWidth: Int
+//        get() = (exoPlayer as? ExoPlayer)?.videoFormat?.width ?: 0
+//
+//    override val videoHeight: Int
+//        get() = (exoPlayer as? ExoPlayer)?.videoFormat?.height ?: 0
 
     private val cacheMutex = Mutex()
-    suspend fun initCache() = withContext(Dispatchers.IO) {
+    private suspend fun initCache() = withContext(Dispatchers.IO) {
         cacheMutex.withLock {
             simpleCache?.let { return@withLock }
             val context = getAppContext()
@@ -185,7 +190,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                             // TODO: test
 //                            setPlayerStatus(PlayerStatus.STOPPED, null)
                             castPlayer?.seekTo(C.TIME_UNSET)
-                            endPlayback(hasEnded = true, wasSkipped = false)
+                            endPlayback(hasEnded = true, wasSkipped = false) // TODO: this may be redundant, is called from remove from queue routines
                         }
                         STATE_BUFFERING -> bufferingUpdateListener?.invoke(BUFFERING_STARTED)
                         else -> bufferingUpdateListener?.invoke(BUFFERING_ENDED)
@@ -330,12 +335,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         }
     }
 
-    var speedEnablesOffload = true
-    var silenceEnablesOffload = !isSkipSilence
-    var offloadEnabled = speedEnablesOffload && silenceEnablesOffload
-    var needChangeOffload = false
-
-    fun switchOffload() {
+    private fun switchOffload() {
         if (!needChangeOffload || exoPlayer == null) return
 
         Logd(TAG, "switchOffload offloadSpeedEnabled: $speedEnablesOffload offloadSilenceEnabled: $silenceEnablesOffload")
@@ -766,7 +766,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     }
 
     // TODO: seems not used? check
-    var curDataSource: SegmentSavingDataSource? = null
+    private var curDataSource: SegmentSavingDataSource? = null
 
     /**
      * Wrapper to handle start/stop/save with SegmentSavingDataSource
@@ -1016,7 +1016,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         const val BUFFERING_STARTED: Int = -1
         const val BUFFERING_ENDED: Int = -2
 
-        var enableFloat = Build.VERSION.SDK_INT >= 29
+        private var enableFloat = Build.VERSION.SDK_INT >= 29
 
         var simpleCache: SimpleCache? = null
 
