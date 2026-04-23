@@ -99,7 +99,6 @@ import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.mp3.Mp3Extractor
 import androidx.media3.ui.DefaultTrackNameProvider
 import androidx.media3.ui.TrackNameProvider
-import com.google.android.gms.cast.framework.CastContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -118,8 +117,6 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
     private var mediaSource: MediaSource? = null
     private var mediaItem: MediaItem? = null
-
-//    val remoteMediaClient = CastContext.getSharedInstance(context).sessionManager.currentCastSession?.remoteMediaClient
 
     private var exoplayerListener: Listener? = null
     private var exoplayerOffloadListener: ExoPlayer.AudioOffloadListener? = null
