@@ -1,9 +1,9 @@
 # 11.0.7
 
-* revert media source processing to IO dispatcher
+* revert media source processing to IO dispatcher for local player
 * pause current playing immediately when skipping
 * fixed issue with skipping when casting (Play app)
-* minor code cleanup
+* some code refactoring and cleanup
 
 # 11.0.6
 

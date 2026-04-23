@@ -145,13 +145,12 @@ class OpmlBackupAgent : BackupAgentHelper() {
             if (checksum == null) return
             try {
                 val outState = FileOutputStream(newState.fileDescriptor)
+                // TODO: this can get: java.io.IOException: write failed: EBADF (Bad file descriptor)
                 outState.write(checksum.size)
                 outState.write(checksum)
                 outState.flush()
                 outState.close()
-            } catch (e: Exception) {
-                Logs(TAG, e, "Failed to write new state description.")
-            }
+            } catch (e: Exception) { Logs(TAG, e, "Failed to write new state description.") }
         }
 
         companion object {

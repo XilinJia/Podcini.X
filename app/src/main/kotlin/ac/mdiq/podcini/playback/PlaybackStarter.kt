@@ -13,6 +13,7 @@ import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.showStackTrace
 import android.content.Intent
 import androidx.core.content.ContextCompat
 
@@ -43,9 +44,9 @@ class PlaybackStarter(private val media: Episode) {
         return this
     }
 
-    // TODO: ensure caller pass correct playerId
     fun start(playerId: Int = 0, force: Boolean = false) {
         Logd(TAG, "start PlaybackService.isRunning: ${PlaybackService.isRunning}")
+        showStackTrace()
         var media_ = media
         var sameMedia = true
         if (theatres[playerId].mPlayer?.curEpisode?.id != media.id || force) {
@@ -66,13 +67,17 @@ class PlaybackStarter(private val media: Episode) {
                 theatres[playerId].mPlayer!!.isPlaying -> {
                     theatres[playerId].mPlayer?.pause(false)
                     if (!sameMedia) {
+                        theatres[playerId].mPlayer?.isSkipping = true
                         theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
                         sleepManager?.restart()
                     }
                 }
                 theatres[playerId].mPlayer!!.isPaused || theatres[playerId].mPlayer!!.isPrepared -> {
                     if (sameMedia) theatres[playerId].mPlayer?.play()
-                    else theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
+                    else {
+                        theatres[playerId].mPlayer?.isSkipping = true
+                        theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
+                    }
                     sleepManager?.restart()
                 }
                 theatres[playerId].mPlayer!!.isStopped -> {

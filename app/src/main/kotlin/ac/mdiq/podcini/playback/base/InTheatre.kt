@@ -4,6 +4,7 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.storage.database.episodeById
 import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.unsubscribeEpisode
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState
@@ -138,7 +139,7 @@ object InTheatre {
     fun cleanup() {
         Logd(TAG, "cleanup()")
         for (i in 0..1) {
-            if (theatres[i].mPlayer?.curEpisode != null) unsubscribeEpisode(theatres[i].mPlayer?.curEpisode!!, TAG)
+            if (theatres[i].mPlayer?.curEpisode != null) runOnIOScope { unsubscribeEpisode(theatres[i].mPlayer?.curEpisode!!, TAG) }
             theatres[i].curStateMonitor?.cancel()
             theatres[i].curStateMonitor = null
         }

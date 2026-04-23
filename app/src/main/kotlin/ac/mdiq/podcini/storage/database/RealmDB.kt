@@ -26,7 +26,6 @@ import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.ui.screens.DefaultPages
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
-import ac.mdiq.podcini.utils.showStackTrace
 import android.util.Log
 import io.github.xilinjia.krdb.MutableRealm
 import io.github.xilinjia.krdb.Realm
@@ -391,22 +390,20 @@ suspend fun subscribeEpisode(episode: Episode, entity: MonitorEntity) {
     }
 }
 
-fun unsubscribeEpisode(episode: Episode, tag: String) {
-    CoroutineScope(Dispatchers.IO).launch {
-        subscriptionMutex.withLock {
-            val ms = idMonitorsMap[episode.id]
-            if (ms != null) {
-                try {
-                    ms.entities.removeIf { it.tag == tag }
-                    if (ms.entities.isEmpty()) {
-                        ms.job?.cancel()
-                        idMonitorsMap.remove(episode.id)
-                    }
-                } catch (e: Throwable) { Logs(TAG, e, "unsubscribe episode failed $tag ${episode.title}") }
-            }
-            Logd(TAG, "unsubscribeEpisode $tag ${episode.id} ${episode.title}")
-            Logd(TAG, "unsubscribeEpisode idMonitorsMap: ${idMonitorsMap.size}")
-            for ((k, v) in idMonitorsMap.entries.toList()) for (e in v.entities) Logd(TAG, "unsubscribeEpisode idMonitorsMap $k tag: ${e.tag} job: ${v.job != null}")
+suspend fun unsubscribeEpisode(episode: Episode, tag: String) {
+    subscriptionMutex.withLock {
+        val ms = idMonitorsMap[episode.id]
+        if (ms != null) {
+            try {
+                ms.entities.removeIf { it.tag == tag }
+                if (ms.entities.isEmpty()) {
+                    ms.job?.cancel()
+                    idMonitorsMap.remove(episode.id)
+                }
+            } catch (e: Throwable) { Logs(TAG, e, "unsubscribe episode failed $tag ${episode.title}") }
         }
+        Logd(TAG, "unsubscribeEpisode $tag ${episode.id} ${episode.title}")
+        Logd(TAG, "unsubscribeEpisode idMonitorsMap: ${idMonitorsMap.size}")
+        for ((k, v) in idMonitorsMap.entries.toList()) for (e in v.entities) Logd(TAG, "unsubscribeEpisode idMonitorsMap $k tag: ${e.tag} job: ${v.job != null}")
     }
 }

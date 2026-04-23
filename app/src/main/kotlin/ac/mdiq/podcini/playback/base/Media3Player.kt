@@ -62,6 +62,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.Player.COMMAND_GET_CURRENT_MEDIA_ITEM
+import androidx.media3.common.Player.COMMAND_PLAY_PAUSE
 import androidx.media3.common.Player.DiscontinuityReason
 import androidx.media3.common.Player.Listener
 import androidx.media3.common.Player.PositionInfo
@@ -206,12 +207,12 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                 }
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     Logd(TAG, "exoplayerListener onIsPlayingChanged $isPlaying")
-                    val pos = getPosition()
+//                    val pos = getPosition()
                     if (isPlaying) hasStarted = true
-                    else onPlaybackPause(curEpisode, pos)
-                    val stat = if (isPlaying) PlayerStatus.PLAYING else PlayerStatus.PAUSED
-                    setPlayerStatus(stat, curEpisode, pos)
-                    savePlayerStatus(null, stat)
+//                    else onPlaybackPause(curEpisode, pos)
+//                    val stat = if (isPlaying) PlayerStatus.PLAYING else PlayerStatus.PAUSED
+//                    setPlayerStatus(stat, curEpisode)
+//                    savePlayerStatus(null, stat)
                 }
                 override fun onPlayerError(error: PlaybackException) {
                     fun handleTerminalError(message: String) {
@@ -347,7 +348,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     }
 
     private fun switchOffload() {
-        if (!needChangeOffload || exoPlayer == null) return
+        if (!needChangeOffload || exoPlayer == null || isCasting) return
 
         Logd(TAG, "switchOffload offloadSpeedEnabled: $speedEnablesOffload offloadSilenceEnabled: $silenceEnablesOffload")
         val enabled = speedEnablesOffload && silenceEnablesOffload
@@ -644,6 +645,10 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
     override fun getPlayerPosition(): Int {
         return if (castPlayer?.isCommandAvailable(COMMAND_GET_CURRENT_MEDIA_ITEM) == true) castPlayer!!.currentPosition.toInt() else Episode.INVALID_TIME
+    }
+
+    override fun setCastPlayImmediately() {
+        if (castPlayer?.isCommandAvailable(COMMAND_PLAY_PAUSE ) == true) castPlayer?.playWhenReady = true
     }
 
     override fun playChime() {

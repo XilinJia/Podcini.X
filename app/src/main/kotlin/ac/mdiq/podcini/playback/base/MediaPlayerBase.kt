@@ -54,6 +54,7 @@ import ac.mdiq.podcini.utils.Logpe
 import ac.mdiq.podcini.utils.Logps
 import ac.mdiq.podcini.utils.Logpt
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.showStackTrace
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -113,7 +114,7 @@ abstract class MediaPlayerBase {
     val isError: Boolean
         get() = status == PlayerStatus.ERROR
 
-    protected var isSkipping = false
+    internal var isSkipping = false
 
     private var normalSpeed = 1.0f
     var isSpeedForward = false
@@ -161,7 +162,7 @@ abstract class MediaPlayerBase {
 
     val isPlayingVideoLocally: Boolean
         get() = when {
-            PlaybackService.isCasting -> false
+            isCasting -> false
             playbackService != null -> currentMediaType == MediaType.VIDEO
             else -> curEpisode?.getMediaType() == MediaType.VIDEO
         }
@@ -211,17 +212,18 @@ abstract class MediaPlayerBase {
         Logd(TAG, "setAsCurEpisode episode: ${episode?.title}")
                 //        showStackTrace()
         if (episode != null && episode.id == curEpisode?.id && !force) return
-        if (curEpisode != null) unsubscribeEpisode(curEpisode!!, TAG)
-        val episode_ = if (episode != null) episodeById(episode.id) else null
-        when {
-            episode_ != null -> {
-                curEpisode = episode_
-                playingVideo = (episode_.forceVideo || (episode_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && episode_.getMediaType() == MediaType.VIDEO))
-                skipSilence = null
-                shouldRepeat = false
-                curSpeed = SPEED_USE_GLOBAL
-                Logd(TAG, "setAsCurEpisode start monitoring curEpisode ${curEpisode?.title}")
-                runOnIOScope {
+
+        runOnIOScope {
+            if (curEpisode != null) unsubscribeEpisode(curEpisode!!, TAG)
+            val episode_ = if (episode != null) episodeById(episode.id) else null
+            when {
+                episode_ != null -> {
+                    curEpisode = episode_
+                    playingVideo = (episode_.forceVideo || (episode_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && episode_.getMediaType() == MediaType.VIDEO))
+                    skipSilence = null
+                    shouldRepeat = false
+                    curSpeed = SPEED_USE_GLOBAL
+                    Logd(TAG, "setAsCurEpisode start monitoring curEpisode ${curEpisode?.title}")
                     if (!actQueue.contains(curEpisode!!)) {
                         val qes = realm.query(QueueEntry::class).query("episodeId == ${curEpisode!!.id}").find()
                         if (qes.isNotEmpty()) {
@@ -229,26 +231,23 @@ abstract class MediaPlayerBase {
                             if (q != null) actQueue = q
                         }
                     }
-                    subscribeEpisode(curEpisode!!,
-                        MonitorEntity(TAG, onInit = {  },
-                            onChanges = { e, f ->
-                                if (e.id == curEpisode?.id) {
-                                    curEpisode = e
-                                    Logd(TAG, "setAsCurEpisode updating curEpisode [${curEpisode?.title}] ${f.joinToString()}")
-                                }
-                            }
-                        ))
+                    subscribeEpisode(curEpisode!!, MonitorEntity(TAG, onInit = { }, onChanges = { e, f ->
+                        if (e.id == curEpisode?.id) {
+                            curEpisode = e
+                            Logd(TAG, "setAsCurEpisode updating curEpisode [${curEpisode?.title}] ${f.joinToString()}")
+                        }
+                    }))
                 }
-            }
-            else -> {
-                curEpisode = null
-                savePlayerStatus(null, null)
+                else -> {
+                    curEpisode = null
+                    savePlayerStatus(null, null)
+                }
             }
         }
     }
 
     fun savePlayerStatus(episode: Episode?, playerStatus: PlayerStatus?) {
-        Logd(TAG, "Writing playback preferences ${episode?.id}")
+        Logd(TAG, "savePlayerStatus episode ${episode?.id}")
         runOnIOScope {
             when {
                 episode == null && playerStatus != null -> {
@@ -392,7 +391,7 @@ abstract class MediaPlayerBase {
                         autoSkippedFeedMediaId = item.identifyingValue
                         skip()
                     }
-                    persistCurrentPosition(true, null, Episode.INVALID_TIME)
+                    persistCurrentPosition(false, curEpisode, curPosition)
                     prevPosition = curPosition
                 }
                 invokeBufferListener()
@@ -418,7 +417,7 @@ abstract class MediaPlayerBase {
 
     fun getPosition(): Int {
         var retVal = Episode.INVALID_TIME
-        //        showStackTrace()
+//        showStackTrace()
         if (castPlayer?.isPlaying == true && !status.isAtLeast(PlayerStatus.PREPARED)) Logpt(TAG, curEpisode, "exoPlayer playbackState ${castPlayer?.playbackState} player status $status")
         retVal = getPlayerPosition()
 //        Logd(TAG, "getPosition player position: $retVal")
@@ -439,6 +438,8 @@ abstract class MediaPlayerBase {
     protected abstract fun prepareDataSource(media: Episode)
 
     protected abstract fun prepareDataSource(media: Episode, mediaUrl: String, user: String?, password: String?)
+
+    protected abstract fun setCastPlayImmediately()
 
     /**
      * Starts or prepares playback of the specified EpisodeMedia object. If another EpisodeMedia object is already being played, the currently playing
@@ -480,13 +481,17 @@ abstract class MediaPlayerBase {
                 Logd(TAG, "prepareMedia: curEpisode exist status=$status")
                 Logd(TAG, "prepareMedia starts new playable:${playable.id} curEpisode:${curEpisode!!.id} prevMedia:${prevMedia?.id}")
                 // set temporarily to pause in order to update list with current position
-                if (isPlaying) onPlaybackPause(curEpisode, curEpisode?.position ?: -1)
+//                if (isPlaying || isPaused)
+                onPlaybackPause(curEpisode, curEpisode?.position ?: -1)
+
                 // stop playback of this episode
-                if (isPaused || isPlaying || isPrepared) castPlayer?.stop()
+//                if (isPaused || isPlaying || isPrepared) castPlayer?.stop()
                 if (curEpisode?.id != playable.id) onPostPlayback(curEpisode!!, ended = false, skipped = true, true)
                 setPlayerStatus(PlayerStatus.INDETERMINATE, null)
             }
         }
+
+        if (isCasting) setCastPlayImmediately()
 
         Logd(TAG, "prepareMedia preparing for playable:${playable.id} ${playable.getEpisodeTitle()}")
         if (playable.playState < EpisodeState.PROGRESS.code) runOnIOScope { upsert(playable) { it.setPlayState(EpisodeState.PROGRESS) } }
@@ -501,7 +506,7 @@ abstract class MediaPlayerBase {
         prefSpeedOf(curEpisode).let { (sp, pi)-> setPlaybackParams(sp, pi) }
         setRepeat(shouldRepeat)
         setSkipSilence()
-        CoroutineScope(Dispatchers.IO).launch {
+        CoroutineScope(if (isCasting) Dispatchers.Main else Dispatchers.IO).launch {
             try {
                 when {
                     streaming -> {
@@ -579,8 +584,10 @@ abstract class MediaPlayerBase {
         if (isPlaying || isError) {
             Logd(TAG, "Pausing playback $reinit")
             castPlayer?.pause()
-            setPlayerStatus(PlayerStatus.PAUSED, curEpisode, getPosition())
+            val pos = getPosition()
+            setPlayerStatus(PlayerStatus.PAUSED, curEpisode, pos)
             if (isStreaming && reinit) reinit()
+            cancelPositionSaver()
             isSpeedForward =  false
             isFallbackSpeed = false
             if (curEpisode != null) upsertBlk(curEpisode!!) { it.forceVideo = false }
@@ -593,8 +600,8 @@ abstract class MediaPlayerBase {
      * Prepared media player for playback if the service is in the INITALIZED state.
      * This method is executed on an internal executor service.
      */
-    fun prepare() {
-        Logd(TAG, "prepare Preparing media player: status: $status")
+    internal fun prepare() {
+        Logd(TAG, "prepare Preparing media player: status: $status isStartWhenPrepared: $isStartWhenPrepared")
         if (isInitialized) {
             setPlayerStatus(PlayerStatus.PREPARING, curEpisode)
             setSource()
@@ -684,7 +691,7 @@ abstract class MediaPlayerBase {
      * the next item, based on the user preferences and whether such item exists.
      */
     internal fun endPlayback(hasEnded: Boolean, wasSkipped: Boolean, shouldContinue: Boolean = true) {
-//        showStackTrace()
+        showStackTrace()
         if (curEpisode == null) {
             Logd(TAG, "endPlayback curEpisode is null, return")
             return
