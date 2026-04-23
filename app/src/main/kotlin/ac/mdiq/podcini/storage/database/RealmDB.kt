@@ -390,20 +390,24 @@ suspend fun subscribeEpisode(episode: Episode, entity: MonitorEntity) {
     }
 }
 
-suspend fun unsubscribeEpisode(episode: Episode, tag: String) {
-    subscriptionMutex.withLock {
-        val ms = idMonitorsMap[episode.id]
-        if (ms != null) {
-            try {
-                ms.entities.removeIf { it.tag == tag }
-                if (ms.entities.isEmpty()) {
-                    ms.job?.cancel()
-                    idMonitorsMap.remove(episode.id)
+fun unsubscribeEpisode(episode: Episode, tag: String) {
+    runOnIOScope {
+        subscriptionMutex.withLock {
+            val ms = idMonitorsMap[episode.id]
+            if (ms != null) {
+                try {
+                    ms.entities.removeIf { it.tag == tag }
+                    if (ms.entities.isEmpty()) {
+                        ms.job?.cancel()
+                        idMonitorsMap.remove(episode.id)
+                    }
+                } catch (e: Throwable) {
+                    Logs(TAG, e, "unsubscribe episode failed $tag ${episode.title}")
                 }
-            } catch (e: Throwable) { Logs(TAG, e, "unsubscribe episode failed $tag ${episode.title}") }
+            }
+            Logd(TAG, "unsubscribeEpisode $tag ${episode.id} ${episode.title}")
+            Logd(TAG, "unsubscribeEpisode idMonitorsMap: ${idMonitorsMap.size}")
+            for ((k, v) in idMonitorsMap.entries.toList()) for (e in v.entities) Logd(TAG, "unsubscribeEpisode idMonitorsMap $k tag: ${e.tag} job: ${v.job != null}")
         }
-        Logd(TAG, "unsubscribeEpisode $tag ${episode.id} ${episode.title}")
-        Logd(TAG, "unsubscribeEpisode idMonitorsMap: ${idMonitorsMap.size}")
-        for ((k, v) in idMonitorsMap.entries.toList()) for (e in v.entities) Logd(TAG, "unsubscribeEpisode idMonitorsMap $k tag: ${e.tag} job: ${v.job != null}")
     }
 }

@@ -3,6 +3,7 @@
 * revert media source processing to IO dispatcher for local player
 * pause current playing immediately when skipping
 * fixed issue with skipping when casting (Play app)
+* amended some R8 rules
 * some code refactoring and cleanup
 
 # 11.0.6

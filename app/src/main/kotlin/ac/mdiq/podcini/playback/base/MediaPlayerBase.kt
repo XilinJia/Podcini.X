@@ -212,18 +212,17 @@ abstract class MediaPlayerBase {
         Logd(TAG, "setAsCurEpisode episode: ${episode?.title}")
                 //        showStackTrace()
         if (episode != null && episode.id == curEpisode?.id && !force) return
-
-        runOnIOScope {
-            if (curEpisode != null) unsubscribeEpisode(curEpisode!!, TAG)
-            val episode_ = if (episode != null) episodeById(episode.id) else null
-            when {
-                episode_ != null -> {
-                    curEpisode = episode_
-                    playingVideo = (episode_.forceVideo || (episode_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && episode_.getMediaType() == MediaType.VIDEO))
-                    skipSilence = null
-                    shouldRepeat = false
-                    curSpeed = SPEED_USE_GLOBAL
-                    Logd(TAG, "setAsCurEpisode start monitoring curEpisode ${curEpisode?.title}")
+        if (curEpisode != null) unsubscribeEpisode(curEpisode!!, TAG)
+        val episode_ = if (episode != null) episodeById(episode.id) else null
+        when {
+            episode_ != null -> {
+                curEpisode = episode_
+                playingVideo = (episode_.forceVideo || (episode_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && episode_.getMediaType() == MediaType.VIDEO))
+                skipSilence = null
+                shouldRepeat = false
+                curSpeed = SPEED_USE_GLOBAL
+                Logd(TAG, "setAsCurEpisode start monitoring curEpisode ${curEpisode?.title}")
+                runOnIOScope {
                     if (!actQueue.contains(curEpisode!!)) {
                         val qes = realm.query(QueueEntry::class).query("episodeId == ${curEpisode!!.id}").find()
                         if (qes.isNotEmpty()) {
@@ -231,17 +230,20 @@ abstract class MediaPlayerBase {
                             if (q != null) actQueue = q
                         }
                     }
-                    subscribeEpisode(curEpisode!!, MonitorEntity(TAG, onInit = { }, onChanges = { e, f ->
-                        if (e.id == curEpisode?.id) {
-                            curEpisode = e
-                            Logd(TAG, "setAsCurEpisode updating curEpisode [${curEpisode?.title}] ${f.joinToString()}")
-                        }
-                    }))
+                    subscribeEpisode(curEpisode!!,
+                        MonitorEntity(TAG, onInit = { },
+                            onChanges = { e, f ->
+                                if (e.id == curEpisode?.id) {
+                                    curEpisode = e
+                                    Logd(TAG, "setAsCurEpisode updating curEpisode [${curEpisode?.title}] ${f.joinToString()}")
+                                }
+                            }
+                        ))
                 }
-                else -> {
-                    curEpisode = null
-                    savePlayerStatus(null, null)
-                }
+            }
+            else -> {
+                curEpisode = null
+                savePlayerStatus(null, null)
             }
         }
     }

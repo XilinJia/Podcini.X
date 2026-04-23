@@ -139,7 +139,7 @@ object InTheatre {
     fun cleanup() {
         Logd(TAG, "cleanup()")
         for (i in 0..1) {
-            if (theatres[i].mPlayer?.curEpisode != null) runOnIOScope { unsubscribeEpisode(theatres[i].mPlayer?.curEpisode!!, TAG) }
+            if (theatres[i].mPlayer?.curEpisode != null) unsubscribeEpisode(theatres[i].mPlayer?.curEpisode!!, TAG)
             theatres[i].curStateMonitor?.cancel()
             theatres[i].curStateMonitor = null
         }
