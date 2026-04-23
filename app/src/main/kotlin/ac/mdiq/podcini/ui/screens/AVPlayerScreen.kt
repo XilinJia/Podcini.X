@@ -1000,7 +1000,7 @@ fun AVPlayerScreen() {
             PlayerUI(vms[0], Modifier)
         }
         if (psState == PSState.Expanded) {
-            Column(Modifier.padding(bottom = 100.dp)) {
+            Column(Modifier.padding(bottom = playerMinHeight.dp)) {
                 if (theatres[vms[activePlayer].playerId].mPlayer?.playingVideo == true) {
                     VideoToolBar(vms[activePlayer])
                     VideoPlayer(vms[activePlayer])

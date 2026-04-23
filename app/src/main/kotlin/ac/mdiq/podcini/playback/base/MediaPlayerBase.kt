@@ -301,11 +301,16 @@ abstract class MediaPlayerBase {
                 qes.size == 1 -> return null
                 else -> {
                     var j = if (curIndex < qes.size - 1) curIndex + 1 else 0
-                    while (isCurMedia(qes[j].episodeId)) j = if (j < qes.size - 1) j + 1 else 0
+                    val start = j
+                    while (isCurMedia(qes[j].episodeId)) {
+                        j = if (j < qes.size - 1) j + 1 else 0
+                        if (j == start) break
+                    }
                     qes[j]
                 }
             }
         } else qes[0]
+        if (isCurMedia(nextQE.episodeId)) return null
         var nextItem = episodeById(nextQE.episodeId) ?: return null
         Logd(TAG, "getNextInQueue nextItem ${nextItem.title}")
         nextItem = checkAndMarkDuplicates(nextItem)
@@ -404,11 +409,11 @@ abstract class MediaPlayerBase {
 
     abstract fun setDuration()
 
-    open fun getDuration(): Int = curEpisode?.duration ?: Episode.INVALID_TIME
+    fun getDuration(): Int = curEpisode?.duration ?: Episode.INVALID_TIME
 
     abstract fun getPlayerPosition(): Int
 
-    open fun getPosition(): Int {
+    fun getPosition(): Int {
         var retVal = Episode.INVALID_TIME
         //        showStackTrace()
         if (castPlayer?.isPlaying == true && !status.isAtLeast(PlayerStatus.PREPARED)) Logpt(TAG, curEpisode, "exoPlayer playbackState ${castPlayer?.playbackState} player status $status")
@@ -458,7 +463,7 @@ abstract class MediaPlayerBase {
      * for playback immediately (see 'prepareImmediately' parameter for more details)
      * @param prepareImmediately Set to true if the method should also prepare the episode for playback.
      */
-    open fun prepareMedia(playable: Episode, streaming: Boolean, startWhenPrepared: Boolean, prepareImmediately: Boolean, forceReset: Boolean = false, doPostPlayback: Boolean = true) {
+    fun prepareMedia(playable: Episode, streaming: Boolean, startWhenPrepared: Boolean, prepareImmediately: Boolean, forceReset: Boolean = false, doPostPlayback: Boolean = true) {
         Logd(TAG, "prepareMedia status=$status stream=$streaming startWhenPrepared=$startWhenPrepared prepareImmediately=$prepareImmediately forceReset=$forceReset ${playable.getEpisodeTitle()} ")
         //       showStackTrace()
         if (!forceReset && playable.id == prevMedia?.id && isPlaying) {
@@ -547,7 +552,7 @@ abstract class MediaPlayerBase {
      * nothing will happen.
      * This method is executed on an internal executor service.
      */
-    open fun play() {
+    fun play() {
         Logd(TAG, "play(): status: $status playbackState: ${castPlayer?.playbackState}")
         if (isPaused || isPrepared) {
             Logd(TAG, "play() Resuming/Starting playback")
@@ -567,7 +572,7 @@ abstract class MediaPlayerBase {
      * This method is executed on an internal executor service.
      * @param reinit is true if service should reinit after pausing if the media file is being streamed
      */
-    open fun pause(reinit: Boolean) {
+    fun pause(reinit: Boolean) {
         if (isPlaying || isError) {
             Logd(TAG, "Pausing playback $reinit")
             castPlayer?.pause()
@@ -585,7 +590,7 @@ abstract class MediaPlayerBase {
      * Prepared media player for playback if the service is in the INITALIZED state.
      * This method is executed on an internal executor service.
      */
-    open fun prepare() {
+    fun prepare() {
         Logd(TAG, "prepare Preparing media player: status: $status")
         if (isInitialized) {
             setPlayerStatus(PlayerStatus.PREPARING, curEpisode)
@@ -601,7 +606,7 @@ abstract class MediaPlayerBase {
      * Resets the media player and moves it into INITIALIZED state.
      * This method is executed on an internal executor service.
      */
-    open fun reinit() {
+    fun reinit() {
         Logd(TAG, "reinit() called")
         when {
             curEpisode != null -> prepareMedia(playable = curEpisode!!, streaming = isStreaming, startWhenPrepared = isStartWhenPrepared, prepareImmediately = false, forceReset = true, doPostPlayback = true)
@@ -614,7 +619,7 @@ abstract class MediaPlayerBase {
      * Invalid time values (< 0) will be ignored.
      * This method is executed on an internal executor service.
      */
-    open fun seekTo(t_: Int) {
+    fun seekTo(t_: Int) {
         var t = t_
         if (t < 0) t = 0
         Logd(TAG, "seekTo() called $t status: $status")
@@ -650,7 +655,7 @@ abstract class MediaPlayerBase {
 
     open fun setSkipSilence() {}
 
-    open fun setRepeat(repeat: Boolean) {
+    fun setRepeat(repeat: Boolean) {
         castPlayer?.repeatMode = if (repeat) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
     }
 
@@ -675,7 +680,7 @@ abstract class MediaPlayerBase {
      * @param shouldContinue   If true, the media player should try to load, and possibly play,
      * the next item, based on the user preferences and whether such item exists.
      */
-    internal open fun endPlayback(hasEnded: Boolean, wasSkipped: Boolean, shouldContinue: Boolean = true) {
+    internal fun endPlayback(hasEnded: Boolean, wasSkipped: Boolean, shouldContinue: Boolean = true) {
 //        showStackTrace()
         if (curEpisode == null) {
             Logd(TAG, "endPlayback curEpisode is null, return")
@@ -794,7 +799,7 @@ abstract class MediaPlayerBase {
         startPositionSaver(delayInterval)
     }
 
-    private fun onPlaybackPause(playable: Episode?, position: Int) {
+    protected fun onPlaybackPause(playable: Episode?, position: Int) {
         Logd(TAG, "onPlaybackPause $position ${playable?.title}")
         cancelPositionSaver()
         persistCurrentPosition(position == Episode.INVALID_TIME || playable == null, playable, position)

@@ -99,6 +99,7 @@ import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.mp3.Mp3Extractor
 import androidx.media3.ui.DefaultTrackNameProvider
 import androidx.media3.ui.TrackNameProvider
+import com.google.android.gms.cast.framework.CastContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -117,6 +118,8 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
     private var mediaSource: MediaSource? = null
     private var mediaItem: MediaItem? = null
+
+//    val remoteMediaClient = CastContext.getSharedInstance(context).sessionManager.currentCastSession?.remoteMediaClient
 
     private var exoplayerListener: Listener? = null
     private var exoplayerOffloadListener: ExoPlayer.AudioOffloadListener? = null
@@ -182,24 +185,38 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         if (httpDataSourceFactory == null) runOnIOScope { httpDataSourceFactory = OkHttpDataSource.Factory(getOKHttpClient() as okhttp3.Call.Factory).setUserAgent("Mozilla/5.0") }
         if (exoPlayer == null) {
             exoplayerListener = object: Listener {
+                private var hasStarted = false
                 override fun onPlaybackStateChanged(playbackState: @State Int) {
-                    Logd(TAG, "onPlaybackStateChanged $playbackState")
+                    Logd(TAG, "exoplayerListener onPlaybackStateChanged $playbackState")
                     when (playbackState) {
                         STATE_READY -> {}
                         STATE_ENDED -> {
                             // TODO: test
 //                            setPlayerStatus(PlayerStatus.STOPPED, null)
                             castPlayer?.seekTo(C.TIME_UNSET)
-                            endPlayback(hasEnded = true, wasSkipped = false) // TODO: this may be redundant, is called from remove from queue routines
+                            endPlayback(hasEnded = true, wasSkipped = false)
                         }
                         STATE_BUFFERING -> bufferingUpdateListener?.invoke(BUFFERING_STARTED)
-                        else -> bufferingUpdateListener?.invoke(BUFFERING_ENDED)
+                        else -> {
+                            bufferingUpdateListener?.invoke(BUFFERING_ENDED)
+                            if (isCasting &&  hasStarted) {
+                                hasStarted = false
+                                endPlayback(hasEnded = true, wasSkipped = false)
+                            }
+                        }
                     }
                 }
+                override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
+                    Logd(TAG, "exoplayerListener onMediaItemTransition $reason")
+//                    if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) endPlayback(hasEnded = true, wasSkipped = false)
+                }
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    Logd(TAG, "onIsPlayingChanged $isPlaying")
+                    Logd(TAG, "exoplayerListener onIsPlayingChanged $isPlaying")
+                    val pos = getPosition()
+                    if (isPlaying) hasStarted = true
+                    else onPlaybackPause(curEpisode, pos)
                     val stat = if (isPlaying) PlayerStatus.PLAYING else PlayerStatus.PAUSED
-                    setPlayerStatus(stat, curEpisode, getPosition())
+                    setPlayerStatus(stat, curEpisode, pos)
                     savePlayerStatus(null, stat)
                 }
                 override fun onPlayerError(error: PlaybackException) {
@@ -209,7 +226,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                         castPlayer?.clearMediaItems()
                         setPlayerStatus(PlayerStatus.STOPPED, curEpisode)
                     }
-                    Logd(TAG, "onPlayerError ${error.message}")
+                    Logd(TAG, "exoplayerListener onPlayerError ${error.message}")
                     when (error.errorCode) {
                         PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
                         PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
@@ -267,7 +284,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 //                    if (reason == DISCONTINUITY_REASON_SEEK) audioSeekCompleteListener?.invoke()
                 }
                 override fun onAudioSessionIdChanged(audioSessionId: Int) {
-                    Logd(TAG, "onAudioSessionIdChanged $audioSessionId")
+                    Logd(TAG, "exoplayerListener onAudioSessionIdChanged $audioSessionId")
                     runOnIOScope {
                         try {
                             val newEnhancer = LoudnessEnhancer(audioSessionId)
@@ -282,7 +299,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                     }
                 }
                 override fun onTracksChanged(tracks: Tracks) {
-                    Logd(TAG, "onTracksChanged tracks: ${tracks.groups.size}")
+                    Logd(TAG, "exoplayerListener onTracksChanged tracks: ${tracks.groups.size}")
                     tracks.groups.forEach { group ->
                         for (i in 0 until group.length) {
                             if (group.isTrackSelected(i)) {
@@ -301,10 +318,10 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                 }
                 override fun onDeviceInfoChanged(deviceInfo: DeviceInfo) {
                     if (deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE) {
-                        Logd(TAG, "onDeviceInfoChanged Casting active: Switching to remote URLs")
+                        Logd(TAG, "exoplayerListener onDeviceInfoChanged Casting active: Switching to remote URLs")
                         isCasting = true
                     } else {
-                        Logd(TAG, "onDeviceInfoChanged Local play: Switching to local files")
+                        Logd(TAG, "exoplayerListener onDeviceInfoChanged Local play: Switching to local files")
                         isCasting = false
                     }
                 }
@@ -718,8 +735,10 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
     override fun resetMediaPlayer() {
         Logd(TAG, "resetMediaPlayer()")
-        release()
+        // TODO: test
+        if (isCasting) release()
         if (curEpisode == null) {
+            release()
             setPlayerStatus(PlayerStatus.STOPPED, null)
             return
         }

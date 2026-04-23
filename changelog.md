@@ -1,3 +1,13 @@
+# 11.0.6
+
+* fixed bottom padding of PlayerDetails in 2 player mode
+* fixed possible exceptions with ShownotesWebView
+* fixed getNextInQueue possibly becoming infinite loop or returning the same episode when queue has only the episodes on play
+* no longer stop player when starting a new episode on local player
+* fixed cast player not starting next (introduced likely in 11.0.5, Play app)
+* ensure to stop position saver when paused on cast (Play app)
+* some dependencies update
+
 # 11.0.5
 
 * avoid possibly calling endPlayback twice when an episode is finished

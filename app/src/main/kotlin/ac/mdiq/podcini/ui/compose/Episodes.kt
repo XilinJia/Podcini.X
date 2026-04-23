@@ -67,6 +67,9 @@ import ac.mdiq.podcini.utils.sessionLogs
 import ac.mdiq.podcini.utils.shareFeedItemFile
 import ac.mdiq.podcini.utils.shareFeedItemLinkWithDownloadLink
 import ac.mdiq.podcini.utils.shareLink
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.view.Gravity
 import androidx.collection.LruCache
 import androidx.compose.foundation.BorderStroke
@@ -299,8 +302,17 @@ fun TodoDialog(episode: Episode, todo: Todo? = null, onDismissRequest: () -> Uni
 
 val webDataCache = LruCache<Long, String>(10)
 
+fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
 @Composable
 fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters: Boolean = false) {
+    val context by rememberUpdatedState(LocalContext.current)
+    val activity = context.findActivity() ?: error("WebView requires an Activity context")
+
     var webviewData by remember { mutableStateOf<String?>("") }
     var playerLocal: ExoPlayer? by remember { mutableStateOf(null) }
 
@@ -401,7 +413,6 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
             Text(episode.comment, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
         }
         if (episode.marks.isNotEmpty()) {
-            val context by rememberUpdatedState(LocalContext.current)
             var markToRemove by remember { mutableLongStateOf(0L) }
             if (markToRemove != 0L) {
                 AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { markToRemove = 0L }, text = { Text(stringResource(R.string.ask_remove_mark, markToRemove)) }, confirmButton = {
@@ -477,14 +488,20 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                     //            Text(ch.link?: "")
                     Row(modifier = Modifier.clickable {
                         when {
-                            theatres[0].mPlayer?.curEpisode?.id == episode.id -> if (!theatres[0].mPlayer!!.isPlaying) theatres[0].mPlayer?.play()
-                            theatres[1].mPlayer?.curEpisode?.id == episode.id -> if (!theatres[1].mPlayer!!.isPlaying) theatres[1].mPlayer?.play()
+                            theatres[0].mPlayer?.curEpisode?.id == episode.id -> {
+                                if (!theatres[0].mPlayer!!.isPlaying) theatres[0].mPlayer?.play()
+                                theatres[0].mPlayer?.seekTo(ch.start.toInt())
+                            }
+                            theatres[1].mPlayer?.curEpisode?.id == episode.id -> {
+                                if (!theatres[1].mPlayer!!.isPlaying) theatres[1].mPlayer?.play()
+                                theatres[1].mPlayer?.seekTo(ch.start.toInt())
+                            }
                             else -> {
                                 PlaybackStarter(episode).shouldStreamThisTime(episode.fileUrl == null).start(0)
                                 playVideoIfNeeded(episode)
+                                theatres[0].mPlayer?.seekTo(ch.start.toInt())
                             }
                         }
-                        theatres[0].mPlayer?.seekTo(ch.start.toInt())
                         curChapterIndex = index
                     }) {
                         Text(durationStringFull(ch.start.toInt()), color = buttonColor, modifier = Modifier.padding(end = 5.dp))
@@ -516,8 +533,8 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
         }
         Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp))
         AndroidView(modifier = Modifier.fillMaxSize(),
-            factory = { context ->
-                ShownotesWebView(context).apply {
+            factory = {
+                ShownotesWebView(activity).apply {
                     setTimecodeSelectedListener { time: Int -> theatres[0].mPlayer?.seekTo(time) }
                     setPageFinishedListener { postDelayed({ }, 50) }
                 } },
