@@ -1,3 +1,10 @@
+# 11.0.7
+
+* revert media source processing to IO dispatcher
+* pause current playing immediately when skipping
+* fixed issue with skipping when casting (Play app)
+* minor code cleanup
+
 # 11.0.6
 
 * fixed bottom padding of PlayerDetails in 2 player mode

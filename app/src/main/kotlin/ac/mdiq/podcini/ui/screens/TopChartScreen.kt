@@ -286,7 +286,7 @@ fun TopChartScreen() {
                 TextButton(onClick = {
                     if (vm.countryNameCodeMap.containsKey(vm.selectedCountry)) vm.countryCode = vm.countryNameCodeMap[vm.selectedCountry]!!
                     upsertBlk(appAttribs) { it.topChartCountryCode = vm.countryCode }
-                    EventFlow.postEvent(FlowEvent.DiscoveryDefaultUpdateEvent())
+//                    EventFlow.postEvent(FlowEvent.DiscoveryDefaultUpdateEvent())
                     vm.loadToplist()
                     onDismiss()
                 }) { Text(stringResource(R.string.confirm_label)) }

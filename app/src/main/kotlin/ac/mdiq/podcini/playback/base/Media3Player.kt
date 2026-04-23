@@ -113,7 +113,7 @@ import java.nio.ByteBuffer
 import kotlin.math.abs
 
 class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
-    private var exoPlayer: Player? = null
+    private var exoPlayer: ExoPlayer? = null
 
     private var mediaSource: MediaSource? = null
     private var mediaItem: MediaItem? = null
@@ -155,15 +155,15 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
     private val audioRendererIndex: Int
         get() {
-            for (i in 0 until((exoPlayer as? ExoPlayer)?.rendererCount?:0)) if ((exoPlayer as? ExoPlayer)?.getRendererType(i) == C.TRACK_TYPE_AUDIO) return i
+            for (i in 0 until(exoPlayer?.rendererCount?:0)) if (exoPlayer?.getRendererType(i) == C.TRACK_TYPE_AUDIO) return i
             return -1
         }
 
 //    override val videoWidth: Int
-//        get() = (exoPlayer as? ExoPlayer)?.videoFormat?.width ?: 0
+//        get() = exoPlayer?.videoFormat?.width ?: 0
 //
 //    override val videoHeight: Int
-//        get() = (exoPlayer as? ExoPlayer)?.videoFormat?.height ?: 0
+//        get() = exoPlayer?.videoFormat?.height ?: 0
 
     private val cacheMutex = Mutex()
     private suspend fun initCache() = withContext(Dispatchers.IO) {
@@ -188,18 +188,15 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                     when (playbackState) {
                         STATE_READY -> {}
                         STATE_ENDED -> {
-                            // TODO: test
-//                            setPlayerStatus(PlayerStatus.STOPPED, null)
                             castPlayer?.seekTo(C.TIME_UNSET)
                             endPlayback(hasEnded = true, wasSkipped = false)
                         }
                         STATE_BUFFERING -> bufferingUpdateListener?.invoke(BUFFERING_STARTED)
                         else -> {
                             bufferingUpdateListener?.invoke(BUFFERING_ENDED)
-                            if (isCasting &&  hasStarted) {
-                                hasStarted = false
-                                endPlayback(hasEnded = true, wasSkipped = false)
-                            }
+                            if (isCasting && hasStarted && !isSkipping) endPlayback(hasEnded = true, wasSkipped = false)
+                            hasStarted = false
+                            isSkipping = false
                         }
                     }
                 }
@@ -362,9 +359,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         Logpt(TAG, curEpisode, "switchOffload set audio offload $offloadEnabled")
 
         val wasPlaying = castPlayer!!.isPlaying
-
         castPlayer!!.pause()
-
         exoPlayer!!.trackSelectionParameters = exoPlayer!!.trackSelectionParameters
             .buildUpon()
             .setAudioOffloadPreferences(AudioOffloadPreferences.Builder()
@@ -374,11 +369,10 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
         needChangeOffload = false
 
-        if (mediaSource != null) (exoPlayer as? ExoPlayer)?.setMediaSource(mediaSource!!, curEpisode!!.position.toLong())
+        if (mediaSource != null) exoPlayer?.setMediaSource(mediaSource!!, curEpisode!!.position.toLong())
         else if (mediaItem != null) castPlayer?.setMediaItem(mediaItem!!)
 
         castPlayer!!.prepare()
-
         if (wasPlaying) castPlayer!!.play()
     }
 
@@ -481,7 +475,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             .setSeekBackIncrementMs(rewindSecs * 1000L)
             .setSeekForwardIncrementMs(fastForwardSecs * 1000L)
             .build()
-        (exoPlayer as? ExoPlayer)?.setSeekParameters(SeekParameters.DEFAULT)
+        exoPlayer?.setSeekParameters(SeekParameters.DEFAULT)
 
         castPlayer = buildCastPlayer(exoPlayer!!)
 
@@ -495,8 +489,8 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             castPlayer?.addListener(exoplayerListener!!)
         }
         if (exoplayerOffloadListener != null) {
-            (exoPlayer as? ExoPlayer)?.removeAudioOffloadListener(exoplayerOffloadListener!!)
-            (exoPlayer as? ExoPlayer)?.addAudioOffloadListener(exoplayerOffloadListener!!)
+            exoPlayer?.removeAudioOffloadListener(exoplayerOffloadListener!!)
+            exoPlayer?.addAudioOffloadListener(exoplayerOffloadListener!!)
         }
         timeIt("$TAG createNativePlayer end")
     }
@@ -597,7 +591,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         }
         if (isCasting) castPlayer?.setMediaItem(mediaItem!!, curEpisode!!.position.toLong())
         else {
-            if (mediaSource != null) (exoPlayer as? ExoPlayer)?.setMediaSource(mediaSource!!, positionWithRewind(curEpisode!!.position, curEpisode!!.lastPlayedTime).toLong())
+            if (mediaSource != null) exoPlayer?.setMediaSource(mediaSource!!, positionWithRewind(curEpisode!!.position, curEpisode!!.lastPlayedTime).toLong())
             else castPlayer?.setMediaItem(mediaItem!!, positionWithRewind(curEpisode!!.position, curEpisode!!.lastPlayedTime).toLong())
         }
         castPlayer?.prepare()
@@ -632,7 +626,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             needChangeOffload = true
             if (isPlaying) switchOffload()
         }
-        (exoPlayer as? ExoPlayer)?.skipSilenceEnabled = skipSilence
+        exoPlayer?.skipSilenceEnabled = skipSilence
         Logd(TAG, "setSkipSilence offloadEnabled $silenceEnablesOffload")
     }
 
@@ -713,7 +707,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     }
 
     override fun getSelectedAudioTrack(): Int {
-        val tracks = (exoPlayer as? ExoPlayer)?.currentTracks ?: return -1
+        val tracks = exoPlayer?.currentTracks ?: return -1
         val availableFormats = formats
         Logd(TAG, "selectedAudioTrack called tracks: ${tracks.groups.size} formats: ${availableFormats.size}")
         for (group in tracks.groups) {
@@ -733,7 +727,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     override fun resetMediaPlayer() {
         Logd(TAG, "resetMediaPlayer()")
         // TODO: test
-        if (isCasting) release()
+//        if (isCasting) release()
         if (curEpisode == null) {
             release()
             setPlayerStatus(PlayerStatus.STOPPED, null)
@@ -1009,7 +1003,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         if (exoplayerListener != null) castPlayer?.removeListener(exoplayerListener!!)
 
         exoplayerListener = null
-        if (exoplayerOffloadListener != null) (exoPlayer as? ExoPlayer)?.removeAudioOffloadListener(exoplayerOffloadListener!!)
+        if (exoplayerOffloadListener != null) exoPlayer?.removeAudioOffloadListener(exoplayerOffloadListener!!)
         exoplayerOffloadListener = null
         bufferingUpdateListener = null
         loudnessEnhancer = null

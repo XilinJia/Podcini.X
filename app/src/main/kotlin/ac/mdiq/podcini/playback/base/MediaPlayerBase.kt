@@ -15,6 +15,7 @@ import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.episodeChangedWhenScreenOff
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isAutoController
+import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isCasting
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.storage.database.MonitorEntity
 import ac.mdiq.podcini.storage.database.allowForAutoDelete
@@ -111,6 +112,8 @@ abstract class MediaPlayerBase {
         get() = status == PlayerStatus.INDETERMINATE
     val isError: Boolean
         get() = status == PlayerStatus.ERROR
+
+    protected var isSkipping = false
 
     private var normalSpeed = 1.0f
     var isSpeedForward = false
@@ -498,7 +501,7 @@ abstract class MediaPlayerBase {
         prefSpeedOf(curEpisode).let { (sp, pi)-> setPlaybackParams(sp, pi) }
         setRepeat(shouldRepeat)
         setSkipSilence()
-        CoroutineScope(Dispatchers.Main).launch {
+        CoroutineScope(Dispatchers.IO).launch {
             try {
                 when {
                     streaming -> {
@@ -706,12 +709,11 @@ abstract class MediaPlayerBase {
                 // Load next episode if previous episode was in the queue and if there is an episode in the queue left.
                 // Start playback immediately if continuous playback is enabled
                 val nextMedia = getNextInQueue()
-                if (nextMedia == null) {
-                    Logd(TAG, "endPlayback nextMedia is null.")
-                    stopPlayer()
-                } else {
+                if (nextMedia == null) stopPlayer()
+                else {
                     Logd(TAG, "endPlayback has nextMedia. status: $status ${nextMedia.title}")
                     val wasPlayng = isPlaying
+                    if (!isCasting) pause(false)
                     if (wasSkipped) setPlayerStatus(PlayerStatus.INDETERMINATE, null)
                     curSpeed = SPEED_USE_GLOBAL
                     cancelPositionSaver()
@@ -750,6 +752,7 @@ abstract class MediaPlayerBase {
     fun skip() {
 //        in first second of playback, ignoring skip
         if (getPosition() < 1000) return
+        isSkipping = true
         endPlayback(hasEnded = false, wasSkipped = !shouldRepeat)
     }
 

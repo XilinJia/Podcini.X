@@ -73,7 +73,7 @@ sealed class FlowEvent {
 
     data class SyncServiceEvent(val messageResId: Int, val message: String = "") : FlowEvent()
 
-    data class DiscoveryDefaultUpdateEvent(val dummy: Unit = Unit) : FlowEvent()
+//    data class DiscoveryDefaultUpdateEvent(val dummy: Unit = Unit) : FlowEvent()
 }
 
 object EventFlow {
