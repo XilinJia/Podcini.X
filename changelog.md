@@ -1,3 +1,10 @@
+# 11.0.8
+
+* revert media source processing to IO dispatcher for cast player (Play app)
+* amended R8 rules to safeguard crash report integrity
+* only gh actions release build do release lint checks
+* some dependencies update
+
 # 11.0.7
 
 * revert media source processing to IO dispatcher for local player

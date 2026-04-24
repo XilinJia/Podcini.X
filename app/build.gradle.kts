@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 297
-        versionName = "11.0.7"
+        versionCode = 298
+        versionName = "11.0.8"
 
         ndkVersion = "29.0.14206865"
 
@@ -45,7 +45,6 @@ configure<ApplicationExtension> {
             buildConfigField("String", "PODCASTINDEX_API_SECRET", "\"Zw2NL74ht5aCtx5zFL$#MY$##qdVCX7x37jq95Sz\"")
         }
     }
-
 
     packaging {
         resources {
@@ -84,17 +83,18 @@ configure<ApplicationExtension> {
         }
     }
 
+    val strictLint = project.hasProperty("strictLint")
     lint {
-        checkReleaseBuilds = true
-        checkDependencies = true
-        warningsAsErrors = true
-        abortOnError = true
+        checkReleaseBuilds = strictLint
+        checkDependencies = strictLint
+        warningsAsErrors = strictLint
+        abortOnError = strictLint
         disable += listOf(
-            "UnsafeOptInUsageError",    // Fixes the Media3 "Unstable API" red lines
-            "TypographyDashes",         // Ignore formatting pedantry
-            "TypographyQuotes",         // Ignore formatting pedantry
-            "ObsoleteLintCustomCheck",  // Stops old library warnings from bothering you
-            "RestrictedApi"             // If Media3/Compose internals still show red
+            "UnsafeOptInUsageError",
+            "TypographyDashes",
+            "TypographyQuotes",
+            "ObsoleteLintCustomCheck",
+            "RestrictedApi"
         )
     }
 
@@ -164,7 +164,7 @@ androidComponents {
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2026.03.01"))
+    implementation(platform("androidx.compose:compose-bom:2026.04.01"))
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.ui:ui")
@@ -177,16 +177,15 @@ dependencies {
 
     implementation("androidx.annotation:annotation:1.10.0")
     implementation("androidx.core:core-ktx:1.18.0")
-    implementation("androidx.documentfile:documentfile:1.1.0")
     implementation("androidx.core:core-splashscreen:1.2.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
+    implementation("androidx.documentfile:documentfile:1.1.0")
     implementation("androidx.webkit:webkit:1.15.0")
     implementation("androidx.work:work-runtime:2.11.2")
 
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-navigation3:2.10.0")
-    implementation("androidx.navigation3:navigation3-runtime:1.1.0")
-    implementation("androidx.navigation3:navigation3-ui:1.1.0")
-
+    implementation("androidx.navigation3:navigation3-runtime:1.1.1")
+    implementation("androidx.navigation3:navigation3-ui:1.1.1")
 
     implementation("androidx.media3:media3-exoplayer:1.10.0")
     implementation("androidx.media3:media3-datasource-okhttp:1.10.0")
@@ -198,18 +197,16 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("org.jetbrains.kotlin:kotlin-reflect:${project.property("kotlin_version")}")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
     implementation("org.jetbrains.kotlinx:atomicfu:0.32.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
     implementation("io.github.xilinjia.krdb:library-base:${project.property("krdb_version")}")
 
     implementation("io.coil-kt.coil3:coil-compose:3.4.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.4.0")
-
-
-    implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
     implementation("io.ktor:ktor-http:3.4.3")
     implementation("io.ktor:ktor-client-core:3.4.3")
@@ -224,16 +221,16 @@ dependencies {
     implementation("io.github.pdvrieze.xmlutil:serialization:1.0.0-rc2")
     implementation("io.github.pdvrieze.xmlutil:core-android:1.0.0-rc2")
 
-
     implementation("com.squareup.okhttp3:okhttp:5.3.2")
     implementation("com.squareup.okhttp3:okhttp-urlconnection:5.3.2")
     implementation("com.squareup.okio:okio:3.17.0")
 
     implementation("net.dankito.readability4j:readability4j:1.0.8")
 
+    debugImplementation("androidx.compose.ui:ui-tooling:1.11.0")
+    debugImplementation("androidx.compose.ui:ui-tooling-preview:1.11.0")
+
     "freeImplementation"("org.conscrypt:conscrypt-android:2.5.3")
-    debugImplementation("androidx.compose.ui:ui-tooling:1.10.6")
-    debugImplementation("androidx.compose.ui:ui-tooling-preview:1.10.6")
 
     "playImplementation"("androidx.media3:media3-cast:1.10.0")
     "playImplementation"("com.google.android.gms:play-services-base:18.9.0")

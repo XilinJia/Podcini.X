@@ -12,10 +12,10 @@ import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.borderColor
 import ac.mdiq.podcini.ui.compose.textColor
+import ac.mdiq.podcini.utils.CrashReportWriter
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
-import ac.mdiq.podcini.utils.CrashReportWriter
 import ac.mdiq.podcini.utils.openInBrowser
 import ac.mdiq.podcini.utils.toastMassege
 import android.content.ClipData
@@ -57,7 +57,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ShareCompat.IntentBuilder
@@ -93,7 +92,7 @@ class BugReportActivity : ComponentActivity() {
         val crashFile = CrashReportWriter.crashLogFile1
         runBlocking {
             if (crashFile.exists()) stacktrace = crashFile.readString()
-            else Logd(TAG, stacktrace)
+            else Logt(TAG, stacktrace)
         }
 
         crashDetailsTextView = """

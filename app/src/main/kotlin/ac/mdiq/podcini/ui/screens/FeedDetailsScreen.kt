@@ -7,7 +7,6 @@ import ac.mdiq.podcini.net.download.RequestTye
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.sync.transceive.sendFeed
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
-
 import ac.mdiq.podcini.storage.database.FeedAssistant
 import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedOperationText

@@ -223,13 +223,6 @@ abstract class MediaPlayerBase {
                 curSpeed = SPEED_USE_GLOBAL
                 Logd(TAG, "setAsCurEpisode start monitoring curEpisode ${curEpisode?.title}")
                 runOnIOScope {
-                    if (!actQueue.contains(curEpisode!!)) {
-                        val qes = realm.query(QueueEntry::class).query("episodeId == ${curEpisode!!.id}").find()
-                        if (qes.isNotEmpty()) {
-                            val q = queuesLive.find { it.id == qes[0].queueId }
-                            if (q != null) actQueue = q
-                        }
-                    }
                     subscribeEpisode(curEpisode!!,
                         MonitorEntity(TAG, onInit = { },
                             onChanges = { e, f ->
@@ -239,6 +232,13 @@ abstract class MediaPlayerBase {
                                 }
                             }
                         ))
+                    if (!actQueue.contains(curEpisode!!)) {
+                        val qes = realm.query(QueueEntry::class).query("episodeId == ${curEpisode!!.id}").find()
+                        if (qes.isNotEmpty()) {
+                            val q = queuesLive.find { it.id == qes[0].queueId }
+                            if (q != null) actQueue = q
+                        }
+                    }
                 }
             }
             else -> {
@@ -252,23 +252,18 @@ abstract class MediaPlayerBase {
         Logd(TAG, "savePlayerStatus episode ${episode?.id}")
         runOnIOScope {
             when {
-                episode == null && playerStatus != null -> {
-                    statusSimple = playerStatus.toStatusInt()
-//                    upsert(curState) { it.curPlayerStatus = playerStatus.getAsInt() }
-                }
+                episode == null && playerStatus != null -> statusSimple = playerStatus.toStatusInt()
                 episode == null || playerStatus == null -> {
                     statusSimple = PlayerStatusSimple.OTHER
                     upsert(curState) {
                         it.curMediaType = LONG_MINUS_1
                         it.curFeedId = LONG_MINUS_1
                         it.curMediaId = LONG_MINUS_1
-//                        it.curPlayerStatus = PlayerStatusInt.OTHER.code
                     }
                 }
                 else -> {
                     statusSimple = playerStatus.toStatusInt()
                     upsert(curState) {
-//                        it.curPlayerStatus = playerStatus.getAsInt()
                         it.curMediaType = LONG_PLUS_1
                         it.curIsVideo = episode.getMediaType() == MediaType.VIDEO
                         val feedId = episode.feed?.id
@@ -508,7 +503,7 @@ abstract class MediaPlayerBase {
         prefSpeedOf(curEpisode).let { (sp, pi)-> setPlaybackParams(sp, pi) }
         setRepeat(shouldRepeat)
         setSkipSilence()
-        CoroutineScope(if (isCasting) Dispatchers.Main else Dispatchers.IO).launch {
+        CoroutineScope(Dispatchers.IO).launch {
             try {
                 when {
                     streaming -> {

@@ -57,7 +57,7 @@ jobs:
       - name: Build Release APK
         if: startsWith(github.ref, 'refs/tags/')
         run: >
-          ./gradlew assembleRelease
+          ./gradlew lintRelease -PstrictLint assembleRelease
           -Pandroid.injected.signing.store.file=$(pwd)/release.jks
           -Pandroid.injected.signing.store.password='${{ secrets.KEYSTORE_PASSWORD }}'
           -Pandroid.injected.signing.key.alias='${{ secrets.KEY_ALIAS }}'

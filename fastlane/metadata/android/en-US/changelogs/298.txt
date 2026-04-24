@@ -1,0 +1,4 @@
+* revert media source processing to IO dispatcher for cast player (Play app)
+* amended R8 rules to safeguard crash report integrity
+* only gh actions release build do release lint checks
+* some dependencies update
