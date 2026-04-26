@@ -47,6 +47,8 @@ Podcini.X requests for permission for unrestricted background activities for uni
 
 If you intend to sync through a server, NextCloud server has been tested, but note only very limited properties (as defined by that standard) are included.
 
+### [Warning: Your Android device will become a locked-down platform soon](https://keepandroidopen.org/banner.js)
+
 ## Usage and notable features description 
 <details> <summary>Click to expand</summary>
 
