@@ -252,7 +252,7 @@
     <string name="later">後で</string>
     <string name="soon">まもなくです</string>
     <string name="in_queue">キュー内</string>
-    <string name="in_progress">進行中</string>
+    <string name="progressing">In progress</string>
     <string name="total">合計</string>
     <string name="skipped">スキップ</string>
     <string name="played">プレイ済み</string>
