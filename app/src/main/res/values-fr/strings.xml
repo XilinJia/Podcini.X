@@ -187,7 +187,7 @@
     <string name="later">Plus tard</string>
     <string name="soon">Bientôt</string>
     <string name="in_queue">En file d\'attente</string>
-    <string name="in_progress">En cours</string>
+    <string name="progressing">En cours</string>
     <string name="skipped">Ignoré</string>
     <string name="played">Joué</string>
     <string name="again">Encore une fois</string>

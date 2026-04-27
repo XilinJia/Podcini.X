@@ -185,7 +185,7 @@
     <string name="later">Mai târziu</string>
     <string name="soon">Curând</string>
     <string name="in_queue">În coadă</string>
-    <string name="in_progress">În curs</string>
+    <string name="progressing">În curs</string>
     <string name="skipped">Sărit</string>
     <string name="played">Jucat</string>
     <string name="again">Din nou</string>

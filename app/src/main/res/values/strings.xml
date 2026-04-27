@@ -328,7 +328,7 @@
     <string name="later">Later</string>
     <string name="soon">Soon</string>
     <string name="in_queue">In queue</string>
-    <string name="in_progress">In progress</string>
+    <string name="progressing">In progress</string>
     <string name="total">Total</string>
     <string name="skipped">Skipped</string>
     <string name="played">Played</string>

@@ -308,7 +308,7 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") {
             FilterProperties(R.string.later, States.LATER.name),
             FilterProperties(R.string.soon, States.SOON.name),
             FilterProperties(R.string.in_queue, States.QUEUE.name),
-            FilterProperties(R.string.in_progress, States.PROGRESS.name),
+            FilterProperties(R.string.progressing, States.PROGRESS.name),
             FilterProperties(R.string.again, States.AGAIN.name),
             FilterProperties(R.string.forever, States.FOREVER.name),
             FilterProperties(R.string.skipped, States.SKIPPED.name),

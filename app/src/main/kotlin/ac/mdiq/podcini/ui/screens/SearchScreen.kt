@@ -113,7 +113,7 @@ class SearchVM: ViewModel() {
     internal val pafeeds = mutableStateListOf<PAFeed>()
     internal val feeds = mutableStateListOf<Feed>()
 
-    var queryText by mutableStateOf(curSearchString)
+//    var queryText by mutableStateOf(curSearchString)
 
     var episodeSortOrder by mutableStateOf(EpisodeSortOrder.DATE_DESC)
     var showAdvanced by mutableStateOf(false)
@@ -130,7 +130,7 @@ class SearchVM: ViewModel() {
 
     data class Triplet(val episodes: Flow<ResultsChange<Episode>>, val feeds: List<Feed>, val pafeeds: List<PAFeed>)
 
-    val episodesFlow: StateFlow<List<Episode>> = snapshotFlow { Pair(queryText, episodeSortOrder) }.flatMapLatest { (queryText, order) ->
+    val episodesFlow: StateFlow<List<Episode>> = snapshotFlow { Pair(curSearchString, episodeSortOrder) }.flatMapLatest { (queryText, order) ->
         val results_ = withContext(Dispatchers.IO) {
             if (queryText.isEmpty()) Triplet(emptyFlow(), listOf(), listOf())
             else {
@@ -200,7 +200,7 @@ fun SearchScreen() {
         Box {
             TopAppBar(title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    SearchBarRow(R.string.search_hint, defaultText = vm.queryText, modifier = Modifier.weight(1f) , history = appAttribs.searchHistory) { str ->
+                    SearchBarRow(R.string.search_hint, defaultText = curSearchString, modifier = Modifier.weight(1f) , history = appAttribs.searchHistory) { str ->
                         if (str.isBlank()) return@SearchBarRow
                         curSearchString = str
                         upsertBlk(appAttribs) {
@@ -208,7 +208,7 @@ fun SearchScreen() {
                             it.searchHistory.add(0, str)
                             if (it.searchHistory.size > SearchHistorySize+4) it.searchHistory.apply { subList(SearchHistorySize, size).clear() }
                         }
-                        vm.queryText = str
+                        curSearchString = str
                     }
                     if (vm.selectedTabIndex.intValue == 0) Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort", modifier = Modifier.padding(start = 7.dp).clickable { showSortDialog = true })
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "Advanced", modifier = Modifier.padding(start = 7.dp).clickable { vm.showAdvanced = !vm.showAdvanced})
@@ -234,7 +234,7 @@ fun SearchScreen() {
                     Text(stringResource(R.string.show_criteria), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { showSearchBy = !showSearchBy })
                     Spacer(Modifier.weight(1f))
                     Text(stringResource(R.string.search_online), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable {
-                        val query = vm.queryText
+                        val query = curSearchString
                         if (query.matches("http[s]?://.*".toRegex())) {
                             navTo(OnlineFeed(url=query))
                             return@clickable

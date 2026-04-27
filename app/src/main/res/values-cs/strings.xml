@@ -186,7 +186,7 @@
     <string name="later">Později</string>
     <string name="soon">Brzy</string>
     <string name="in_queue">Ve frontě</string>
-    <string name="in_progress">Probíhá</string>
+    <string name="progressing">Probíhá</string>
     <string name="skipped">Přeskočeno</string>
     <string name="played">Přehráno</string>
     <string name="again">Znovu</string>

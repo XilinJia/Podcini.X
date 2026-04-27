@@ -186,7 +186,7 @@
     <string name="later">Позже</string>
     <string name="soon">Скоро</string>
     <string name="in_queue">В очереди</string>
-    <string name="in_progress">В процессе</string>
+    <string name="progressing">В процессе</string>
     <string name="skipped">Пропущено</string>
     <string name="played">Играл</string>
     <string name="again">Снова</string>

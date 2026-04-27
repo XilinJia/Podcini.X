@@ -184,7 +184,7 @@
     <string name="later">Αργότερα</string>
     <string name="soon">Σύντομα</string>
     <string name="in_queue">Σε ουρά</string>
-    <string name="in_progress">Σε εξέλιξη</string>
+    <string name="progressing">Σε εξέλιξη</string>
     <string name="skipped">Παράλειψη</string>
     <string name="played">Παίχτηκε</string>
     <string name="again">Ξανά</string>

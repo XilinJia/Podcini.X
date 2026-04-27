@@ -184,7 +184,7 @@
     <string name="later">Later</string>
     <string name="soon">Binnenkort</string>
     <string name="in_queue">In wachtrij</string>
-    <string name="in_progress">In behandeling</string>
+    <string name="progressing">In behandeling</string>
     <string name="skipped">Overgeslagen</string>
     <string name="played">Gespeeld</string>
     <string name="again">Opnieuw</string>

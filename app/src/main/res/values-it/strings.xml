@@ -187,7 +187,7 @@
     <string name="later">Dopo</string>
     <string name="soon">Presto</string>
     <string name="in_queue">In coda</string>
-    <string name="in_progress">In corso</string>
+    <string name="progressing">In corso</string>
     <string name="skipped">Saltato</string>
     <string name="played">Giocato</string>
     <string name="again">Ancora</string>

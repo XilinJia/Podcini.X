@@ -184,7 +184,7 @@
     <string name="later">Senere</string>
     <string name="soon">Snart</string>
     <string name="in_queue">I kø</string>
-    <string name="in_progress">I gang</string>
+    <string name="progressing">I gang</string>
     <string name="skipped">Oversprunget</string>
     <string name="played">Spillet</string>
     <string name="again">Igen</string>

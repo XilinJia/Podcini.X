@@ -189,7 +189,7 @@
     <string name="later">لاحقاً</string>
     <string name="soon">قريباً</string>
     <string name="in_queue">في قائمة الانتظار</string>
-    <string name="in_progress">قيد التقدم</string>
+    <string name="progressing">قيد التقدم</string>
     <string name="skipped">تخطي</string>
     <string name="played">مشغول</string>
     <string name="again">مرة أخرى</string>

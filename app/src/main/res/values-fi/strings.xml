@@ -184,7 +184,7 @@
     <string name="later">Myöhemmin</string>
     <string name="soon">Pian</string>
     <string name="in_queue">Jonossa</string>
-    <string name="in_progress">Toiminto käynnissä</string>
+    <string name="progressing">Toiminto käynnissä</string>
     <string name="skipped">Ohitettu</string>
     <string name="played">Pelattu</string>
     <string name="again">Uudelleen</string>

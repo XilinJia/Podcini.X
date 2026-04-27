@@ -255,7 +255,7 @@
     <string name="later">Sonra</string>
     <string name="soon">Yakında</string>
     <string name="in_queue">Kuyrukta</string>
-    <string name="in_progress">Devam ediyor</string>
+    <string name="progressing">Devam ediyor</string>
     <string name="total">Toplam</string>
     <string name="skipped">Atlandı</string>
     <string name="played">Oynatıldı</string>

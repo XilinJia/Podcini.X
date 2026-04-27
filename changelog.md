@@ -1,8 +1,15 @@
+# 11.0.9
+
+* fixed Search Selected text not used in search when a previous search text is present
+* amended feed update worker:
+	* enqueue/download routines run only if notification permission is generated
+	* ensure proper cleanup if getting terminated
+* removed foojay resolver setting and gradle-daemon-jvm.properties file
+
 # 11.0.8
 
 * revert media source processing to IO dispatcher for cast player (Play app)
 * amended R8 rules to safeguard crash report integrity
-* only gh actions release build do release lint checks
 * some dependencies update
 
 # 11.0.7

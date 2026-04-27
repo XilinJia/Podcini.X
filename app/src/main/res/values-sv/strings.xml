@@ -184,7 +184,7 @@
     <string name="later">Senare</string>
     <string name="soon">Snart</string>
     <string name="in_queue">I kö</string>
-    <string name="in_progress">pågår</string>
+    <string name="progressing">pågår</string>
     <string name="skipped">Överhoppad</string>
     <string name="played">Spelad</string>
     <string name="again">Återigen</string>

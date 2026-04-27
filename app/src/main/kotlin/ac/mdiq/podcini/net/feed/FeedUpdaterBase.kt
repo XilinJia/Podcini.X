@@ -50,6 +50,7 @@ import androidx.core.app.NotificationManagerCompat
 import io.github.xilinjia.krdb.ext.toRealmSet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -149,9 +150,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
                         feed.isLocalFeed -> updateLocalFeed(feed, null)
                         else -> refreshFeed(feed)
                     }
-                } catch (e: Exception) {
-                    onFail(feed, "refreshFeeds: update failed ${feed.title} ${e.message}")
-                }
+                } catch (e: Exception) { onFail(feed, "refreshFeeds: update failed ${feed.title} ${e.message}") }
                 titles.removeAt(0)
                 feedIdsToRefresh.removeAt(0)
                 upsertBlk(appAttribs) { it.feedIdsToRefresh = feedIdsToRefresh.toRealmSet() }
@@ -159,18 +158,22 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             // TODO: not sure these need to be here
             compileLanguages()
             compileTags()
-        }
-        notificationManager.cancel(R.id.notification_updating_feeds)
-        withContext(Dispatchers.Main) { feedOperationText = context.getString(R.string.post_refreshing) }
 
-        if (feedsToOnlyEnqueue.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyEnqueue)
-        if (feedsToOnlyDownload.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyDownload)
-        AutoEnqueueAlgorithm().run(feedsToUpdate)
-        if (appPrefs.enableAutoDl) AutoDownloadAlgorithm().run(feedsToUpdate)
-        feedsToUpdate.clear()
-        feedsToOnlyEnqueue.clear()
-        feedsToOnlyDownload.clear()
-        withContext(Dispatchers.Main) { feedOperationText = "" }
+            notificationManager.cancel(R.id.notification_updating_feeds)
+            withContext(Dispatchers.Main) { feedOperationText = context.getString(R.string.post_refreshing) }
+
+            try {
+                if (feedsToOnlyEnqueue.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyEnqueue)
+                if (feedsToOnlyDownload.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyDownload)
+                AutoEnqueueAlgorithm().run(feedsToUpdate)
+                if (appPrefs.enableAutoDl) AutoDownloadAlgorithm().run(feedsToUpdate)
+            } finally {
+                feedsToUpdate.clear()
+                feedsToOnlyEnqueue.clear()
+                feedsToOnlyDownload.clear()
+                withContext(Dispatchers.Main + NonCancellable) { feedOperationText = "" }
+            }
+        }
 
         return true
     }
