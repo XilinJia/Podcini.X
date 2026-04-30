@@ -158,47 +158,45 @@ class FeedReceiver(port: Int): Receiver(port) {
     }
 }
 
-fun sendFeed(host: String, port: Int, feedId: Long, onEnd: ()->Unit): Job? {
+suspend fun sendFeed(host: String, port: Int, feedId: Long, onEnd: ()->Unit) {
     Logd(TAG, "sendFeed host: $host port: $port")
-    val feed = getFeed(feedId) ?: return null
+    val feed = getFeed(feedId) ?: return
     val feedDTO = feed.toDTO()
     val episodesDTO = mutableListOf<EpisodeDTO>()
     val clipsInfo = mutableListOf<ClipInfo>()
 
     var socket: Socket? = null
-    return runOnIOScope {
-        getEpisodes(null, null, feedId = feedId, copy = false).forEach {
-            episodesDTO.add(it.toDTO())
-            it.clips.forEach { clip->
-                val file = it.getClipFile(clip)
-                clipsInfo.add(ClipInfo(file.absPath, file.size()?:0L))
-            }
+    getEpisodes(null, null, feedId = feedId, copy = false).forEach {
+        episodesDTO.add(it.toDTO())
+        it.clips.forEach { clip->
+            val file = it.getClipFile(clip)
+            clipsInfo.add(ClipInfo(file.absPath, file.size()?:0L))
         }
-        val pkg = FeedPackage(feedDTO, episodesDTO, clipsInfo)
-        Logd(TAG, "built package: feed: ${pkg.feed.eigenTitle} ${pkg.episodes.size} episodes")
-        try {
-            socket = aSocket(socketSelector).tcp().connect(host, port)
-            Logd(TAG, "got socket")
+    }
+    val pkg = FeedPackage(feedDTO, episodesDTO, clipsInfo)
+    Logd(TAG, "built package: feed: ${pkg.feed.eigenTitle} ${pkg.episodes.size} episodes")
+    try {
+        socket = aSocket(socketSelector).tcp().connect(host, port)
+        Logd(TAG, "got socket")
 
-            val json = Json.encodeToString(pkg)
-            Logd(TAG, "built json")
-            val bytes = json.toByteArray()
-            Logd(TAG, "(${bytes.size} bytes)")
+        val json = Json.encodeToString(pkg)
+        Logd(TAG, "built json")
+        val bytes = json.toByteArray()
+        Logd(TAG, "(${bytes.size} bytes)")
 
-            val channel = socket.openWriteChannel()
-            channel.writeInt(bytes.size)
-            channel.writeByteArray(bytes)
+        val channel = socket.openWriteChannel()
+        channel.writeInt(bytes.size)
+        channel.writeByteArray(bytes)
 
-            sendClips(channel, pkg.clips)
-            channel.flush()
+        sendClips(channel, pkg.clips)
+        channel.flush()
 
-            upsert(feed) { it.freezeFeed(true) }
-            Logt(TAG, "Sent feed: ${pkg.feed.eigenTitle} ${pkg.episodes.size} episodes (${bytes.size} bytes)")
-        } catch (e: Throwable) { Logt(TAG, "Sending feed terminated: ${e.message}")
-        } finally {
-            socket?.close()
-            onEnd()
-        }
+        upsert(feed) { it.freezeFeed(true) }
+        Logt(TAG, "Sent feed: ${pkg.feed.eigenTitle} ${pkg.episodes.size} episodes (${bytes.size} bytes)")
+    } catch (e: Throwable) { Logt(TAG, "Sending feed terminated: ${e.message}")
+    } finally {
+        socket?.close()
+        onEnd()
     }
 }
 

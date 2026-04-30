@@ -358,7 +358,9 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             }
         }
 
-        if (showToDeviceDialog) SendToDevice(onDismiss = { showToDeviceDialog = false}) { host, port -> sendFeed(host, port, feed!!.id) { showToDeviceDialog =  false } }
+        if (showToDeviceDialog) SendToDevice(onDismiss = { showToDeviceDialog = false}) { host, port ->
+            runOnIOScope { sendFeed(host, port, feed!!.id) { showToDeviceDialog =  false } }
+        }
     }
 
     val lazyListState = rememberLazyListState()

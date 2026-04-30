@@ -1,0 +1,2 @@
+* added "Send to device" in multi-select menu in Library
+	* feeds are sent one by one with a 10-second delay in between

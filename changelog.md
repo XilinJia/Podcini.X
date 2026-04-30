@@ -1,3 +1,8 @@
+# 11.1.0
+
+* added "Send to device" in multi-select menu in Library
+	* feeds are sent one by one with a 10-second delay in between
+
 # 11.0.9
 
 * fixed Search Selected text not used in search when a previous search text is present

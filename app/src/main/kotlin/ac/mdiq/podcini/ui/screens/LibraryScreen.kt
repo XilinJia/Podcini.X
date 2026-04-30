@@ -18,6 +18,7 @@ import ac.mdiq.podcini.net.sync.transceive.FeedReceiver
 import ac.mdiq.podcini.net.sync.transceive.Receiver
 import ac.mdiq.podcini.net.sync.transceive.broadcastPresence
 import ac.mdiq.podcini.net.sync.transceive.sendCatalog
+import ac.mdiq.podcini.net.sync.transceive.sendFeed
 import ac.mdiq.podcini.net.utils.NetworkUtils.getLocalIpAddress
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.feedCount
@@ -192,6 +193,7 @@ import io.github.xilinjia.krdb.query.RealmResults
 import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -588,6 +590,7 @@ fun LibraryScreen() {
 
     var showReceiverDialog by remember { mutableStateOf(false) }
     var showSendCatalogDialog by remember { mutableStateOf(false) }
+    var showToDeviceDialog by remember { mutableStateOf(false) }
     var showRemoveFeedDialog by remember { mutableStateOf(false) }
     var showChooseRatingDialog by remember { mutableStateOf(false) }
     var showAssociateDialog by remember { mutableStateOf(false) }
@@ -640,6 +643,12 @@ fun LibraryScreen() {
         }) {
             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_settings), "full settings")
             Text(stringResource(id = R.string.full_settings)) } },
+        "SendToDevice" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+            showToDeviceDialog = true
+            exitSelectMode()
+        }) {
+            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_offline_share_24), "send to device")
+            Text(stringResource(id = R.string.transfer_to_device)) } },
         "RemoveFeeds" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
             showRemoveFeedDialog = true
             exitSelectMode()
@@ -1705,7 +1714,21 @@ fun LibraryScreen() {
         }
         if (volumeToOperate != null) VolumeOptionsMenu { volumeToOperate = null}
 
+        if (showToDeviceDialog) SendToDevice(onDismiss = { showToDeviceDialog = false }) { host, port ->
+            runOnIOScope {
+                var i = 0
+                val num = feedsSelected.size
+                for (feed in feedsSelected) {
+                    sendFeed(host, port, feed.id) { }
+                    Logt(TAG, "feeds transferred ${++i} / $num, waiting 5 seconds to do next")
+                    delay(10000)
+                }
+                showToDeviceDialog = false
+            }
+        }
+
         if (showRemoveFeedDialog) RemoveFeedDialog(feedsSelected, onDismissRequest = {showRemoveFeedDialog = false}) {}
+
         if (showChooseRatingDialog) ChooseRatingDialog(feedsSelected) { showChooseRatingDialog = false }
         if (showAssociateDialog) SetAssociateQueueDialog {showAssociateDialog = false}
         if (showToVolumeDialog) SetToVolumeDialog {showToVolumeDialog = false}
