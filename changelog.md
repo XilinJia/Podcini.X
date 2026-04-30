@@ -2,6 +2,9 @@
 
 * added "Send to device" in multi-select menu in Library
 	* feeds are sent one by one with a 10-second delay in between
+* fixed bug in checking whether feed is in normal volume
+	* fixed catalog not including feeds in normal volumes
+	* fixed other related issues, including feed refresh, auto-enqueue/download
 
 # 11.0.9
 

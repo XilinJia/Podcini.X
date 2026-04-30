@@ -270,7 +270,7 @@ class Feed : RealmObject {
                     var vid = volumeId
                     var v = volumes.firstOrNull { it.id == vid }
                     while (v != null && v.parentId != -1L) {
-                        vid = v.id
+                        vid = v.parentId
                         v = volumes.firstOrNull { it.id == vid }
                     }
                     v != null && v.id > 0L
