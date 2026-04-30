@@ -143,9 +143,12 @@ class FeedReceiver(port: Int): Receiver(port) {
                     upsertBlk(f) { it.freezeFeed(false) }
                     Logd(TAG, "Saved feed: ${f.title}")
 
-                    pkg.episodes.forEach {
-                        val e = it.toRealm()
-                        Logd(TAG, "Saved episode: ${e.title}")
+                    runOnIOScope {
+                        val episodes = pkg.episodes.toList()
+                        episodes.forEach {
+                            val e = it.toRealm()
+                            Logd(TAG, "Saved episode: ${e.title}")
+                        }
                     }
 
                     receiveClips(channel)

@@ -760,40 +760,41 @@ fun Episode.toBasicDTO() = EpisodeDTO(
 )
 
 fun EpisodeDTO.toRealm(): Episode = Episode().apply {
-    id = this@toRealm.id
+    val dto = this@toRealm
+    id = dto.id
     val e = episodeById(id) ?: this
 
     return upsertBlk(e) {
-        if (it.feedId == null) it.feedId = this@toRealm.feedId
-        if (it.downloadUrl == null) it.downloadUrl = this@toRealm.downloadUrl
-        if (it.mimeType.isNullOrBlank()) it.mimeType = this@toRealm.mimeType
-        if (it.title == null) it.title = this@toRealm.title
-        if (it.shortDescription == null) it.shortDescription = this@toRealm.shortDescription
-        if (it.description == null) it.description = this@toRealm.description
-        if (it.link == null) it.link = this@toRealm.link
-        if (it.pubDate == 0L) it.pubDate = this@toRealm.pubDate
-        if (it.imageUrl == null) it.imageUrl = this@toRealm.imageUrl
-        if (it.duration == 0) it.duration = this@toRealm.duration
+        if (it.feedId == null) it.feedId = dto.feedId
+        if (it.downloadUrl == null) it.downloadUrl = dto.downloadUrl
+        if (it.mimeType.isNullOrBlank()) it.mimeType = dto.mimeType
+        if (it.title == null) it.title = dto.title
+        if (it.shortDescription == null) it.shortDescription = dto.shortDescription
+        if (it.description == null) it.description = dto.description
+        if (it.link == null) it.link = dto.link
+        if (it.pubDate == 0L) it.pubDate = dto.pubDate
+        if (it.imageUrl == null) it.imageUrl = dto.imageUrl
+        if (it.duration == 0) it.duration = dto.duration
 
-        it.position = this@toRealm.position
-        it.playedDuration = this@toRealm.playedDuration
-        it.timeSpent = this@toRealm.timeSpent
-        it.playbackCompletionTime = this@toRealm.playbackCompletionTime
+        it.position = dto.position
+        it.playedDuration = dto.playedDuration
+        it.timeSpent = dto.timeSpent
+        it.playbackCompletionTime = dto.playbackCompletionTime
 
-        it.viewCount = this@toRealm.viewCount
-        it.setPlayState(EpisodeState.fromCode(this@toRealm.playState), setTime = this@toRealm.playStateSetTime)
-        it.isAutoDownloadEnabled = this@toRealm.isAutoDownloadEnabled
+        it.viewCount = dto.viewCount
+        it.setPlayState(EpisodeState.fromCode(dto.playState), setTime = dto.playStateSetTime)
+        it.isAutoDownloadEnabled = dto.isAutoDownloadEnabled
 
-        it.tags = this@toRealm.tags.toRealmSet()
-        it.marks = this@toRealm.marks.toRealmSet()
-        it.clips = this@toRealm.clips.toRealmSet()
+        it.tags = dto.tags.toRealmSet()
+        it.marks = dto.marks.toRealmSet()
+        it.clips = dto.clips.toRealmSet()
         it.todos.clear()
-        it.todos.addAll(this@toRealm.todos.map { td -> td.toRealm() })
+        it.todos.addAll(dto.todos.map { td -> td.toRealm() })
 
-        it.setRating(Rating.fromCode(this@toRealm.rating), setTime = this@toRealm.ratingTime)
-        it.addComment(this@toRealm.comment, addition = false, setTime = this@toRealm.commentTime)
-        it.lastPlayedTime = this@toRealm.lastPlayedTime
-        it.repeatTime = this@toRealm.repeatTime
+        if (dto.ratingTime > 0L || dto.rating > Rating.UNRATED.code) it.setRating(Rating.fromCode(dto.rating), setTime = dto.ratingTime)
+        if (dto.commentTime > 0L || dto.comment.isNotBlank()) it.addComment(dto.comment, addition = false, setTime = dto.commentTime)
+        it.lastPlayedTime = dto.lastPlayedTime
+        it.repeatTime = dto.repeatTime
     }
 }
 
