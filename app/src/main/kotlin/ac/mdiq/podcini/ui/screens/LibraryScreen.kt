@@ -796,10 +796,11 @@ fun LibraryScreen() {
                             showReceiverDialog = true
                             expanded = false
                         })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.send_catalog)) }, onClick = {
-                            showSendCatalogDialog = true
-                            expanded = false
-                        })
+                        // TODO
+//                        DropdownMenuItem(text = { Text(stringResource(R.string.send_catalog)) }, onClick = {
+//                            showSendCatalogDialog = true
+//                            expanded = false
+//                        })
                     }
                     DropdownMenuItem(text = { Text(stringResource(R.string.full_refresh_label)) }, onClick = {
                         if (vm.curVolume == null) runOnceOrAsk(fullUpdate = true, removeUnlisted = true)
