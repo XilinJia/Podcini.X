@@ -129,6 +129,7 @@ fun NavDrawerScreen() {
             for (nav in navMap.entries) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 15.dp).clickable {
                     Logd(TAG, "nav.key: ${nav.key}")
+                    if (nav.key == Screens.Library.name) feedIdsToUse.clear()
                     navTo(nav.value.navKey, PopMode.Clear)
                     drawerCtrl?.close()
                 }) {

@@ -490,25 +490,26 @@ class LibraryVM : ViewModel() {
             return qrs
         }
 
-        val sb = StringBuilder(FeedFilter(subPrefs.feedsFilter).queryString())
-        val langsStr = languagesQS()
-        if (langsStr.isNotEmpty())  sb.append(" AND $langsStr")
-        val tagsStr = tagsQS()
-        if (tagsStr.isNotEmpty())  sb.append(" AND $tagsStr")
-        val queuesStr = queuesQS()
-        if (queuesStr.isNotEmpty())  sb.append(" AND $queuesStr")
-        if (!subPrefs.showArchived && curVolume?.id == -1L && !showAllFeeds)  sb.append(" AND volumeId >= -1 ")
-
-        val fetchQS = sb.toString()
         val sortPair = Pair(subPrefs.sortProperty.ifBlank { "eigenTitle" }, if (subPrefs.sortDirCode == 0) Sort.ASCENDING else Sort.DESCENDING)
-        Logd(TAG, "fetchQS: $fetchQS ${sortPair.first} ${sortPair.second.name}")
 
-        val realmFlow = if (showAllFeeds) {
-            if (feedIdsToUse.isEmpty()) realm.query(Feed::class).query(fetchQS).sort(sortPair).asFlow()
-            else realm.query(Feed::class).query("id IN $0", feedIdsToUse).sort(sortPair).asFlow()
-        } else realm.query(Feed::class).query("volumeId == ${curVolume?.id ?: -1L}").query(fetchQS).sort(sortPair).asFlow()
+        if (feedIdsToUse.isEmpty()) {
+            val sb = StringBuilder(FeedFilter(subPrefs.feedsFilter).queryString())
+            val langsStr = languagesQS()
+            if (langsStr.isNotEmpty()) sb.append(" AND $langsStr")
+            val tagsStr = tagsQS()
+            if (tagsStr.isNotEmpty()) sb.append(" AND $tagsStr")
+            val queuesStr = queuesQS()
+            if (queuesStr.isNotEmpty()) sb.append(" AND $queuesStr")
+            if (!subPrefs.showArchived && curVolume?.id == -1L && !showAllFeeds) sb.append(" AND volumeId >= -1 ")
 
-        return realmFlow.map { it.list }
+            val fetchQS = sb.toString()
+            Logd(TAG, "fetchQS: $fetchQS ${sortPair.first} ${sortPair.second.name}")
+
+            val realmFlow = if (showAllFeeds) realm.query(Feed::class).query(fetchQS).sort(sortPair).asFlow()
+            else realm.query(Feed::class).query("volumeId == ${curVolume?.id ?: -1L}").query(fetchQS).sort(sortPair).asFlow()
+
+            return realmFlow.map { it.list }
+        } else return realm.query(Feed::class).query("id IN $0", feedIdsToUse).sort(sortPair).asFlow().map  { it.list}
     }
 
     data class FeedsFlowkeys(
@@ -519,7 +520,7 @@ class LibraryVM : ViewModel() {
         val showArchived: Boolean
     )
 
-    val feedsFlow: StateFlow<List<Feed>> = snapshotFlow { FeedsFlowkeys(curVolume?.id, showAllFeeds, subPrefs.feedsFiltered, subPrefs.feedsSorted, subPrefs.showArchived) }
+    val feedsFlow: StateFlow<List<Feed>> = snapshotFlow { Pair(feedIdsToUse.size, FeedsFlowkeys(curVolume?.id, showAllFeeds, subPrefs.feedsFiltered, subPrefs.feedsSorted, subPrefs.showArchived)) }
         .distinctUntilChanged().flatMapLatest { feedsRealmFlows() }
         .distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
 
@@ -568,7 +569,6 @@ fun LibraryScreen() {
     val context by rememberUpdatedState(LocalContext.current)
     val drawerController = LocalDrawerController.current
 
-    
 //    val muteColor = MaterialTheme.colorScheme.onSurfaceVariant
     
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
@@ -797,10 +797,10 @@ fun LibraryScreen() {
                             expanded = false
                         })
                         // TODO
-//                        DropdownMenuItem(text = { Text(stringResource(R.string.send_catalog)) }, onClick = {
-//                            showSendCatalogDialog = true
-//                            expanded = false
-//                        })
+                        //                        DropdownMenuItem(text = { Text(stringResource(R.string.send_catalog)) }, onClick = {
+                        //                            showSendCatalogDialog = true
+                        //                            expanded = false
+                        //                        })
                     }
                     DropdownMenuItem(text = { Text(stringResource(R.string.full_refresh_label)) }, onClick = {
                         if (vm.curVolume == null) runOnceOrAsk(fullUpdate = true, removeUnlisted = true)
@@ -817,7 +817,7 @@ fun LibraryScreen() {
                             Checkbox(checked = vm.subPrefs.showArchived, onCheckedChange = { toggleArchived() })
                         }
                     }, onClick = { toggleArchived() })
-            }
+                }
             }
         }
     }
@@ -1806,7 +1806,7 @@ fun LibraryScreen() {
         }) {
             if (vm.subPrefs.prefFeedGridLayout) {
                 LazyVerticalGrid(state = rememberLazyGridState(), columns = GridCells.Adaptive(80.dp), modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 16.dp)) {
-                    if (!vm.showAllFeeds && volumes.isNotEmpty()) items(volumes, key = { it.id}) { volume ->
+                    if (feedIdsToUse.isEmpty() && !vm.showAllFeeds && volumes.isNotEmpty()) items(volumes, key = { it.id}) { volume ->
                         Column(Modifier.background(MaterialTheme.colorScheme.surface)
                             .combinedClickable(onClick = { vm.curVolume = volume},
                                 onLongClick = {
@@ -1921,8 +1921,8 @@ fun LibraryScreen() {
                 //                }
 
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(start = 5.dp, end = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (!vm.showAllFeeds && volumes.isNotEmpty()) items(volumes, key = { v -> v.id}) { volume ->
-                        Logd(TAG, "Volume: ${volume.name} ${volume.id}")
+                    if (feedIdsToUse.isEmpty() && !vm.showAllFeeds && volumes.isNotEmpty()) items(volumes, key = { v -> v.id}) { volume ->
+//                        Logd(TAG, "Volume: ${volume.name} ${volume.id}")
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.combinedClickable(
                             onClick = { vm.curVolume = volume },
                             onLongClick = {

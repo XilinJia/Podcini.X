@@ -1,3 +1,9 @@
+# 11.1.1
+
+* when opening Library from Queues or Facets, ensure only the related feeds are shown
+* opening Library from the drawer clears the related feeds
+* fixed strange behavior of "Show all feeds" in Library
+
 # 11.1.0
 
 * added "Send to device" in multi-select menu in Library
