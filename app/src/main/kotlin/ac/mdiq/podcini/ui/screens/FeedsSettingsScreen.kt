@@ -16,6 +16,7 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.FeedAutoDeleteOptions
 import ac.mdiq.podcini.storage.model.Feed.Companion.INTERVAL_UNITS
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
+import ac.mdiq.podcini.storage.model.Feed.Companion.feedQueueUpdated
 import ac.mdiq.podcini.storage.model.volumes
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.FeedAutoDownloadFilter
@@ -323,7 +324,7 @@ fun FeedsSettingsScreen() {
                                         selected = none
                                         runOnIOScope {
                                             realm.write { for (f in feedsToSet) { findLatest(f)?.let {
-                                                it.queueId = -2L
+                                                it.queue = null
                                                 it.autoDownload = false
                                                 it.autoEnqueue = false
                                             } } }

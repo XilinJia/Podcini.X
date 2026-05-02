@@ -22,6 +22,7 @@ import ac.mdiq.podcini.storage.utils.generateFileName
 import ac.mdiq.podcini.utils.Logd
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.media3.common.C
@@ -46,9 +47,6 @@ class Feed : RealmObject {
     var volumeId: Long = -1L
 
     var identifier: String? = null
-
-    // TODO: this appears not needed
-    var fileUrl: String? = null
 
     var downloadUrl: String? = null
 
@@ -294,7 +292,8 @@ class Feed : RealmObject {
         }
         set(value) {
             field = value
-            queueId = value?.id ?: -1L
+            queueId = value?.id ?: -2L
+            feedQueueUpdated++
         }
     @Ignore
     val queueText: String
@@ -312,6 +311,7 @@ class Feed : RealmObject {
             else -> queue?.name ?: "Default"
         }
     var queueId: Long = 0L
+        private set
 
     // ============= Queue ==============
 
@@ -417,7 +417,7 @@ class Feed : RealmObject {
      */
     constructor(url: String?, lastUpdate: String?, title: String? = null, username: String? = null, password: String? = null) {
         this.lastUpdate = lastUpdate
-        fileUrl = null
+//        fileUrl = null
         this.downloadUrl = url
         this.eigenTitle = title
         fillPreferences(false, AutoDeleteAction.GLOBAL, VolumeAdaptionSetting.OFF, username, password)
@@ -769,7 +769,7 @@ class Feed : RealmObject {
 
         val FeedAutoDeleteOptions = AutoDeleteAction.entries.map { it.tag }
 
-//        fun newId(): Long = nowInMillis() * 100
+        var feedQueueUpdated by mutableIntStateOf(0)
 
         fun intervalMillis(n: Int, i: Int): Long {
             return when (i) {
@@ -787,7 +787,7 @@ class Feed : RealmObject {
 @Serializable
 data class FeedDTO(
     val id: Long,
-    val fileUrl: String? = null,
+//    val fileUrl: String? = null,
     val downloadUrl: String? = null,
     val eigenTitle: String? = null,
     val customTitle: String? = null,
@@ -816,7 +816,7 @@ data class FeedDTO(
 fun Feed.toDTO() = FeedDTO(
     id = this.id,
 //    volumeId = this.volumeId,
-    fileUrl = this.fileUrl,
+//    fileUrl = this.fileUrl,
     downloadUrl = this.downloadUrl,
     eigenTitle = this.eigenTitle,
     customTitle = this.customTitle,
@@ -842,7 +842,7 @@ fun FeedDTO.toRealm(): Feed = Feed().apply {
     val feed = getFeed(id) ?: this
     return upsertBlk(feed) {
 //        it.volumeId = this@toRealm.volumeId
-        if (it.fileUrl == null) it.fileUrl = this@toRealm.fileUrl
+//        if (it.fileUrl == null) it.fileUrl = this@toRealm.fileUrl
         if (it.downloadUrl == null) it.downloadUrl = this@toRealm.downloadUrl
         if (it.eigenTitle == null) it.eigenTitle = this@toRealm.eigenTitle
         it.customTitle = this@toRealm.customTitle

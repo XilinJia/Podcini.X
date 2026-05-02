@@ -190,7 +190,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
         val downloader = downloaderFor(request) ?: throw Exception("Unable to create downloader")
         downloader.download { source ->
             val feedToParse = Feed(request.source, request.lastModified)
-            feedToParse.fileUrl = request.destination
+//            feedToParse.fileUrl = request.destination
             feedToParse.id = request.feedfileId
             feedToParse.limitEpisodesCount = feed.limitEpisodesCount
             feedToParse.fillPreferences(false, Feed.AutoDeleteAction.GLOBAL, VolumeAdaptionSetting.OFF, request.username, request.password)

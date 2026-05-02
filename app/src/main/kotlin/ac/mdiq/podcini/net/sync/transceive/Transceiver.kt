@@ -62,6 +62,110 @@ import okio.buffer
 private const val TAG = "Transceiver"
 val socketSelector = SelectorManager(Dispatchers.IO)
 
+private const val Version = "2"
+
+suspend fun broadcastPresence(udpPort: Int, tcpPort: Int) = withContext(Dispatchers.IO) {
+    val socket = aSocket(socketSelector).udp().bind { broadcast = true }
+
+    fun computeBroadcast(ip: String, prefixLength: Int): String {
+        val ipParts = ip.split(".").map { it.toInt() }
+        val mask = IntArray(4)
+        for (i in 0 until 4) {
+            val remaining = prefixLength - i * 8
+            mask[i] = when {
+                remaining >= 8 -> 0xFF
+                remaining <= 0 -> 0
+                else -> (0xFF shl (8 - remaining)) and 0xFF
+            }
+        }
+        val broadcast = IntArray(4)
+        for (i in 0 until 4) broadcast[i] = ipParts[i] or (mask[i].inv() and 0xFF)
+        return broadcast.joinToString(".")
+    }
+
+    val myIp = getLocalIpAddress() ?: return@withContext
+    val mask = computeBroadcast(myIp, 24)
+
+    val message = "PodciniReceiver:$myIp:$tcpPort:${appAttribs.name}:${appAttribs.uniqueId}:$Version"
+
+    try {
+        while (isActive) {
+            listOf("255.255.255.255", mask).forEach { socket.send(Datagram(buildPacket { writeText(message) }, InetSocketAddress(it, udpPort))) }
+            Logd(TAG, "broadcastPresence send to udp port: $udpPort $message")
+            delay(2000)
+        }
+    } catch (e: CancellationException) { Logd(TAG, "listener socket is canceled")
+    } catch (e: Exception) { Loge(TAG, "broadcastPresence error: ${e.message}")
+    } finally { socket.close() }
+}
+
+data class DiscoveredReceiver(
+    val ip: String,
+    val port: Int,
+    val name: String,
+    val uid: String,
+    val lastSeen: Long = nowInMillis()
+)
+
+suspend fun listenForUDPBroadcasts(udpPort: Int, onReceiversUpdated: (List<DiscoveredReceiver>) -> Unit) = withContext(Dispatchers.IO) {
+    var socket:  BoundDatagramSocket? = null
+    val receivers = mutableMapOf<String, DiscoveredReceiver>()
+    try {
+        socket = aSocket(socketSelector).udp().bind(InetSocketAddress("0.0.0.0", udpPort))
+        Logd(TAG, "listenForBroadcasts 1 udpPort: $udpPort")
+
+        while (isActive) {
+            try {
+                val datagram = withTimeoutOrNull(10_000) { socket.receive() } ?: continue
+                val message = datagram.packet.readString()
+
+                if (message.isBlank()) continue
+                Logd(TAG, "listenForBroadcasts 5 message: $message")
+                if (!message.startsWith("PodciniReceiver:")) continue
+
+                val parts = message.trim().split(":")
+                if (parts.size != 6) {
+                    Loge(TAG, "listenForBroadcasts Invalid message format: $message")
+                    continue
+                }
+
+                val ip = parts[1]
+                val port = parts[2].toIntOrNull()
+                val name = parts[3]
+                val uid = parts[4]
+                val version = parts[5]
+                if (version != Version) {
+                    Loge(TAG, "listenForBroadcasts The receiver is in an incompetible version: $message")
+                    continue
+                }
+
+                Logd(TAG, "listenForBroadcasts 9")
+
+                if (port == null) {
+                    Loge(TAG, "listenForBroadcasts Invalid port in message: $message")
+                    continue
+                }
+                Logd(TAG, "listenForBroadcasts 10")
+
+                val key = "$ip:$port"
+                receivers[key] = DiscoveredReceiver(ip, port, name, uid)
+
+                withContext(Dispatchers.Main) { onReceiversUpdated(receivers.values.toList()) }
+            } catch (e: SocketTimeoutException) {
+                Logt(TAG, "listenForBroadcasts socket receive time out: is the receiver started")
+                val cutoff = nowInMillis() - 10_000
+                receivers.entries.removeAll { it.value.lastSeen < cutoff }
+                withContext(Dispatchers.Main) { onReceiversUpdated(receivers.values.toList()) }
+            } catch (e: CancellationException) { Logd(TAG, "listener socket is canceled")
+            } catch (e: Throwable) {
+                Loge(TAG, "listenForBroadcasts socket exception: ${e.message}")
+                break
+            }
+        }
+    } catch (e: Exception) { Loge(TAG, "listenForBroadcasts error: ${e.message}")
+    } finally { socket?.close() }
+}
+
 enum class ContentType { Feed, Catalog, Episodes }
 
 abstract class Receiver(private val port: Int) {
@@ -415,107 +519,3 @@ fun sendCatalog(host: String, port: Int, onEnd: ()->Unit): Job {
         }
     }
 }
-
-private const val Version = "1"
-suspend fun broadcastPresence(udpPort: Int, tcpPort: Int) = withContext(Dispatchers.IO) {
-    val socket = aSocket(socketSelector).udp().bind { broadcast = true }
-
-    fun computeBroadcast(ip: String, prefixLength: Int): String {
-        val ipParts = ip.split(".").map { it.toInt() }
-        val mask = IntArray(4)
-        for (i in 0 until 4) {
-            val remaining = prefixLength - i * 8
-            mask[i] = when {
-                remaining >= 8 -> 0xFF
-                remaining <= 0 -> 0
-                else -> (0xFF shl (8 - remaining)) and 0xFF
-            }
-        }
-        val broadcast = IntArray(4)
-        for (i in 0 until 4) broadcast[i] = ipParts[i] or (mask[i].inv() and 0xFF)
-        return broadcast.joinToString(".")
-    }
-
-    val myIp = getLocalIpAddress() ?: return@withContext
-    val mask = computeBroadcast(myIp, 24)
-
-    val message = "PodciniReceiver:$myIp:$tcpPort:${appAttribs.name}:${appAttribs.uniqueId}:$Version"
-
-    try {
-        while (isActive) {
-            listOf("255.255.255.255", mask).forEach { socket.send(Datagram(buildPacket { writeText(message) }, InetSocketAddress(it, udpPort))) }
-            Logd(TAG, "broadcastPresence send to udp port: $udpPort $message")
-            delay(2000)
-        }
-    } catch (e: CancellationException) { Logd(TAG, "listener socket is canceled")
-    } catch (e: Exception) { Loge(TAG, "broadcastPresence error: ${e.message}")
-    } finally { socket.close() }
-}
-
-data class DiscoveredReceiver(
-    val ip: String,
-    val port: Int,
-    val name: String,
-    val uid: String,
-    val lastSeen: Long = nowInMillis()
-)
-
-suspend fun listenForUDPBroadcasts(udpPort: Int, onReceiversUpdated: (List<DiscoveredReceiver>) -> Unit) = withContext(Dispatchers.IO) {
-    var socket:  BoundDatagramSocket? = null
-    val receivers = mutableMapOf<String, DiscoveredReceiver>()
-    try {
-        socket = aSocket(socketSelector).udp().bind(InetSocketAddress("0.0.0.0", udpPort))
-        Logd(TAG, "listenForBroadcasts 1 udpPort: $udpPort")
-
-        while (isActive) {
-            try {
-                val datagram = withTimeoutOrNull(10_000) { socket.receive() } ?: continue
-                val message = datagram.packet.readString()
-
-                if (message.isBlank()) continue
-                Logd(TAG, "listenForBroadcasts 5 message: $message")
-                if (!message.startsWith("PodciniReceiver:")) continue
-
-                val parts = message.trim().split(":")
-                if (parts.size != 6) {
-                    Loge(TAG, "listenForBroadcasts Invalid message format: $message")
-                    continue
-                }
-
-                val ip = parts[1]
-                val port = parts[2].toIntOrNull()
-                val name = parts[3]
-                val uid = parts[4]
-                val version = parts[5]
-                if (version != Version) {
-                    Loge(TAG, "listenForBroadcasts The receiver is in an incompetible version: $message")
-                    continue
-                }
-
-                Logd(TAG, "listenForBroadcasts 9")
-
-                if (port == null) {
-                    Loge(TAG, "listenForBroadcasts Invalid port in message: $message")
-                    continue
-                }
-                Logd(TAG, "listenForBroadcasts 10")
-
-                val key = "$ip:$port"
-                receivers[key] = DiscoveredReceiver(ip, port, name, uid)
-
-                withContext(Dispatchers.Main) { onReceiversUpdated(receivers.values.toList()) }
-            } catch (e: SocketTimeoutException) {
-                Logt(TAG, "listenForBroadcasts socket receive time out: is the receiver started")
-                val cutoff = nowInMillis() - 10_000
-                receivers.entries.removeAll { it.value.lastSeen < cutoff }
-                withContext(Dispatchers.Main) { onReceiversUpdated(receivers.values.toList()) }
-            } catch (e: CancellationException) { Logd(TAG, "listener socket is canceled")
-            } catch (e: Throwable) {
-                Loge(TAG, "listenForBroadcasts socket exception: ${e.message}")
-                break
-            }
-        }
-    } catch (e: Exception) { Loge(TAG, "listenForBroadcasts error: ${e.message}")
-    } finally { socket?.close() }
-}
-

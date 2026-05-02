@@ -95,7 +95,7 @@ fun importAP(uri: Uri, onDismiss: ()->Unit) {
                         "id" -> feed.id = cursor.getLong(i)
                         "title" -> feed.eigenTitle = cursor.getString(i)
                         "custom_title" -> feed.customTitle = cursor.getStringOrNull(i)
-                        "file_url" -> feed.fileUrl = cursor.getStringOrNull(i)
+//                        "file_url" -> feed.fileUrl = cursor.getStringOrNull(i)
                         "download_url" -> feed.downloadUrl = cursor.getString(i)
 //                        "downloaded" -> feed.
                         "link" -> feed.link = cursor.getStringOrNull(i)

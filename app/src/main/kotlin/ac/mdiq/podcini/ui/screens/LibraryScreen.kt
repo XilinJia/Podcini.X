@@ -1616,7 +1616,7 @@ fun LibraryScreen() {
                             onCheckedChange = { isChecked ->
                                 selected = none
                                 saveSelectedFeeds { it: Feed ->
-                                    it.queueId = -2L
+                                    it.queue = null
                                     it.autoDownload = false
                                     it.autoEnqueue = false
                                 }
@@ -1633,7 +1633,7 @@ fun LibraryScreen() {
                             for (index in queuesLive.indices) {
                                 FilterChip(label = { Text(queuesLive[index].name) }, selected = false,
                                     onClick = {
-                                        saveSelectedFeeds { it: Feed -> it.queueId = queuesLive[index].id }
+                                        saveSelectedFeeds { it: Feed -> it.queue = queuesLive[index] }
                                         onDismissRequest()
                                     })
                             }

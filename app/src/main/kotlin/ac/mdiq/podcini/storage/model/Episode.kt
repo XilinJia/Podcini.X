@@ -129,7 +129,6 @@ class Episode : RealmObject {
 
     var chaptersLoaded: Boolean = false
 
-
     @set:JvmName("setRatingProperty")
     var rating: Int = Rating.UNRATED.code
         private set

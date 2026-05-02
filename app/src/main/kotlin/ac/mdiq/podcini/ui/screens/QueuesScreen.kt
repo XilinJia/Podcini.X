@@ -23,6 +23,7 @@ import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.Feed.Companion.feedQueueUpdated
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.model.VIRTUAL_QUEUE_ID
@@ -258,7 +259,7 @@ class QueuesVM(id_: Long): ViewModel() {
                 curIndex = queues.indexOfFirst { it.id == qid }
             }
         } }
-        viewModelScope.launch { snapshotFlow { curQueue.id }.distinctUntilChanged().collect {
+        viewModelScope.launch { snapshotFlow { Pair(curQueue.id, feedQueueUpdated) }.distinctUntilChanged().collect {
             feedsAssociated.clear()
             feedsAssociated.addAll(realm.query(Feed::class).query("queueId == ${curQueue.id}").find())
         } }
@@ -670,7 +671,7 @@ fun QueuesScreen(id: Long = -1L) {
                                     Logd(TAG, "remove_queue episodes: ${episodes.size}")
                                     episodes.forEach { findLatest(it)?.setPlayState(EpisodeState.UNPLAYED) }
                                     Logd(TAG, "remove_queue vm.feedsAssociated: ${vm.feedsAssociated.size}")
-                                    vm.feedsAssociated.forEach { findLatest(it)?.queueId = 0 }
+                                    vm.feedsAssociated.forEach { findLatest(it)?.queue = queuesLive.find { q-> q.id == 0L } }
                                     val q = findLatest(vm.curQueue)
                                     if (q != null) delete(q)
                                 }

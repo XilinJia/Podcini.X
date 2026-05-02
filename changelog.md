@@ -1,3 +1,10 @@
+# 11.1.2
+
+* ensure feeds in Queues update when a feed's associated queue changes
+* when a feed's associated queue is set to null, ensure it's set to None (not actQueue)
+* removed unused property fileUrl in Feed
+* Transceiver version upped to 2 for device compatibility
+
 # 11.1.1
 
 * when opening Library from Queues or Facets, ensure only the related feeds are shown

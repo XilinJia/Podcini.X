@@ -254,9 +254,9 @@ fun createSynthetic(feedId: Long, name: String, video: Boolean = false): Feed {
     feed.author = "Yours Truly"
     feed.downloadUrl = null
     feed.hasVideoMedia = video
-    feed.fileUrl = (cacheDir / feed.getFeedfileName()).absPath
+//    feed.fileUrl = (cacheDir / feed.getFeedfileName()).absPath
     feed.keepUpdated = false
-    feed.queueId = -2L
+    feed.queue = null
     return feed
 }
 
