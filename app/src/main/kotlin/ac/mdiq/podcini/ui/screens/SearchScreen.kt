@@ -62,7 +62,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -110,8 +109,8 @@ fun setSearchTerms(query: String? = null) {
 class SearchVM: ViewModel() {
     val algo = SearchAlgo()
 
-    internal val pafeeds = mutableStateListOf<PAFeed>()
-    internal val feeds = mutableStateListOf<Feed>()
+    internal var pafeeds by mutableStateOf<List<PAFeed>>(listOf())
+    internal var feeds by mutableStateOf<List<Feed>>(listOf())
 
 //    var queryText by mutableStateOf(curSearchString)
 
@@ -143,10 +142,8 @@ class SearchVM: ViewModel() {
             }
         }
         withContext(Dispatchers.Main) {
-            feeds.clear()
-            if (results_.feeds.isNotEmpty()) feeds.addAll(results_.feeds)
-            pafeeds.clear()
-            if (results_.pafeeds.isNotEmpty()) pafeeds.addAll(results_.pafeeds)
+            feeds = results_.feeds
+            pafeeds = results_.pafeeds
             Logd(TAG, "Search found feeds: ${feeds.size}")
             results_.episodes.map { it.list }
         }

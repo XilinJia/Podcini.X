@@ -62,7 +62,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -88,23 +87,23 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class LogsVM: ViewModel() {
-    internal val shareLogs = mutableStateListOf<ShareLog>()
-    internal val subscriptionLogs = mutableStateListOf<SubscriptionLog>()
-    internal val downloadLogs = mutableStateListOf<DownloadResult>()
+    internal var shareLogs by mutableStateOf<List<ShareLog>>(listOf())
+    internal var subscriptionLogs by mutableStateOf<List<SubscriptionLog>>(listOf())
+    internal var downloadLogs by mutableStateOf<List<DownloadResult>>(listOf())
     internal var title by mutableStateOf("Session")
     internal var showDeleteConfirmDialog = mutableStateOf(false)
 
     internal fun clearAllLogs() {
-        subscriptionLogs.clear()
-        shareLogs.clear()
-        downloadLogs.clear()
+        subscriptionLogs = listOf()
+        shareLogs = listOf()
+        downloadLogs = listOf()
     }
     internal fun loadShareLog() {
         viewModelScope.launch {
             Logd(TAG, "loadShareLog() called")
             val result =  realm.query(ShareLog::class).sort("id", Sort.DESCENDING).find()
             if (result.isNotEmpty()) withContext(Dispatchers.Main) {
-                shareLogs.addAll(result)
+                shareLogs = result
                 title = "Shares"
             } else Logt(TAG, "Share log is empty")
         }
@@ -115,7 +114,7 @@ class LogsVM: ViewModel() {
             Logd(TAG, "loadSubscriptionLog() called")
             val result = realm.query(SubscriptionLog::class).sort("id", Sort.DESCENDING).find()
             if (result.isNotEmpty()) withContext(Dispatchers.Main) {
-                subscriptionLogs.addAll(result)
+                subscriptionLogs = result
                 title = "Subscriptions"
             } else Logt(TAG, "Subscription log is empty")
         }
@@ -126,7 +125,7 @@ class LogsVM: ViewModel() {
             Logd(TAG, "getDownloadLog() called")
             val result =  realm.query(DownloadResult::class).sort("completionTime",  Sort.DESCENDING).find()
             if (result.isNotEmpty()) withContext(Dispatchers.Main) {
-                downloadLogs.addAll(result)
+                downloadLogs = result
                 title = "Downloads"
             } else Logt(TAG, "Download log is empty")
         }
@@ -470,7 +469,7 @@ fun LogsScreen() {
                                 val items = query(ShareLog::class).find()
                                 delete(items)
                             }
-                            vm.shareLogs.clear()
+                            vm.shareLogs = listOf()
                             vm.loadShareLog()
                         }
                         vm.subscriptionLogs.isNotEmpty() -> {
@@ -478,7 +477,7 @@ fun LogsScreen() {
                                 val items = query(SubscriptionLog::class).find()
                                 delete(items)
                             }
-                            vm.subscriptionLogs.clear()
+                            vm.subscriptionLogs = listOf()
                             vm.loadSubscriptionLog()
                         }
                         vm.downloadLogs.isNotEmpty() -> {
@@ -486,7 +485,7 @@ fun LogsScreen() {
                                 val items = query(DownloadResult::class).find()
                                 delete(items)
                             }
-                            vm.downloadLogs.clear()
+                            vm.downloadLogs = listOf()
                             vm.loadDownloadLog()
                         }
                     }

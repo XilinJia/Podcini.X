@@ -11,8 +11,6 @@ import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.ui.compose.borderColor
 import ac.mdiq.podcini.ui.compose.filterChipBorder
 import ac.mdiq.podcini.ui.compose.textColor
-import ac.mdiq.podcini.utils.EventFlow
-import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.timeIt
@@ -59,7 +57,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -100,7 +97,7 @@ import java.util.Locale
 class DiscoveryVM: ViewModel() {
     val countryNameCodeMap: MutableMap<String, String> = hashMapOf()
     val countryCodeNameMap: MutableMap<String?, String> = hashMapOf()
-    val countryNamesSort =  mutableStateListOf<String>()
+    var countryNamesSort by  mutableStateOf<List<String>>(listOf())
     var selectedCountry by mutableStateOf("")
     var textInput by mutableStateOf("")
 
@@ -111,14 +108,14 @@ class DiscoveryVM: ViewModel() {
     var curIndex by  mutableIntStateOf(0)
 
     var topList = listOf<PodcastSearchResult>()
-    val searchResults = mutableStateListOf<PodcastSearchResult>()
+    var searchResults by mutableStateOf<List<PodcastSearchResult>>(listOf())
     var errorText by mutableStateOf("")
     var retryQerry by  mutableStateOf("")
     var showProgress by  mutableStateOf(true)
     var noResultText by  mutableStateOf("")
 
     fun loadToplist() {
-        searchResults.clear()
+        searchResults = listOf()
         errorText = ""
         retryQerry = ""
         noResultText = ""
@@ -190,16 +187,13 @@ class DiscoveryVM: ViewModel() {
                 withContext(Dispatchers.Main) {
                     showProgress = false
                     topList = podcasts
-                    searchResults.clear()
-                    if (topList.isNotEmpty()) {
-                        searchResults.addAll(topList)
-                        noResultText = ""
-                    } else noResultText = getAppContext().getString(R.string.no_results_for_query)
+                    searchResults = topList
+                    noResultText = if (topList.isNotEmpty()) "" else getAppContext().getString(R.string.no_results_for_query)
                     showProgress = false
                 }
             } catch (e: Throwable) {
                 Logs(TAG, e)
-                searchResults.clear()
+                searchResults = listOf()
                 errorText = e.message ?: "no error message"
                 retryQerry = " retry"
             }
@@ -215,8 +209,7 @@ class DiscoveryVM: ViewModel() {
             countryCodeNameMap[code] = countryName
             countryNameCodeMap[countryName] = code
         }
-        countryNamesSort.addAll(countryCodeNameMap.values)
-        countryNamesSort.sort()
+        countryNamesSort = countryCodeNameMap.values.sorted()
         selectedCountry = countryCodeNameMap[countryCode] ?: ""
         textInput = selectedCountry
 
@@ -254,15 +247,14 @@ fun TopChartScreen() {
     fun SelectCountryDialog(onDismiss: () -> Unit) {
         @Composable
         fun CountrySelection() {
-            val filteredCountries = remember { vm.countryNamesSort.toMutableStateList() }
+            var filteredCountries by remember { mutableStateOf(vm.countryNamesSort) }
             var expanded by remember { mutableStateOf(false) }
             ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
                 TextField(value = vm.textInput, modifier = Modifier.fillMaxWidth().padding(20.dp).menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, false), readOnly = false,
                     onValueChange = { input ->
                         vm.textInput = input
                         if (vm.textInput.length > 1) {
-                            filteredCountries.clear()
-                            filteredCountries.addAll(vm.countryNamesSort.filter { it.contains(input, ignoreCase = true) }.take(5))
+                            filteredCountries = vm.countryNamesSort.filter { it.contains(input, ignoreCase = true) }.take(5)
                             Logd(TAG, "input: $input filteredCountries: ${filteredCountries.size}")
                             expanded = filteredCountries.isNotEmpty()
                         }

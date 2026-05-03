@@ -6,9 +6,9 @@ import ac.mdiq.podcini.automation.AutoEnqueueAlgorithm
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
-
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.mediaBrowser
+import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.buildListInfo
@@ -112,7 +112,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -187,10 +186,9 @@ class QueuesVM(id_: Long): ViewModel() {
     var cameBack by mutableStateOf(false)
 
     var queues by mutableStateOf<List<PlayQueue>>(listOf())
-    val queueNames = mutableStateListOf<String>()
-    val spinnerTexts = mutableStateListOf<String>()
+    var queueNames by mutableStateOf<List<String>>(listOf())
+    var spinnerTexts by mutableStateOf<List<String>>(listOf())
 
-    val feedsAssociated = mutableStateListOf<Feed>()
     var queuesMode by  mutableStateOf( if (appAttribs.queuesMode.isNotBlank()) QueuesScreenMode.valueOf(appAttribs.queuesMode) else QueuesScreenMode.Queue)
 
     val curQueueFlow: StateFlow<PlayQueue?> = snapshotFlow { appAttribs.curQueueId }.distinctUntilChanged().flatMapLatest { id ->
@@ -248,20 +246,14 @@ class QueuesVM(id_: Long): ViewModel() {
         timeIt("$TAG start of init")
 
         viewModelScope.launch { snapshotFlow { Pair(queues, actQueue.id) }.distinctUntilChanged().collect {
-            spinnerTexts.clear()
-            spinnerTexts.addAll(queues.map { "${if (it.id == actQueue.id) "> " else ""}${it.name} : ${it.size()}" })
+            spinnerTexts = queues.map { "${if (it.id == actQueue.id) "> " else ""}${it.name} : ${it.size()}" }
         } }
         viewModelScope.launch { snapshotFlow { queues.size }.distinctUntilChanged().collect {
-            queueNames.clear()
-            queueNames.addAll(queues.map { it.name })
+            queueNames = queues.map { it.name }
             if (curIndex < 0) {
                 val qid = if (id >= 0) id else appAttribs.curQueueId
                 curIndex = queues.indexOfFirst { it.id == qid }
             }
-        } }
-        viewModelScope.launch { snapshotFlow { Pair(curQueue.id, feedQueueUpdated) }.distinctUntilChanged().collect {
-            feedsAssociated.clear()
-            feedsAssociated.addAll(realm.query(Feed::class).query("queueId == ${curQueue.id}").find())
         } }
         timeIt("$TAG end of init")
     }
@@ -365,6 +357,11 @@ fun QueuesScreen(id: Long = -1L) {
             QueuesScreenMode.Feed -> {}
             else -> {}
         }
+    }
+
+    var feedsAssociated by remember { mutableStateOf<List<Feed>>(listOf()) }
+    LaunchedEffect(vm.curQueue.id, feedQueueUpdated, vm.queuesMode) {
+        if (vm.queuesMode == QueuesScreenMode.Feed) feedsAssociated = allFeeds.filter { it.queueId == vm.curQueue.id }
     }
 
     var showSortDialog by remember { mutableStateOf(false) }
@@ -483,7 +480,7 @@ fun QueuesScreen(id: Long = -1L) {
                             when (vm.queuesMode) {
                                 QueuesScreenMode.Bin -> vm.curQueue.name + " Bin"
                                 QueuesScreenMode.Queue -> ""
-                                QueuesScreenMode.Feed -> "${vm.feedsAssociated.size} Feeds"
+                                QueuesScreenMode.Feed -> "${feedsAssociated.size} Feeds"
                                 else -> "Settings"
                             }
                         }
@@ -514,12 +511,11 @@ fun QueuesScreen(id: Long = -1L) {
                         IconButton(onClick = {
                             facetsMode = QuickAccess.Custom
                             facetsCustomTag = vm.spinnerTexts[vm.curIndex]
-                            facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", vm.feedsAssociated.map { it.id })
+                            facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", feedsAssociated.map { it.id })
                             navTo(Facets(modeName = QuickAccess.Custom.name))
                         }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "facets") }
                         IconButton(onClick = {
-                            feedIdsToUse.clear()
-                            feedIdsToUse.addAll(vm.feedsAssociated.map { it.id })
+                            feedIdsToUse = feedsAssociated.map { it.id }
                             navTo(Library)
                         }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "library") }
                     }
@@ -670,8 +666,8 @@ fun QueuesScreen(id: Long = -1L) {
                                 realm.write {
                                     Logd(TAG, "remove_queue episodes: ${episodes.size}")
                                     episodes.forEach { findLatest(it)?.setPlayState(EpisodeState.UNPLAYED) }
-                                    Logd(TAG, "remove_queue vm.feedsAssociated: ${vm.feedsAssociated.size}")
-                                    vm.feedsAssociated.forEach { findLatest(it)?.queue = queuesLive.find { q-> q.id == 0L } }
+                                    val qDef = queuesLive.find { q-> q.id == 0L }
+                                    allFeeds.filter { it.queueId == vm.curQueue.id }.forEach { findLatest(it)?.queue = qDef }
                                     val q = findLatest(vm.curQueue)
                                     if (q != null) delete(q)
                                 }
@@ -691,7 +687,7 @@ fun QueuesScreen(id: Long = -1L) {
     if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesSortedFlow)
     else Scaffold(topBar = { TopBar() }) { innerPadding ->
         when (vm.queuesMode) {
-            QueuesScreenMode.Feed -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { AssociatedFeedsGrid(vm.feedsAssociated) }
+            QueuesScreenMode.Feed -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { AssociatedFeedsGrid(feedsAssociated) }
             QueuesScreenMode.Settings -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { Settings() }
             else -> {
                 LaunchedEffect(episodes.size) {
@@ -789,7 +785,7 @@ fun QueuesScreen(id: Long = -1L) {
                                         }
                                     },
                                     neutralRes = R.string.refresh_label,
-                                    onNeutral = { runOnceOrAsk(feeds = vm.feedsAssociated)  }
+                                    onNeutral = { runOnceOrAsk(feeds = vm.curQueue.normalFeeds)  }
                                 )
                             },
                             actionButtonCB = { _, type ->

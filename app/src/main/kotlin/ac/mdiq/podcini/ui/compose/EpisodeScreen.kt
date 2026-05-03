@@ -87,7 +87,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -277,7 +276,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                             }
                             Text("$pubTimeText · $txtvDuration · $txtvSize", color = textColor, style = MaterialTheme.typography.bodyMedium)
                             Spacer(Modifier.weight(1f))
-                            val timers = remember(appAttribs.timetable) { appAttribs.timetable.filter { it.episodeId == episode.id }.toMutableStateList() }
+                            val timers = remember(appAttribs.timetable) { appAttribs.timetable.filter { it.episodeId == episode.id } }
                             //                        Logd(TAG, "timers: ${timers.size} ${appAttribs.timetable.size}")
                             Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_timer_24), tint = if (timers.isEmpty()) buttonColor else buttonAltColor, contentDescription = "timer", modifier = Modifier.width(28.dp).height(32.dp).combinedClickable(
                                 onClick = {

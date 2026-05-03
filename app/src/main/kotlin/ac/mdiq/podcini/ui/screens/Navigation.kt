@@ -29,7 +29,7 @@ enum class PopMode {
 
 fun navTo(key: NavKey, popMode: PopMode = PopMode.None) {
     if (popMode != PopMode.None) {
-        var from = if (popMode == PopMode.UpTo) {
+        val from = if (popMode == PopMode.UpTo) {
             val index = backStack.indexOfFirst { it.javaClass == key.javaClass }
             if (index >= 0) index else 0
         } else 0

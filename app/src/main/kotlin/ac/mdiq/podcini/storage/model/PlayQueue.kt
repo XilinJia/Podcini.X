@@ -2,6 +2,7 @@ package ac.mdiq.podcini.storage.model
 
 import ac.mdiq.podcini.automation.AutoDownloadAlgorithm
 import ac.mdiq.podcini.automation.AutoEnqueueAlgorithm
+import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.persistOrdered
 import ac.mdiq.podcini.storage.database.realm
@@ -89,7 +90,7 @@ class PlayQueue : RealmObject {
 
     @Ignore
     var normalFeeds: List<Feed> = listOf()
-        get() = realm.query(Feed::class).query("queueId == $id").find().filter { it.inNormalVolume }
+        get() = allFeeds.filter { it.queueId == id && it.inNormalVolume }
 
     fun contains(episode: Episode): Boolean = realm.query(QueueEntry::class).query("queueId == $id AND episodeId == ${episode.id}").count().find() > 0
 

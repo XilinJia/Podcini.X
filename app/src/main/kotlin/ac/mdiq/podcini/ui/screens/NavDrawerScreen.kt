@@ -78,9 +78,6 @@ fun NavDrawerScreen() {
     val drawerCtrl = LocalDrawerController.current
     val drawerState = LocalDrawerState.current
 
-    
-    var curruntRoute: String
-
     val feedBriefs = remember { mutableStateListOf<FeedBrief>() }
 
     DisposableEffect(lifecycleOwner) {
@@ -129,7 +126,7 @@ fun NavDrawerScreen() {
             for (nav in navMap.entries) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 15.dp).clickable {
                     Logd(TAG, "nav.key: ${nav.key}")
-                    if (nav.key == Screens.Library.name) feedIdsToUse.clear()
+                    if (nav.key == Screens.Library.name) feedIdsToUse = listOf()
                     navTo(nav.value.navKey, PopMode.Clear)
                     drawerCtrl?.close()
                 }) {

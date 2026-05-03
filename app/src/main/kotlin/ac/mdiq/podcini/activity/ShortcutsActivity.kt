@@ -5,7 +5,6 @@ import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
-
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.borderColor
 import ac.mdiq.podcini.ui.compose.textColor
@@ -33,7 +32,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -54,8 +52,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class ShortcutsActivity : ComponentActivity() {
-    private val feedItems = mutableStateListOf<Feed>()
-    private val queueList = mutableStateListOf<PlayQueue>()
+    private var feedItems by mutableStateOf<List<Feed>>(listOf())
+    private var queueList by mutableStateOf<List<PlayQueue>>(listOf())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -128,8 +126,8 @@ class ShortcutsActivity : ComponentActivity() {
                 }
             }
         }
-        if (addFeed) feedItems.addAll(getFeedList())
-        if (addQueue) queueList.addAll(queuesLive)
+        if (addFeed) feedItems = getFeedList()
+        if (addQueue) queueList = queuesLive
     }
 
     fun createFeedShortcut(feed: Feed) {

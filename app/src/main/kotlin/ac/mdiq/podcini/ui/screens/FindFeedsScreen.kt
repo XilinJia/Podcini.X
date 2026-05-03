@@ -63,7 +63,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -98,9 +97,9 @@ fun setOnlineSearchTerms(searchProvider_: Class<out PodcastSearcher?> = Combined
 }
 
 class FindFeedsVM: ViewModel() {
-    internal val searchResults = mutableStateListOf<PodcastSearchResult>()
+    internal var searchResults by mutableStateOf<List<PodcastSearchResult>>(listOf())
 
-    internal val readElements = mutableStateListOf<OpmlElement>()
+    internal var readElements by mutableStateOf<List<OpmlElement>>(listOf())
 
     var showOpmlImportSelectionDialog by mutableStateOf(false)
     val showOPMLRestoreDialog = mutableStateOf(false)
@@ -125,7 +124,7 @@ class FindFeedsVM: ViewModel() {
         if (query.isBlank()) return
         if (searchJob != null) {
             searchJob?.cancel()
-            searchResults.clear()
+            searchResults = listOf()
         }
         errorText = ""
         retryQerry = ""
@@ -138,9 +137,7 @@ class FindFeedsVM: ViewModel() {
             try {
                 val result = searchProvider.search(query)
                 for (r in result) r.feedId = feedId(r)
-                searchResults.clear()
-                searchResults.addAll(result)
-                searchResults.sortBy { it.title }
+                searchResults = result.sortedBy { it.title }
                 withContext(Dispatchers.Main) { showProgress = false }
             } catch (e: Exception) {
                 showProgress = false
@@ -214,7 +211,7 @@ fun FindFeedsScreen() {
     }
     val chooseOpmlImportPathLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
-        OpmlTransporter.startImport(uri) { vm.readElements.addAll(it) }
+        OpmlTransporter.startImport(uri) { vm.readElements = it }
         vm.showOpmlImportSelectionDialog = true
     }
     val addLocalFolderLauncher = rememberLauncherForActivityResult(AddLocalFolder()) { uri: Uri? ->

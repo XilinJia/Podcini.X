@@ -212,7 +212,7 @@ import kotlin.time.Clock
 
 private const val TAG = "LibraryScreen"
 
-val feedIdsToUse = mutableStateListOf<Long>()
+var feedIdsToUse by mutableStateOf<List<Long>>(listOf())
 
 class LibraryVM : ViewModel() {
     var subPrefs by mutableStateOf( realm.query(SubscriptionsPrefs::class).query("id == 0").first().find() ?: SubscriptionsPrefs().apply { this.queueSelIds.add(0L) })
@@ -232,8 +232,8 @@ class LibraryVM : ViewModel() {
 
     var curVolume by mutableStateOf<Volume?>(null)
 
-    val queueNames = mutableStateListOf<String>()
-    val queueIds = mutableListOf<Long>()
+    var queueNames by mutableStateOf<List<String>>(listOf())
+    var queueIds by mutableStateOf<List<Long>>(listOf())
 
     var playStateQueries by mutableStateOf("")
     var ratingQueries by mutableStateOf("")
@@ -537,14 +537,8 @@ class LibraryVM : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             queuesFlow.collect { changes ->
                 Logd(TAG, "queuesFlow.collect")
-                val ids = changes.list.map { it.id }
-                val names = changes.list.map { it.name }
-                withContext(Dispatchers.Main) {
-                    queueIds.clear()
-                    queueIds.addAll(ids)
-                    queueNames.clear()
-                    queueNames.addAll(names)
-                }
+                queueIds = changes.list.map { it.id }
+                queueNames = changes.list.map { it.name }
             }
         }
 
@@ -555,9 +549,9 @@ class LibraryVM : ViewModel() {
         super.onCleared()
         Logd(TAG, "VM onCleared")
         curVolume = null
-        queueIds.clear()
-        queueNames.clear()
-        feedIdsToUse.clear()
+        queueIds = listOf()
+        queueNames = listOf()
+        feedIdsToUse = listOf()
     }
 }
 
@@ -597,8 +591,8 @@ fun LibraryScreen() {
     var showToVolumeDialog by remember { mutableStateOf(false) }
     var showTagsSettingDialog by remember { mutableStateOf(false) }
 
-    val episodesToQueue = remember { mutableStateListOf<Episode>() }
-    if (episodesToQueue.isNotEmpty()) PutToQueueDialog(episodesToQueue.toList()) { episodesToQueue.clear() }
+    var episodesToQueue by remember { mutableStateOf<List<Episode>>(listOf()) }
+    if (episodesToQueue.isNotEmpty()) PutToQueueDialog(episodesToQueue.toList()) { episodesToQueue = listOf() }
     var volumeToOperate by remember { mutableStateOf<Volume?>(null) }
     var showEditVolume by remember { mutableStateOf(false) }
 
@@ -612,9 +606,7 @@ fun LibraryScreen() {
     val feedsOptionsMap = remember { linkedMapOf<String, @Composable ()->Unit>(
         "AddToQueue" to { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
             exitSelectMode()
-            episodesToQueue.clear()
-            val eps = realm.query(Episode::class).query("feedId IN $0", feedsSelected.map { it.id }).limit(200).find()
-            if (eps.isNotEmpty()) episodesToQueue.addAll(eps)
+            episodesToQueue = realm.query(Episode::class).query("feedId IN $0", feedsSelected.map { it.id }).limit(200).find()
         }) {
             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.outline_playlist_add_24), "Add to queue")
             Text(stringResource(id = R.string.add_to_queue) + " (max 200)") } },
@@ -2020,7 +2012,7 @@ fun LibraryScreen() {
                         Logd(TAG, "selectedIds: ${feedsSelected.size}")
                     })
                     @Composable
-                    fun FeedsSpeedDial(selected: SnapshotStateList<Feed>, modifier: Modifier = Modifier) {
+                    fun FeedsSpeedDial(selected: List<Feed>, modifier: Modifier = Modifier) {
                         val bgColor = MaterialTheme.colorScheme.tertiaryContainer
                         val fgColor = remember { complementaryColorOf(bgColor) }
                         if (isFeedsOptionsExpanded) CommonPopupCard(onDismissRequest = { isFeedsOptionsExpanded = false }) {
@@ -2029,7 +2021,7 @@ fun LibraryScreen() {
                         FloatingActionButton(containerColor = bgColor, contentColor = fgColor,
                             onClick = { isFeedsOptionsExpanded = !isFeedsOptionsExpanded }) { Icon(Icons.Filled.Menu, "Menu") }
                     }
-                    FeedsSpeedDial(feedsSelected.toMutableStateList(), modifier = Modifier.padding(start = 16.dp))
+                    FeedsSpeedDial(feedsSelected, modifier = Modifier.padding(start = 16.dp))
                 }
             }
         }

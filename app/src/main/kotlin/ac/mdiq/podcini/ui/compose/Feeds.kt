@@ -260,7 +260,7 @@ fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, onDismissRequest: () -> Uni
 }
 
 @Composable
-fun OpmlImportSelectionDialog(readElements: SnapshotStateList<OpmlTransporter.OpmlElement>, onDismissRequest: () -> Unit) {
+fun OpmlImportSelectionDialog(readElements: List<OpmlTransporter.OpmlElement>, onDismissRequest: () -> Unit) {
     val selectedItems = remember {  mutableStateMapOf<Int, Boolean>() }
     AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
         title = { Text("Import OPML file") },

@@ -85,7 +85,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -158,7 +157,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
     internal var dialog: Dialog? = null
 
-    val relatedFeeds = mutableStateListOf<PodcastSearchResult>()
+    var relatedFeeds by mutableStateOf<List<PodcastSearchResult>>(listOf())
 
     internal var showNoPodcastFoundDialog by mutableStateOf(false)
     internal var showErrorDialog by mutableStateOf(false)
@@ -236,10 +235,9 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                 it.author = feed_.author
             }
         }
-        relatedFeeds.clear()
         viewModelScope.launch(Dispatchers.IO) {
             val fl = CombinedSearcher::class.java.getDeclaredConstructor().newInstance().search("${feed?.author} podcasts")
-            withContext(Dispatchers.Main) { if (fl.isNotEmpty()) relatedFeeds.addAll(fl) }
+            withContext(Dispatchers.Main) { if (fl.isNotEmpty()) relatedFeeds = fl }
         }
         showProgress = false
         showFeedDisplay = true

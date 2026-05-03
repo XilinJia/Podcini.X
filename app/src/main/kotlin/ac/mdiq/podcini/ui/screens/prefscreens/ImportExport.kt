@@ -82,7 +82,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -232,12 +231,12 @@ fun ImportExportScreen() {
         }
     }
     var showOpmlImportSelectionDialog by remember { mutableStateOf(false) }
-    val readElements = remember { mutableStateListOf<OpmlElement>() }
+    var readElements by remember { mutableStateOf<List<OpmlElement>>(listOf()) }
     val chooseOpmlImportPathLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
         Logd(TAG, "chooseOpmlImportPathResult: uri: $uri")
         OpmlTransporter.startImport(uri) {
-            readElements.addAll(it)
+            readElements = it
             Logd(TAG, "readElements: ${readElements.size}")
         }
         showOpmlImportSelectionDialog = true

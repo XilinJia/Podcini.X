@@ -506,8 +506,7 @@ fun FacetsScreen(modeName: String = "") {
             IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
             if (facetsMode != QuickAccess.Recorded) IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (vm.filterButtonColor.value == Color.White) textColor else vm.filterButtonColor.value, contentDescription = "filter") }
             if (vm.showFeeds) IconButton(onClick = {
-                feedIdsToUse.clear()
-                feedIdsToUse.addAll(feedsAssociated.map { it.id })
+                feedIdsToUse = feedsAssociated.map { it.id }
                 navTo(Library)
             }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "library") }
             IconButton(onClick = { navTo(Search) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }

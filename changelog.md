@@ -1,3 +1,9 @@
+# 11.1.3
+
+* ensure again feeds in Queues update when a feed's associated queue changes
+* in Facets, FeedDetails screens, fixed episodes filter icon color not affected by tags filtering
+* replaced the unnecessary usage of StateList with the lighter State
+
 # 11.1.2
 
 * ensure feeds in Queues update when a feed's associated queue changes

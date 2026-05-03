@@ -17,6 +17,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.addToQueue
+import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.allowForAutoDelete
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
@@ -125,7 +126,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -684,7 +684,8 @@ fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
 
 @Composable
 fun ShelveDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
-    val synthetics = realm.query(Feed::class).query("id >= 100 && id <= 1000").find()
+//    val synthetics = realm.query(Feed::class).query("id >= 100 && id <= 1000").find()
+    val synthetics = allFeeds.filter { it.id >= 100 && it.id <= 1000 }
     CommonPopupCard(onDismissRequest = onDismissRequest) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             var removeChecked by remember { mutableStateOf(false) }
@@ -735,7 +736,7 @@ fun EraseEpisodesDialog(selected: List<Episode>, feed: Feed?, onDismissRequest: 
 @Composable
 fun EpisodeTimetableDialog(episode: Episode, onDismissRequest: () -> Unit, cb: (Timer)->Unit) {
     CommonDialogSurface(onDismissRequest = onDismissRequest) {
-        val timers = remember(appAttribs.timetable) { appAttribs.timetable.filter { it.episodeId == episode.id }.toMutableStateList() }
+        val timers = remember(appAttribs.timetable) { appAttribs.timetable.filter { it.episodeId == episode.id } }
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             for (timer in timers) {
                 Row {
@@ -964,15 +965,20 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                     Column(modifier = Modifier.fillMaxWidth()) {
                         val selectedList = remember { MutableList(tagList.size) { mutableStateOf(false) } }
                         val tagsSel = remember { mutableStateListOf<String>() }
-                        var tagsFull by remember { mutableStateOf(tagsSel.size == appAttribs.episodeTagSet.size) }
                         var expandRow by remember { mutableStateOf(false) }
                         Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
-                            Text(stringResource(R.string.tags_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (tagsFull) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                            Text(stringResource(R.string.tags_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (tagsSel.size == tagList.size) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
                             if (expandRow) {
                                 val cb = {
                                     for (i in tagList.indices) {
-                                        if (selectedList[i].value) filter.addTag(tagList[i])
-                                        else filter.removeTag(tagList[i])
+                                        if (selectedList[i].value) {
+                                            filter.addTag(tagList[i])
+                                            tagsSel.add(tagList[i])
+                                        }
+                                        else {
+                                            filter.removeTag(tagList[i])
+                                            tagsSel.remove(tagList[i])
+                                        }
                                     }
                                     onFilterChanged(filter)
                                 }

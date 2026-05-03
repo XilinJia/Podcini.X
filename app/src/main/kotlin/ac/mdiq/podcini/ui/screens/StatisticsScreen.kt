@@ -142,7 +142,7 @@ class StatisticsVM: ViewModel() {
 
     internal var showTodayStats by mutableStateOf(false)
 
-    val monthStats = mutableStateListOf<MonthlyStatistics>()
+    var monthStats by mutableStateOf<List<MonthlyStatistics>>(listOf())
     var monthlyMaxDataValue by mutableFloatStateOf(1f)
 
     internal var downloadstatsData by mutableStateOf<StatisticsResult?>(null)
@@ -223,7 +223,7 @@ fun StatisticsScreen() {
             vm.chartData = null
             vm.statsOfDay = StatisticsResult()
             vm.statsResult = StatisticsResult()
-            vm.monthStats.clear()
+            vm.monthStats = listOf()
 //            vm.monthlyStats.clear()
             vm.downloadstatsData = null
             vm.downloadChartData = null
@@ -448,8 +448,7 @@ fun StatisticsScreen() {
                 mItem.stats = getStatistics(episodes)
                 months.add(mItem)
             }
-            vm.monthStats.clear()
-            vm.monthStats.addAll(months)
+            vm.monthStats = months
             for (item in vm.monthStats) vm.monthlyMaxDataValue = max(vm.monthlyMaxDataValue.toDouble(), item.stats.statTotal.timePlayed.toDouble()).toFloat()
         }
         @Composable
@@ -493,7 +492,7 @@ fun StatisticsScreen() {
                 }
             }
         }
-        val episodes = remember { mutableStateListOf<Episode>() }
+        var episodes by remember { mutableStateOf<List<Episode>>(listOf()) }
         fun onMonthClicked(index: Int) {
             val year = vm.monthStats[index].year
             val month = vm.monthStats[index].month
@@ -505,13 +504,12 @@ fun StatisticsScreen() {
             // Subtract 1 second (or 1 millisecond) to get the end of the current month
             val end = endOfNextMonth.toEpochMilliseconds() - 1000 // Or -1 for exact millisecond
             val data = getStatistics(start, end)
-            episodes.clear()
-            episodes.addAll(data.episodes)
+            episodes = data.episodes
         }
 
-        if (episodes.isNotEmpty()) AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { episodes.clear() },  confirmButton = {},
+        if (episodes.isNotEmpty()) AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { episodes = listOf() },  confirmButton = {},
             text = { EpisodeLazyColumn(episodes, showCoverImage = false, showActionButtons = false) },
-            dismissButton = { TextButton(onClick = { episodes.clear() }) { Text(stringResource(R.string.cancel_label)) } } )
+            dismissButton = { TextButton(onClick = { episodes = listOf() }) { Text(stringResource(R.string.cancel_label)) } } )
 
         if (vm.statisticsState >= 0 && vm.monthStats.isEmpty()) loadMongthStats()
         Column {
@@ -807,7 +805,7 @@ private fun getStatistics(timeFrom: Long, timeTo: Long, feedId: Long = 0L, forDL
 @Composable
 fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Long, showOpenFeed: Boolean = false, onDismissRequest: () -> Unit) {
     var fStat by remember { mutableStateOf<FeedStatistics?>(null) }
-    val episodes = remember { mutableStateListOf<Episode>()  }
+    var episodes by remember { mutableStateOf<List<Episode>>(listOf())  }
     fun loadStatistics() {
         try {
             val data = getStatistics(timeFrom, timeTo, feedId)
@@ -817,8 +815,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
                 fStat = data.feedStats[0]
                 Logd(TAG,"loadStatistics durationTotal ${fStat?.item?.durationTotal}")
             }
-            episodes.clear()
-            episodes.addAll(data.episodes)
+            episodes = data.episodes
         } catch (error: Throwable) { Logs(TAG, error, "loadStatistics failed") }
     }
     LaunchedEffect(Unit) { loadStatistics() }

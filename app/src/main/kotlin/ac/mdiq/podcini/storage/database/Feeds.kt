@@ -54,6 +54,10 @@ fun getFeedList(queryString: String = ""): List<Feed> {
     else realm.query(Feed::class, queryString).find()
 }
 
+fun getSynthFeeds(): List<Feed> {
+    return allFeeds.filter { it.id >= 100 && it.id <= 1000 }
+}
+
 fun compileLanguages() {
     val langsSet = mutableSetOf<String>()
     for (feed in allFeeds) {
