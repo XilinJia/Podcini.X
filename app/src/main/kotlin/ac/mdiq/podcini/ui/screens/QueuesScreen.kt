@@ -476,7 +476,7 @@ fun QueuesScreen(id: Long = -1L) {
                             }
                         }))
                     } else {
-                        val title = remember(vm.queuesMode) {
+                        val title = remember(vm.queuesMode, vm.curQueue.name, feedsAssociated.size) {
                             when (vm.queuesMode) {
                                 QueuesScreenMode.Bin -> vm.curQueue.name + " Bin"
                                 QueuesScreenMode.Queue -> ""
