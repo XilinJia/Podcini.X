@@ -257,7 +257,8 @@ internal fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, 
             }
             for (e in episodes) {
                 if (qes.indexOfFirst { it.episodeId == e.id } >= 0) {
-                    if (playState != null) findLatest(e)?.let { if (it.playState == EpisodeState.QUEUE.code) it.setPlayState(playState) }
+                    if (playState != null && e.playState == EpisodeState.QUEUE.code)
+                        query(Episode::class).query("id == ${e.id}").first().find()?.let { it.setPlayState(playState) }
                     if (queue.id == actQueue.id) removeFromActQueue.add(e)
                 }
             }

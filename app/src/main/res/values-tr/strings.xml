@@ -475,8 +475,6 @@
     <string name="pref_autodl_queue_empty_title">Kuyruk boşaldığında başlat</string>
     <string name="pref_autodl_queue_empty_sum">Bir kuyruk boşaldığında, politikası \"Yalnızca yeni öğeler\" olmayan ilgili beslemeler için otomatik indirme başlar</string>
 
-    <string name="pref_auto_download_include_queues_title">Kuyruk öğelerini dahil et</string>
-    <string name="pref_auto_download_include_queues_sum">Seçilen kuyruklarda indirilmemiş bölümler, otomatik indirme işlemi sırasında (yenileme zamanında) indirme için dahil edilir. Varsayılan ayar tüm kuyrukları içerir.</string>
     <string name="pref_auto_download_include_soon_title">\"Yakında\"yı dahil et</string>
     <string name="pref_auto_download_include_soon_summary">Oynatma durumu Yakında olarak ayarlanmış bölümleri dahil etmek için ayarlayın.</string>
 

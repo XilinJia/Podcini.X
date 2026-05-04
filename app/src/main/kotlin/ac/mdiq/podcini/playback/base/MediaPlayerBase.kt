@@ -50,9 +50,9 @@ import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.ui.screens.curVideoMode
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Logpe
-import ac.mdiq.podcini.utils.Logps
-import ac.mdiq.podcini.utils.Logpt
+import ac.mdiq.podcini.utils.LogeFor
+import ac.mdiq.podcini.utils.LogsFor
+import ac.mdiq.podcini.utils.LogtFor
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.showStackTrace
 import androidx.compose.runtime.getValue
@@ -320,7 +320,7 @@ abstract class MediaPlayerBase {
     fun startPlaying() {
         Logd(TAG, "startPlaying called")
         if (curEpisode == null) {
-            Logpt(TAG, curEpisode, "startPlaying: No media to play")
+            LogtFor(TAG, curEpisode, "startPlaying: No media to play")
             return
         }
         val media = curEpisode!!
@@ -415,7 +415,7 @@ abstract class MediaPlayerBase {
     fun getPosition(): Int {
         var retVal = Episode.INVALID_TIME
 //        showStackTrace()
-        if (castPlayer?.isPlaying == true && !status.isAtLeast(PlayerStatus.PREPARED)) Logpt(TAG, curEpisode, "exoPlayer playbackState ${castPlayer?.playbackState} player status $status")
+        if (castPlayer?.isPlaying == true && !status.isAtLeast(PlayerStatus.PREPARED)) LogtFor(TAG, curEpisode, "exoPlayer playbackState ${castPlayer?.playbackState} player status $status")
         retVal = getPlayerPosition()
 //        Logd(TAG, "getPosition player position: $retVal")
         if (retVal <= 0 && curEpisode != null) retVal = curEpisode!!.position
@@ -524,14 +524,14 @@ abstract class MediaPlayerBase {
                     if (prepareImmediately) prepare()
                 }
             } catch (e: IOException) {
-                Logps(TAG, curEpisode, e, "prepareMedia failed ${e.localizedMessage ?: ""}")
+                LogsFor(TAG, curEpisode, e, "prepareMedia failed ${e.localizedMessage ?: ""}")
                 withContext(Dispatchers.Main) { setPlayerStatus(PlayerStatus.ERROR, curEpisode) }
             } catch (e: IllegalStateException) {
-                Logps(TAG, curEpisode, e, "prepareMedia failed ${e.localizedMessage ?: ""}")
+                LogsFor(TAG, curEpisode, e, "prepareMedia failed ${e.localizedMessage ?: ""}")
                 withContext(Dispatchers.Main) { setPlayerStatus(PlayerStatus.ERROR, curEpisode) }
             } catch (e: Throwable) {
                 withContext(Dispatchers.Main) { setPlayerStatus(PlayerStatus.ERROR, curEpisode) }
-                Logps(TAG, curEpisode, e, "setDataSource error: [${e.localizedMessage}]")
+                LogsFor(TAG, curEpisode, e, "setDataSource error: [${e.localizedMessage}]")
             } finally { }
         }
     }
@@ -548,7 +548,7 @@ abstract class MediaPlayerBase {
                 isStartWhenPrepared = true
                 prepare()
             }
-            else -> Logpe(TAG, curEpisode, "Play/Pause button was pressed and PlaybackService state was unknown: $status")
+            else -> LogeFor(TAG, curEpisode, "Play/Pause button was pressed and PlaybackService state was unknown: $status")
         }
     }
 
@@ -569,7 +569,7 @@ abstract class MediaPlayerBase {
             setPlaybackParams()
             setPlayerStatus(PlayerStatus.PLAYING, curEpisode)
             sleepManager?.restart()
-        } else Logpt(TAG, curEpisode, "Call to play() was ignored because current state of PSMP object is $status")
+        } else LogtFor(TAG, curEpisode, "Call to play() was ignored because current state of PSMP object is $status")
     }
 
     /**
@@ -588,7 +588,7 @@ abstract class MediaPlayerBase {
             isSpeedForward =  false
             isFallbackSpeed = false
             if (curEpisode != null) upsertBlk(curEpisode!!) { it.forceVideo = false }
-        } else Logpt(TAG, curEpisode, "Ignoring call to pause: Player is in $status state")
+        } else LogtFor(TAG, curEpisode, "Ignoring call to pause: Player is in $status state")
     }
 
     internal abstract fun setSource()
@@ -653,7 +653,7 @@ abstract class MediaPlayerBase {
     fun seekDelta(delta: Int) {
         val curPosition = getPosition()
         if (curPosition != Episode.INVALID_TIME) seekTo(curPosition + delta)
-        else Logpe(TAG,  curEpisode, "seekDelta getPosition() returned INVALID_TIME in seekDelta")
+        else LogeFor(TAG,  curEpisode, "seekDelta getPosition() returned INVALID_TIME in seekDelta")
     }
 
     abstract fun setPlaybackParams()
@@ -798,7 +798,7 @@ abstract class MediaPlayerBase {
                 if (duration !in 1..skipIntroMS) {
                     Logd(TAG, "onPlaybackStart skipIntro ${playable.getEpisodeTitle()}")
                     seekTo(skipIntroMS)
-                    Logpt(TAG, curEpisode, context.getString(R.string.pref_feed_skip_intro_toast, skipIntro))
+                    LogtFor(TAG, curEpisode, context.getString(R.string.pref_feed_skip_intro_toast, skipIntro))
                 }
             }
             upsertBlk(playable) { it.setPlaybackStart() }
@@ -885,7 +885,7 @@ abstract class MediaPlayerBase {
         if (it.startTime > 0) {
             var delta = (nowInMillis() - it.startTime)
             if (delta > 3 * max(it.playedDuration, 60000)) {
-                Logpt(TAG, curEpisode, "upsertDB likely invalid delta: $delta ${it.title}")
+                LogtFor(TAG, curEpisode, "upsertDB likely invalid delta: $delta ${it.title}")
                 it.startTime = nowInMillis()
                 delta = 0L
             } else it.timeSpent = it.timeSpentOnStart + delta
@@ -932,7 +932,7 @@ abstract class MediaPlayerBase {
             isInitialized -> savePlayerStatus(curEpisode, status)
             isPrepared -> {
                 savePlayerStatus(curEpisode, status)
-                if (curEpisode != null) runOnIOScope { try { loadChapters(curEpisode!!, false) } catch (e: Throwable) { Logps(TAG, curEpisode, e, "Error loading chapters for: ${curEpisode?.title}") } }
+                if (curEpisode != null) runOnIOScope { try { loadChapters(curEpisode!!, false) } catch (e: Throwable) { LogsFor(TAG, curEpisode, e, "Error loading chapters for: ${curEpisode?.title}") } }
             }
             isPaused -> savePlayerStatus(null, status)
             isStopped -> {}
@@ -986,11 +986,11 @@ abstract class MediaPlayerBase {
         fun isStreamingCapable(media: Episode): Boolean {
 //            showStackTrace()
             if (!isNetworkUrl(media.downloadUrl)) {
-                Logpe(TAG,  media, "streaming media without a remote downloadUrl: ${media.downloadUrl}. Abort")
+                LogeFor(TAG,  media, "streaming media without a remote downloadUrl: ${media.downloadUrl}. Abort")
                 return false
             }
             if (!networkMonitor.isConnected) {
-                Logpe(TAG,  media, "streaming media but network is not available, abort")
+                LogeFor(TAG,  media, "streaming media but network is not available, abort")
                 return false
             }
             return true

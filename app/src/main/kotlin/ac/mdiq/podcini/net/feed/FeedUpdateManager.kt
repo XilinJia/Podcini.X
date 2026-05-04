@@ -21,6 +21,7 @@ import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.fullDateTimeString
 import android.Manifest
@@ -249,7 +250,7 @@ object FeedUpdateManager {
                     return Result.success()
                 } else return Result.success()
             } catch (e: Throwable) {
-                Loge(TAG, "Some errors occurred during refresh, will retry: ${e.message}")
+                Logs(TAG, "Some errors occurred during refresh, will retry: ${e.message}")
                 if (isPeriodic) {
                     if (attemptCount >= MAX_BACKOFF_ATTEMPTS) {
                         upsertBlk(appAttribs) { it.feedIdsToRefresh.clear() }

@@ -4,9 +4,11 @@ import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.download.DownloadError.Companion.fromCode
 import ac.mdiq.podcini.net.download.RequestTye
 import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logt
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.annotations.Ignore
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
@@ -99,10 +101,6 @@ class DownloadResult : RealmObject {
         suspend fun logDownloadResult(status: DownloadResult) {
             if (status.id == 0L) status.setId()
             upsert(status) {}
-        }
-
-        suspend fun LogFor(feed: Feed, success: Boolean, message: String) {
-            logDownloadResult(DownloadResult(feed, null, success, message))
         }
     }
 }

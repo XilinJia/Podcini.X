@@ -27,6 +27,7 @@ import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.LogtFor
 import ac.mdiq.podcini.utils.parsePatternTimestampToMillis
 import android.content.Intent
 import android.media.MediaMetadataRetriever
@@ -234,7 +235,7 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
     while (it.hasNext()) {
         val item = it.next()
         if (!mediaFileNames.contains(item.link)) {
-            Logt(TAG, "updateLocalFeed removing episode without file: ${item.link} ${item.title} ")
+            LogtFor(TAG, item, "updateLocalFeed removing episode without file: ${item.link}")
             it.remove()
         }
     }

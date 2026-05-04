@@ -599,7 +599,9 @@
     <string name="pref_auto_sort_queue">Auto sort queue on add</string>
     <string name="pref_auto_sort_queue_sum">Every time when episodes are added to the queue, the queue will be sorted based on preset sort order. When the queue is unlocked, this is turned off.</string>
 
-    <string name="pref_auto_download_include_queues_title">Include queue items</string>
+    <string name="auto_download_items_in_queue">Auto download items in queue</string>
+    <string name="auto_download_items_in_queue_sum">Episodes not downloaded in the selected queues will be included for download during auto-download process (at refresh time).</string>
+
     <string name="pref_auto_download_include_queues_sum">Episodes not downloaded in the selected queues will be included for download during auto-download process (at refresh time). Default setting includes all queues.</string>
     <string name="pref_auto_download_include_soon_title">Include "Soon"</string>
     <string name="pref_auto_download_include_soon_summary">Set to include episodes with play status set to Soon.</string>

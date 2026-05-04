@@ -34,9 +34,9 @@ import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Logpe
-import ac.mdiq.podcini.utils.Logps
-import ac.mdiq.podcini.utils.Logpt
+import ac.mdiq.podcini.utils.LogeFor
+import ac.mdiq.podcini.utils.LogsFor
+import ac.mdiq.podcini.utils.LogtFor
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.sendLocalBroadcast
 import ac.mdiq.podcini.utils.timeIt
@@ -216,7 +216,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                 }
                 override fun onPlayerError(error: PlaybackException) {
                     fun handleTerminalError(message: String) {
-                        Logpe(TAG, curEpisode, message)
+                        LogeFor(TAG, curEpisode, message)
                         castPlayer?.stop()
                         castPlayer?.clearMediaItems()
                         setPlayerStatus(PlayerStatus.STOPPED, curEpisode)
@@ -227,7 +227,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                         PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
                         PlaybackException.ERROR_CODE_TIMEOUT -> {
                             val lastPosition = castPlayer?.currentPosition ?: 0L
-                            Logpt(TAG, curEpisode, "player error: ${error.localizedMessage}, retrying...")
+                            LogtFor(TAG, curEpisode, "player error: ${error.localizedMessage}, retrying...")
                             castPlayer?.prepare()
 //                            castPlayer?.seekTo(lastPosition)
                             castPlayer?.play()
@@ -238,7 +238,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                         }
                         else -> {
                             // Terminal errors (404, Media Unsupported)
-                            Logpe(TAG, curEpisode, "Permanent error: ${error.localizedMessage}")
+                            LogeFor(TAG, curEpisode, "Permanent error: ${error.localizedMessage}")
                             val cause = error.cause
                             when {
                                 error.cause is AudioSink.InitializationException -> {
@@ -290,7 +290,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                                 oldEnhancer.release()
                             }
                             loudnessEnhancer = newEnhancer
-                        } catch (e: Throwable) { Logps(TAG, curEpisode, e, "Failed to init LoudnessEnhancer") }
+                        } catch (e: Throwable) { LogsFor(TAG, curEpisode, e, "Failed to init LoudnessEnhancer") }
                     }
                 }
                 override fun onTracksChanged(tracks: Tracks) {
@@ -323,10 +323,10 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             }
             exoplayerOffloadListener = object: ExoPlayer.AudioOffloadListener {
                 override fun onOffloadedPlayback(offloadSchedulingEnabled: Boolean) {
-                    Logpt(TAG, curEpisode,  "AudioOffloadListener Offload scheduling enabled: $offloadSchedulingEnabled")
+                    LogtFor(TAG, curEpisode,  "AudioOffloadListener Offload scheduling enabled: $offloadSchedulingEnabled")
                 }
                 override fun onSleepingForOffloadChanged(isSleepingForOffload: Boolean) {
-                    Logpt(TAG, curEpisode, "AudioOffloadListener CPU is sleeping for offload: $isSleepingForOffload")
+                    LogtFor(TAG, curEpisode, "AudioOffloadListener CPU is sleeping for offload: $isSleepingForOffload")
                 }
             }
             createNativePlayer()
@@ -357,7 +357,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             return
         }
         offloadEnabled = enabled
-        Logpt(TAG, curEpisode, "switchOffload set audio offload $offloadEnabled")
+        LogtFor(TAG, curEpisode, "switchOffload set audio offload $offloadEnabled")
 
         val wasPlaying = castPlayer!!.isPlaying
         castPlayer!!.pause()
@@ -513,7 +513,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         mediaSource = null
         val url = media.downloadUrl
         if (url.isNullOrBlank()) {
-            Logpe(TAG, curEpisode, "setDataSource: media downloadUrl is null or blank ${media.title}")
+            LogeFor(TAG, curEpisode, "setDataSource: media downloadUrl is null or blank ${media.title}")
             upsertBlk(media) { it.setPlayState(EpisodeState.ERROR) }
             throw IllegalArgumentException("blank url")
         }
@@ -532,7 +532,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                 prepareDataSource(media, url, user, password)
             }
         } catch (e: Throwable) {
-            Logpe(TAG, curEpisode, "setDataSource: ${e.message}")
+            LogeFor(TAG, curEpisode, "setDataSource: ${e.message}")
             upsertBlk(media) { it.setPlayState(EpisodeState.ERROR) }
             throw e
         }
@@ -585,7 +585,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             val enabled = speedEnablesOffload && silenceEnablesOffload
             if (enabled != offloadEnabled) {
                 offloadEnabled = enabled
-                Logpt(TAG, curEpisode, "setSource set audio offload $offloadEnabled")
+                LogtFor(TAG, curEpisode, "setSource set audio offload $offloadEnabled")
                 exoPlayer!!.trackSelectionParameters = exoPlayer!!.trackSelectionParameters.buildUpon().setAudioOffloadPreferences(AudioOffloadPreferences.Builder().setAudioOffloadMode(if (offloadEnabled) AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED else AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED).build()).build()
             }
             needChangeOffload = false
@@ -699,7 +699,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             bufferingUpdateListener = { }
 //            TODO: should use: exoPlayer!!.playWhenReady ?
             if (castPlayer?.isPlaying == true) castPlayer?.stop()
-        } catch (e: Exception) { Logps(TAG, curEpisode, e) }
+        } catch (e: Exception) { LogsFor(TAG, curEpisode, e) }
         release()
         status = PlayerStatus.STOPPED
     }
@@ -790,11 +790,11 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
      */
     override suspend fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long?) {
         val mediaItem = castPlayer!!.currentMediaItem ?: run {
-            Logpe(TAG, curEpisode, "No current media item.")
+            LogeFor(TAG, curEpisode, "No current media item.")
             return
         }
         val uri = mediaItem.localConfiguration?.uri ?: run {
-            Logpe(TAG, curEpisode, "No URI in MediaItem.")
+            LogeFor(TAG, curEpisode, "No URI in MediaItem.")
             return
         }
         if (endPositionMs == null) {
@@ -810,14 +810,14 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             .flatMap { group -> (0 until group.length).map { group.getTrackFormat(it) } }
             .firstOrNull { it.sampleMimeType?.startsWith("audio/") == true }
         if (audioFormat == null) {
-            Logpe(TAG, curEpisode,  "No audio track found.")
+            LogeFor(TAG, curEpisode,  "No audio track found.")
             return
         }
         val mimeType = audioFormat.sampleMimeType
         Logd(TAG, "mimeType: [$mimeType]")
         val ext = getFileExtensionFromMimeType(mimeType)
         if (ext == null) {
-            Logpe(TAG, curEpisode, "Audio format not supported: $ext")
+            LogeFor(TAG, curEpisode, "Audio format not supported: $ext")
             return
         }
 
@@ -850,8 +850,8 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                         outputFile.writeBytes(adjustedSegment)
                         upsert(curEpisode!!) { it.clips.add(clipname) }
                         Logd(TAG, "Saved local clip to: ${outputFile.absPath}")
-                    } else Logpe(TAG, curEpisode, "Failed to extract segment from local media")
-                } catch (e: Exception) { Logps(TAG, curEpisode, e, "FileKit operation failed")
+                    } else LogeFor(TAG, curEpisode, "Failed to extract segment from local media")
+                } catch (e: Exception) { LogsFor(TAG, curEpisode, e, "FileKit operation failed")
                 } finally { tempFile.delete() }
             }
             else -> {   // streaming
@@ -865,7 +865,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                 val cacheSpan = cache.getCachedSpans(key).firstOrNull { span -> span.position <= startByte && (span.position + span.length) >= endByte }
                 Logd(TAG, "cacheSpan found: ${cacheSpan != null}")
                 if (cacheSpan?.file?.exists() == true) {
-                    val javaFile = cacheSpan.file ?: run { Logpe(TAG, curEpisode,"CacheSpan is null or has no file"); return }
+                    val javaFile = cacheSpan.file ?: run { LogeFor(TAG, curEpisode,"CacheSpan is null or has no file"); return }
                     val path = javaFile.toOkioPath()
                     val tempFile = outputFile.parent()!! / "temp_segment.${outputFile.extension}"
                     try {
@@ -877,7 +877,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                             tempFile.writeBytes(segmentData)
                             Logd(TAG, "Total written: $totalRead bytes")
                         }
-                    } catch (e: Exception) { Logps(TAG, curEpisode, e, "Failed to extract from cache span") }
+                    } catch (e: Exception) { LogsFor(TAG, curEpisode, e, "Failed to extract from cache span") }
 
                     val segment = tempFile.readBytes()
                     tempFile.delete()
@@ -917,7 +917,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                             tempOutput.writeBytes(segmentData)
                             Logd(TAG, "Total written: $totalRead bytes")
                         }
-                    } catch (e: Exception) { Logps(TAG, curEpisode, e, "Failed to extract from cache span") }
+                    } catch (e: Exception) { LogsFor(TAG, curEpisode, e, "Failed to extract from cache span") }
                     val segment = tempOutput.readBytes()
                     tempOutput.delete()
                     if (segment.isNotEmpty()) {
@@ -931,9 +931,9 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                         outputFile.writeBytes(adjustedSegment)
                         upsert(curEpisode!!) { it.clips.add(clipname) }
                         Logd(TAG, "Saved clip to: ${outputFile.absPath}")
-                    } else Logpe(TAG, curEpisode, "Failed to extract segment from temp file")
+                    } else LogeFor(TAG, curEpisode, "Failed to extract segment from temp file")
                     tempFileDS.delete()
-                } else Logpe(TAG, curEpisode, "Failed saving clip: No temp file available after stopping recording")
+                } else LogeFor(TAG, curEpisode, "Failed saving clip: No temp file available after stopping recording")
             }
         }
     }
@@ -952,7 +952,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
     private fun adjustMp4Clip(bytes: ByteArray, cache: SimpleCache, key: String, startByte: Long, endByte: Long): ByteArray {
         if (startByte > 0 || endByte < spansTotalLength(cache, key)) {
-            Logpt(TAG, curEpisode, "MP4 clip may not be playable without re-muxing.")
+            LogtFor(TAG, curEpisode, "MP4 clip may not be playable without re-muxing.")
             val fullFileBytes = getFullFileFromCache(cache, key)
             return fullFileBytes ?: bytes
         }
@@ -960,7 +960,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     }
     private fun adjustLocalOggClip(bytes: ByteArray): ByteArray = bytes
     private fun adjustLocalMp4Clip(bytes: ByteArray): ByteArray {
-        Logpt(TAG, curEpisode, "Local MP4 clip may not be playable without re-muxing.")
+        LogtFor(TAG, curEpisode, "Local MP4 clip may not be playable without re-muxing.")
         return bytes
     }
 

@@ -6,7 +6,7 @@ import ac.mdiq.podcini.storage.utils.UnifiedFile
 import ac.mdiq.podcini.storage.utils.div
 import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Logpe
+import ac.mdiq.podcini.utils.LogeFor
 import android.net.Uri
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
@@ -93,7 +93,7 @@ class SegmentSavingDataSource(private val mPlayer: MediaPlayerBase, private val 
             clipStartByte = (startPositionMs * bitrate / 8 / 1000)
             clipBytesWritten = 0L
             Logd(TAG, "Started recording at byte offset $clipStartByte")
-        } else Logpe(TAG, mPlayer.curEpisode, "Cannot start recording: tempDir not set or already recording")
+        } else LogeFor(TAG, mPlayer.curEpisode, "Cannot start recording: tempDir not set or already recording")
     }
 
     // Stop recording and return the temp file for processing

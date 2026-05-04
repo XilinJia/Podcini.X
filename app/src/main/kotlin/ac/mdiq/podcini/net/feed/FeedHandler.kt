@@ -1,7 +1,6 @@
 package ac.mdiq.podcini.net.feed
 
 import ac.mdiq.podcini.storage.model.Chapter
-import ac.mdiq.podcini.storage.model.DownloadResult.Companion.LogFor
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.FeedFunding
@@ -9,6 +8,7 @@ import ac.mdiq.podcini.storage.utils.getMimeType
 import ac.mdiq.podcini.storage.utils.isImageFile
 import ac.mdiq.podcini.storage.utils.isMediaFile
 import ac.mdiq.podcini.storage.utils.parseDate
+import ac.mdiq.podcini.utils.LogFor
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
@@ -122,11 +122,11 @@ object FeedHandler {
                 }
                 return FeedHandlerResult(handler!!.state.feed, handler.state.alternateUrls, handler.state.redirectUrl ?: "")
             } catch (e: ParsingLimitReachedException) {
-                Logt(TAG, "parseFeed Feed episodes limit is reached, terminate early: ${feed.title}")
+                LogFor(TAG, feed, true, "parseFeed Feed episodes limit is reached, terminate early.", toastAnyway = true)
                 return FeedHandlerResult(handler!!.state.feed, handler.state.alternateUrls, handler.state.redirectUrl ?: "")
             } catch (e: Exception) {
-                Logs(TAG, e, "parseFeed Parse Failed on feed ${feed.title}")
-                LogFor(feed, false, "parseFeed Parse Failed ${e.message}")
+//                Logs(TAG, e, "parseFeed Parse Failed on feed ${feed.title}")
+                LogFor(TAG, feed, false, "parseFeed Parse Failed ${e.message}", toastAnyway = true)
             } finally { reader.close() }
         }
         return null

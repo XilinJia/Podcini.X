@@ -26,6 +26,7 @@ import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.LogtFor
 import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.sendLocalBroadcast
 import androidx.core.app.NotificationManagerCompat
@@ -177,6 +178,7 @@ suspend fun eraseEpisodes(episodes: List<Episode>, msg: String = "") {
         }
     }
     for (e in episodes) if (e.feed?.isLocalFeed != true) deleteMedia(e)
+    removeFromAllQueues(episodes)
     Logd(TAG, "eraseEpisodes deleting episodes: ${episodes.size}")
     realm.write { for (e in episodes) findLatest(e)?.let { delete(it) } }
     EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
@@ -238,7 +240,7 @@ fun checkAndMarkDuplicates(episode: Episode): Episode {
                                 it
                             }
                             m?.let { updated = true }
-                            Logt(TAG, "Duplicate item was previously set to ${fromCode(e.playState).name} ${e.title} ${e.downloadUrl}")
+                            LogtFor(TAG, e,"Duplicate item was previously set to ${fromCode(e.playState).name} ${e.downloadUrl}")
                         }
                     }
                 }

@@ -53,6 +53,7 @@ import ac.mdiq.podcini.ui.compose.filterChipBorder
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.timeIt
 import android.content.ComponentName
@@ -290,9 +291,12 @@ fun QueuesScreen(id: Long = -1L) {
                     val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
                     browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
                     browserFuture?.addListener({
-                        // here we can get the root of media items tree or we can get also the children if it is an album for example.
-                        mediaBrowser = browserFuture!!.get()
-                        mediaBrowser?.subscribe("ActQueue", null)
+                        try {
+                            if (browserFuture?.isCancelled != true) {
+                                mediaBrowser = browserFuture?.get()
+                                mediaBrowser?.subscribe("ActQueue", null)
+                            }
+                        } catch (e: Exception) { Loge(TAG, "Adding browserFuture listener failed or was cancelled safely") }
                     }, MoreExecutors.directExecutor())
                 }
                 Lifecycle.Event.ON_START -> {}
@@ -649,7 +653,7 @@ fun QueuesScreen(id: Long = -1L) {
             TitleSummarySwitchRow(R.string.pref_autodl_queue_empty_title, R.string.pref_autodl_queue_empty_sum, vm.curQueue.launchAutoEQDlWhenEmpty) { v ->
                 upsertBlk(vm.curQueue) { it.launchAutoEQDlWhenEmpty = v }
             }
-            TitleSummarySwitchRow(R.string.pref_auto_download_include_queues_title, R.string.pref_auto_download_include_queues_sum, vm.curQueue.autoDownloadEpisodes) { v ->
+            TitleSummarySwitchRow(R.string.auto_download_items_in_queue, R.string.auto_download_items_in_queue_sum, vm.curQueue.autoDownloadEpisodes) { v ->
                 upsertBlk(vm.curQueue) { it.autoDownloadEpisodes = v }
             }
             if (showRename) {

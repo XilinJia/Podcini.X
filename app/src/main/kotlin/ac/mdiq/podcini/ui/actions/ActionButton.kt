@@ -45,6 +45,7 @@ import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.LogeFor
 import ac.mdiq.podcini.utils.openInBrowser
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -240,7 +241,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 }
                 fun shouldNotDownload(): Boolean {
                     if (item.downloadUrl.isNullOrBlank()) {
-                        Loge(TAG, "episode downloadUrl is null or blank: ${item.title}")
+                        LogeFor(TAG, item, "episode downloadUrl is null or blank")
                         return true
                     }
                     val isDownloading = EpisodeAdrDLManager.manager?.isDownloading(item.downloadUrl!!) == true

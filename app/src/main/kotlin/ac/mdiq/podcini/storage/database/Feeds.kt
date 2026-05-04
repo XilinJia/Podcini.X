@@ -17,14 +17,14 @@ import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.DAY_MIL
 import ac.mdiq.podcini.storage.utils.FOUR_DAY_MIL
-import ac.mdiq.podcini.storage.utils.cacheDir
-import ac.mdiq.podcini.storage.utils.div
 import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.LogFor
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.LogtFor
 import android.app.backup.BackupManager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -431,7 +431,6 @@ suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, 
             if (priorMostRecentDate == null || priorMostRecentDate < (pubDate) || priorMostRecentDate == pubDate) {
                 Logd(TAG, "updateFeedFull Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
                 episode = upsertBlk(episode) { it.setPlayState(EpisodeState.NEW) }
-//                if (savedFeed.autoAddNewToQueue && savedFeed.queue != null) runOnIOScope { addToAssQueue(listOf(episode)) }
             } else upsertBlk(episode) {}
         }
         if (idx % 50 == 0) Logd(TAG, "updateFeedFull processing item $idx / ${newFeed.episodes.size} ")
@@ -514,7 +513,7 @@ suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = nu
     for (idx in newFeed.episodes.indices) {
         var episode = newFeed.episodes[idx]
         if (episode.duration < 1000 && !savedFeed.acceptTinyEpisodes) {
-            Logt(TAG, "new episode duration less than 1 second, ignored: ${episode.title} in Feed: ${newFeed.title}")
+            LogtFor(TAG, episode, "new episode duration less than 1 second, ignored. in Feed: ${newFeed.title}")
             downloadStatus?.addDetail("new episode duration less than 1 second, ignored: ${episode.title}")
             continue
         }
@@ -530,7 +529,6 @@ suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = nu
 
         Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
         episode = upsert(episode) { it.setPlayState(EpisodeState.NEW) }
-//        if (savedFeed.autoAddNewToQueue && savedFeed.queue != null) runOnIOScope { addToAssQueue(listOf(episode)) }
     }
     downloadStatus?.addDetail("Added new episodes: $nNew")
 

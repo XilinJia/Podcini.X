@@ -62,6 +62,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.LogtFor
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.sessionLogs
@@ -211,7 +212,7 @@ fun ShareDialog(item: Episode, onDismissRequest: () -> Unit) {
                     1 -> shareFeedItemLinkWithDownloadLink(ctx, item, isChecked)
                     2 -> {
                         if (!item.downloadUrl.isNullOrEmpty()) shareLink(ctx, item.downloadUrl!!)
-                        else Logt(TAG, "Episode download url is not valid, ignored.")
+                        else LogtFor(TAG, item, "Episode download url is not valid, ignored.")
                     }
                     3 -> shareFeedItemFile(ctx, item)
                 }

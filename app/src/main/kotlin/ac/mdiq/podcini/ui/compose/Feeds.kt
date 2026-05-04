@@ -142,23 +142,10 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                                     it.comment += fullDateTimeString() + "\nReason to remove:\n" + textState.text
                                     it.cancelDate = nowInMillis()
                                 }
-                            } else {
-                                // TODO: f.episodes returns nothing, and this step now is not really needed
-//                                val episodes = f.episodes
-//                                for (e in episodes) {
-//                                    val sLog = SubscriptionLog(e.id, e.title ?: "", e.downloadUrl ?: "", e.link ?: "", SubscriptionLog.Type.Media.name)
-//                                    upsert(sLog) {
-//                                        it.rating = e.rating
-//                                        it.comment = if (e.comment.isBlank()) "" else (e.comment + "\n")
-//                                        it.comment += fullDateTimeString() + "\nReason to remove:\n" + textState.text
-//                                        it.cancelDate = nowInMillis()
-//                                    }
-//                                }
                             }
                             val worthyEps = f.worthyEpisodes
                             deleteFeed(f.id, saveImportant && worthyEps.isNotEmpty())
                         }
-//                        EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, feeds.map { it.id }))
                     } catch (e: Throwable) { Logs("RemoveFeedDialog", e) }
                 }
                 onDismissRequest()

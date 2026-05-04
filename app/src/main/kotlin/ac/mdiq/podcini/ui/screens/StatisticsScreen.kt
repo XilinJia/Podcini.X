@@ -19,6 +19,7 @@ import ac.mdiq.podcini.ui.compose.buttonColor
 import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.LogeFor
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.format
 import ac.mdiq.podcini.utils.formatMMDDYY
@@ -707,7 +708,7 @@ private fun getStatistics(episodes: List<Episode>, feedId: Long = 0L, forDL: Boo
                 if (e.lastPlayedTime > 0L && e.lastPlayedTime < result.oldestDate) result.oldestDate = e.lastPlayedTime
                 if (e.playStateSetTime > 0L && e.playStateSetTime < result.oldestDate) result.oldestDate = e.playStateSetTime
                 if (e.duration > 0) fStat.item.durationTotal += e.duration
-                else Loge(TAG, "episode duration abnormal: ${e.duration} state: ${e.playState} ${e.title}")
+                else LogeFor(TAG, e, "episode duration abnormal: ${e.duration} state: ${e.playState}")
                 Logd(TAG, "getStatistics e.playState: ${e.playState} e.timeSpent: ${e.timeSpent} ${e.playedDuration} ${e.title}")
                 if (e.playState == EpisodeState.PLAYED.code) {
                     fStat.item.episodesPlayed++
@@ -741,7 +742,7 @@ private fun getStatistics(episodes: List<Episode>, feedId: Long = 0L, forDL: Boo
                 if (e.downloaded) {
                     fStat.item.episodesDownloadCount += 1
                     if (e.size > 0) fStat.item.totalDownloadSize += e.size
-                    else if (e.size < 0) Loge(TAG, "Episode media file has negative size: ${e.size} ${e.title}")
+                    else if (e.size < 0) LogeFor(TAG, e, "Episode media file has negative size: ${e.size}")
                 }
             }
         }

@@ -1,0 +1,6 @@
+* in Facets, enhanced "Clear new" operation
+* when erase episodes, ensure to remove them from queue
+* fixed DB write error that could cause failure in enqueue/download new episodes
+* avoided exception in Queues screen when getting Mediabrowser
+* amended text in Queues setting: Auto download items in queue
+* added some feed/episode specific logging

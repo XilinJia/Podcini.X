@@ -531,7 +531,7 @@ fun FacetsScreen(modeName: String = "") {
                         if (episodes.isNotEmpty() && facetsMode == QuickAccess.New) DropdownMenuItem(text = { Text(stringResource(R.string.clear_new_label)) }, onClick = {
                             vm.progressing = true
                             runOnIOScope {
-                                for (e in episodes) if (e.playState == EpisodeState.NEW.code) upsert(e) { it.setPlayState(EpisodeState.UNPLAYED) }
+                                realm.write { for (e in episodes) if (e.playState == EpisodeState.NEW.code) findLatest(e)?.let { it.setPlayState(EpisodeState.UNPLAYED) } }
                                 Logt(TAG, "New items cleared")
                                 withContext(Dispatchers.Main) { vm.progressing = false }
                                 resetSwipes()
