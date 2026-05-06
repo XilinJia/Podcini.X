@@ -67,6 +67,7 @@ class AppPrefs: RealmObject {
     var useRingTone: Boolean = false
     var ringToneName: String? = null
     var ringToneUriString: String? = null
+    var disableRingToneOnMusic: Boolean = false
 
     var streamOverDownload: Boolean = false
     var lowQualityOnMobile: Boolean = false
@@ -154,6 +155,7 @@ class AppPrefs: RealmObject {
         if (autoDeleteLocal != other.autoDeleteLocal) return false
         if (fallbackSpeed != other.fallbackSpeed) return false
         if (useRingTone != other.useRingTone) return false
+        if (disableRingToneOnMusic != other.disableRingToneOnMusic) return false
         if (streamOverDownload != other.streamOverDownload) return false
         if (lowQualityOnMobile != other.lowQualityOnMobile) return false
         if (speedforwardSpeed != other.speedforwardSpeed) return false
@@ -229,6 +231,7 @@ class AppPrefs: RealmObject {
         result = 31 * result + autoDeleteLocal.hashCode()
         result = 31 * result + fallbackSpeed.hashCode()
         result = 31 * result + useRingTone.hashCode()
+        result = 31 * result + disableRingToneOnMusic.hashCode()
         result = 31 * result + streamOverDownload.hashCode()
         result = 31 * result + lowQualityOnMobile.hashCode()
         result = 31 * result + speedforwardSpeed.hashCode()

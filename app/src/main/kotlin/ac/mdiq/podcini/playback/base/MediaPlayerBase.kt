@@ -39,6 +39,7 @@ import ac.mdiq.podcini.storage.model.CurrentState.Companion.LONG_MINUS_1
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.LONG_PLUS_1
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.Feed.AudioType
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.specs.EpisodeState
@@ -722,7 +723,8 @@ abstract class MediaPlayerBase {
                     curSpeed = SPEED_USE_GLOBAL
                     cancelPositionSaver()
                     Logd(TAG, "endPlayback useRingTone: ${appPrefs.useRingTone} ringToneUriString: ${appPrefs.ringToneUriString}")
-                    if (appPrefs.useRingTone && !appPrefs.ringToneUriString.isNullOrBlank()) playChime()
+                    if (appPrefs.useRingTone && !appPrefs.ringToneUriString.isNullOrBlank() && (nextMedia.feed?.audioType !=  AudioType.MUSIC.code || !appPrefs.disableRingToneOnMusic)) playChime()
+
                     val needStreaming = (nextMedia.feed?.isLocalFeed != true && nextMedia.fileUrl.isNullOrBlank())
                     if (needStreaming) {
                         if (!isStreamingCapable(nextMedia)) {

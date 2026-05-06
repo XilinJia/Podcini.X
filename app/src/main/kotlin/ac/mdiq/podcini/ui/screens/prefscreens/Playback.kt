@@ -156,6 +156,9 @@ fun PlaybackScreen() {
                     }
                     ringtonePickerLauncher.launch(intent)
                 }
+                TitleSummarySwitchRow(R.string.disable_ring_tone_on_music, R.string.disable_ring_tone_on_music_sum, appPrefs.disableRingToneOnMusic) {
+                    upsertBlk(appPrefs) { p-> p.disableRingToneOnMusic = it }
+                }
             }
         }
 

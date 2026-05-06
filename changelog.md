@@ -1,3 +1,8 @@
+# 11.1.6
+
+* disabled floating point audio sampling, not reliable for many devices, fixed distortion on flac files
+* in Settings->Playback, added "Disable ring tone on music" to disable ringtone if next episode is music (as defined in the feed settings)
+
 # 11.1.5
 
 * in Queues screen, ensure to update queues names when any is changed

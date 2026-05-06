@@ -1031,7 +1031,8 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         const val BUFFERING_STARTED: Int = -1
         const val BUFFERING_ENDED: Int = -2
 
-        private var enableFloat = Build.VERSION.SDK_INT >= 29
+//        private var enableFloat = Build.VERSION.SDK_INT >= 29
+        private var enableFloat = false     // float is not well handled in Android devices
 
         var simpleCache: SimpleCache? = null
 
