@@ -1723,16 +1723,14 @@ fun LibraryScreen() {
         @Composable
         fun EditVolume(volume: Volume, onDismissRequest: () -> Unit) {
             CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
-                
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
                     var name by remember { mutableStateOf(volume.name) }
                     TextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.rename)) })
                     var parent by remember { mutableStateOf<Volume?>(null) }
-                    var selectedOption by remember {mutableStateOf("")}
                     val custom = "Custom"
                     val none = "None"
-                    var selected by remember {mutableStateOf(if (selectedOption == none) none else custom)}
+                    var selected by remember { mutableStateOf(none) }
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = none == selected,
                             onCheckedChange = {
@@ -1741,13 +1739,15 @@ fun LibraryScreen() {
                             })
                         Text(none)
                         Spacer(Modifier.width(50.dp))
-                        Checkbox(checked = custom == selected, onCheckedChange = { selected = custom })
-                        Text(custom)
+                        if (volumes.size > 1) {
+                            Checkbox(checked = custom == selected, onCheckedChange = { selected = custom })
+                            Text(custom)
+                        }
                     }
                     if (selected == custom) {
                         Logd(TAG, "volumes: ${volumes.size}")
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                            for (index in volumes.indices) FilterChip(onClick = { parent = volumes[index] }, label = { Text(volumes[index].name) }, selected = parent == volumes[index], border = filterChipBorder(parent == volumes[index]))
+                            for (index in volumes.indices) if (volumes[index].id != volume.id) FilterChip(onClick = { parent = volumes[index] }, label = { Text(volumes[index].name) }, selected = parent == volumes[index], border = filterChipBorder(parent == volumes[index]))
                         }
                     }
                     Row {

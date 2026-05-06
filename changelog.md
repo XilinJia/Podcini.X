@@ -6,6 +6,7 @@
 	* each volume shows direct children count
 	* amended Feed sort algorithm on the right property
 	* ensure proper sort timing after a refresh
+	* amended Edit volume dialog to avoid parent volume possibly being set to self
 	* reset operation text after deleting a volume
 * upped gradle to 9.5.0 and AGP to 9.2.1
 
