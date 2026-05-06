@@ -13,7 +13,6 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.reorderWith
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
 import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.showStackTrace
 import io.github.xilinjia.krdb.ext.query
 import io.github.xilinjia.krdb.ext.realmListOf
 import io.github.xilinjia.krdb.types.RealmList
@@ -89,7 +88,7 @@ class PlayQueue : RealmObject {
     var binLimit: Int = 0
 
     @Ignore
-    var normalFeeds: List<Feed> = listOf()
+    val normalFeeds: List<Feed>
         get() = allFeeds.filter { it.queueId == id && it.inNormalVolume }
 
     fun contains(episode: Episode): Boolean = realm.query(QueueEntry::class).query("queueId == $id AND episodeId == ${episode.id}").count().find() > 0

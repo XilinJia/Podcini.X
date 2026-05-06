@@ -223,7 +223,7 @@ suspend fun smartRemoveFromQueues(item_: Episode, queues_: List<PlayQueue> = lis
     }
 }
 
-fun removeFromAllQueues(episodes: Collection<Episode>, playState: EpisodeState? = null) {
+suspend fun removeFromAllQueues(episodes: Collection<Episode>, playState: EpisodeState? = null) {
     Logd(TAG, "removeFromAllQueuesSync called ")
     for (q in queuesLive) {
         if (q.id != actQueue.id) removeFromQueue(q, episodes, playState)
@@ -234,7 +234,7 @@ fun removeFromAllQueues(episodes: Collection<Episode>, playState: EpisodeState? 
     if (actQueue.size() > 0) removeFromQueue(actQueue, episodes, playState)
 }
 
-internal fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, playState: EpisodeState? = null) {
+internal suspend fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, playState: EpisodeState? = null) {
     Logd(TAG, "removeFromQueue called ${queue_?.name}")
     val queue = queue_ ?: actQueue
     if (queue.size() == 0) {
@@ -243,7 +243,7 @@ internal fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, 
     }
     if (episodes.isEmpty()) return
     val removeFromActQueue = mutableListOf<Episode>()
-    realm.writeBlocking {
+    realm.write {
         val qes = query(QueueEntry::class).query("queueId == $0 AND episodeId IN $1", queue.id, episodes.map { it.id }).find()
         if (qes.isNotEmpty()) {
             findLatest(queue)?.let {
@@ -257,8 +257,7 @@ internal fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, 
             }
             for (e in episodes) {
                 if (qes.indexOfFirst { it.episodeId == e.id } >= 0) {
-                    if (playState != null && e.playState == EpisodeState.QUEUE.code)
-                        query(Episode::class).query("id == ${e.id}").first().find()?.let { it.setPlayState(playState) }
+                    if (playState != null && e.playState == EpisodeState.QUEUE.code) query(Episode::class).query("id == ${e.id}").first().find()?.setPlayState(playState)
                     if (queue.id == actQueue.id) removeFromActQueue.add(e)
                 }
             }

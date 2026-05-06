@@ -108,6 +108,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -382,15 +383,15 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     val density = LocalDensity.current
     val maxHeaderPx = with(density) { maxHeaderHeight.toPx() }
     val minHeaderPx = with(density) { 0.dp.toPx() }
-    val headerHeightPx = remember { mutableStateOf(maxHeaderPx) }
-    val currentHeaderDp = with(density) { headerHeightPx.value.toDp() }
+    val headerHeightPx = remember { mutableFloatStateOf(with(density) { maxHeaderHeight.toPx() }) }
+    val currentHeaderDp = with(density) { headerHeightPx.floatValue.toDp() }
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 val delta = available.y
-                val newHeight = headerHeightPx.value + delta
-                headerHeightPx.value = newHeight.coerceIn(minHeaderPx, maxHeaderPx)
-                return if (headerHeightPx.value > minHeaderPx && headerHeightPx.value < maxHeaderPx) Offset(x = 0f, y = delta) else { Offset.Zero }
+                val newHeight = headerHeightPx.floatValue + delta
+                headerHeightPx.floatValue = newHeight.coerceIn(minHeaderPx, maxHeaderPx)
+                return if (headerHeightPx.floatValue > minHeaderPx && headerHeightPx.floatValue < maxHeaderPx) Offset(x = 0f, y = delta) else { Offset.Zero }
             }
         }
     }
@@ -662,7 +663,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     else Scaffold(topBar = { TopHeader() }) { innerPadding ->
         if (screenMode in listOf(FeedScreenMode.List, FeedScreenMode.History)) {
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface).nestedScroll(nestedScrollConnection)) {
-                var scrollToOnStart by remember(episodes.size, theatres[0].mPlayer?.curEpisode?.id, theatres[1].mPlayer?.curEpisode?.id, vm.cameBack, screenMode) { mutableIntStateOf(
+                val scrollToOnStart = remember(episodes.size, theatres[0].mPlayer?.curEpisode?.id, theatres[1].mPlayer?.curEpisode?.id, vm.cameBack, screenMode) {
                     when {
                         screenMode == FeedScreenMode.History || screenMode == FeedScreenMode.Info -> -1
                         vm.cameBack -> -1
@@ -670,7 +671,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         theatres[1].mPlayer?.curEpisode?.feedId == feedId -> episodes.indexOfFirst { it.id == theatres[1].mPlayer?.curEpisode?.id }
                         else -> -1
                     }
-                ) }
+                }
 //                Logd(TAG, "feed?.prefActionType: ${feed?.prefActionType}")
                 val actionButtonName = remember(feed?.prefActionType, feed?.downloadUrl) {
                     when {

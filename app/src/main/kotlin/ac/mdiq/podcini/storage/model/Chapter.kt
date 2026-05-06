@@ -18,12 +18,9 @@ class Chapter : EmbeddedRealmObject {
      */
     var chapterId: String? = null
 
-    constructor() {
-//        id = newId()
-    }
+    constructor() {}
 
     constructor(start: Long, title: String?, link: String?, imageUrl: String?) {
-//        id = newId()
         this.start = start
         this.title = title
         this.link = link

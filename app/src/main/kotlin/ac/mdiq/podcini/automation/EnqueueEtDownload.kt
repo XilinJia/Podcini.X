@@ -112,7 +112,7 @@ class AutoEnqueueAlgorithm {
     }
 }
 
-private fun assembleCandidates(feeds_: List<Feed>?, candidates: MutableSet<Episode>, toReplace: MutableSet<Episode>, noRefreshing: Boolean, dl: Boolean = true) {
+private suspend fun assembleCandidates(feeds_: List<Feed>?, candidates: MutableSet<Episode>, toReplace: MutableSet<Episode>, noRefreshing: Boolean, dl: Boolean = true) {
     val NM = 3
     val feeds = (feeds_ ?: allFeeds).filter { it.inNormalVolume }
     val eIdsAllQueues = realm.query(QueueEntry::class).query("queueId != $VIRTUAL_QUEUE_ID").find().map { it.episodeId }.toSet()
@@ -240,7 +240,10 @@ private fun assembleCandidates(feeds_: List<Feed>?, candidates: MutableSet<Episo
                     val toAdd = eInQ.filter { it.id !in eIdsAllQueues }
                     if (toAdd.isNotEmpty()) addToAssQueue(toAdd)
                 }
-                realm.write {
+            }
+
+            realm.write {
+                if (!noRefreshing) {
                     if (f.autoDownloadFilter?.markExcludedPlayed == true) {
                         val qStr = f.autoDownloadFilter!!.queryExcludeString()
                         if (qStr.isNotBlank()) {
@@ -251,13 +254,11 @@ private fun assembleCandidates(feeds_: List<Feed>?, candidates: MutableSet<Episo
                             }
                         }
                     }
-                    if (!noRefreshing) {
-                        while (true) {
-                            val episodesNew = query(Episode::class, "feedId == ${f.id} AND playState == ${EpisodeState.NEW.code} LIMIT(20)").find()
-                            if (episodesNew.isEmpty()) break
-                            Logd(TAG, "run episodesNew: ${episodesNew.size}")
-                            episodesNew.forEach { e-> e.setPlayState(EpisodeState.UNPLAYED) }
-                        }
+                    while (true) {
+                        val episodesNew = query(Episode::class, "feedId == ${f.id} AND playState == ${EpisodeState.NEW.code} LIMIT(20)").find()
+                        if (episodesNew.isEmpty()) break
+                        Logd(TAG, "run episodesNew: ${episodesNew.size}")
+                        episodesNew.forEach { e-> e.setPlayState(EpisodeState.UNPLAYED) }
                     }
                 }
             }

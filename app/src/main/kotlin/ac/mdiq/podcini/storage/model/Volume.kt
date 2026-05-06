@@ -35,6 +35,10 @@ class Volume : RealmObject {
     var isLocal: Boolean = false
 
     @Ignore
+    val directChildrenCount: Int
+        get() = (realm.query(Feed::class, "volumeId == $id").count().find() + realm.query(Volume::class, "parentId == $id").count().find()).toInt()
+
+    @Ignore
     val directFeeds: List<Feed>
         get() = getFeedList("volumeId == $id")
 
@@ -158,7 +162,7 @@ suspend fun deleteVolumeTree(volume: Volume) {
     val iterator = realm.query(Volume::class).query("parentId == ${volume.id}").find().iterator()
     while (iterator.hasNext()) deleteVolumeTree(iterator.next())
 
-    realm.writeBlocking {
+    realm.write {
         val v = findLatest(volume)
         if (v != null) delete(v)
     }

@@ -67,6 +67,7 @@ sealed class FlowEvent {
         }
     }
 
+    // TODO: this is only used in SyncService
     data class FeedUpdatingEvent(val isRunning: Boolean) : FlowEvent()
 
     data class MessageEvent(val message: String, val action: ((Context)->Unit)? = null, val actionText: String? = null) : FlowEvent()

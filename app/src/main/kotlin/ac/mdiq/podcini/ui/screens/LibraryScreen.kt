@@ -154,7 +154,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -202,7 +201,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
@@ -221,7 +219,7 @@ class LibraryVM : ViewModel() {
         .distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = subPrefs)
 
     var showAllFeeds by mutableStateOf(feedIdsToUse.isNotEmpty())
-    val isViewGarden by mutableStateOf(feedIdsToUse.isNotEmpty())   // TODO, check
+    var isViewGarden by mutableStateOf(feedIdsToUse.isNotEmpty())   // TODO, check
 
     val subVolumesFlow: StateFlow<List<Volume>> = snapshotFlow { Pair(curVolume?.id, subPrefs.showArchived) }.flatMapLatest {
         val qStrArchive = if (curVolume == null) ( if (subPrefs.showArchived) "" else "AND id >= -1" ) else ""
@@ -246,14 +244,14 @@ class LibraryVM : ViewModel() {
             realm.write {
                 for (f_ in feeds) {
                     val f = findLatest(f_) ?: continue
-                    f.sortInfo = when(subIndex) {
-                        FeedPropertySortIndex.Rating -> Rating.fromCode(f.rating).name
-                        FeedPropertySortIndex.Score -> "${f.score}(${f.scoreCount})"
-                        FeedPropertySortIndex.ScoreCount -> "${f.score}(${f.scoreCount})"
-                        FeedPropertySortIndex.Updated -> formatDateTimeFlex(f.lastUpdateTime)
-                        FeedPropertySortIndex.FullUpdate -> formatDateTimeFlex(f.lastFullUpdateTime)
-                        FeedPropertySortIndex.TotleDuration -> durationStringShort(f.totleDuration, true)
-                        FeedPropertySortIndex.Commented -> formatDateTimeFlex(f.commentTime)
+                    f.sortInfo = when(subIndexOrdinal) {
+                        FeedPropertySortIndex.Rating.ordinal -> Rating.fromCode(f.rating).name
+                        FeedPropertySortIndex.Score.ordinal -> "${f.score}(${f.scoreCount})"
+                        FeedPropertySortIndex.ScoreCount.ordinal -> "${f.score}(${f.scoreCount})"
+                        FeedPropertySortIndex.Updated.ordinal -> formatDateTimeFlex(f.lastUpdateTime)
+                        FeedPropertySortIndex.FullUpdate.ordinal -> formatDateTimeFlex(f.lastFullUpdateTime)
+                        FeedPropertySortIndex.TotleDuration.ordinal -> durationStringShort(f.totleDuration, true)
+                        FeedPropertySortIndex.Commented.ordinal -> formatDateTimeFlex(f.commentTime)
                         else -> formatDateTimeFlex(f.lastUpdateTime)
                     }
                 }
@@ -528,6 +526,13 @@ class LibraryVM : ViewModel() {
         Logd(TAG, "vm init")
         timeIt("$TAG start of vm init")
 
+        viewModelScope.launch {
+            snapshotFlow { feedIdsToUse.size }.distinctUntilChanged().collect {
+                showAllFeeds = feedIdsToUse.isNotEmpty()
+                isViewGarden = feedIdsToUse.isNotEmpty()
+            }
+        }
+
         runOnIOScope {
             subPrefs = upsert(subPrefs) {
                 it.feedsSorted = 0
@@ -575,7 +580,6 @@ fun LibraryScreen() {
         getAppContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 
-    var filterAndSort by remember { mutableStateOf(false) }
     var showFilterDialog by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
     var showNewSynthetic by remember { mutableStateOf(false) }
@@ -742,7 +746,7 @@ fun LibraryScreen() {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer", modifier = Modifier.padding(end = 10.dp).clickable { drawerController?.open() })
             if (feedOperationText.isNotEmpty()) Text(feedOperationText, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.clickable {})
             else {
-                var feedCountState by remember(feedList.size, feedCount) { mutableStateOf(feedList.size.toString() + "/" + feedCount.toString()) }
+                var feedCountState by remember(feedList.size, feedCount) { mutableStateOf("${feedList.size}/$feedCount") }
                 Text(feedCountState, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = textColor, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f))
             }
             Spacer(Modifier.weight(1f))
@@ -1535,20 +1539,8 @@ fun LibraryScreen() {
 
         if (showSendCatalogDialog) SendToDevice(onDismiss = { showSendCatalogDialog = false}) { host, port -> sendCatalog(host, port) { showSendCatalogDialog =  false } }
 
-        if (showFilterDialog) {
-            filterAndSort = true
-            FilterDialog(FeedFilter(vm.subPrefs.feedsFilter)) {
-                filterAndSort = false
-                showFilterDialog = false
-            }
-        }
-        if (showSortDialog) {
-            filterAndSort = true
-            SortDialog {
-                filterAndSort = false
-                showSortDialog = false
-            }
-        }
+        if (showFilterDialog) FilterDialog(FeedFilter(vm.subPrefs.feedsFilter)) { showFilterDialog = false }
+        if (showSortDialog) SortDialog { showSortDialog = false }
         if (showNewSynthetic) RenameOrCreateSyntheticFeed { showNewSynthetic = false }
         if (showNewVolume) CreateVolume(parent = vm.curVolume) { showNewVolume = false }
 
@@ -1569,14 +1561,14 @@ fun LibraryScreen() {
                     var selected by remember {mutableStateOf(if (selectedOption == none) none else custom)}
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = none == selected,
-                            onCheckedChange = { isChecked ->
+                            onCheckedChange = {
                                 selected = none
                                 saveSelectedFeeds { it: Feed -> it.volumeId = -1L }
                                 onDismissRequest()
                             })
                         Text(none)
                         Spacer(Modifier.width(50.dp))
-                        Checkbox(checked = custom == selected, onCheckedChange = { isChecked -> selected = custom })
+                        Checkbox(checked = custom == selected, onCheckedChange = { selected = custom })
                         Text(custom)
                     }
                     if (selected == custom) {
@@ -1605,7 +1597,7 @@ fun LibraryScreen() {
                     var selected by remember {mutableStateOf(if (selectedOption == none) none else custom)}
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = none == selected,
-                            onCheckedChange = { isChecked ->
+                            onCheckedChange = {
                                 selected = none
                                 saveSelectedFeeds { it: Feed ->
                                     it.queue = null
@@ -1616,7 +1608,7 @@ fun LibraryScreen() {
                             })
                         Text(none)
                         Spacer(Modifier.width(50.dp))
-                        Checkbox(checked = custom == selected, onCheckedChange = { isChecked -> selected = custom })
+                        Checkbox(checked = custom == selected, onCheckedChange = { selected = custom })
                         Text(custom)
                     }
                     if (selected == custom) {
@@ -1679,7 +1671,7 @@ fun LibraryScreen() {
                                 runOnIOScope {
                                     feedOperationText = "Processing"
                                     deleteVolumeTree(volumeToOperate!!)
-                                    feedOperationText = "s"
+                                    feedOperationText = ""
                                 }
                                 commonConfirm = null
                             },
@@ -1743,13 +1735,13 @@ fun LibraryScreen() {
                     var selected by remember {mutableStateOf(if (selectedOption == none) none else custom)}
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = none == selected,
-                            onCheckedChange = { isChecked ->
+                            onCheckedChange = {
                                 selected = none
                                 parent = null
                             })
                         Text(none)
                         Spacer(Modifier.width(50.dp))
-                        Checkbox(checked = custom == selected, onCheckedChange = { isChecked -> selected = custom })
+                        Checkbox(checked = custom == selected, onCheckedChange = { selected = custom })
                         Text(custom)
                     }
                     if (selected == custom) {
@@ -1807,7 +1799,8 @@ fun LibraryScreen() {
                                     volumeToOperate = volume
                                 })) {
                             Icon(imageVector = ImageVector.vectorResource(R.drawable.rounded_books_movies_and_music_24), tint = buttonColor, contentDescription = null, modifier = Modifier.fillMaxWidth())
-                            Text(volume.name, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
+                            val childrenCount = remember(volume.id) { volume.directChildrenCount }
+                            Text("${volume.name}: $childrenCount", color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                     items(feedList, key = { it.id}) { feed ->
@@ -1872,7 +1865,6 @@ fun LibraryScreen() {
                 }
             } else {
                 val listState = rememberLazyListState()
-                var restored by remember { mutableStateOf(false) }
                 DisposableEffect(LocalLifecycleOwner.current) {
                     onDispose {
                         val index = listState.firstVisibleItemIndex
@@ -1886,32 +1878,6 @@ fun LibraryScreen() {
                         }
                     }
                 }
-
-                //                val currentEntry = navController.navController.currentBackStackEntryAsState().value
-                //                val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
-                //                LaunchedEffect(feeds.size) {
-                //                    Logd(TAG, "LaunchedEffect(feeds.size) cameBack: $cameBack")
-                //                    if (!restored && feeds.size > 5) {
-                //                        if (!cameBack) {
-                //                            scope.launch {
-                //                                val (index, offset) = Pair(vm.subPrefs.positionIndex, vm.subPrefs.positionOffset)
-                //                                val safeIndex = index.coerceIn(0, feeds.size - 1)
-                //                                val safeOffset = if (safeIndex == index) offset else 0
-                //                                listState.scrollToItem(safeIndex, safeOffset)
-                ////                                currentEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
-                //                            }
-                //                        }
-                //                        currentEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
-                ////                        else scope.launch { listState.scrollToItem(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) }
-                //                        restored = true
-                //                    }
-                //                }
-                //                LaunchedEffect(filterAndSort) {
-                //                    Logd(TAG, "LaunchedEffect(filterSorted) $filterAndSort")
-                //                    if (feeds.isNotEmpty() && filterAndSort) scope.launch { listState.scrollToItem(0) }
-                //                    filterAndSort = false
-                //                }
-
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(start = 5.dp, end = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (feedIdsToUse.isEmpty() && !vm.showAllFeeds && volumes.isNotEmpty()) items(volumes, key = { v -> v.id}) { volume ->
 //                        Logd(TAG, "Volume: ${volume.name} ${volume.id}")
@@ -1923,7 +1889,8 @@ fun LibraryScreen() {
                                 volumeToOperate = volume
                             })) {
                             Icon(imageVector = ImageVector.vectorResource(R.drawable.rounded_books_movies_and_music_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(50.dp).height(50.dp))
-                            Text(volume.name, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.weight(1f).fillMaxHeight().wrapContentHeight(Alignment.CenterVertically))
+                            val childrenCount = remember(volume.id) { volume.directChildrenCount }
+                            Text("${volume.name}: $childrenCount", color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.weight(1f).fillMaxHeight().wrapContentHeight(Alignment.CenterVertically))
                         }
                     }
                     items(feedList, key = { feed -> feed.id}) { feed_ ->

@@ -579,23 +579,16 @@ class Feed : RealmObject {
         if (autoDLPolicyCode != other.autoDLPolicyCode) return false
         if (autoDLPolicyReplace != other.autoDLPolicyReplace) return false
         if (identifier != other.identifier) return false
-//        if (fileUrl != other.fileUrl) return false
-//        if (downloadUrl != other.downloadUrl) return false
         if (eigenTitle != other.eigenTitle) return false
         if (customTitle != other.customTitle) return false
         if (link != other.link) return false
-//        if (description != other.description) return false
         if (langSet.size != other.langSet.size) return false
         if (author != other.author) return false
-//        if (imageUrl != other.imageUrl) return false
-//        if (episodes != other.episodes) return false
         if (type != other.type) return false
         if (prefActionType != other.prefActionType) return false
         if (nextPageLink != other.nextPageLink) return false
         if (lastUpdate != other.lastUpdate) return false
         if (comment != other.comment) return false
-//        if (paymentLinkList != other.paymentLinkList) return false
-//        if (payment_link != other.payment_link) return false
         if (filterString != other.filterString) return false
         if (titleFilterText != other.titleFilterText) return false
         if (filterAndOr != other.filterAndOr) return false
@@ -664,23 +657,16 @@ class Feed : RealmObject {
         result = 31 * result + autoDLPolicyCode
         result = 31 * result + autoDLPolicyReplace.hashCode()
         result = 31 * result + (identifier?.hashCode() ?: 0)
-//        result = 31 * result + (fileUrl?.hashCode() ?: 0)
-//        result = 31 * result + (downloadUrl?.hashCode() ?: 0)
         result = 31 * result + (eigenTitle?.hashCode() ?: 0)
         result = 31 * result + (customTitle?.hashCode() ?: 0)
         result = 31 * result + (link?.hashCode() ?: 0)
-//        result = 31 * result + (description?.hashCode() ?: 0)
         result = 31 * result + langSet.size
         result = 31 * result + (author?.hashCode() ?: 0)
-//        result = 31 * result + (imageUrl?.hashCode() ?: 0)
-//        result = 31 * result + episodes.hashCode()
         result = 31 * result + (type?.hashCode() ?: 0)
         result = 31 * result + (prefActionType?.hashCode() ?: 0)
         result = 31 * result + (nextPageLink?.hashCode() ?: 0)
         result = 31 * result + (lastUpdate?.hashCode() ?: 0)
         result = 31 * result + comment.hashCode()
-//        result = 31 * result + paymentLinkList.hashCode()
-//        result = 31 * result + (payment_link?.hashCode() ?: 0)
         result = 31 * result + filterString.hashCode()
         result = 31 * result + titleFilterText.hashCode()
         result = 31 * result + filterAndOr.hashCode()
@@ -785,7 +771,6 @@ class Feed : RealmObject {
 @Serializable
 data class FeedDTO(
     val id: Long,
-//    val fileUrl: String? = null,
     val downloadUrl: String? = null,
     val eigenTitle: String? = null,
     val customTitle: String? = null,
@@ -813,8 +798,6 @@ data class FeedDTO(
 
 fun Feed.toDTO() = FeedDTO(
     id = this.id,
-//    volumeId = this.volumeId,
-//    fileUrl = this.fileUrl,
     downloadUrl = this.downloadUrl,
     eigenTitle = this.eigenTitle,
     customTitle = this.customTitle,
@@ -839,8 +822,6 @@ fun FeedDTO.toRealm(): Feed = Feed().apply {
     id = this@toRealm.id
     val feed = getFeed(id) ?: this
     return upsertBlk(feed) {
-//        it.volumeId = this@toRealm.volumeId
-//        if (it.fileUrl == null) it.fileUrl = this@toRealm.fileUrl
         if (it.downloadUrl == null) it.downloadUrl = this@toRealm.downloadUrl
         if (it.eigenTitle == null) it.eigenTitle = this@toRealm.eigenTitle
         it.customTitle = this@toRealm.customTitle

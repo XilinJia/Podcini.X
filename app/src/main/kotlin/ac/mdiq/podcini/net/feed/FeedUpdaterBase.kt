@@ -129,7 +129,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
                 itr.remove()
             }
         }
-        withContext(Dispatchers.Main) { feedOperationText = "" }
+//        withContext(Dispatchers.Main) { feedOperationText = "" }
         return true
     }
 

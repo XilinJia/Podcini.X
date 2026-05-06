@@ -1,0 +1,8 @@
+* in Queues screen, ensure to update queues names when any is changed
+* In Library
+	* fixed Library possibly being locked in view garden mode
+	* each volume shows direct children count
+	* amended Feed sort algorithm on the right property
+	* ensure proper sort timing after a refresh
+	* reset operation text after deleting a volume
+* upped gradle to 9.5.0 and AGP to 9.2.1
