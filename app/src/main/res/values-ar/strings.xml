@@ -874,6 +874,8 @@
     <string name="player_switch_to_audio_only">الصوت فقط</string>
     <string name="use_ring_tone">Use a ring tone</string>
     <string name="use_ring_tone_sum">When enabled, the chosen ring tone is played when starting a new episode in queue.</string>
+    <string name="disable_ring_tone_on_music">Disable ring tone on music</string>
+    <string name="disable_ring_tone_on_music_sum">When set, ring tone is not played before a music episode (as set in the feed).</string>
     <string name="select_ring_tone">Select a ring tone</string>
     <string name="select_ring_tone_sum">The ring tone is played when starting a new episode in queue.</string>
     <!-- proxy settings -->
