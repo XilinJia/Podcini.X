@@ -93,7 +93,7 @@ class SegmentSavingDataSource(private val mPlayer: MediaPlayerBase, private val 
             clipStartByte = (startPositionMs * bitrate / 8 / 1000)
             clipBytesWritten = 0L
             Logd(TAG, "Started recording at byte offset $clipStartByte")
-        } else LogeFor(TAG, mPlayer.curEpisode, "Cannot start recording: tempDir not set or already recording")
+        } else LogeFor(TAG, mPlayer.curEpisode?.id, "Cannot start recording: tempDir not set or already recording")
     }
 
     // Stop recording and return the temp file for processing

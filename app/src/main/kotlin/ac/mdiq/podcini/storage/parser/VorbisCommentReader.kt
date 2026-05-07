@@ -45,7 +45,7 @@ abstract class VorbisCommentReader internal constructor(private val source: Coun
                 }
                 val key = readContentVectorKey(vectorLength)!!.lowercase()
                 val shouldReadValue = handles(key)
-                Logd(TAG, "key=$key, length=$vectorLength, handles=$shouldReadValue")
+//                Logd(TAG, "key=$key, length=$vectorLength, handles=$shouldReadValue")
                 if (shouldReadValue) onContentVectorValue(key, readUtf8String(vectorLength - key.length - 1))
                 else buffered.skip(vectorLength - key.length - 1)
             } catch (e: Exception) { Logs(TAG, e, "readUserComment failed") }
@@ -123,7 +123,7 @@ abstract class VorbisCommentReader internal constructor(private val source: Coun
             findOggPage()
             findCommentHeader()
             val commentHeader = readCommentHeader()
-            Logd(TAG, commentHeader.toString())
+//            Logd(TAG, commentHeader.toString())
             for (i in 0 until commentHeader.userCommentLength) readUserComment()
         } catch (e: Throwable) { Loge(TAG, "Vorbis parser: ${e.message}") }
     }

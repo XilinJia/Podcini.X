@@ -21,6 +21,7 @@ import ac.mdiq.podcini.net.sync.transceive.sendCatalog
 import ac.mdiq.podcini.net.sync.transceive.sendFeed
 import ac.mdiq.podcini.net.utils.NetworkUtils.getLocalIpAddress
 import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.getId
@@ -544,6 +545,45 @@ class LibraryVM : ViewModel() {
                 Logd(TAG, "queuesFlow.collect")
                 queueIds = changes.list.map { it.id }
                 queueNames = changes.list.map { it.name }
+            }
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            snapshotFlow { subPrefs.playStateCodeSet }.distinctUntilChanged().collect {
+                val sb = StringBuilder()
+                subPrefs.playStateCodeSet.forEach {
+                    if (sb.isNotEmpty()) sb.append(" OR ")
+                    sb.append(" playState == $it ")
+                }
+                playStateQueries = sb.toString()
+            }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            snapshotFlow { subPrefs.ratingCodeSet }.distinctUntilChanged().collect {
+                val sb = StringBuilder()
+                subPrefs.ratingCodeSet.forEach {
+                    if (sb.isNotEmpty()) sb.append(" OR ")
+                    sb.append(" rating == $it ")
+                }
+                ratingQueries = sb.toString()
+            }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            snapshotFlow { subPrefs.downlaodedSortIndex }.distinctUntilChanged().collect {
+                downloadedQuery = when (subPrefs.downlaodedSortIndex) {
+                    0 -> " fileUrl != nil "
+                    1 -> " fileUrl == nil "
+                    else -> ""
+                }
+            }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            snapshotFlow { subPrefs.commentedSortIndex }.distinctUntilChanged().collect {
+                commentedQuery = when (subPrefs.commentedSortIndex) {
+                    0 -> " comment != '' "
+                    1 -> " comment == '' "
+                    else -> ""
+                }
             }
         }
 
@@ -1672,6 +1712,7 @@ fun LibraryScreen() {
                                     feedOperationText = "Processing"
                                     deleteVolumeTree(volumeToOperate!!)
                                     feedOperationText = ""
+                                    onDismissRequest()
                                 }
                                 commonConfirm = null
                             },
@@ -1697,7 +1738,7 @@ fun LibraryScreen() {
                 }
             }
         }
-        if (volumeToOperate != null) VolumeOptionsMenu { volumeToOperate = null}
+        if (volumeToOperate != null) VolumeOptionsMenu { volumeToOperate = null }
 
         if (showToDeviceDialog) SendToDevice(onDismiss = { showToDeviceDialog = false }) { host, port ->
             runOnIOScope {

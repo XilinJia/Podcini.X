@@ -1,3 +1,14 @@
+# 11.1.7
+
+* amended header handling when importing local feed, separating off/flac from mp3
+* fixed failure importing single local feed
+* fixed failure importing local feed when error occurred retrieving ogg meta data
+* when identifying local feed with title, also ensure on same volume
+* fixed possible DB access error in logging
+* in Library
+	* initialized sort query strings
+	* Volume ops dialog is closed when the volume is removed
+
 # 11.1.6
 
 * disabled floating point audio sampling, not reliable for many devices, fixed distortion on flac files

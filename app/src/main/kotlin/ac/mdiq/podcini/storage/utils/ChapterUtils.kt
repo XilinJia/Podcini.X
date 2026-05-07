@@ -285,7 +285,7 @@ class VorbisCommentChapterReader(source: CountingSource) : VorbisCommentReader(s
 
     @Throws(VorbisCommentReaderException::class)
     public override fun onContentVectorValue(key: String?, value: String?) {
-        Logd(TAG, "Key: $key, value: $value")
+//        Logd(TAG, "Key: $key, value: $value")
         fun getChapterById(id: Long): Chapter? {
             for (c in chapters) if (("" + id) == c.chapterId) return c
             return null
@@ -362,14 +362,14 @@ suspend fun loadChaptersFromMedia(episode: Episode): List<Chapter> {
 
     suspend fun openSource(cb: suspend (BufferedSource, Long?)->Unit) {
         if (!fileUrl.isNullOrBlank()) {
-            Logd(TAG, "openSource fileUrl: $fileUrl")
+//            Logd(TAG, "openSource fileUrl: $fileUrl")
             val file = fileUrl.toUF()
             if (!file.exists()) {
                 Loge(TAG, "Failed loading chapters for ${episode.title}: file doesn't exist: $fileUrl")
                 return
             }
             val size = file.size()
-            Logd(TAG, "openSource size: $size")
+//            Logd(TAG, "openSource size: $size")
             if (size == null || size > 0) cb(file.source().buffer(), size)
             else Loge(TAG, "Failed loading chapters for ${episode.title}: file is empty: $fileUrl")
         } else {
@@ -383,7 +383,7 @@ suspend fun loadChaptersFromMedia(episode: Episode): List<Chapter> {
                 cb(file.source().buffer(), size)
             } else {
                 if (streamurl.isNullOrEmpty()) throw Exception("Failed loading chapters for ${episode.title}: stream url is null of empty")
-                Logd(TAG, "openSource open streaming source")
+//                Logd(TAG, "openSource open streaming source")
                 getKtorClient().prepareGet(streamurl) {
                     header("Range", "bytes=0-131072")
                     timeout { requestTimeoutMillis = HttpTimeoutConfig.INFINITE_TIMEOUT_MS }
@@ -499,7 +499,7 @@ suspend fun loadChaptersFromMedia(episode: Episode): List<Chapter> {
                 reader.chapters.toList()
             }
             else -> {
-                LogtFor(TAG, episode, "failed to get chapters: file format $format currently not handled")
+                LogtFor(TAG, episode.id, "failed to get chapters: file format $format currently not handled")
                 emptyList()
             }
         }

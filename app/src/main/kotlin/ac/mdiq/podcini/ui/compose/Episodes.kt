@@ -212,7 +212,7 @@ fun ShareDialog(item: Episode, onDismissRequest: () -> Unit) {
                     1 -> shareFeedItemLinkWithDownloadLink(ctx, item, isChecked)
                     2 -> {
                         if (!item.downloadUrl.isNullOrEmpty()) shareLink(ctx, item.downloadUrl!!)
-                        else LogtFor(TAG, item, "Episode download url is not valid, ignored.")
+                        else LogtFor(TAG, item.id, "Episode download url is not valid, ignored.")
                     }
                     3 -> shareFeedItemFile(ctx, item)
                 }

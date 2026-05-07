@@ -12,7 +12,6 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.parser.Id3MetadataReader
 import ac.mdiq.podcini.storage.parser.VorbisCommentMetadataReader
-import ac.mdiq.podcini.storage.parser.VorbisCommentReaderException
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
@@ -23,7 +22,9 @@ import ac.mdiq.podcini.storage.utils.getMimeType
 import ac.mdiq.podcini.storage.utils.parseDate
 import ac.mdiq.podcini.storage.utils.persistedTrees
 import ac.mdiq.podcini.storage.utils.toAndroidUri
+import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.storage.utils.toUF
+import ac.mdiq.podcini.utils.LogFor
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
@@ -33,8 +34,9 @@ import android.content.Intent
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.DocumentsContract
-import androidx.core.net.toUri
 import kotlinx.io.IOException
+import okio.ByteString.Companion.encodeUtf8
+import okio.buffer
 import kotlin.collections.contains
 import kotlin.text.toIntOrNull
 import kotlin.use
@@ -60,7 +62,7 @@ fun addLocalFolder(uri: Uri) {
                 val filesInThisDir = content.filter { !it.isDirectory() }
 
                 if (filesInThisDir.isNotEmpty()) {
-                    Logd(TAG,"Found files in folder: ${directory.toAndroidUri()}")
+                    Logd(TAG,"addLocalFolder Found files in folder: ${directory.toAndroidUri()}")
                     val uri = directory.toAndroidUri()
                     val title = directory.name
                     val dirFeed = Feed(Feed.PREFIX_LOCAL_FOLDER + uri.toString(), null, title)
@@ -74,7 +76,7 @@ fun addLocalFolder(uri: Uri) {
                         dirFeed.author = context.getString(R.string.local_folder)
                         addNewFeed(dirFeed)
                         feeds.add(dirFeed)
-                    } else Logt(TAG, "local feed already exists: $title $uri")
+                    } else Logt(TAG, "addLocalFolder local feed already exists: $title $uri")
                 }
 
                 val subDirsInThisDir = content.filter { it.isDirectory() }
@@ -89,9 +91,8 @@ fun addLocalFolder(uri: Uri) {
                         v.parentId = parentId
                         v.isLocal = true
                         volumes.add(v)
-                        Logd(TAG, "Created volume: ${v.name} $parentId")
+                        Logd(TAG, "addLocalFolder Created volume: ${v.name} $parentId")
                     } else v = realm.copyFromRealm(vExist)
-
                     for (subDir in subDirsInThisDir) traverseDirectory(subDir, v.id)
                 }
             }
@@ -99,20 +100,16 @@ fun addLocalFolder(uri: Uri) {
             traverseDirectory(file)
             if (volumes.isNotEmpty()) realm.write { for (v in volumes) copyToRealm(v) }
             if (feeds.isNotEmpty()) gearbox.feedUpdater(feeds, doItAnyway = true).startRefresh()
-            Logt(TAG, "Imported ${feeds.size} local feeds in ${volumes.size} volumes")
+            Logt(TAG, "addLocalFolder Imported ${feeds.size} local feeds in ${volumes.size} volumes")
         } catch (e: Throwable) { Logs(TAG, e, e.localizedMessage?: "No messaage") }
     }
 }
 
 @OptIn(ExperimentalUuidApi::class)
 suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) {
-    /**
-     * Android's DocumentFile is slow because every single method call queries the ContentResolver.
-     * This queries the ContentResolver a single time with all the information.
-     */
-    data class FastDocumentFile(val name: String, val type: String, val uri: Uri, val length: Long, val lastModified: Long)
+    data class DocFile(val name: String, val type: String, val uri: Uri, val length: Long, val lastModified: Long)
 
-    fun getImageUrl(files: List<FastDocumentFile>, folderUri: Uri): String {
+    fun getImageUrl(files: List<DocFile>, folderUri: Uri): String {
         val PREFERRED_FEED_IMAGE_FILENAMES: Array<String> = arrayOf("folder.jpg", "Folder.jpg", "folder.png", "Folder.png")
         for (iconLocation in PREFERRED_FEED_IMAGE_FILENAMES) {
             for (file in files) if (iconLocation == file.name) return file.uri.toString()
@@ -123,7 +120,7 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
         }
         return Feed.PREFIX_GENERATIVE_COVER + folderUri
     }
-    fun createEpisode(feed: Feed, file: FastDocumentFile): Episode {
+    fun createEpisode(feed: Feed, file: DocFile): Episode {
         val item = Episode(0L, file.name, Uuid.random().toString(), file.name, file.lastModified, EpisodeState.UNPLAYED.code, feed)
         item.isAutoDownloadEnabled = false
         val size = file.length
@@ -139,74 +136,107 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
         }
         // Did not find existing item. Scan metadata.
         try {
+            val format = file.uri.toUF().source().buffer().peek().use { source ->
+                val header4 = source.readByteString(4)
+                val header8 = if (source.request(8)) source.readByteString(8) else header4
+                when {
+                    header4.startsWith("ID3".encodeUtf8()) -> "MP3"
+                    header4.startsWith("OggS".encodeUtf8()) -> "OGG"
+                    header4.startsWith("fLaC".encodeUtf8()) -> "FLAC"
+                    header8.substring(4, 8).string(Charsets.UTF_8) == "ftyp" -> "M4A"
+                    header4.startsWith("RIFF".encodeUtf8()) -> "WAV"
+                    else -> "UNKNOWN"
+                }
+            }
+            CountingSource(file.uri.toUF().source()).use { source ->
+                when(format) {
+                    "MP3" -> {
+                        val reader = Id3MetadataReader(source)
+                        reader.readSource()
+                        item.setDescriptionIfLonger(reader.comment)
+                    }
+                    "OGG", "FLAC" -> {
+                        val reader = VorbisCommentMetadataReader(source)
+                        reader.readSource()
+                        item.setDescriptionIfLonger(reader.description)
+                    }
+                    else -> Logt(TAG, "Unhandled file type: $format ${file.uri}")
+                }
+            }
             MediaMetadataRetrieverCompat().use { mmr ->
                 val NULL_DATE_PLACEHOLDER = "19040101T000000.000Z"
-                mmr.setDataSource(getAppContext(), file.uri)
-                val dateStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)
-                if (!dateStr.isNullOrEmpty() && dateStr != NULL_DATE_PLACEHOLDER) {
-                    try {
-                        item.pubDate = parsePatternTimestampToMillis("yyyyMMdd'T'HHmmss", dateStr)?: 0L
-                    } catch (e: Throwable) {
-                        Logs(TAG, e, "loadMetadata failed")
-                        val date = parseDate(dateStr)
-                        if (date != null) item.pubDate = date.toEpochMilliseconds()
-                    }
-                }
-                val title = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
-                if (!title.isNullOrEmpty()) item.title = title
-                val durationStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                if (!durationStr.isNullOrBlank()) item.duration = durationStr.toIntOrNull() ?: 30000
-                item.hasEmbeddedPicture = (mmr.embeddedPicture != null)
-            }
-            try {
-                val source = CountingSource(file.uri.toUF().source())
-                val reader = Id3MetadataReader(source)
-                reader.readSource()
-                item.setDescriptionIfLonger(reader.comment)
-            } catch (e: Throwable) {
-                Logs(TAG, e, "Unable to parse ID3 of " + file.uri + ": ")
                 try {
-                    val source = CountingSource(file.uri.toUF().source())
-                    val reader = VorbisCommentMetadataReader(source)
-                    reader.readSource()
-                    item.setDescriptionIfLonger(reader.description)
-                } catch (e2: IOException) { Logs(TAG, e2, "Unable to parse vorbis comments of " + file.uri + ": ")
-                } catch (e2: VorbisCommentReaderException) { Logs(TAG, e2, "Unable to parse vorbis comments of " + file.uri + ": ") }
+                    getAppContext().contentResolver.openFileDescriptor(file.uri, "r")?.use { pfd ->
+                        mmr.setDataSource(pfd.fileDescriptor)
+                        val dateStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)
+                        if (!dateStr.isNullOrEmpty() && dateStr != NULL_DATE_PLACEHOLDER) {
+                            try {
+                                item.pubDate = parsePatternTimestampToMillis("yyyyMMdd'T'HHmmss", dateStr) ?: 0L
+                            } catch (e: Throwable) {
+                                Logs(TAG, e, "loadMetadata failed")
+                                val date = parseDate(dateStr)
+                                if (date != null) item.pubDate = date.toEpochMilliseconds()
+                            }
+                        }
+                        val title = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+                        if (!title.isNullOrEmpty()) item.title = title
+                        val durationStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                        if (!durationStr.isNullOrBlank()) item.duration = durationStr.toIntOrNull() ?: 30000
+                        item.hasEmbeddedPicture = (mmr.embeddedPicture != null)
+                    }
+                } catch (e: Throwable) { Logs(TAG, "MediaMetadataRetrieverCompat failure: ${e.message}")}
             }
         } catch (e: Exception) {
-            Logs(TAG, e, "loadMetadata failed")
+            Logs(TAG, e, "loadMetadata failed: ${file.uri}")
             item.setDescriptionIfLonger(e.message) }
         return item
     }
-    fun listFastFiles(folderUri: Uri?): List<FastDocumentFile> {
-        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(folderUri, DocumentsContract.getDocumentId(folderUri))
-        val cursor = getAppContext().contentResolver.query(childrenUri, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+    val allFiles = mutableListOf<DocFile>()
+    fun traverseAll(uri: Uri, docId: String? = null) {
+        Logd(TAG, "traverseAll uri: $uri docId: $docId")
+        val authority = uri.authority ?: return
+        val treeId = DocumentsContract.getTreeDocumentId(uri)
+        val startDocId = when {
+            docId != null -> docId
+            DocumentsContract.isDocumentUri(getAppContext(), uri) -> DocumentsContract.getDocumentId(uri)
+            else -> treeId
+        }
+        val treeRootUri = DocumentsContract.buildTreeDocumentUri(authority, treeId)
+        val childUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeRootUri, startDocId)
+
+        getAppContext().contentResolver.query(childUri, arrayOf(
+            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
             DocumentsContract.Document.COLUMN_DISPLAY_NAME,
             DocumentsContract.Document.COLUMN_SIZE,
             DocumentsContract.Document.COLUMN_LAST_MODIFIED,
-            DocumentsContract.Document.COLUMN_MIME_TYPE), null, null, null)
-        val list = mutableListOf<FastDocumentFile>()
-        while (cursor!!.moveToNext()) {
-            val id = cursor.getString(0)
-            val uri = DocumentsContract.buildDocumentUriUsingTree(folderUri, id)
-            val name = cursor.getString(1)
-            val size = cursor.getLong(2)
-            val lastModified = cursor.getLong(3)
-            val mimeType = cursor.getString(4)
-            list.add(FastDocumentFile(name, mimeType, uri, size, lastModified))
+            DocumentsContract.Document.COLUMN_MIME_TYPE
+        ), null, null, null)?.use { cursor ->
+            while (cursor.moveToNext()) {
+                val id = cursor.getString(0)
+                val uri = DocumentsContract.buildDocumentUriUsingTree(uri, id)
+                val name = cursor.getString(1)
+                val size = cursor.getLong(2)
+                val lastModified = cursor.getLong(3)
+                val mime = cursor.getString(4)
+                Logd(TAG, "traverseAll doc: $name mime: $mime")
+                if (mime == DocumentsContract.Document.MIME_TYPE_DIR) traverseAll(uri, id)
+                else allFiles.add(DocFile(name, mime, uri, size, lastModified))
+            }
         }
-        cursor.close()
-        return list
     }
 
-    if (feed.downloadUrl.isNullOrEmpty()) return
+    if (feed.downloadUrl.isNullOrEmpty()) {
+        LogFor(TAG, feed, false, "downloadUrl is null or empty")
+        return
+    }
     val uriString = feed.downloadUrl!!.replace(Feed.PREFIX_LOCAL_FOLDER, "")
     val documentFolder = uriString.toUF()
     if (!documentFolder.exists()) throw IOException("Cannot read local directory. Try re-connecting the folder on the podcast info page.")
 
-    val folderUri = uriString.toUri()
-    val allFiles = listFastFiles(folderUri)
-    val mediaFiles: MutableList<FastDocumentFile> = mutableListOf()
+    val folderUri = uriString.toSafeUri()
+    traverseAll(folderUri)
+
+    val mediaFiles: MutableList<DocFile> = mutableListOf()
     val mediaFileNames: MutableSet<String> = HashSet()
     for (file in allFiles) {
         val mimeType = getMimeType(file.type, file.uri.toString()) ?: continue
@@ -230,15 +260,18 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
         else newItems.add(newItem)
         progressCB?.invoke(i, mediaFiles.size)
     }
+    Logd(TAG, "updateLocalFeed newItems: ${newItems.size}")
+
     // remove feed items without corresponding file
     val it = newItems.iterator()
     while (it.hasNext()) {
         val item = it.next()
         if (!mediaFileNames.contains(item.link)) {
-            LogtFor(TAG, item, "updateLocalFeed removing episode without file: ${item.link}")
+            LogtFor(TAG, item.id, "updateLocalFeed removing episode without file: ${item.link}")
             it.remove()
         }
     }
+    Logd(TAG, "updateLocalFeed newItems 1: ${newItems.size}")
     feed.imageUrl = getImageUrl(allFiles, folderUri)
     feed.episodes.addAll(newItems)
     updateFeedFull(feed, removeUnlistedItems = true)
@@ -252,8 +285,7 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
     }
 
     if (mustReportDownloadSuccessful(feed)) {
-        val status = DownloadResult(feed, DownloadError.SUCCESS, true, "")
-        logDownloadResult(status)
+        logDownloadResult(DownloadResult(feed, DownloadError.SUCCESS, true, ""))
         upsert(feed) { it.lastUpdateFailed = false }
     }
 }

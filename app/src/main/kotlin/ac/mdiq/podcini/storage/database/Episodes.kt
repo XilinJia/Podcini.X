@@ -240,7 +240,7 @@ fun checkAndMarkDuplicates(episode: Episode): Episode {
                                 it
                             }
                             m?.let { updated = true }
-                            LogtFor(TAG, e,"Duplicate item was previously set to ${fromCode(e.playState).name} ${e.downloadUrl}")
+                            LogtFor(TAG, e.id,"Duplicate item was previously set to ${fromCode(e.playState).name} ${e.downloadUrl}")
                         }
                     }
                 }

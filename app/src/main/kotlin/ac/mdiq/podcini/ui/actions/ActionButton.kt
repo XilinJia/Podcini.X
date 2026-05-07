@@ -241,7 +241,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 }
                 fun shouldNotDownload(): Boolean {
                     if (item.downloadUrl.isNullOrBlank()) {
-                        LogeFor(TAG, item, "episode downloadUrl is null or blank")
+                        LogeFor(TAG, item.id, "episode downloadUrl is null or blank")
                         return true
                     }
                     val isDownloading = EpisodeAdrDLManager.manager?.isDownloading(item.downloadUrl!!) == true

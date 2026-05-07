@@ -222,7 +222,7 @@ private suspend fun assembleCandidates(feeds_: List<Feed>?, candidates: MutableS
                 for (e in episodes) {
                     if (isCurMedia(e)) continue
                     if (e.downloadUrl.isNullOrBlank()) {
-                        LogeFor(TAG, e, "episode downloadUrl is null or blank, skipped from auto-download")
+                        LogeFor(TAG, e.id, "episode downloadUrl is null or blank, skipped from auto-download")
                         upsertBlk(e) { it.isAutoDownloadEnabled = false }
                         continue
                     }

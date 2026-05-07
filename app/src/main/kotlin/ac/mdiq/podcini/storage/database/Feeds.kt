@@ -20,10 +20,8 @@ import ac.mdiq.podcini.storage.utils.FOUR_DAY_MIL
 import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
-import ac.mdiq.podcini.utils.LogFor
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
-import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.LogtFor
 import android.app.backup.BackupManager
 import androidx.compose.runtime.getValue
@@ -131,11 +129,16 @@ fun getFeed(feedId: Long, copy: Boolean = false): Feed? {
 }
 
 fun feedByIdentityOrID(feed: Feed, copy: Boolean = false): Feed? {
-    Logd(TAG, "searchFeedByIdentifyingValueOrID called")
+    Logd(TAG, "searchFeedByIdentifyingValueOrID isLocal: ${feed.isLocalFeed}")
     if (feed.id != 0L) return getFeed(feed.id, copy)
-    val feedId = feed.identifyingValue
-    val f = allFeeds.firstOrNull { it.identifyingValue == feedId }
-    if (f != null) return if (copy) realm.copyFromRealm(f) else f
+    val feedIdv = feed.identifyingValue
+    if (feed.isLocalFeed) {
+        val f = allFeeds.firstOrNull { it.identifyingValue == feedIdv && it.volumeId == feed.volumeId }
+        if (f != null) return if (copy) realm.copyFromRealm(f) else f
+    } else {
+        val f = allFeeds.firstOrNull { it.identifyingValue == feedIdv }
+        if (f != null) return if (copy) realm.copyFromRealm(f) else f
+    }
     return null
 }
 
@@ -364,6 +367,7 @@ suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, 
     //        showStackTrace()
 
     Logd(TAG, "updateFeedFull newFeed id: ${newFeed.id} episodes: ${newFeed.episodes.size}")
+    Logd(TAG, "updateFeedFull newFeed isLocal: ${newFeed.isLocalFeed} volumeId: ${newFeed.volumeId}")
     // Look up feed in the feedslist
     val savedFeed = feedByIdentityOrID(newFeed, true)
     if (savedFeed == null) {
@@ -424,11 +428,11 @@ suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, 
             nNew++
             episode.id = idLong++
             episode.feedId = savedFeed.id
-            if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(false)
+            if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload)  episode.fetchMediaSize(false)
             if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
             savedFeedAssistant.addidvToMap(episode)
-            val pubDate = (episode.pubDate)
-            if (priorMostRecentDate == null || priorMostRecentDate < (pubDate) || priorMostRecentDate == pubDate) {
+            val pubDate = episode.pubDate
+            if (priorMostRecentDate == null || priorMostRecentDate < pubDate || priorMostRecentDate == pubDate) {
                 Logd(TAG, "updateFeedFull Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
                 episode = upsertBlk(episode) { it.setPlayState(EpisodeState.NEW) }
             } else upsertBlk(episode) {}
@@ -513,7 +517,7 @@ suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = nu
     for (idx in newFeed.episodes.indices) {
         var episode = newFeed.episodes[idx]
         if (episode.duration < 1000 && !savedFeed.acceptTinyEpisodes) {
-            LogtFor(TAG, episode, "new episode duration less than 1 second, ignored. in Feed: ${newFeed.title}")
+            LogtFor(TAG, episode.id, "new episode duration less than 1 second, ignored. in Feed: ${newFeed.title}")
             downloadStatus?.addDetail("new episode duration less than 1 second, ignored: ${episode.title}")
             continue
         }

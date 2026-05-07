@@ -125,7 +125,7 @@ class PlaybackService : MediaLibraryService() {
                 val state = intent.getIntExtra("state", -1)
                 Logd(TAG, "Headset plug event. State is $state")
                 when (state) {
-                    -1 -> LogeFor(TAG, theatres[0].mPlayer?.curEpisode,"Received invalid ACTION_HEADSET_PLUG intent")
+                    -1 -> LogeFor(TAG, theatres[0].mPlayer?.curEpisode?.id,"Received invalid ACTION_HEADSET_PLUG intent")
                     UNPLUGGED -> {}
                     PLUGGED -> unpauseIfPauseOnDisconnect(false)
                 }
@@ -415,14 +415,14 @@ class PlaybackService : MediaLibraryService() {
      */
     private fun handleKeycode(keycode: Int, notificationButton: Boolean): Boolean {
         if (theatres[0].mPlayer == null) return false
-        LogtFor(TAG, theatres[0].mPlayer?.curEpisode, "Handling keycode: $keycode")
+        LogtFor(TAG, theatres[0].mPlayer?.curEpisode?.id, "Handling keycode: $keycode")
         // TODO: check out this
         fun startPlayingFromPreferences() {
             if (mediaSession == null) createMediaSessionAndPlayers()
             try {
                 startTheatres()
                 theatres[0].mPlayer?.startPlaying()
-            } catch (e: Throwable) { LogsFor(TAG, theatres[0].mPlayer?.curEpisode, e, "EpisodeMedia was not loaded from preferences.") }
+            } catch (e: Throwable) { LogsFor(TAG, theatres[0].mPlayer?.curEpisode?.id, e, "EpisodeMedia was not loaded from preferences.") }
         }
         when (keycode) {
             KeyEvent.KEYCODE_HEADSETHOOK, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
@@ -498,7 +498,7 @@ class PlaybackService : MediaLibraryService() {
             else -> {
                 Logd(TAG, "Unhandled key code: $keycode")
                 // only notify the user about an unknown key event if it is actually doing something
-                if (theatres[0].mPlayer?.curEpisode != null && theatres[0].mPlayer!!.isPlaying) LogeFor(TAG, theatres[0].mPlayer?.curEpisode, resources.getString(R.string.unknown_media_key, keycode))
+                if (theatres[0].mPlayer?.curEpisode != null && theatres[0].mPlayer!!.isPlaying) LogeFor(TAG, theatres[0].mPlayer?.curEpisode?.id, resources.getString(R.string.unknown_media_key, keycode))
             }
         }
         return false

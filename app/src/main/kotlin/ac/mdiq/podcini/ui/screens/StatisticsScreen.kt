@@ -708,7 +708,7 @@ private fun getStatistics(episodes: List<Episode>, feedId: Long = 0L, forDL: Boo
                 if (e.lastPlayedTime > 0L && e.lastPlayedTime < result.oldestDate) result.oldestDate = e.lastPlayedTime
                 if (e.playStateSetTime > 0L && e.playStateSetTime < result.oldestDate) result.oldestDate = e.playStateSetTime
                 if (e.duration > 0) fStat.item.durationTotal += e.duration
-                else LogeFor(TAG, e, "episode duration abnormal: ${e.duration} state: ${e.playState}")
+                else LogeFor(TAG, e.id, "episode duration abnormal: ${e.duration} state: ${e.playState}")
                 Logd(TAG, "getStatistics e.playState: ${e.playState} e.timeSpent: ${e.timeSpent} ${e.playedDuration} ${e.title}")
                 if (e.playState == EpisodeState.PLAYED.code) {
                     fStat.item.episodesPlayed++
@@ -742,7 +742,7 @@ private fun getStatistics(episodes: List<Episode>, feedId: Long = 0L, forDL: Boo
                 if (e.downloaded) {
                     fStat.item.episodesDownloadCount += 1
                     if (e.size > 0) fStat.item.totalDownloadSize += e.size
-                    else if (e.size < 0) LogeFor(TAG, e, "Episode media file has negative size: ${e.size}")
+                    else if (e.size < 0) LogeFor(TAG, e.id, "Episode media file has negative size: ${e.size}")
                 }
             }
         }

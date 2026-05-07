@@ -278,7 +278,7 @@ class ContentUriFile(
         Logd(TAG, "findSavedRoot uri: $uri")
         if (tempRoottree != null && uri.toString().startsWith(tempRoottree.toString())) return tempRoottree
 
-        persistedTrees.forEach { Logd(TAG, "saved toor: $it") }
+        persistedTrees.forEach { Logd(TAG, "saved root: $it") }
         return persistedTrees.find { uri.toString().startsWith(it.toString()) }
     }
 
@@ -307,7 +307,7 @@ class ContentUriFile(
     }
 
     override fun isDirectory(): Boolean {
-        Logd(TAG, "isDirectory")
+//        Logd(TAG, "isDirectory")
         if (isTreeRoot) return true
         val projection = arrayOf(DocumentsContract.Document.COLUMN_MIME_TYPE)
         context.contentResolver.query(uri, projection, null, null, null)?.use { c ->

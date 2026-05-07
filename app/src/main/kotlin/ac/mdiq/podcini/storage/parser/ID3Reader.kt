@@ -106,7 +106,7 @@ open class ID3Reader(private val source: CountingSource) {
     protected fun readTagHeader(): TagHeader? {
         val headerBytes = buffer.readByteArray(3)
         if (headerBytes.decodeToString() != "ID3") {
-            Logt(TAG, "Not an ID3 file")
+            Logd(TAG, "Not an ID3 file")
             return null
         }
         val versionMajor = buffer.readByte().toShort()

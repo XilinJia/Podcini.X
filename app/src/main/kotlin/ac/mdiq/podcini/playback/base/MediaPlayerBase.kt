@@ -321,7 +321,7 @@ abstract class MediaPlayerBase {
     fun startPlaying() {
         Logd(TAG, "startPlaying called")
         if (curEpisode == null) {
-            LogtFor(TAG, curEpisode, "startPlaying: No media to play")
+            LogtFor(TAG, curEpisode?.id, "startPlaying: No media to play")
             return
         }
         val media = curEpisode!!
@@ -416,7 +416,7 @@ abstract class MediaPlayerBase {
     fun getPosition(): Int {
         var retVal = Episode.INVALID_TIME
 //        showStackTrace()
-        if (castPlayer?.isPlaying == true && !status.isAtLeast(PlayerStatus.PREPARED)) LogtFor(TAG, curEpisode, "exoPlayer playbackState ${castPlayer?.playbackState} player status $status")
+        if (castPlayer?.isPlaying == true && !status.isAtLeast(PlayerStatus.PREPARED)) LogtFor(TAG, curEpisode?.id, "exoPlayer playbackState ${castPlayer?.playbackState} player status $status")
         retVal = getPlayerPosition()
 //        Logd(TAG, "getPosition player position: $retVal")
         if (retVal <= 0 && curEpisode != null) retVal = curEpisode!!.position
@@ -525,14 +525,14 @@ abstract class MediaPlayerBase {
                     if (prepareImmediately) prepare()
                 }
             } catch (e: IOException) {
-                LogsFor(TAG, curEpisode, e, "prepareMedia failed ${e.localizedMessage ?: ""}")
+                LogsFor(TAG, curEpisode?.id, e, "prepareMedia failed ${e.localizedMessage ?: ""}")
                 withContext(Dispatchers.Main) { setPlayerStatus(PlayerStatus.ERROR, curEpisode) }
             } catch (e: IllegalStateException) {
-                LogsFor(TAG, curEpisode, e, "prepareMedia failed ${e.localizedMessage ?: ""}")
+                LogsFor(TAG, curEpisode?.id, e, "prepareMedia failed ${e.localizedMessage ?: ""}")
                 withContext(Dispatchers.Main) { setPlayerStatus(PlayerStatus.ERROR, curEpisode) }
             } catch (e: Throwable) {
                 withContext(Dispatchers.Main) { setPlayerStatus(PlayerStatus.ERROR, curEpisode) }
-                LogsFor(TAG, curEpisode, e, "setDataSource error: [${e.localizedMessage}]")
+                LogsFor(TAG, curEpisode?.id, e, "setDataSource error: [${e.localizedMessage}]")
             } finally { }
         }
     }
@@ -549,7 +549,7 @@ abstract class MediaPlayerBase {
                 isStartWhenPrepared = true
                 prepare()
             }
-            else -> LogeFor(TAG, curEpisode, "Play/Pause button was pressed and PlaybackService state was unknown: $status")
+            else -> LogeFor(TAG, curEpisode?.id, "Play/Pause button was pressed and PlaybackService state was unknown: $status")
         }
     }
 
@@ -570,7 +570,7 @@ abstract class MediaPlayerBase {
             setPlaybackParams()
             setPlayerStatus(PlayerStatus.PLAYING, curEpisode)
             sleepManager?.restart()
-        } else LogtFor(TAG, curEpisode, "Call to play() was ignored because current state of PSMP object is $status")
+        } else LogtFor(TAG, curEpisode?.id, "Call to play() was ignored because current state of PSMP object is $status")
     }
 
     /**
@@ -589,7 +589,7 @@ abstract class MediaPlayerBase {
             isSpeedForward =  false
             isFallbackSpeed = false
             if (curEpisode != null) upsertBlk(curEpisode!!) { it.forceVideo = false }
-        } else LogtFor(TAG, curEpisode, "Ignoring call to pause: Player is in $status state")
+        } else LogtFor(TAG, curEpisode?.id, "Ignoring call to pause: Player is in $status state")
     }
 
     internal abstract fun setSource()
@@ -654,7 +654,7 @@ abstract class MediaPlayerBase {
     fun seekDelta(delta: Int) {
         val curPosition = getPosition()
         if (curPosition != Episode.INVALID_TIME) seekTo(curPosition + delta)
-        else LogeFor(TAG,  curEpisode, "seekDelta getPosition() returned INVALID_TIME in seekDelta")
+        else LogeFor(TAG,  curEpisode?.id, "seekDelta getPosition() returned INVALID_TIME in seekDelta")
     }
 
     abstract fun setPlaybackParams()
@@ -800,7 +800,7 @@ abstract class MediaPlayerBase {
                 if (duration !in 1..skipIntroMS) {
                     Logd(TAG, "onPlaybackStart skipIntro ${playable.getEpisodeTitle()}")
                     seekTo(skipIntroMS)
-                    LogtFor(TAG, curEpisode, context.getString(R.string.pref_feed_skip_intro_toast, skipIntro))
+                    LogtFor(TAG, curEpisode?.id, context.getString(R.string.pref_feed_skip_intro_toast, skipIntro))
                 }
             }
             upsertBlk(playable) { it.setPlaybackStart() }
@@ -887,7 +887,7 @@ abstract class MediaPlayerBase {
         if (it.startTime > 0) {
             var delta = (nowInMillis() - it.startTime)
             if (delta > 3 * max(it.playedDuration, 60000)) {
-                LogtFor(TAG, curEpisode, "upsertDB likely invalid delta: $delta ${it.title}")
+                LogtFor(TAG, curEpisode?.id, "upsertDB likely invalid delta: $delta ${it.title}")
                 it.startTime = nowInMillis()
                 delta = 0L
             } else it.timeSpent = it.timeSpentOnStart + delta
@@ -934,7 +934,7 @@ abstract class MediaPlayerBase {
             isInitialized -> savePlayerStatus(curEpisode, status)
             isPrepared -> {
                 savePlayerStatus(curEpisode, status)
-                if (curEpisode != null) runOnIOScope { try { loadChapters(curEpisode!!, false) } catch (e: Throwable) { LogsFor(TAG, curEpisode, e, "Error loading chapters for: ${curEpisode?.title}") } }
+                if (curEpisode != null) runOnIOScope { try { loadChapters(curEpisode!!, false) } catch (e: Throwable) { LogsFor(TAG, curEpisode?.id, e, "Error loading chapters for: ${curEpisode?.title}") } }
             }
             isPaused -> savePlayerStatus(null, status)
             isStopped -> {}
@@ -988,11 +988,11 @@ abstract class MediaPlayerBase {
         fun isStreamingCapable(media: Episode): Boolean {
 //            showStackTrace()
             if (!isNetworkUrl(media.downloadUrl)) {
-                LogeFor(TAG,  media, "streaming media without a remote downloadUrl: ${media.downloadUrl}. Abort")
+                LogeFor(TAG,  media.id, "streaming media without a remote downloadUrl: ${media.downloadUrl}. Abort")
                 return false
             }
             if (!networkMonitor.isConnected) {
-                LogeFor(TAG,  media, "streaming media but network is not available, abort")
+                LogeFor(TAG,  media.id, "streaming media but network is not available, abort")
                 return false
             }
             return true

@@ -70,9 +70,8 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
     var force = false
 
     protected suspend fun onFail(feed: Feed, details: String,  reason: DownloadError = DownloadError.ERROR_MISC) {
-        Logd(TAG, details)
+        LogFor(TAG, feed, false, details, reason = reason)
         upsert(feed) { it.lastUpdateFailed = true }
-        logDownloadResult(DownloadResult(feed, reason, false, details))
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -84,9 +83,15 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             return
         }
         val allLocalFeeds = run {
-            for (f in feeds) if (!f.isLocalFeed) return@run false
+            for (f in feeds) {
+                if (!f.isLocalFeed) {
+                    Logd(TAG, "startRefresh feed is not local: ${f.title}")
+                    return@run false
+                }
+            }
             true
         }
+        Logd(TAG, "startRefresh allLocalFeeds: $allLocalFeeds")
         when {
             allLocalFeeds -> scope.launch { doWork() }
             !networkMonitor.isConnected -> EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.download_error_no_connection)))
@@ -112,7 +117,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
         if (feeds.isEmpty()) {
             val feedIds = appAttribs.feedIdsToRefresh
             if (feedIds.isNotEmpty()) {
-                Logt(TAG, "Partial refresh of ${feedIds.size} feeds")
+                Logt(TAG, "prepare Partial refresh of ${feedIds.size} feeds")
                 feedsToUpdate = realm.query(Feed::class, "id IN $0", feedIds).find().filter { it.inNormalVolume }.toMutableList()
             } else feedsToUpdate = getFeedList("keepUpdated == true").filter { it.inNormalVolume }.toMutableList()
         } else {
@@ -134,9 +139,10 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
     }
 
     suspend fun doWork(): Boolean {
+        Logd(TAG, "doWork feedsToUpdate: ${feedsToUpdate.size}")
         withContext(Dispatchers.Main) { feedOperationText = context.getString(R.string.refreshing_label) }
         if (Build.VERSION.SDK_INT >= 33 && ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
-            Loge(TAG, "refreshFeeds: require POST_NOTIFICATIONS permission")
+            Loge(TAG, "doWork: require POST_NOTIFICATIONS permission")
         else {
             val titles = feedsToUpdate.map { it.title ?: "No title" }.toMutableList()
             val feedIdsToRefresh = feedsToUpdate.map { it.id }.toMutableList()
@@ -145,7 +151,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
                 notificationManager.notify(R.id.notification_updating_feeds, createNotification(titles))
                 val feed = unmanaged(feedsToUpdate[i++])
                 try {
-                    Logd(TAG, "updating local feed? ${feed.isLocalFeed} ${feed.title}")
+                    Logd(TAG, "doWork updating local feed? ${feed.isLocalFeed} ${feed.title}")
                     when {
                         feed.isLocalFeed -> updateLocalFeed(feed, null)
                         else -> refreshFeed(feed)
@@ -190,7 +196,6 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
         val downloader = downloaderFor(request) ?: throw Exception("Unable to create downloader")
         downloader.download { source ->
             val feedToParse = Feed(request.source, request.lastModified)
-//            feedToParse.fileUrl = request.destination
             feedToParse.id = request.feedfileId
             feedToParse.limitEpisodesCount = feed.limitEpisodesCount
             feedToParse.fillPreferences(false, Feed.AutoDeleteAction.GLOBAL, VolumeAdaptionSetting.OFF, request.username, request.password)
@@ -204,10 +209,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
                 feedHandlerResult = FeedHandler.parseFeed(source, feedToParse)
                 Logd(TAG,  "refreshFeed Parsed ${feedToParse.title}")
                 if (feedToParse.title.isNullOrBlank()) throw InvalidFeedException("Feed has no title")
-                for (item in feedToParse.episodes) if (item.title.isNullOrBlank()) {
-//                    Loge(TAG, "episode ${item.id} title is empty in feed ${feedToParse.title} ")
-                    LogFor(TAG, feedToParse, true, "episode ${item.id} title is empty", toastAnyway = true)
-                }
+                for (item in feedToParse.episodes) if (item.title.isNullOrBlank()) LogFor(TAG, feedToParse, true, "episode ${item.id} title is empty", toastAnyway = true)
                 if (feedToParse.imageUrl.isNullOrEmpty()) feedToParse.imageUrl = Feed.PREFIX_GENERATIVE_COVER + feedToParse.downloadUrl
             } catch (e: SAXException) {
                 isSuccessful = false
@@ -247,7 +249,6 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             if (isSuccessful) downloadStatus = DownloadResult(feedToParse, DownloadError.SUCCESS, true, "")
             else {
                 onFail(feedToParse, reasonDetailed ?: "", reason ?: DownloadError.ERROR_NOT_FOUND)
-                LogFor(TAG, feed, false,"refreshFeed: feed update failed: unsuccessful")
                 return@download
             }
 
