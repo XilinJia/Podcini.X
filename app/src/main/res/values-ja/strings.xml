@@ -477,6 +477,8 @@
     <string name="pref_automatic_download_sum">エピソードの自動ダウンロードを構成する</string>
     <string name="pref_automatic_download_on_battery_title">充電していないときにダウンロードする</string>
     <string name="pref_automatic_download_on_battery_sum">バッテリーが充電されていないときに自動的にダウンロードを許可する</string>
+    <string name="pref_fetch_media_size">Fetch media sizes on refresh</string>
+    <string name="pref_fetch_media_size_sum">Fetch remote media size involves extra network queries. It\'s not performed for feeds set for streaming. Enable this for feeds set to be downloaded.</string>
     <string name="pref_watch_storage_title">Watch available space</string>
     <string name="pref_watch_storage_sum">Specifies if available space is ensured at download time. If you don\'t have a tight storage, this is better set to false.</string>
     <string name="pref_autodl_queue_empty_title">キューが空になったときに起動</string>
