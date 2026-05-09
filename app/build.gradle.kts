@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 307
-        versionName = "11.1.7"
+        versionCode = 308
+        versionName = "11.1.8"
 
         ndkVersion = "29.0.14206865"
 
@@ -164,7 +164,7 @@ androidComponents {
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2026.04.01"))
+    implementation(platform("androidx.compose:compose-bom:2026.05.00"))
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.ui:ui")
@@ -179,7 +179,7 @@ dependencies {
     implementation("androidx.core:core-ktx:1.18.0")
     implementation("androidx.core:core-splashscreen:1.2.0")
     implementation("androidx.documentfile:documentfile:1.1.0")
-    implementation("androidx.webkit:webkit:1.15.0")
+    implementation("androidx.webkit:webkit:1.16.0")
     implementation("androidx.work:work-runtime:2.11.2")
 
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
@@ -195,10 +195,10 @@ dependencies {
 
     implementation("com.google.android.material:material:1.13.0")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect:${project.property("kotlin_version")}")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0")
     implementation("org.jetbrains.kotlinx:atomicfu:0.32.1")
     implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
@@ -227,8 +227,8 @@ dependencies {
 
     implementation("net.dankito.readability4j:readability4j:1.0.8")
 
-    debugImplementation("androidx.compose.ui:ui-tooling:1.11.0")
-    debugImplementation("androidx.compose.ui:ui-tooling-preview:1.11.0")
+    debugImplementation("androidx.compose.ui:ui-tooling:1.11.1")
+    debugImplementation("androidx.compose.ui:ui-tooling-preview:1.11.1")
 
     "freeImplementation"("org.conscrypt:conscrypt-android:2.5.3")
 

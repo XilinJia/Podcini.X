@@ -59,6 +59,8 @@ object FeedUpdateManager {
 
     const val EXTRA_NEXT_PAGE: String = "next_page"
     const val EXTRA_FULL_UPDATE: String = "full_update"
+    const val EXTRA_UPDATE_ANYWAY: String = "update_anyway"
+
     const val EXTRA_ERASE_UNLISTED: String = "erase_unlisted"
 
     const val KEY_IS_PERIODIC = "is_periodic"
@@ -142,7 +144,7 @@ object FeedUpdateManager {
         }
     }
 
-    fun runOnce(feeds: List<Feed> = listOf(), nextPage: Boolean = false, fullUpdate: Boolean = false, removeUnlisted: Boolean = false) {
+    fun runOnce(feeds: List<Feed> = listOf(), nextPage: Boolean = false, fullUpdate: Boolean = false, doItWanyway: Boolean = false, removeUnlisted: Boolean = false) {
         Logd(TAG, "runOnce feeds: ${feeds.size}")
         val workRequest: OneTimeWorkRequest.Builder = OneTimeWorkRequest.Builder(FeedUpdateWorker::class.java)
             .setInitialDelay(0L, TimeUnit.MILLISECONDS)
@@ -153,6 +155,7 @@ object FeedUpdateManager {
 
         val builder = Data.Builder()
         builder.putBoolean(EXTRA_FULL_UPDATE, fullUpdate)
+        builder.putBoolean(EXTRA_UPDATE_ANYWAY, doItWanyway)
         builder.putBoolean(EXTRA_ERASE_UNLISTED, removeUnlisted)
         if (feeds.isNotEmpty()) {
             builder.putLongArray(EXTRA_FEED_IDS, feeds.map { it.id }.toLongArray())
@@ -162,13 +165,13 @@ object FeedUpdateManager {
         WorkManager.getInstance(getAppContext()).enqueueUniqueWork(WORK_ID_FEED_UPDATE_MANUAL, ExistingWorkPolicy.REPLACE, workRequest.build())
     }
 
-    fun runOnceOrAsk(feeds: List<Feed> = listOf(), fullUpdate: Boolean = false, removeUnlisted: Boolean = false) {
+    fun runOnceOrAsk(feeds: List<Feed> = listOf(), fullUpdate: Boolean = false,  doItWanyway: Boolean = false, removeUnlisted: Boolean = false) {
         val context = getAppContext()
         Logd(TAG, "Run auto update immediately in background.")
         when {
 //            feeds.isNotEmpty() && feed.isLocalFeed -> runOnce(context, feeds, fullUpdate = fullUpdate)    // TODO
             !networkMonitor.isConnected -> EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.download_error_no_connection)))
-            isFeedRefreshAllowed -> runOnce(feeds, fullUpdate = fullUpdate)
+            isFeedRefreshAllowed -> runOnce(feeds, fullUpdate = fullUpdate, doItWanyway = doItWanyway)
             else -> {
                 commonConfirm = CommonConfirmAttrib(
                     title = context.getString(R.string.feed_refresh_title),
@@ -176,10 +179,10 @@ object FeedUpdateManager {
                     confirmRes = R.string.confirm_mobile_streaming_button_once,
                     cancelRes = R.string.no,
                     neutralRes = R.string.confirm_mobile_streaming_button_always,
-                    onConfirm = { runOnce(feeds, fullUpdate = fullUpdate, removeUnlisted = removeUnlisted)  },
+                    onConfirm = { runOnce(feeds, fullUpdate = fullUpdate, doItWanyway = doItWanyway, removeUnlisted = removeUnlisted)  },
                     onNeutral = {
                         mobileAllowFeedRefresh = true
-                        runOnce(feeds, fullUpdate = fullUpdate, removeUnlisted = removeUnlisted)
+                        runOnce(feeds, fullUpdate = fullUpdate, doItWanyway = doItWanyway, removeUnlisted = removeUnlisted)
                     })
             }
         }
@@ -224,6 +227,7 @@ object FeedUpdateManager {
             }
             try {
                 val fullUpdate = inputData.getBoolean(EXTRA_FULL_UPDATE, false)
+                val doItAnyway = inputData.getBoolean(EXTRA_UPDATE_ANYWAY, false)
                 val eraseUnlisted = inputData.getBoolean(EXTRA_ERASE_UNLISTED, false)
 
                 val feedIds = inputData.getLongArray(EXTRA_FEED_IDS) ?: longArrayOf()
@@ -234,7 +238,7 @@ object FeedUpdateManager {
                     if (isPeriodic) rescheduleUpdateTaskOnce()
                     return Result.success()
                 }
-                val updater = gearbox.feedUpdater(feeds, fullUpdate, removeUnlisted = eraseUnlisted)
+                val updater = gearbox.feedUpdater(feeds, fullUpdate = fullUpdate, doItAnyway = doItAnyway, removeUnlisted = eraseUnlisted)
                 if (!updater.prepare()) {
                     Loge(TAG, "updater prepare failed")
                     if (isPeriodic) rescheduleUpdateTaskOnce()

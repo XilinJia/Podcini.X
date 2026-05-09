@@ -12,7 +12,6 @@ import ac.mdiq.podcini.storage.parser.VorbisCommentReaderException
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
-import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.LogtFor
 import android.content.ContentResolver
 import io.ktor.client.call.body
@@ -31,7 +30,6 @@ import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.readAvailable
 import okio.Buffer
 import okio.BufferedSource
-import okio.ByteString.Companion.encodeUtf8
 import okio.EOFException
 import okio.FileSystem
 import okio.buffer
@@ -432,18 +430,7 @@ suspend fun loadChaptersFromMedia(episode: Episode): List<Chapter> {
 
     var chapters: List<Chapter> = listOf()
     openSource { fileSource, size ->
-        val peek = fileSource.peek()
-        val header4 = peek.readByteString(4)
-        val header8 = if (peek.request(8)) peek.readByteString(8) else header4
-
-        val format = when {
-            header4.startsWith("ID3".encodeUtf8()) -> "MP3"
-            header4.startsWith("OggS".encodeUtf8()) -> "OGG"
-            header4.startsWith("fLaC".encodeUtf8()) -> "FLAC"
-            header8.substring(4, 8).string(Charsets.UTF_8) == "ftyp" -> "M4A"
-            header4.startsWith("RIFF".encodeUtf8()) -> "WAV"
-            else -> "UNKNOWN"
-        }
+        val format = peekFileFormat(fileSource)
         Logd(TAG, "loadChaptersFromMediaFile1 format: $format")
         val countingSource = CountingSource(fileSource)
         fun enumerateEmptyChapterTitles(chapters: List<Chapter>) {
@@ -458,12 +445,12 @@ suspend fun loadChaptersFromMedia(episode: Episode): List<Chapter> {
             return true
         }
         var chapters_ = when(format) {
-            "MP3" -> {
+            MediaFormat.MP3 -> {
                 val reader = ChapterReader(countingSource)
                 reader.readSource()
                 reader.chapters.toList()
             }
-            "M4A" -> {
+            MediaFormat.M4A -> {
                 val reader = MP4ChapterReader(fileSource)
                 try {
                     reader.parseM4A()
@@ -493,7 +480,7 @@ suspend fun loadChaptersFromMedia(episode: Episode): List<Chapter> {
                     cList
                 }
             }
-            "OGG" -> {
+            MediaFormat.OGG, MediaFormat.FLAC -> {
                 val reader = VorbisCommentChapterReader(countingSource)
                 reader.readSource()
                 reader.chapters.toList()

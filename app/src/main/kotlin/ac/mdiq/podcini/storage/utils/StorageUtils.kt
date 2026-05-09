@@ -30,6 +30,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.io.IOException
 import kotlinx.io.files.FileNotFoundException
 import okio.Buffer
+import okio.BufferedSource
+import okio.ByteString.Companion.encodeUtf8
 import okio.FileSystem
 import okio.ForwardingSource
 import okio.Path
@@ -337,7 +339,6 @@ class ContentUriFile(
     }
 
     override fun source(): Source {
-        Logd(TAG, "source")
         val inputStream = context.contentResolver.openInputStream(uri) ?: throw IllegalStateException("Cannot open input stream for $uri")
         return inputStream.source()
     }
@@ -537,5 +538,29 @@ class CountingSource(delegate: Source) : ForwardingSource(delegate) {
         val read = super.read(sink, byteCount)
         if (read > 0) count += read
         return read
+    }
+}
+
+enum class MediaFormat {
+    MP3,
+    OGG,
+    FLAC,
+    M4A,
+    WAV,
+    UNKNOWN
+}
+
+fun peekFileFormat(fileSource: BufferedSource): MediaFormat {
+    val peek = fileSource.peek()
+    peek.request(12)
+    val b = peek.buffer
+    return when {
+        b.size >= 3 && b.rangeEquals(0, "ID3".encodeUtf8()) -> MediaFormat.MP3
+        b.size >= 2 && b[0] == 0xFF.toByte() && (b[1].toInt() and 0xE0) == 0xE0 -> MediaFormat.MP3
+        b.size >= 4 && b.rangeEquals(0, "OggS".encodeUtf8()) -> MediaFormat.OGG
+        b.size >= 4 && b.rangeEquals(0, "fLaC".encodeUtf8()) -> MediaFormat.FLAC
+        b.size >= 8 && b.rangeEquals(4, "ftyp".encodeUtf8()) -> MediaFormat.M4A
+        b.size >= 12 && b.rangeEquals(0, "RIFF".encodeUtf8()) && b.rangeEquals(8, "WAVE".encodeUtf8()) -> MediaFormat.WAV
+        else -> MediaFormat.UNKNOWN
     }
 }

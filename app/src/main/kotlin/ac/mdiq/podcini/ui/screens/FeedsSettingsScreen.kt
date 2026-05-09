@@ -16,8 +16,7 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.FeedAutoDeleteOptions
 import ac.mdiq.podcini.storage.model.Feed.Companion.INTERVAL_UNITS
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
-import ac.mdiq.podcini.storage.model.Feed.Companion.feedQueueUpdated
-import ac.mdiq.podcini.storage.model.volumes
+import ac.mdiq.podcini.storage.model.allVolumes
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.FeedAutoDownloadFilter
 import ac.mdiq.podcini.storage.specs.VideoMode
@@ -241,7 +240,7 @@ fun FeedsSettingsScreen() {
             //                    parent volume
             Column {
                 val none = "None"
-                var curVolumeName by remember { mutableStateOf(if (feedToSet.volumeId == -1L) none else volumes.find { it.id == feedToSet.volumeId }?.name ?: none ) }
+                var curVolumeName by remember { mutableStateOf(if (feedToSet.volumeId == -1L) none else allVolumes.find { it.id == feedToSet.volumeId }?.name ?: none ) }
                 @Composable
                 fun SetVolume(selectedOption: String, onDismissRequest: () -> Unit) {
                     CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
@@ -262,13 +261,13 @@ fun FeedsSettingsScreen() {
                                 Text(custom)
                             }
                             if (selected == custom) {
-                                Logd(TAG, "volumes: ${volumes.size}")
+                                Logd(TAG, "volumes: ${allVolumes.size}")
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    for (i in volumes.indices) {
-                                        if (volumes[i].isLocal) continue
-                                        FilterChip(label = { Text(volumes[i].name) }, selected = false, border = BorderStroke(1.dp, borderColor),
+                                    for (i in allVolumes.indices) {
+                                        if (allVolumes[i].isLocal) continue
+                                        FilterChip(label = { Text(allVolumes[i].name) }, selected = false, border = BorderStroke(1.dp, borderColor),
                                             onClick = {
-                                                val v = volumes[i]
+                                                val v = allVolumes[i]
                                                 runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.volumeId = v.id } } }
                                                 curVolumeName = v.name
                                                 onDismissRequest()

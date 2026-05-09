@@ -5,21 +5,24 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.storage.model.DownloadResult
-import ac.mdiq.podcini.storage.model.DownloadResult.Companion.logDownloadResult
 import ac.mdiq.podcini.storage.model.DownloadResult.Companion.getFeedDownloadLogs
+import ac.mdiq.podcini.storage.model.DownloadResult.Companion.logDownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Volume
+import ac.mdiq.podcini.storage.model.allVolumes
 import ac.mdiq.podcini.storage.parser.Id3MetadataReader
 import ac.mdiq.podcini.storage.parser.VorbisCommentMetadataReader
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.utils.CountingSource
+import ac.mdiq.podcini.storage.utils.MediaFormat
 import ac.mdiq.podcini.storage.utils.MediaMetadataRetrieverCompat
 import ac.mdiq.podcini.storage.utils.UnifiedFile
 import ac.mdiq.podcini.storage.utils.getMimeType
 import ac.mdiq.podcini.storage.utils.parseDate
+import ac.mdiq.podcini.storage.utils.peekFileFormat
 import ac.mdiq.podcini.storage.utils.persistedTrees
 import ac.mdiq.podcini.storage.utils.toAndroidUri
 import ac.mdiq.podcini.storage.utils.toSafeUri
@@ -27,6 +30,7 @@ import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.utils.LogFor
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.LogsFor
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.LogtFor
 import ac.mdiq.podcini.utils.parsePatternTimestampToMillis
@@ -35,10 +39,7 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.DocumentsContract
 import kotlinx.io.IOException
-import okio.ByteString.Companion.encodeUtf8
 import okio.buffer
-import kotlin.collections.contains
-import kotlin.text.toIntOrNull
 import kotlin.use
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -98,7 +99,11 @@ fun addLocalFolder(uri: Uri) {
             }
 
             traverseDirectory(file)
-            if (volumes.isNotEmpty()) realm.write { for (v in volumes) copyToRealm(v) }
+
+            if (volumes.isNotEmpty()) {
+                allVolumes += volumes
+                realm.write { for (v in volumes) copyToRealm(v) }
+            }
             if (feeds.isNotEmpty()) gearbox.feedUpdater(feeds, doItAnyway = true).startRefresh()
             Logt(TAG, "addLocalFolder Imported ${feeds.size} local feeds in ${volumes.size} volumes")
         } catch (e: Throwable) { Logs(TAG, e, e.localizedMessage?: "No messaage") }
@@ -121,7 +126,8 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
         return Feed.PREFIX_GENERATIVE_COVER + folderUri
     }
     fun createEpisode(feed: Feed, file: DocFile): Episode {
-        val item = Episode(0L, file.name, Uuid.random().toString(), file.name, file.lastModified, EpisodeState.UNPLAYED.code, feed)
+//        val item = Episode(0L, file.name, Uuid.random().toString(), file.name, file.lastModified, EpisodeState.UNPLAYED.code, feed)
+        val item = Episode(0L, file.name, null, file.name, file.lastModified, EpisodeState.UNPLAYED.code, feed)
         item.isAutoDownloadEnabled = false
         val size = file.length
         Logd(TAG, "createEpisode file.uri: ${file.uri}")
@@ -129,38 +135,26 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
         val episodes = feed.episodes
         for (existingItem in episodes) {
             if (existingItem.downloadUrl == file.uri.toString() && existingItem.size == file.length) {
-                // We found an old file that we already scanned. Re-use metadata.
                 item.updateFromOther(existingItem)
                 return item
             }
         }
-        // Did not find existing item. Scan metadata.
         try {
-            val format = file.uri.toUF().source().buffer().peek().use { source ->
-                val header4 = source.readByteString(4)
-                val header8 = if (source.request(8)) source.readByteString(8) else header4
-                when {
-                    header4.startsWith("ID3".encodeUtf8()) -> "MP3"
-                    header4.startsWith("OggS".encodeUtf8()) -> "OGG"
-                    header4.startsWith("fLaC".encodeUtf8()) -> "FLAC"
-                    header8.substring(4, 8).string(Charsets.UTF_8) == "ftyp" -> "M4A"
-                    header4.startsWith("RIFF".encodeUtf8()) -> "WAV"
-                    else -> "UNKNOWN"
-                }
-            }
-            CountingSource(file.uri.toUF().source()).use { source ->
+            val fileSource = file.uri.toUF().source().buffer()
+            val format = peekFileFormat(fileSource)
+            CountingSource(fileSource).use { source ->
                 when(format) {
-                    "MP3" -> {
+                    MediaFormat.MP3 -> {
                         val reader = Id3MetadataReader(source)
                         reader.readSource()
                         item.setDescriptionIfLonger(reader.comment)
                     }
-                    "OGG", "FLAC" -> {
+                    MediaFormat.OGG, MediaFormat.FLAC -> {
                         val reader = VorbisCommentMetadataReader(source)
                         reader.readSource()
                         item.setDescriptionIfLonger(reader.description)
                     }
-                    else -> Logt(TAG, "Unhandled file type: $format ${file.uri}")
+                    else -> LogtFor(TAG, item.id, "Unhandled file type: $format ${file.uri}")
                 }
             }
             MediaMetadataRetrieverCompat().use { mmr ->
@@ -173,7 +167,7 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
                             try {
                                 item.pubDate = parsePatternTimestampToMillis("yyyyMMdd'T'HHmmss", dateStr) ?: 0L
                             } catch (e: Throwable) {
-                                Logs(TAG, e, "loadMetadata failed")
+                                LogsFor(TAG, item.id, "MediaMetadataRetrieverCompat failed: ${e.message}")
                                 val date = parseDate(dateStr)
                                 if (date != null) item.pubDate = date.toEpochMilliseconds()
                             }
@@ -182,12 +176,12 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
                         if (!title.isNullOrEmpty()) item.title = title
                         val durationStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
                         if (!durationStr.isNullOrBlank()) item.duration = durationStr.toIntOrNull() ?: 30000
-                        item.hasEmbeddedPicture = (mmr.embeddedPicture != null)
+                        item.hasEmbeddedPicture = mmr.embeddedPicture != null
                     }
-                } catch (e: Throwable) { Logs(TAG, "MediaMetadataRetrieverCompat failure: ${e.message}")}
+                } catch (e: Throwable) { LogsFor(TAG, item.id, "MediaMetadataRetrieverCompat failure: ${e.message}") }
             }
         } catch (e: Exception) {
-            Logs(TAG, e, "loadMetadata failed: ${file.uri}")
+            LogsFor(TAG, item.id, "loadMetadata failed: ${file.uri} ${e.message}")
             item.setDescriptionIfLonger(e.message) }
         return item
     }
@@ -248,7 +242,6 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
         }
     }
 
-    // add new files to feed and update item data
     val newItems = mutableListOf<Episode>()
     for (i in mediaFiles.indices) {
         Logd(TAG, "updateLocalFeed mediaFiles ${mediaFiles[i].name}")
@@ -257,7 +250,7 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
         Logd(TAG, "updateLocalFeed oldItem: ${oldItem?.title} url: ${oldItem?.downloadUrl}")
         Logd(TAG, "updateLocalFeed newItem: ${newItem.title} url: ${newItem.downloadUrl}")
         if (oldItem != null) upsertBlk(oldItem) { it.updateFromOther(newItem) }
-        else newItems.add(newItem)
+        newItems.add(newItem)
         progressCB?.invoke(i, mediaFiles.size)
     }
     Logd(TAG, "updateLocalFeed newItems: ${newItems.size}")

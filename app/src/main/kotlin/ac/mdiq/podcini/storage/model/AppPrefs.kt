@@ -78,6 +78,8 @@ class AppPrefs: RealmObject {
     // Network
     var enqueueDownloaded: Boolean = true
 
+    var fetchmediaSizes: Boolean = false
+
     var checkAvailableSpace: Boolean = false
 
     var autoUpdateInterval: Int = 360       // in minutes
@@ -162,6 +164,7 @@ class AppPrefs: RealmObject {
         if (skipforwardSpeed != other.skipforwardSpeed) return false
         if (useAdaptiveProgressUpdate != other.useAdaptiveProgressUpdate) return false
         if (enqueueDownloaded != other.enqueueDownloaded) return false
+        if (fetchmediaSizes != other.fetchmediaSizes) return false
         if (checkAvailableSpace != other.checkAvailableSpace) return false
         if (autoUpdateInterval != other.autoUpdateInterval) return false
         if (episodeCacheSize != other.episodeCacheSize) return false
@@ -238,6 +241,7 @@ class AppPrefs: RealmObject {
         result = 31 * result + skipforwardSpeed.hashCode()
         result = 31 * result + useAdaptiveProgressUpdate.hashCode()
         result = 31 * result + enqueueDownloaded.hashCode()
+        result = 31 * result + fetchmediaSizes.hashCode()
         result = 31 * result + checkAvailableSpace.hashCode()
         result = 31 * result + autoUpdateInterval
         result = 31 * result + episodeCacheSize

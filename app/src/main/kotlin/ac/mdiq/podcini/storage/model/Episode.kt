@@ -21,7 +21,7 @@ import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.LogsFor
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.fullDateTimeString
 import androidx.compose.runtime.Stable
@@ -418,35 +418,33 @@ class Episode : RealmObject {
 
     suspend fun fetchMediaSize(persist: Boolean = true, force: Boolean = false) : Long {
         return withContext(Dispatchers.IO) {
-            if (!isImageDownloadAllowed) {
-                Logt(TAG, "need unrestricted network or allow image on mobile for fetchMediaSize")
-                return@withContext -1
-            }
-
             var size_ = CHECKED_ON_SIZE_BUT_UNKNOWN.toLong()
             when {
                 fileUrl != null -> size_ = if (fileUrl!!.isNotBlank()) fileUrl!!.toSafeUri().toUF().size() ?: -1L else -1L
+                !isImageDownloadAllowed -> {
+                    Logt(TAG, "fetchMediaSize need unrestricted network or allow image on mobile for fetchMediaSize")
+                    return@withContext -1
+                }
                 force || !isSizeSetUnknown() -> {
-                    // only query the network if we haven't already checked
+                    Logd(TAG, "fetchMediaSize querying network")
                     val url = downloadUrl
                     if (url.isNullOrEmpty()) return@withContext -1
                     try {
                         val response = getKtorClient().head(url) { header(HttpHeaders.AcceptEncoding, "identity") }
-                        if (response.status.isSuccess()) {
-                            val contentLength = response.headers[HttpHeaders.ContentLength]
-                            size_ = contentLength?.toLongOrNull() ?: -1L
-                        }
+                        if (response.status.isSuccess()) size_ = response.headers[HttpHeaders.ContentLength]?.toLongOrNull() ?: -1L
                     } catch (e: CancellationException) {
                         Logd(TAG, "fetchMediaSize canceled")
                         return@withContext -1L
                     } catch (e: Exception) {
-                        Logs(TAG, e, "fetchMediaSize failed")
+                        LogsFor(TAG, id, "fetchMediaSize failed ${e.message}")
                         return@withContext -1L  // better luck next time
                     }
                 }
             }
             // they didn't tell us the size, but we don't want to keep querying on it
-            if (persist) upsert(this@Episode) { it.size = if (size_ <= 0) CHECKED_ON_SIZE_BUT_UNKNOWN.toLong() else size_ }
+            size_ = if (size_ <= 0) CHECKED_ON_SIZE_BUT_UNKNOWN.toLong() else size_
+            if (persist) upsert(this@Episode) { it.size = size_ }
+            else size = size_
             size_
         }
     }

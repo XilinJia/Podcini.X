@@ -21,7 +21,6 @@ import ac.mdiq.podcini.net.sync.transceive.sendCatalog
 import ac.mdiq.podcini.net.sync.transceive.sendFeed
 import ac.mdiq.podcini.net.utils.NetworkUtils.getLocalIpAddress
 import ac.mdiq.podcini.storage.database.appAttribs
-import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.getId
@@ -431,7 +430,7 @@ class LibraryVM : ViewModel() {
                     val f = findLatest(f_) ?: continue
                     val c = query(Episode::class).query(queryString, f.id).count().find()
                     f.sortValue = c
-                    f.sortInfo = "$c counts"
+                    f.sortInfo = "Sort value: $c"
                 }
             }
             upsert(subPrefs) {
@@ -840,7 +839,7 @@ fun LibraryScreen() {
                     }
                     DropdownMenuItem(text = { Text(stringResource(R.string.full_refresh_label)) }, onClick = {
                         if (vm.curVolume == null) runOnceOrAsk(fullUpdate = true, removeUnlisted = true)
-                        else runOnceOrAsk(vm.curVolume!!.allFeeds, fullUpdate = true, removeUnlisted = true)
+                        else runOnceOrAsk(vm.curVolume!!.allFeeds, fullUpdate = true, doItWanyway = vm.curVolume!!.isNormal, removeUnlisted = true)
                         expanded = false
                     })
                     fun toggleArchived() {
@@ -1824,7 +1823,7 @@ fun LibraryScreen() {
                 cancelRes = R.string.cancel_label,
                 onConfirm = {
                     if (vm.curVolume == null) checkAndScheduleUpdateTaskOnce(replace = true, force = true)
-                    else runOnce(vm.curVolume!!.allFeeds)
+                    else runOnce(vm.curVolume!!.allFeeds, doItWanyway = vm.curVolume!!.isNormal)
                 },
             )
             refreshing = false

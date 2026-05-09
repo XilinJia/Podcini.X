@@ -351,6 +351,19 @@ private suspend fun trimEpisodes(feed_: Feed): Int {
     return n
 }
 
+suspend fun sumup(feed_: Feed) {
+    var feed = feed_
+    val episodes = getEpisodes(null, null, feedId=feed.id, copy = false)
+    var durTotal = 0L
+    for (e in episodes) durTotal += e.duration
+    feed = upsert(feed) {
+        it.episodesCount = episodes.size
+        it.totleDuration = durTotal
+    }
+    Logd(TAG, "saveAndUpdate episodesCount: ${feed.episodesCount} ${feed.totleDuration}")
+    computeScores(feed)
+}
+
 /**
  * Adds new Feeds to the database or updates the old versions if they already exists. If another Feed with the same
  * identifying value already exists, this method will add new FeedItems from the new Feed to the existing Feed.
@@ -428,7 +441,7 @@ suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, 
             nNew++
             episode.id = idLong++
             episode.feedId = savedFeed.id
-            if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload)  episode.fetchMediaSize(false)
+            if (appPrefs.fetchmediaSizes && !savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(false)
             if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
             savedFeedAssistant.addidvToMap(episode)
             val pubDate = episode.pubDate
@@ -451,6 +464,7 @@ suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, 
         val iterator = getEpisodes(null, null, feedId=savedFeed.id, copy = false).toMutableList().iterator()
         while (iterator.hasNext()) {
             val feedItem = iterator.next()
+            Logd(TAG, "updateFeedFull feedItem.identifyingValue ${feedItem.identifyingValue}")
             if (newFeedAssistant.getEpisodeByIdentifyingValue(feedItem) == null) {
                 if (!feedItem.isWorthy) unlistedUnworthyItems.add(feedItem)
                 iterator.remove()
@@ -472,17 +486,10 @@ suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, 
     savedFeed.lastFullUpdateTime = nowInMillis()
     savedFeed.type = newFeed.type
     savedFeed.lastUpdateFailed = false
-    savedFeed.totleDuration = 0
     Logd(TAG, "updateFeedFull savedFeed lastFullUpdateTime: ${savedFeed.lastFullUpdateTime}")
 
-    val episodes = getEpisodes(null, null, feedId=savedFeed.id, copy = false)
-    Logd(TAG, "updateFeedFull ")
-    savedFeed.episodesCount = episodes.size
-    for (e in episodes) savedFeed.totleDuration += e.duration
-    Logd(TAG, "updateFeedFull episodesCount: ${savedFeed.episodesCount} ${savedFeed.totleDuration}")
-
-    upsert(savedFeed) {}
-    computeScores(savedFeed)
+    val feed = upsert(savedFeed) {}
+    sumup(feed)
 }
 
 suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = null) {
@@ -528,7 +535,7 @@ suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = nu
         Logd(TAG, "Found new episode: ${episode.title}")
         episode.id = idLong++
         episode.feedId = savedFeed.id
-        if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(persist = false)
+        if (appPrefs.fetchmediaSizes && !savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(persist = false)
         if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
 
         Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
@@ -544,14 +551,9 @@ suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = nu
     savedFeed.lastUpdateTime = nowInMillis()
     savedFeed.type = newFeed.type
     savedFeed.lastUpdateFailed = false
-    savedFeed.totleDuration = 0
+    val feed = upsert(savedFeed) {}
 
-    val episodes = getEpisodes(null, null, feedId=savedFeed.id, copy = false)
-    savedFeed.episodesCount = episodes.size
-    for (e in episodes) savedFeed.totleDuration += e.duration
-
-    upsert(savedFeed) {}
-    computeScores(savedFeed)
+    sumup(feed)
 }
 
 // savedFeedId == 0L means saved feed
@@ -563,7 +565,9 @@ class FeedAssistant(val feed: Feed, savedFeedId: Long = 0L, isNew: Boolean = fal
         val iterator = if (isNew) feed.episodes.iterator() else getEpisodes(null, null, feedId=feed.id, copy = true).iterator()
         while (iterator.hasNext()) {
             val e = iterator.next()
+            Logd(TAG, "FeedAssistant init $tag ${e.title}")
             if (!e.identifier.isNullOrEmpty()) {
+                Logd(TAG, "FeedAssistant init $tag identifier ${e.identifier}")
                 if (map.containsKey(e.identifier!!)) {
                     Logd(TAG, "FeedAssistant init $tag identifier duplicate: ${e.identifier} ${e.title}")
                     map[e.identifier!!]!!.add(e)
@@ -571,6 +575,7 @@ class FeedAssistant(val feed: Feed, savedFeedId: Long = 0L, isNew: Boolean = fal
             }
             val idv = e.identifyingValue
             if (idv != e.identifier && !idv.isNullOrEmpty()) {
+                Logd(TAG, "FeedAssistant init $tag identifyingValue ${e.identifyingValue}")
                 if (map.containsKey(idv)) {
                     Logd(TAG, "FeedAssistant init $tag identifyingValue duplicate: $idv ${e.title}")
                     map[idv]!!.add(e)

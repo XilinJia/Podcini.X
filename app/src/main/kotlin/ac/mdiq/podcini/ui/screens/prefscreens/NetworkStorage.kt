@@ -307,8 +307,6 @@ fun NetworkStorageScreen() {
     val showImporSuccessDialog = remember { mutableStateOf(false) }
     ComfirmDialog(titleRes = R.string.successful_import_label, message = stringResource(R.string.import_ok), showDialog = showImporSuccessDialog, cancellable = false) { forceRestart() }
 
-    
-
     var showProgress by remember { mutableStateOf(false) }
     if (showProgress) {
         CommonPopupCard(onDismissRequest = { showProgress = false }) {
@@ -383,6 +381,9 @@ fun NetworkStorageScreen() {
             }
             Text(stringResource(R.string.feed_refresh_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
             if (refreshInterval != "0") Text(stringResource(R.string.feed_next_refresh_time) + " " + nextRefreshTime, color = textColor, style = MaterialTheme.typography.bodySmall)
+        }
+        TitleSummarySwitchRow(R.string.pref_fetch_media_size, R.string.pref_fetch_media_size_sum, appPrefs.fetchmediaSizes) {
+            upsertBlk(appPrefs) { p-> p.fetchmediaSizes = it}
         }
         TitleSummarySwitchRow(R.string.pref_watch_storage_title, R.string.pref_watch_storage_sum, appPrefs.checkAvailableSpace) {
             upsertBlk(appPrefs) { p-> p.checkAvailableSpace = it}

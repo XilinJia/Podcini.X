@@ -266,10 +266,10 @@ class Feed : RealmObject {
                 volumeId < -1L -> false
                 else -> {
                     var vid = volumeId
-                    var v = volumes.firstOrNull { it.id == vid }
+                    var v = allVolumes.firstOrNull { it.id == vid }
                     while (v != null && v.parentId != -1L) {
                         vid = v.parentId
-                        v = volumes.firstOrNull { it.id == vid }
+                        v = allVolumes.firstOrNull { it.id == vid }
                     }
                     v != null && v.id > 0L
                 }
@@ -532,6 +532,7 @@ class Feed : RealmObject {
         if (id != other.id) return false
         if (volumeId != other.volumeId) return false
         if (useEpisodeImage != other.useEpisodeImage) return false
+        if (episodesCount != other.episodesCount) return false
         if (score != other.score) return false
         if (scoreCount != other.scoreCount) return false
         if (scoreUpdated != other.scoreUpdated) return false
@@ -610,6 +611,7 @@ class Feed : RealmObject {
         var result = id.hashCode()
         result = 31 * result + volumeId.hashCode()
         result = 31 * result + useEpisodeImage.hashCode()
+        result = 31 * result + episodesCount
         result = 31 * result + score
         result = 31 * result + scoreCount
         result = 31 * result + scoreUpdated.hashCode()

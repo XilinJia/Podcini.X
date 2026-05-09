@@ -1,6 +1,20 @@
+# 11.1.8
+
+* improved episode file format detection
+* fixed local feed full update resulting in empty feed
+* corrected summing and updating of episodes count and total duration of a feed after refresh
+* update episodes count and total duration of feeds when episodes are erased
+* in Library
+	* refresh feeds in a normal volume updates the feeds regardless (after confirmation)
+	* "counts" is changed to "sort value"
+* improved/corrected fetch episode size
+* turned off fetch media size on refresh 
+* added setting "Fetch media sizes on refresh" in Settings->Network Storage
+* some dependencies update
+
 # 11.1.7
 
-* amended header handling when importing local feed, separating off/flac from mp3
+* amended header handling when importing local feed, separating ogg/flac from mp3
 * fixed failure importing single local feed
 * fixed failure importing local feed when error occurred retrieving ogg meta data
 * when identifying local feed with title, also ensure on same volume

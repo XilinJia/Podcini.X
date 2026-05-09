@@ -1,0 +1,8 @@
+* improved episode file format detection
+* fixed local feed full update resulting in empty feed
+* corrected summing and updating of episodes count and total duration of a feed after refresh
+* update episodes count and total duration of feeds when episodes are erased
+* in Library refresh feeds in a normal volume updates the feeds regardless
+* improved/corrected fetch episode size
+* turned off fetch media size on refresh
+* added setting "Fetch media sizes on refresh" in Settings->Network Storage

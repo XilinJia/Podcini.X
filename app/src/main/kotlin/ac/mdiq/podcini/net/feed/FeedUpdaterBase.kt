@@ -76,7 +76,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     suspend fun startRefresh() {
-        Logd(TAG, "startRefresh doItAnyway: $doItAnyway")
+        Logd(TAG, "startRefresh doItAnyway: $doItAnyway feeds: ${feeds.size}")
         val ready = prepare()
         if (!ready) {
             Loge(TAG, "startRefresh but not ready")
@@ -114,6 +114,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
 
     suspend fun prepare(): Boolean {
         withContext(Dispatchers.Main) { feedOperationText = context.getString(R.string.preparing) }
+        Logd(TAG, "prepare feeds: ${feeds.size}")
         if (feeds.isEmpty()) {
             val feedIds = appAttribs.feedIdsToRefresh
             if (feedIds.isNotEmpty()) {
@@ -124,14 +125,17 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             feedsToUpdate = feeds.filter { it.inNormalVolume }.toMutableList()
             force = true
         }
-        val itr = feedsToUpdate.iterator()
-        while (itr.hasNext()) {
-            val feed = itr.next()
-            if (!feed.keepUpdated && !doItAnyway) {
-                LogFor(TAG, feed, true, "feed set not to update, igored.", toastAnyway = true)
-                if (feed.autoEnqueue) feedsToOnlyEnqueue.add(feed)
-                else if (feed.autoDownload) feedsToOnlyDownload.add(feed)
-                itr.remove()
+        Logd(TAG, "prepare feedsToUpdate: ${feedsToUpdate.size}")
+        if (!doItAnyway) {
+            val itr = feedsToUpdate.iterator()
+            while (itr.hasNext()) {
+                val feed = itr.next()
+                if (!feed.keepUpdated) {
+                    LogFor(TAG, feed, true, "feed set not to update, igored.", toastAnyway = true)
+                    if (feed.autoEnqueue) feedsToOnlyEnqueue.add(feed)
+                    else if (feed.autoDownload) feedsToOnlyDownload.add(feed)
+                    itr.remove()
+                }
             }
         }
 //        withContext(Dispatchers.Main) { feedOperationText = "" }

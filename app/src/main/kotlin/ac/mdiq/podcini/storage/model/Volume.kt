@@ -35,6 +35,22 @@ class Volume : RealmObject {
     var isLocal: Boolean = false
 
     @Ignore
+    val isNormal: Boolean
+        get() = when {
+            id == -1L -> true
+            id < -1L -> false
+            else -> {
+                var vid = id
+                var v = allVolumes.firstOrNull { it.id == vid }
+                while (v != null && v.parentId != -1L) {
+                    vid = v.parentId
+                    v = allVolumes.firstOrNull { it.id == vid }
+                }
+                v != null && v.id > 0L
+            }
+        }
+
+    @Ignore
     val directChildrenCount: Int
         get() = (realm.query(Feed::class, "volumeId == $id").count().find() + realm.query(Volume::class, "parentId == $id").count().find()).toInt()
 
@@ -88,7 +104,7 @@ const val CATALOG_VOLUME_ID_START = -20L
 const val ARCHIVED_VOLUME_ID = -10L
 const val FROZEN_VOLUME_ID = -5L
 
-var volumes = listOf<Volume>()
+var allVolumes = listOf<Volume>()
 private var volumeMonitorJob: Job? = null
 fun cancelMonitorVolumes() {
     volumeMonitorJob?.cancel()
@@ -98,11 +114,11 @@ fun cancelMonitorVolumes() {
 fun monitorVolumes() {
     if (volumeMonitorJob != null) return
 
-    val feedQuery = realm.query(Volume::class)
+    val volumeQuery = realm.query(Volume::class)
     volumeMonitorJob = CoroutineScope(Dispatchers.IO).launch {
-        feedQuery.asFlow().collect { changes: ResultsChange<Volume> ->
-            volumes = changes.list
-            Logd(TAG, "monitorVolumes volumes size: ${volumes.size}")
+        volumeQuery.asFlow().collect { changes: ResultsChange<Volume> ->
+            allVolumes = changes.list
+            Logd(TAG, "monitorVolumes volumes size: ${allVolumes.size}")
             when (changes) {
                 is UpdatedResults -> {
                     when {

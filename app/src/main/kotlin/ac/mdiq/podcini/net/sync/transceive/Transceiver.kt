@@ -17,7 +17,7 @@ import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.model.toBasicDTO
 import ac.mdiq.podcini.storage.model.toDTO
 import ac.mdiq.podcini.storage.model.toRealm
-import ac.mdiq.podcini.storage.model.volumes
+import ac.mdiq.podcini.storage.model.allVolumes
 import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.utils.Logd
@@ -449,12 +449,12 @@ class CatalogReceiver(port: Int, val onEnd: ()->Unit): Receiver(port) {
                     val json = bytes.decodeToString()
                     val pkg = Json.decodeFromString<CatalogPackage>(json)
 
-                    var v = volumes.find { it.originId == pkg.senderUID }
+                    var v = allVolumes.find { it.originId == pkg.senderUID }
                     if (v == null) {
                         v = Volume()
                         var id = CATALOG_VOLUME_ID_START-1
                         while (true) {
-                            val v0 = volumes.find { it.id == id }
+                            val v0 = allVolumes.find { it.id == id }
                             if (v0 == null) break
                             id--
                         }

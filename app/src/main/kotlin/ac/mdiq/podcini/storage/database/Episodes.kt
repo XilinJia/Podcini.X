@@ -180,7 +180,9 @@ suspend fun eraseEpisodes(episodes: List<Episode>, msg: String = "") {
     for (e in episodes) if (e.feed?.isLocalFeed != true) deleteMedia(e)
     removeFromAllQueues(episodes)
     Logd(TAG, "eraseEpisodes deleting episodes: ${episodes.size}")
+    val feeds = allFeeds.filter { it.id in episodes.map { e-> e.feedId } }
     realm.write { for (e in episodes) findLatest(e)?.let { delete(it) } }
+    for (f in feeds) sumup(f)
     EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
 }
 
