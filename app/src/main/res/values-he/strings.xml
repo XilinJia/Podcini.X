@@ -483,6 +483,8 @@
     <string name="pref_automatic_download_sum">Configure the automatic download of episodes</string>
     <string name="pref_automatic_download_on_battery_title">Download when not charging</string>
     <string name="pref_automatic_download_on_battery_sum">Allow automatic download when the battery is not charging</string>
+    <string name="pref_fetch_media_size">Fetch media sizes on refresh</string>
+    <string name="pref_fetch_media_size_sum">Fetch remote media size involves extra network queries. It\'s not performed for feeds set for streaming. Enable this for feeds set to be downloaded.</string>
     <string name="pref_watch_storage_title">Watch available space</string>
     <string name="pref_watch_storage_sum">Specifies if available space is ensured at download time. If you don\'t have a tight storage, this is better set to false.</string>
     <string name="pref_autodl_queue_empty_title">Launch when queue gets empty</string>
