@@ -851,7 +851,7 @@ fun LibraryScreen() {
                                         Logt(TAG, "Loading from root folder: $rootUri")
                                         uri = rootUri!!
                                     }
-                                    loadLocalFolder(uri, vm.curVolume!!.allFeeds)
+                                    loadLocalFolder(uri, vm.curVolume!!.allFeeds.filter { it.isLocal })
                                 }
                             } else runOnceOrAsk(vm.curVolume!!.allFeeds, fullUpdate = true, doItWanyway = vm.curVolume!!.isNormal, removeUnlisted = true)
                         }
