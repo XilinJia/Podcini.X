@@ -408,12 +408,12 @@ class Download() : EpisodeAction() {
     override val iconRes:  Int = R.drawable.ic_download
     override val color: Color = Color(0xFF55FF00)
 
-    override fun enabled(): Boolean = onEpisode?.downloaded == false && onEpisode?.feed != null && !onEpisode!!.feed!!.isLocalFeed
+    override fun enabled(): Boolean = onEpisode?.downloaded == false && onEpisode?.feed != null && !onEpisode!!.feed!!.isLocal
 
 
     override fun performAction(e: Episode) {
         super.performAction(e)
-        if (!e.downloaded && e.feed != null && !e.feed!!.isLocalFeed) ActionButton(e, ButtonTypes.DOWNLOAD).onClick()
+        if (!e.downloaded && e.feed != null && !e.feed!!.isLocal) ActionButton(e, ButtonTypes.DOWNLOAD).onClick()
     }
 }
 
@@ -451,7 +451,7 @@ class Delete() : EpisodeAction() {
     override fun performAction(e: Episode) {
         var item_ = e
         super.performAction(e)
-        if (!item_.downloaded && item_.feed?.isLocalFeed != true) return
+        if (!item_.downloaded && item_.feed?.isLocal != true) return
         runOnIOScope {
             val almostEnded = item_.hasAlmostEnded()
             if (almostEnded) {

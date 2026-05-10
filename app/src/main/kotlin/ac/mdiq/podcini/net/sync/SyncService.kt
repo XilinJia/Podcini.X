@@ -118,7 +118,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
             val result: MutableList<String> = mutableListOf()
             for (f in allFeeds) {
                 val url = f.downloadUrl
-                if (url != null && !url.startsWith(Feed.PREFIX_LOCAL_FOLDER)) result.add(url)
+                if (!url.isNullOrBlank() && !f.isLocal) result.add(url)
             }
             return result
         }
@@ -177,7 +177,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         var feedID: Long? = null
         for (f in allFeeds) {
             val url = f.downloadUrl
-            if (url != null && !url.startsWith(Feed.PREFIX_LOCAL_FOLDER)) feedID = f.id
+            if (!url.isNullOrBlank() && !f.isLocal) feedID = f.id
         }
         if (feedID != null) {
             try { runBlocking { deleteFeed(feedID) }

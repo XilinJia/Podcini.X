@@ -117,7 +117,7 @@ class DownloadRequest private constructor(
         constructor(destination: String, feed: Feed) {
             this.destination = destination
             this.source = when {
-                feed.isLocalFeed -> feed.downloadUrl
+                feed.isLocal -> feed.downloadUrl
                 feed.downloadUrl != null -> NetworkUtils.prepareUrl(feed.downloadUrl!!)
                 else -> null
             }

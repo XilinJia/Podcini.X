@@ -4,7 +4,6 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.Feed.Companion.PREFIX_LOCAL_FOLDER
 import ac.mdiq.podcini.utils.Logd
 
 class FeedFilter(vararg properties_: String) {
@@ -44,8 +43,8 @@ class FeedFilter(vararg properties_: String) {
             properties.contains(States.no_video.name) -> statements.add(" hasVideoMedia == false ")
         }
         when {
-            properties.contains(States.is_local.name) -> statements.add(" downloadUrl BEGINSWITH[c] \"$PREFIX_LOCAL_FOLDER\" ")
-            properties.contains(States.remote.name) -> statements.add(" downloadUrl == nil OR !(downloadUrl BEGINSWITH[c] \"$PREFIX_LOCAL_FOLDER\") ")
+            properties.contains(States.is_local.name) -> statements.add(" isLocal == true ")
+            properties.contains(States.remote.name) -> statements.add(" downloadUrl == nil OR isLocal == false ")
         }
         gearbox.feedFilter(properties, statements)
 

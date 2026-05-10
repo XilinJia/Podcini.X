@@ -348,7 +348,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
             ButtonTypes.PAUSE -> {
                 type = when {
                     item.feed?.prefActionType != null -> ButtonTypes.valueOf(item.feed!!.prefActionType!!)
-                    item.feed?.isLocalFeed == true -> ButtonTypes.PLAY_LOCAL
+                    item.feed?.isLocal == true -> ButtonTypes.PLAY_LOCAL
                     item.downloaded -> {
                         if (item.feed?.prefActionType != null && item.feed!!.prefActionType!! in playActions.map { it.name }) ButtonTypes.valueOf(item.feed!!.prefActionType!!)
                         else ButtonTypes.PLAY
@@ -360,10 +360,10 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
             else -> {
                 // TODO: ensure TTS
                 //        val media = item.media ?: return TTSActionButton(item)
-                //        Logd("ItemActionButton", "forItem: local feed: ${item.feed?.isLocalFeed} downloaded: ${item.downloaded} playing: ${isCurrentlyPlaying(item)}  ${item.title} ")
+                //        Logd("ItemActionButton", "forItem: local feed: ${item.feed?.isLocal} downloaded: ${item.downloaded} playing: ${isCurrentlyPlaying(item)}  ${item.title} ")
                 type = when {
                     isCurrentlyPlaying(item) -> ButtonTypes.PAUSE
-                    item.feed?.isLocalFeed == true -> ButtonTypes.PLAY_LOCAL
+                    item.feed?.isLocal == true -> ButtonTypes.PLAY_LOCAL
                     item.downloaded -> ButtonTypes.PLAY
                     else -> undownloadedType()
                 }

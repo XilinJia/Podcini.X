@@ -50,7 +50,7 @@ class OpmlBackupAgent : BackupAgentHelper() {
                 val file = getOpmlFile()
 
                 try { // Write OPML
-                    OpmlTransporter.OpmlWriter().writeDocument(getFeedList("NOT (downloadUrl BEGINSWITH '${Feed.Companion.PREFIX_LOCAL_FOLDER}')"), file) // Compare checksum of new and old file to see if we need to perform a backup at all
+                    OpmlTransporter.OpmlWriter().writeDocument(getFeedList("isLocal == false"), file) // Compare checksum of new and old file to see if we need to perform a backup at all
                     val newChecksum = digester.digest()
                     Logd(TAG, "New checksum: " + BigInteger(1, newChecksum).toString(16)) // Get the old checksum
                     if (oldState != null) {

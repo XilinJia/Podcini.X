@@ -1155,7 +1155,7 @@ fun FeedsSettingsScreen() {
             }
 
             //                    authentication
-            if ((feedToSet.id > 0 && !feedToSet.isLocalFeed) || feedsToSet.size > 1) {
+            if ((feedToSet.id > 0 && !feedToSet.isLocal) || feedsToSet.size > 1) {
                 Column {
                     Row(Modifier.fillMaxWidth()) {
                         val showDialog = remember { mutableStateOf(false) }
@@ -1172,7 +1172,7 @@ fun FeedsSettingsScreen() {
                                     Button(onClick = {
                                         if (newName.isNotEmpty() && oldName != newName) {
                                             runOnIOScope {
-                                                realm.write { for (f in feedsToSet) { if (!f.isLocalFeed) findLatest(f)?.let {
+                                                realm.write { for (f in feedsToSet) { if (!f.isLocal) findLatest(f)?.let {
                                                     it.username = newName
                                                     it.password = newPW
                                                 } } }

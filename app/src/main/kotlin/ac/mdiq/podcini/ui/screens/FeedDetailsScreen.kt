@@ -267,7 +267,10 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         runOnIOScope {
             try {
                 if (feed != null) {
-                    val feed_ = upsert(feed!!) { it.downloadUrl = Feed.PREFIX_LOCAL_FOLDER + uri.toString() }
+                    val feed_ = upsert(feed!!) {
+                        it.downloadUrl = uri.toString()
+                        it.isLocal = true
+                    }
                     updateFeedFull(feed_, removeUnlistedItems = true)
                 }
                 Logt(TAG, "Folder $uri connected " + context.getString(R.string.OK))
@@ -454,7 +457,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                     showToDeviceDialog = true
                                     expanded = false
                                 })
-                                if (feed?.isLocalFeed == true) DropdownMenuItem(text = { Text(stringResource(R.string.reconnect_local_folder)) }, onClick = {
+                                if (feed?.isLocal == true) DropdownMenuItem(text = { Text(stringResource(R.string.reconnect_local_folder)) }, onClick = {
                                     showConnectLocalFolderConfirm.value = true
                                     expanded = false
                                 })
@@ -676,7 +679,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 val actionButtonName = remember(feed?.prefActionType, feed?.downloadUrl) {
                     when {
                         feed == null -> null
-                        feed?.isLocalFeed == true -> ButtonTypes.PLAY.name
+                        feed?.isLocal == true -> ButtonTypes.PLAY.name
                         feed?.prefActionType != null -> feed!!.prefActionType!!
                         feed?.downloadUrl == null -> null
                         gearbox.isGearFeed(feed!!.downloadUrl!!) -> ButtonTypes.STREAM.name

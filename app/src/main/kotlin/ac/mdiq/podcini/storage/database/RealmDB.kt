@@ -33,6 +33,7 @@ import io.github.xilinjia.krdb.RealmConfiguration
 import io.github.xilinjia.krdb.UpdatePolicy
 import io.github.xilinjia.krdb.dynamic.DynamicMutableRealmObject
 import io.github.xilinjia.krdb.dynamic.DynamicRealmObject
+import io.github.xilinjia.krdb.dynamic.getNullableValue
 import io.github.xilinjia.krdb.dynamic.getValue
 import io.github.xilinjia.krdb.ext.isManaged
 import io.github.xilinjia.krdb.notifications.InitialObject
@@ -79,7 +80,7 @@ val config: RealmConfiguration by lazy {
         FacetsPrefs::class,
         SleepPrefs::class,
         SyncPrefs::class,
-    )).name("Podcini.realm").schemaVersion(142)
+    )).name("Podcini.realm").schemaVersion(147)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -119,7 +120,7 @@ val config: RealmConfiguration by lazy {
             }
             if (oldRealm.schemaVersion() < 85) {
                 Log.d(TAG, "migrating DB from below 85")
-                val feedsOld = oldRealm.query("Feed").find()
+                val feedsOld = oldRealm.query("Feed").find().toList()
                 for (f in feedsOld) {
                     val id = f.getValue<Long>("id")
                     val fNew = newRealm.query("Feed", "id == $id").first().find() ?: continue
@@ -138,7 +139,7 @@ val config: RealmConfiguration by lazy {
             }
             if (oldRealm.schemaVersion() < 106) {
                 Log.d(TAG, "migrating DB from below 106")
-                val feeds = newRealm.query("Feed").find()
+                val feeds = newRealm.query("Feed").find().toList()
                 for (f in feeds) {
                     val id = f.getValue<Long>("id")
                     val count = newRealm.query("Episode").query("feedId == $id").count().find()
@@ -162,7 +163,7 @@ val config: RealmConfiguration by lazy {
             }
             if (oldRealm.schemaVersion() < 111) {
                 Log.d(TAG, "migrating DB from below 111")
-                val episodes = newRealm.query("Episode").query("playState == ${EpisodeState.FOREVER.code}").find()
+                val episodes = newRealm.query("Episode").query("playState == ${EpisodeState.FOREVER.code}").find().toList()
                 for (e in episodes) {
                     e.set("repeatInterval", (8.64e7 * 10).toLong())
                     val t = nowInMillis() + (8.64e7 * (10..100).random()).toLong()
@@ -204,6 +205,30 @@ val config: RealmConfiguration by lazy {
                 Log.d(TAG, "migrating DB from below 129")
                 val prefsNew = newRealm.query("AppPrefs").first().find()
                 prefsNew?.set("clipsMoved", false)
+            }
+            if (oldRealm.schemaVersion() < 147) {
+                Log.d(TAG, "migrating DB from below 147")
+                val junk = "podcini_generative_cover:"
+                var feeds = newRealm.query("Feed", "imageUrl BEGINSWITH $0", junk).find().toList()
+                var count = 0
+                for (f in feeds) {
+                    val imgUrl = f.getNullableValue<String>("imageUrl") ?: continue
+                    val imgUrlNew = imgUrl.replace(junk, "")
+                    f.set("imageUrl", imgUrlNew)
+                    count++
+                }
+                Logd(TAG, "updated imageUrl for $count feeds")
+                val junk1 = "podcini_local:"
+                var feeds1 = newRealm.query("Feed","downloadUrl BEGINSWITH $0", junk1).find().toList()
+                count = 0
+                for (f in feeds1) {
+                    val url = f.getNullableValue<String>("downloadUrl") ?: continue
+                    val urlNew = url.replace(junk1, "")
+                    f.set("downloadUrl", urlNew)
+                    f.set("isLocal", true)
+                    count++
+                }
+                Logd(TAG, "updated downloadUrl for $count feeds")
             }
         }).build()
 }

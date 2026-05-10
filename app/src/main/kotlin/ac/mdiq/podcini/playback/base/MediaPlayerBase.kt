@@ -325,7 +325,7 @@ abstract class MediaPlayerBase {
             return
         }
         val media = curEpisode!!
-        val needStreaming = media.feed?.isLocalFeed != true && media.fileUrl.isNullOrBlank()
+        val needStreaming = media.feed?.isLocal != true && media.fileUrl.isNullOrBlank()
         if (needStreaming && !isStreamingCapable(media)) return
         prepareMedia(playable = media, streaming = needStreaming, startWhenPrepared = true, prepareImmediately = true, forceReset = true, doPostPlayback = false)
     }
@@ -725,7 +725,7 @@ abstract class MediaPlayerBase {
                     Logd(TAG, "endPlayback useRingTone: ${appPrefs.useRingTone} ringToneUriString: ${appPrefs.ringToneUriString}")
                     if (appPrefs.useRingTone && !appPrefs.ringToneUriString.isNullOrBlank() && (nextMedia.feed?.audioType !=  AudioType.MUSIC.code || !appPrefs.disableRingToneOnMusic)) playChime()
 
-                    val needStreaming = (nextMedia.feed?.isLocalFeed != true && nextMedia.fileUrl.isNullOrBlank())
+                    val needStreaming = (nextMedia.feed?.isLocal != true && nextMedia.fileUrl.isNullOrBlank())
                     if (needStreaming) {
                         if (!isStreamingCapable(nextMedia)) {
                             if (currentMedia != null) onPostPlayback(currentMedia, hasEnded, wasSkipped, false)

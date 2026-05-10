@@ -23,7 +23,6 @@ import ac.mdiq.podcini.storage.utils.UnifiedFile
 import ac.mdiq.podcini.storage.utils.getMimeType
 import ac.mdiq.podcini.storage.utils.parseDate
 import ac.mdiq.podcini.storage.utils.peekFileFormat
-import ac.mdiq.podcini.storage.utils.persistedTrees
 import ac.mdiq.podcini.storage.utils.toAndroidUri
 import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.storage.utils.toUF
@@ -34,7 +33,6 @@ import ac.mdiq.podcini.utils.LogsFor
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.LogtFor
 import ac.mdiq.podcini.utils.parsePatternTimestampToMillis
-import android.content.Intent
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.DocumentsContract
@@ -42,72 +40,84 @@ import kotlinx.io.IOException
 import okio.buffer
 import kotlin.use
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 private const val TAG = "LocalFeeds"
 
-fun addLocalFolder(uri: Uri) {
-    val context = getAppContext()
-    context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-    runOnIOScope {
-        try {
-            persistedTrees.add(uri)
-            val file = uri.toUF()
-            val feeds = mutableListOf<Feed>()
-            val volumes = mutableListOf<Volume>()
+suspend fun loadLocalFolder(uri: Uri, feedsExist: List<Feed> = listOf()) {
+    try {
+        for (f in feedsExist) {
+            Logd(TAG, "loadLocalFolder check for feed: ${f.title}")
+            if (f.downloadUrl.isNullOrBlank()) {
+                LogFor(TAG, f, false, "downloadUrl is null or empty")
+                continue
+            }
+            if (f.downloadUrl!!.startsWith("podcini_local:")) Logd(TAG, "loadLocalFolder invalid url: ${f.title} ${f.downloadUrl}")
+            val folder = f.downloadUrl!!.toUF()
+            if (!folder.exists()) {
+                Logt(TAG, "loadLocalFolder feed folder not exists, deleting: ${f.title}")
+                deleteFeed(f.id)
+            }
+        }
 
-            suspend fun traverseDirectory(directory: UnifiedFile?, parentId: Long = -1) {
-                if (directory == null || !directory.isDirectory()) return
+        val file = uri.toUF()
+        val feeds = mutableListOf<Feed>()
+        val volumes = mutableListOf<Volume>()
 
-                val content = directory.listChildren()
-                val filesInThisDir = content.filter { !it.isDirectory() }
+        val context = getAppContext()
 
-                if (filesInThisDir.isNotEmpty()) {
-                    Logd(TAG,"addLocalFolder Found files in folder: ${directory.toAndroidUri()}")
-                    val uri = directory.toAndroidUri()
-                    val title = directory.name
-                    val dirFeed = Feed(Feed.PREFIX_LOCAL_FOLDER + uri.toString(), null, title)
-                    val fExist = feedByIdentityOrID(dirFeed)
-                    if (fExist == null) {
-                        dirFeed.volumeId = parentId
-                        dirFeed.episodeSortOrder = EpisodeSortOrder.EPISODE_TITLE_ASC
-                        dirFeed.keepUpdated = false
-                        dirFeed.autoDownload = false
-                        dirFeed.description = context.getString(R.string.local_feed_description)
-                        dirFeed.author = context.getString(R.string.local_folder)
-                        addNewFeed(dirFeed)
-                        feeds.add(dirFeed)
-                    } else Logt(TAG, "addLocalFolder local feed already exists: $title $uri")
-                }
+        suspend fun traverseDirectory(directory: UnifiedFile?, parentId: Long = -1) {
+            if (directory == null || !directory.isDirectory()) return
 
-                val subDirsInThisDir = content.filter { it.isDirectory() }
-                if (subDirsInThisDir.isNotEmpty()) {
-                    val v: Volume
-                    val vExist = realm.query(Volume::class).query("uriString == $0", directory.absPath).first().find()
-                    if (vExist == null) {
-                        v = Volume()
-                        v.id = getId()
-                        v.name = directory.name
-                        v.uriString = directory.absPath
-                        v.parentId = parentId
-                        v.isLocal = true
-                        volumes.add(v)
-                        Logd(TAG, "addLocalFolder Created volume: ${v.name} $parentId")
-                    } else v = realm.copyFromRealm(vExist)
-                    for (subDir in subDirsInThisDir) traverseDirectory(subDir, v.id)
-                }
+            val content = directory.listChildren()
+            val filesInThisDir = content.filter { !it.isDirectory() }
+
+            if (filesInThisDir.isNotEmpty()) {
+                Logd(TAG,"loadLocalFolder Found files in folder: ${directory.toAndroidUri()}")
+                val uri = directory.toAndroidUri()
+                val title = directory.name
+                val dirFeed = Feed(uri.toString(), null, title)
+                dirFeed.isLocal = true
+                dirFeed.volumeId = parentId
+                val fExist = feedByIdentityOrID(dirFeed)
+                if (fExist == null) {
+                    dirFeed.episodeSortOrder = EpisodeSortOrder.EPISODE_TITLE_ASC
+                    dirFeed.keepUpdated = false
+                    dirFeed.autoDownload = false
+                    dirFeed.description = context.getString(R.string.local_feed_description)
+                    dirFeed.author = context.getString(R.string.local_folder)
+                    addNewFeed(dirFeed)
+                    feeds.add(dirFeed)
+                } else Logt(TAG, "loadLocalFolder local feed already exists: $title $uri")
             }
 
-            traverseDirectory(file)
-
-            if (volumes.isNotEmpty()) {
-                allVolumes += volumes
-                realm.write { for (v in volumes) copyToRealm(v) }
+            val subDirsInThisDir = content.filter { it.isDirectory() }
+            if (subDirsInThisDir.isNotEmpty()) {
+                val v: Volume
+                val vExist = realm.query(Volume::class).query("uriString == $0", directory.absPath).first().find()
+                if (vExist == null) {
+                    v = Volume()
+                    v.id = getId()
+                    v.name = directory.name
+                    v.uriString = directory.absPath
+                    v.parentId = parentId
+                    v.isLocal = true
+                    volumes.add(v)
+                    Logd(TAG, "loadLocalFolder Created volume: ${v.name} $parentId")
+                } else v = realm.copyFromRealm(vExist)
+                for (subDir in subDirsInThisDir) traverseDirectory(subDir, v.id)
             }
-            if (feeds.isNotEmpty()) gearbox.feedUpdater(feeds, doItAnyway = true).startRefresh()
-            Logt(TAG, "addLocalFolder Imported ${feeds.size} local feeds in ${volumes.size} volumes")
-        } catch (e: Throwable) { Logs(TAG, e, e.localizedMessage?: "No messaage") }
-    }
+        }
+
+        traverseDirectory(file)
+
+        if (volumes.isNotEmpty()) {
+            allVolumes += volumes
+            realm.write { for (v in volumes) copyToRealm(v) }
+        }
+        if (feeds.isNotEmpty()) gearbox.feedUpdater(feeds, doItAnyway = true).startRefresh()
+        Logt(TAG, "loadLocalFolder Imported ${feeds.size} local feeds in ${volumes.size} volumes")
+        for (f in allFeeds) Logd(TAG, "loadLocalFolder feed: ${f.id} ${f.title} episodesCount: ${f.episodesCount}")
+    } catch (e: Throwable) { Logs(TAG, e, e.localizedMessage?: "No messaage") }
 }
 
 @OptIn(ExperimentalUuidApi::class)
@@ -115,18 +125,16 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
     data class DocFile(val name: String, val type: String, val uri: Uri, val length: Long, val lastModified: Long)
 
     fun getImageUrl(files: List<DocFile>, folderUri: Uri): String {
-        val PREFERRED_FEED_IMAGE_FILENAMES: Array<String> = arrayOf("folder.jpg", "Folder.jpg", "folder.png", "Folder.png")
-        for (iconLocation in PREFERRED_FEED_IMAGE_FILENAMES) {
+        for (iconLocation in arrayOf("folder.jpg", "Folder.jpg", "folder.png", "Folder.png")) {
             for (file in files) if (iconLocation == file.name) return file.uri.toString()
         }
         for (file in files) {
             val mime = file.type
             if (mime.startsWith("image/jpeg") || mime.startsWith("image/png")) return file.uri.toString()
         }
-        return Feed.PREFIX_GENERATIVE_COVER + folderUri
+        return folderUri.toString()
     }
     fun createEpisode(feed: Feed, file: DocFile): Episode {
-//        val item = Episode(0L, file.name, Uuid.random().toString(), file.name, file.lastModified, EpisodeState.UNPLAYED.code, feed)
         val item = Episode(0L, file.name, null, file.name, file.lastModified, EpisodeState.UNPLAYED.code, feed)
         item.isAutoDownloadEnabled = false
         val size = file.length
@@ -185,6 +193,7 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
             item.setDescriptionIfLonger(e.message) }
         return item
     }
+
     val allFiles = mutableListOf<DocFile>()
     fun traverseAll(uri: Uri, docId: String? = null) {
         Logd(TAG, "traverseAll uri: $uri docId: $docId")
@@ -223,7 +232,7 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
         LogFor(TAG, feed, false, "downloadUrl is null or empty")
         return
     }
-    val uriString = feed.downloadUrl!!.replace(Feed.PREFIX_LOCAL_FOLDER, "")
+    val uriString = feed.downloadUrl!!
     val documentFolder = uriString.toUF()
     if (!documentFolder.exists()) throw IOException("Cannot read local directory. Try re-connecting the folder on the podcast info page.")
 
@@ -276,9 +285,10 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
         val lastDownloadResult = downloadResults[downloadResults.size - 1]
         return !lastDownloadResult.isSuccessful
     }
-
-    if (mustReportDownloadSuccessful(feed)) {
-        logDownloadResult(DownloadResult(feed, DownloadError.SUCCESS, true, ""))
-        upsert(feed) { it.lastUpdateFailed = false }
+    getFeed(feed.id)?.let { f->
+        if (mustReportDownloadSuccessful(f)) {
+            logDownloadResult(DownloadResult(f, DownloadError.SUCCESS, true, ""))
+            upsert(f) { it.lastUpdateFailed = false }
+        }
     }
 }

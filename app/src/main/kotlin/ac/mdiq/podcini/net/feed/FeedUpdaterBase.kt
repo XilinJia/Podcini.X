@@ -84,7 +84,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
         }
         val allLocalFeeds = run {
             for (f in feeds) {
-                if (!f.isLocalFeed) {
+                if (!f.isLocal) {
                     Logd(TAG, "startRefresh feed is not local: ${f.title}")
                     return@run false
                 }
@@ -155,9 +155,9 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
                 notificationManager.notify(R.id.notification_updating_feeds, createNotification(titles))
                 val feed = unmanaged(feedsToUpdate[i++])
                 try {
-                    Logd(TAG, "doWork updating local feed? ${feed.isLocalFeed} ${feed.title}")
+                    Logd(TAG, "doWork updating local feed? ${feed.isLocal} ${feed.title}")
                     when {
-                        feed.isLocalFeed -> updateLocalFeed(feed, null)
+                        feed.isLocal -> updateLocalFeed(feed, null)
                         else -> refreshFeed(feed)
                     }
                 } catch (e: Exception) { onFail(feed, "refreshFeeds: update failed ${feed.title} ${e.message}") }
@@ -214,7 +214,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
                 Logd(TAG,  "refreshFeed Parsed ${feedToParse.title}")
                 if (feedToParse.title.isNullOrBlank()) throw InvalidFeedException("Feed has no title")
                 for (item in feedToParse.episodes) if (item.title.isNullOrBlank()) LogFor(TAG, feedToParse, true, "episode ${item.id} title is empty", toastAnyway = true)
-                if (feedToParse.imageUrl.isNullOrEmpty()) feedToParse.imageUrl = Feed.PREFIX_GENERATIVE_COVER + feedToParse.downloadUrl
+                if (feedToParse.imageUrl.isNullOrEmpty()) feedToParse.imageUrl = feedToParse.downloadUrl
             } catch (e: SAXException) {
                 isSuccessful = false
                 Logs(TAG, e, "SAXException")

@@ -235,7 +235,7 @@ suspend fun removeFromAllQueues(episodes: Collection<Episode>, playState: Episod
 }
 
 internal suspend fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, playState: EpisodeState? = null) {
-    Logd(TAG, "removeFromQueue called ${queue_?.name}")
+//    Logd(TAG, "removeFromQueue called ${queue_?.name}")
     val queue = queue_ ?: actQueue
     if (queue.size() == 0) {
         queue.checkAndFill()

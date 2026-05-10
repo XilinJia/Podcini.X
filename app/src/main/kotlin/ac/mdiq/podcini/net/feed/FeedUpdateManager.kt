@@ -151,7 +151,7 @@ object FeedUpdateManager {
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .addTag(WORK_TAG_FEED_UPDATE)
         if (feeds.isEmpty()) workRequest.setConstraints(Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-        // TODO: need to handle: !feed.isLocalFeed
+        // TODO: need to handle: !feed.isLocal
 
         val builder = Data.Builder()
         builder.putBoolean(EXTRA_FULL_UPDATE, fullUpdate)
@@ -169,7 +169,7 @@ object FeedUpdateManager {
         val context = getAppContext()
         Logd(TAG, "Run auto update immediately in background.")
         when {
-//            feeds.isNotEmpty() && feed.isLocalFeed -> runOnce(context, feeds, fullUpdate = fullUpdate)    // TODO
+//            feeds.isNotEmpty() && feed.isLocal -> runOnce(context, feeds, fullUpdate = fullUpdate)    // TODO
             !networkMonitor.isConnected -> EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.download_error_no_connection)))
             isFeedRefreshAllowed -> runOnce(feeds, fullUpdate = fullUpdate, doItWanyway = doItWanyway)
             else -> {

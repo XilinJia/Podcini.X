@@ -482,7 +482,7 @@ class Episode : RealmObject {
         return chapters.size - 1
     }
 
-    fun suitableForDownload(): Boolean = !downloadUrl.isNullOrEmpty() && !isDownloaded() && feed?.isLocalFeed != true
+    fun suitableForDownload(): Boolean = !downloadUrl.isNullOrEmpty() && !isDownloaded() && feed?.isLocal != true
 
     //    fun checkEmbeddedPicture(persist: Boolean = true) {
 //        if (!localFileAvailable()) hasEmbeddedPicture = false

@@ -604,7 +604,7 @@ fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futur
                                     var item_ = upsert(e) { it.setPlayState(state, hasAlmostEnded) }
                                     when (state) {
                                         EpisodeState.UNPLAYED -> {
-                                            if (isProviderConnected && item_.feed?.isLocalFeed != true) {
+                                            if (isProviderConnected && item_.feed?.isLocal != true) {
                                                 val actionNew: EpisodeAction = EpisodeAction.Builder(item_, EpisodeAction.NEW).currentTimestamp().build()
                                                 SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(actionNew)
                                             }
@@ -616,7 +616,7 @@ fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futur
                                                 item_ = deleteMedia(item_)
                                                 if (appPrefs.deleteRemovesFromQueue) removeFromAllQueues(listOf(item_))
                                             } else if (appPrefs.removeFromQueueMarkPlayed) removeFromAllQueues(listOf(item_))
-                                            if (item_.feed?.isLocalFeed != true && (isProviderConnected || wifiSyncEnabledKey)) { // not all items have media, Gpodder only cares about those that do
+                                            if (item_.feed?.isLocal != true && (isProviderConnected || wifiSyncEnabledKey)) { // not all items have media, Gpodder only cares about those that do
                                                 if (isProviderConnected) {
                                                     val actionPlay: EpisodeAction = EpisodeAction.Builder(item_, EpisodeAction.PLAY).currentTimestamp().started(item_.duration / 1000).position(item_.duration / 1000).total(item_.duration / 1000).build()
                                                     SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(actionPlay)

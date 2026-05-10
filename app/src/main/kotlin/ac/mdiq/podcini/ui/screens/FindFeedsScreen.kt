@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.ui.screens
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.OpmlBackupAgent.Companion.performRestore
 import ac.mdiq.podcini.config.settings.OpmlTransporter
@@ -11,15 +12,17 @@ import ac.mdiq.podcini.net.feed.PodcastIndexPodcastSearcher
 import ac.mdiq.podcini.net.feed.PodcastSearchResult
 import ac.mdiq.podcini.net.feed.PodcastSearcher
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
-import ac.mdiq.podcini.storage.database.addLocalFolder
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.feedCount
+import ac.mdiq.podcini.storage.database.loadLocalFolder
+import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.SearchHistorySize
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.storage.utils.AddLocalFolder
+import ac.mdiq.podcini.storage.utils.persistedTrees
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
@@ -30,6 +33,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -216,7 +220,9 @@ fun FindFeedsScreen() {
     }
     val addLocalFolderLauncher = rememberLauncherForActivityResult(AddLocalFolder()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
-        addLocalFolder(uri)
+        getAppContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        persistedTrees.add(uri)
+        runOnIOScope { loadLocalFolder(uri) }
     }
 
     if (vm.showOpmlImportSelectionDialog) OpmlImportSelectionDialog(vm.readElements) { vm.showOpmlImportSelectionDialog = false }

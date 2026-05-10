@@ -347,7 +347,7 @@ class FacetsVM(modeName_: String): ViewModel() {
                 val en = iterator.next()
                 if (en.key == null) continue
                 val f = getFeed(en.key!!) ?: continue
-                if (f.isLocalFeed) iterator.remove()
+                if (f.isLocal) iterator.remove()
             }
             for (fid in feMap.keys) {
                 val el = feMap[fid] ?: continue

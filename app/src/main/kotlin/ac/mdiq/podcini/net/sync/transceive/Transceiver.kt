@@ -489,7 +489,7 @@ class CatalogReceiver(port: Int, val onEnd: ()->Unit): Receiver(port) {
 fun sendCatalog(host: String, port: Int, onEnd: ()->Unit): Job {
     val feedsDTO = mutableListOf<FeedDTO>()
     for (f in allFeeds) {
-        if (!f.inNormalVolume || f.isSynthetic() || f.isLocalFeed) continue
+        if (!f.inNormalVolume || f.isSynthetic() || f.isLocal) continue
         feedsDTO.add(f.toDTO())
     }
     val pack = CatalogPackage(appAttribs.name, appAttribs.uniqueId, feedsDTO)

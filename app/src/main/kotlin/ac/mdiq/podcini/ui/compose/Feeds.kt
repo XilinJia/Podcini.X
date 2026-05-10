@@ -113,7 +113,7 @@ fun ChooseRatingDialog(selected: List<Feed>, onDismissRequest: () -> Unit) {
 @Composable
 fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: ()->Unit) {
     val message = if (feeds.size == 1) {
-        if (feeds[0].isLocalFeed) stringResource(R.string.feed_delete_confirmation_local_msg, feeds[0].title?:"No title")
+        if (feeds[0].isLocal) stringResource(R.string.feed_delete_confirmation_local_msg, feeds[0].title?:"No title")
         else stringResource(R.string.feed_delete_confirmation_msg, feeds[0].title?:"No title")
     } else stringResource(R.string.feed_delete_confirmation_msg_batch)
     

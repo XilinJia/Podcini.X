@@ -736,7 +736,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                     realm.write {
                                         for (e_ in selected) {
                                             val e = findLatest(e_)
-                                            if (e == null || (!e.downloaded && e.feed?.isLocalFeed != true)) continue
+                                            if (e == null || (!e.downloaded && e.feed?.isLocal != true)) continue
                                             val almostEnded = e.hasAlmostEnded()
                                             if (almostEnded) {
                                                 if (e.playState < EpisodeState.PLAYED.code) e.setPlayState(EpisodeState.PLAYED)

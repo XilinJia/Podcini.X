@@ -64,7 +64,7 @@ class AutoDownloadAlgorithm {
             val autoDownloadableCount = candidates.size
             if (toReplace.isNotEmpty()) {
                 for (episode in toReplace) {
-                    if (episode.feed != null && !episode.feed!!.isLocalFeed) {
+                    if (episode.feed != null && !episode.feed!!.isLocal) {
                         EpisodeAdrDLManager.manager?.cancel(episode)
                         if (episode.downloaded) deleteMedia(episode)
                     }
@@ -117,8 +117,8 @@ private suspend fun assembleCandidates(feeds_: List<Feed>?, candidates: MutableS
     val feeds = (feeds_ ?: allFeeds).filter { it.inNormalVolume }
     val eIdsAllQueues = realm.query(QueueEntry::class).query("queueId != $VIRTUAL_QUEUE_ID").find().map { it.episodeId }.toSet()
     feeds.forEach { f ->
-        Logd(TAG, "assembleFeedsCandidates: autoDL: ${f.autoDownload} autoEQ: ${f.autoEnqueue} isLocal: ${f.isLocalFeed} ${f.title}")
-        if (((dl && f.autoDownload) || (!dl && f.autoEnqueue)) && !f.isLocalFeed) {
+        Logd(TAG, "assembleFeedsCandidates: autoDL: ${f.autoDownload} autoEQ: ${f.autoEnqueue} isLocal: ${f.isLocal} ${f.title}")
+        if (((dl && f.autoDownload) || (!dl && f.autoEnqueue)) && !f.isLocal) {
             val dlFilter = if (dl) {
                 if (f.countingPlayed) EpisodeFilter(EpisodeFilter.States.downloaded.name)
                 else EpisodeFilter(EpisodeFilter.States.downloaded.name,
@@ -248,14 +248,14 @@ private suspend fun assembleCandidates(feeds_: List<Feed>?, candidates: MutableS
                         val qStr = f.autoDownloadFilter!!.queryExcludeString()
                         if (qStr.isNotBlank()) {
                             while (true) {
-                                val eExc = query(Episode::class, "feedId == ${f.id} AND playState == ${EpisodeState.NEW.code} LIMIT(20)").find()
+                                val eExc = query(Episode::class, "feedId == ${f.id} AND playState == ${EpisodeState.NEW.code} LIMIT(20)").find().toList()
                                 if (eExc.isEmpty()) break
                                 eExc.forEach { it.setPlayState(EpisodeState.PLAYED) }
                             }
                         }
                     }
                     while (true) {
-                        val episodesNew = query(Episode::class, "feedId == ${f.id} AND playState == ${EpisodeState.NEW.code} LIMIT(20)").find()
+                        val episodesNew = query(Episode::class, "feedId == ${f.id} AND playState == ${EpisodeState.NEW.code} LIMIT(20)").find().toList()
                         if (episodesNew.isEmpty()) break
                         Logd(TAG, "run episodesNew: ${episodesNew.size}")
                         episodesNew.forEach { e-> e.setPlayState(EpisodeState.UNPLAYED) }

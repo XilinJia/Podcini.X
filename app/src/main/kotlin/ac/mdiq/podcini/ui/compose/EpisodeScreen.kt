@@ -205,7 +205,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
         actionButton = ActionButton(episode)
         actionButton?.type = when {
             InTheatre.isCurrentlyPlaying(episode) -> ButtonTypes.PAUSE
-            episodeFeed != null && episodeFeed.isLocalFeed -> ButtonTypes.PLAY_LOCAL
+            episodeFeed != null && episodeFeed.isLocal -> ButtonTypes.PLAY_LOCAL
             episode.downloaded -> ButtonTypes.PLAY
             !episode.downloadUrl.isNullOrBlank() -> ButtonTypes.STREAM
             else -> ButtonTypes.NULL

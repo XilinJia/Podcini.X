@@ -1,6 +1,17 @@
+# 11.1.9
+
+* fixed episodes count not persisted when importing local feeds
+* in Library
+	* fixed sort values not updating when changing volume
+	* volumes are sorted by name
+	* in a local volume, "Refresh full" reloads from the root folder of the original import
+		* new folders are added, and feeds nonexistent are removed
+		* moved folders are treated as new
+* property changes for local feeds, migration performed
+
 # 11.1.8
 
-* improved episode file format detection
+* improved episode media format detection
 * fixed local feed full update resulting in empty feed
 * corrected summing and updating of episodes count and total duration of a feed after refresh
 * update episodes count and total duration of feeds when episodes are erased

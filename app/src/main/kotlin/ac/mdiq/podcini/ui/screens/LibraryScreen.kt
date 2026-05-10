@@ -24,6 +24,7 @@ import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.getId
+import ac.mdiq.podcini.storage.database.loadLocalFolder
 import ac.mdiq.podcini.storage.database.queuesFlow
 import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
@@ -43,7 +44,9 @@ import ac.mdiq.podcini.storage.utils.AddLocalFolder
 import ac.mdiq.podcini.storage.utils.durationInHours
 import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.storage.utils.durationStringShort
+import ac.mdiq.podcini.storage.utils.findRootForUri
 import ac.mdiq.podcini.storage.utils.persistedTrees
+import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -224,7 +227,7 @@ class LibraryVM : ViewModel() {
     val subVolumesFlow: StateFlow<List<Volume>> = snapshotFlow { Pair(curVolume?.id, subPrefs.showArchived) }.flatMapLatest {
         val qStrArchive = if (curVolume == null) ( if (subPrefs.showArchived) "" else "AND id >= -1" ) else ""
         Logd(TAG, "getVolumesFlow qStrArchive: $qStrArchive")
-        val realmFlow = realm.query(Volume::class).query("parentId == ${curVolume?.id ?: -1L} $qStrArchive").asFlow()
+        val realmFlow = realm.query(Volume::class).query("parentId == ${curVolume?.id ?: -1L} $qStrArchive").sort("name").asFlow()
         realmFlow.map { it.list }
     }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
 
@@ -766,7 +769,7 @@ fun LibraryScreen() {
 
     BackHandler(enabled = handleBackSubScreens.contains(TAG)) { vm.curVolume = realm.query(Volume::class).query("id == ${vm.curVolume?.parentId ?: -1L}").first().find() }
 
-    LaunchedEffect(vm.subPrefs.sortIndex, feedOperationText) {
+    LaunchedEffect(vm.subPrefs.sortIndex, feedOperationText, feedList.size, vm.curVolume?.id) {
         Logd(TAG, "combine(feedsFlow, snapshotFlow {feedOperationText})")
         if (feedOperationText.isBlank()) when (vm.subPrefs.sortIndex) {
             FeedSortIndex.Feed.ordinal -> vm.preparePropertySort(feedList)
@@ -839,19 +842,33 @@ fun LibraryScreen() {
                     }
                     DropdownMenuItem(text = { Text(stringResource(R.string.full_refresh_label)) }, onClick = {
                         if (vm.curVolume == null) runOnceOrAsk(fullUpdate = true, removeUnlisted = true)
-                        else runOnceOrAsk(vm.curVolume!!.allFeeds, fullUpdate = true, doItWanyway = vm.curVolume!!.isNormal, removeUnlisted = true)
+                        else {
+                            if (vm.curVolume!!.isLocal) {
+                                runOnIOScope {
+                                    var uri = vm.curVolume!!.uriString.toSafeUri()
+                                    val rootUri =  findRootForUri(uri)
+                                    if (rootUri != null && uri != rootUri) {
+                                        Logt(TAG, "Loading from root folder: $rootUri")
+                                        uri = rootUri!!
+                                    }
+                                    loadLocalFolder(uri, vm.curVolume!!.allFeeds)
+                                }
+                            } else runOnceOrAsk(vm.curVolume!!.allFeeds, fullUpdate = true, doItWanyway = vm.curVolume!!.isNormal, removeUnlisted = true)
+                        }
                         expanded = false
                     })
-                    fun toggleArchived() {
-                        vm.subPrefs = upsertBlk(vm.subPrefs) { it.showArchived = !it.showArchived }
-                        expanded = false
-                    }
-                    if (!vm.isViewGarden) DropdownMenuItem(text = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(stringResource(R.string.show_archived))
-                            Checkbox(checked = vm.subPrefs.showArchived, onCheckedChange = { toggleArchived() })
+                    if (!vm.isViewGarden) {
+                        fun toggleArchived() {
+                            vm.subPrefs = upsertBlk(vm.subPrefs) { it.showArchived = !it.showArchived }
+                            expanded = false
                         }
-                    }, onClick = { toggleArchived() })
+                        DropdownMenuItem(text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(stringResource(R.string.show_archived))
+                                Checkbox(checked = vm.subPrefs.showArchived, onCheckedChange = { toggleArchived() })
+                            }
+                        }, onClick = { toggleArchived() })
+                    }
                 }
             }
         }
@@ -1978,6 +1995,7 @@ fun LibraryScreen() {
                             })) {
                                 Text(feed.title ?: "No title", color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.align(Alignment.TopStart))
                                 Row(modifier = Modifier.align(Alignment.BottomStart)) {
+//                                    Logd(TAG, "episodesCount: ${feed.id} ${feed.episodesCount} ${feed.totleDuration}")
                                     val measureString = remember(feed.episodesCount, feed.totleDuration) { formatWithGrouping(feed.episodesCount.toLong()) + " : " + durationInHours(feed.totleDuration/1000, false) }
                                     Text(measureString, color = textColor, style = MaterialTheme.typography.bodyMedium)
                                     Spacer(modifier = Modifier.weight(1f))

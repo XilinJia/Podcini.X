@@ -129,42 +129,19 @@ fun getFeed(feedId: Long, copy: Boolean = false): Feed? {
 }
 
 fun feedByIdentityOrID(feed: Feed, copy: Boolean = false): Feed? {
-    Logd(TAG, "searchFeedByIdentifyingValueOrID isLocal: ${feed.isLocalFeed}")
+    Logd(TAG, "feedByIdentityOrID isLocal: ${feed.isLocal} id: ${feed.id}")
     if (feed.id != 0L) return getFeed(feed.id, copy)
     val feedIdv = feed.identifyingValue
-    if (feed.isLocalFeed) {
+    if (feed.isLocal) {
         val f = allFeeds.firstOrNull { it.identifyingValue == feedIdv && it.volumeId == feed.volumeId }
+        Logd(TAG, "feedByIdentityOrID local feed: ${f?.title}")
         if (f != null) return if (copy) realm.copyFromRealm(f) else f
     } else {
         val f = allFeeds.firstOrNull { it.identifyingValue == feedIdv }
+        Logd(TAG, "feedByIdentityOrID remote feed: ${f?.title}")
         if (f != null) return if (copy) realm.copyFromRealm(f) else f
     }
     return null
-}
-
-suspend fun computeScores(f: Feed) {
-    val cTime = nowInMillis()
-    if (cTime - f.scoreUpdated < DAY_MIL) return
-    val upCount = realm.query(Episode::class).query("feedId == $0 AND (ratingTime > $1 OR playStateSetTime > $1)", f.id, f.scoreUpdated).count().find()
-    if (upCount == 0L || (upCount < 4L && cTime - f.scoreUpdated < FOUR_DAY_MIL)) return
-    val episodes = realm.query(Episode::class).query("feedId == ${f.id}").find()
-    if (episodes.isNotEmpty()) {
-        var sumR = 0.0
-        var scoreCount = 0
-        for (e in episodes) {
-            if (e.playState >= EpisodeState.PROGRESS.code) {
-                scoreCount++
-                if (e.rating != Rating.UNRATED.code) sumR += e.rating
-                if (e.playState >= EpisodeState.SKIPPED.code) sumR += - 0.5 + 1.0 * e.playedDuration / e.duration
-                else if (e.playState in listOf(EpisodeState.AGAIN.code, EpisodeState.FOREVER.code)) sumR += 0.5
-            }
-        }
-        upsert(f) {
-            it.scoreCount = scoreCount
-            it.score = if (scoreCount > 0) (100 * sumR / scoreCount / Rating.SUPER.code).toInt() else -1000
-            it.scoreUpdated = cTime
-        }
-    }
 }
 
 fun addNewFeed(feed: Feed) {
@@ -186,7 +163,7 @@ fun addNewFeed(feed: Feed) {
         feed.episodesCount = feed.episodes.size
         copyToRealm(feed)
     }
-    if (!feed.isLocalFeed && feed.downloadUrl != null) SynchronizationQueueSink.enqueueFeedAddedIfSyncActive(feed.downloadUrl!!)
+    if (!feed.isLocal && feed.downloadUrl != null) SynchronizationQueueSink.enqueueFeedAddedIfSyncActive(feed.downloadUrl!!)
     BackupManager(getAppContext()).dataChanged()
 }
 
@@ -210,12 +187,12 @@ suspend fun deleteFeed(feedId: Long, preserve: Boolean = false) {
                 } else  delete(it)
             }
         }
-        if (!feed.isLocalFeed && feed.downloadUrl != null) SynchronizationQueueSink.enqueueFeedRemovedIfSyncActive(feed.downloadUrl!!)
+        if (!feed.isLocal && feed.downloadUrl != null) SynchronizationQueueSink.enqueueFeedRemovedIfSyncActive(feed.downloadUrl!!)
         BackupManager(getAppContext()).dataChanged()
     }
 }
 
-fun allowForAutoDelete(feed: Feed): Boolean = appPrefs.autoDelete && (!feed.isLocalFeed || appPrefs.autoDeleteLocal)
+fun allowForAutoDelete(feed: Feed): Boolean = appPrefs.autoDelete && (!feed.isLocal || appPrefs.autoDeleteLocal)
 
 suspend fun shelveToFeed(episodes: List<Episode>, toFeed: Feed, removeChecked: Boolean = false) {
     val toFeedEpisodes = getEpisodes(null, null, feedId=toFeed.id, copy = false)
@@ -354,14 +331,31 @@ private suspend fun trimEpisodes(feed_: Feed): Int {
 suspend fun sumup(feed_: Feed) {
     var feed = feed_
     val episodes = getEpisodes(null, null, feedId=feed.id, copy = false)
+    Logd(TAG, "sumup feed: ${feed.title} episodes: ${episodes.size}")
     var durTotal = 0L
-    for (e in episodes) durTotal += e.duration
+    val cTime = nowInMillis()
+    val upCount = realm.query(Episode::class).query("feedId == $0 AND (ratingTime > $1 OR playStateSetTime > $1)", feed.id, feed.scoreUpdated).count().find()
+    val skipScore = (cTime - feed.scoreUpdated < DAY_MIL) || (upCount == 0L || (upCount < 4L && cTime - feed.scoreUpdated < FOUR_DAY_MIL))
+    var sumR = 0.0
+    var scoreCount = 0
+    for (e in episodes) {
+        durTotal += e.duration
+        if (skipScore) continue
+        if (e.playState >= EpisodeState.PROGRESS.code) {
+            scoreCount++
+            if (e.rating != Rating.UNRATED.code) sumR += e.rating
+            if (e.playState >= EpisodeState.SKIPPED.code) sumR += - 0.5 + 1.0 * e.playedDuration / e.duration
+            else if (e.playState in listOf(EpisodeState.AGAIN.code, EpisodeState.FOREVER.code)) sumR += 0.5
+        }
+    }
     feed = upsert(feed) {
         it.episodesCount = episodes.size
         it.totleDuration = durTotal
+        it.scoreCount = scoreCount
+        it.score = if (scoreCount > 0) (100 * sumR / scoreCount / Rating.SUPER.code).toInt() else -1000
+        it.scoreUpdated = cTime
     }
-    Logd(TAG, "saveAndUpdate episodesCount: ${feed.episodesCount} ${feed.totleDuration}")
-    computeScores(feed)
+    Logd(TAG, "sumup ${feed.id} episodesCount: ${feed.episodesCount} ${feed.totleDuration}")
 }
 
 /**
@@ -380,7 +374,7 @@ suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, 
     //        showStackTrace()
 
     Logd(TAG, "updateFeedFull newFeed id: ${newFeed.id} episodes: ${newFeed.episodes.size}")
-    Logd(TAG, "updateFeedFull newFeed isLocal: ${newFeed.isLocalFeed} volumeId: ${newFeed.volumeId}")
+    Logd(TAG, "updateFeedFull newFeed isLocal: ${newFeed.isLocal} volumeId: ${newFeed.volumeId}")
     // Look up feed in the feedslist
     val savedFeed = feedByIdentityOrID(newFeed, true)
     if (savedFeed == null) {
@@ -401,7 +395,7 @@ suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, 
         Logd(TAG, "updateFeedFull New feed has a higher page number: ${newFeed.nextPageLink}")
         savedFeed.nextPageLink = newFeed.nextPageLink
     }
-    Logd(TAG, "updateFeedFull savedFeed.isLocalFeed: ${savedFeed.isLocalFeed} savedFeed.prefStreamOverDownload: ${savedFeed.prefStreamOverDownload}")
+    Logd(TAG, "updateFeedFull savedFeed.isLocal: ${savedFeed.isLocal} savedFeed.prefStreamOverDownload: ${savedFeed.prefStreamOverDownload}")
     val priorMostRecent = realm.query(Episode::class).query("feedId == ${savedFeed.id} SORT (pubDate DESC)").first().find()
     val priorMostRecentDate = priorMostRecent?.pubDate
     var idLong = getId()
@@ -419,7 +413,7 @@ suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, 
                 Loge(TAG, "found duplicate episodes in feed: ${savedFeed.title}")
                 for (e in oldItems) Loge(TAG, "duplicate episode: ${e.title}")
             }
-            if (!newFeed.isLocalFeed) {
+            if (!newFeed.isLocal) {
                 //            Logd(TAG, "updateFeedFull Update existing episode: ${episode.title}")
                 oldItems[0].identifier = episode.identifier
                 // queue for syncing with server
@@ -441,7 +435,7 @@ suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, 
             nNew++
             episode.id = idLong++
             episode.feedId = savedFeed.id
-            if (appPrefs.fetchmediaSizes && !savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(false)
+            if (appPrefs.fetchmediaSizes && !savedFeed.isLocal && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(false)
             if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
             savedFeedAssistant.addidvToMap(episode)
             val pubDate = episode.pubDate
@@ -535,7 +529,7 @@ suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = nu
         Logd(TAG, "Found new episode: ${episode.title}")
         episode.id = idLong++
         episode.feedId = savedFeed.id
-        if (appPrefs.fetchmediaSizes && !savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(persist = false)
+        if (appPrefs.fetchmediaSizes && !savedFeed.isLocal && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(persist = false)
         if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
 
         Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
@@ -565,7 +559,7 @@ class FeedAssistant(val feed: Feed, savedFeedId: Long = 0L, isNew: Boolean = fal
         val iterator = if (isNew) feed.episodes.iterator() else getEpisodes(null, null, feedId=feed.id, copy = true).iterator()
         while (iterator.hasNext()) {
             val e = iterator.next()
-            Logd(TAG, "FeedAssistant init $tag ${e.title}")
+//            Logd(TAG, "FeedAssistant init $tag ${e.title}")
             if (!e.identifier.isNullOrEmpty()) {
                 Logd(TAG, "FeedAssistant init $tag identifier ${e.identifier}")
                 if (map.containsKey(e.identifier!!)) {
@@ -575,7 +569,7 @@ class FeedAssistant(val feed: Feed, savedFeedId: Long = 0L, isNew: Boolean = fal
             }
             val idv = e.identifyingValue
             if (idv != e.identifier && !idv.isNullOrEmpty()) {
-                Logd(TAG, "FeedAssistant init $tag identifyingValue ${e.identifyingValue}")
+//                Logd(TAG, "FeedAssistant init $tag identifyingValue ${e.identifyingValue}")
                 if (map.containsKey(idv)) {
                     Logd(TAG, "FeedAssistant init $tag identifyingValue duplicate: $idv ${e.title}")
                     map[idv]!!.add(e)

@@ -125,9 +125,11 @@ class Feed : RealmObject {
         private set
     var payment_link: String? = null
 
-    @Ignore
-    val isLocalFeed: Boolean
-        get() = downloadUrl?.startsWith(PREFIX_LOCAL_FOLDER) == true
+    var isLocal: Boolean = false
+//
+//    @Ignore
+//    val isLocalFeed: Boolean
+//        get() = downloadUrl?.startsWith(PREFIX_LOCAL_FOLDER) == true
 
     // ============ filters and sorts    ==========================
     @Ignore
@@ -417,7 +419,6 @@ class Feed : RealmObject {
      */
     constructor(url: String?, lastUpdate: String?, title: String? = null, username: String? = null, password: String? = null) {
         this.lastUpdate = lastUpdate
-//        fileUrl = null
         this.downloadUrl = url
         this.eigenTitle = title
         fillPreferences(false, AutoDeleteAction.GLOBAL, VolumeAdaptionSetting.OFF, username, password)
@@ -741,8 +742,8 @@ class Feed : RealmObject {
     companion object {
         private val TAG: String = Feed::class.simpleName ?: "Anonymous"
 
-        const val PREFIX_LOCAL_FOLDER: String = "podcini_local:"
-        const val PREFIX_GENERATIVE_COVER: String = "podcini_generative_cover:"
+//        const val PREFIX_LOCAL_FOLDER: String = "podcini_local:"
+//        const val PREFIX_GENERATIVE_COVER: String = "podcini_generative_cover:"
 
         const val MAX_NATURAL_SYNTHETIC_ID: Long = 100L
         const val MAX_SYNTHETIC_ID: Long = 1000L

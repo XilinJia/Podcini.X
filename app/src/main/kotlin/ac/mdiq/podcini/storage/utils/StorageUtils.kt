@@ -279,9 +279,10 @@ class ContentUriFile(
     fun findSavedRoot(): Uri? {
         Logd(TAG, "findSavedRoot uri: $uri")
         if (tempRoottree != null && uri.toString().startsWith(tempRoottree.toString())) return tempRoottree
-
         persistedTrees.forEach { Logd(TAG, "saved root: $it") }
-        return persistedTrees.find { uri.toString().startsWith(it.toString()) }
+        val targetTreeId = DocumentsContract.getTreeDocumentId(uri)
+        return persistedTrees.find { DocumentsContract.getTreeDocumentId(it) == targetTreeId }
+//        return persistedTrees.find { uri.toString().startsWith(it.toString()) }
     }
 
     override val name: String

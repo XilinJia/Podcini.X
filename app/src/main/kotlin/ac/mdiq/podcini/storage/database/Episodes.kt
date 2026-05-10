@@ -110,7 +110,7 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
     val repeatItems: MutableList<Episode> = mutableListOf()
     suspend fun deleteItems(items_: List<Episode>) {
         for (episode in items_) {
-            if (episode.feed != null && !episode.feed!!.isLocalFeed) {
+            if (episode.feed != null && !episode.feed!!.isLocal) {
                 EpisodeAdrDLManager.manager?.cancel(episode)
                 if (episode.downloaded) deleteMedia(episode)
             }
@@ -119,7 +119,7 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
     }
     for (item in items) {
         var toConfirm = false
-        if (item.feed?.isLocalFeed == true) {
+        if (item.feed?.isLocal == true) {
             localItems.add(item)
             toConfirm = true
         }
@@ -177,7 +177,7 @@ suspend fun eraseEpisodes(episodes: List<Episode>, msg: String = "") {
             copyToRealm(sLog)
         }
     }
-    for (e in episodes) if (e.feed?.isLocalFeed != true) deleteMedia(e)
+    for (e in episodes) if (e.feed?.isLocal != true) deleteMedia(e)
     removeFromAllQueues(episodes)
     Logd(TAG, "eraseEpisodes deleting episodes: ${episodes.size}")
     val feeds = allFeeds.filter { it.id in episodes.map { e-> e.feedId } }
