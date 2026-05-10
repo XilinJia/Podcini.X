@@ -217,7 +217,7 @@ val config: RealmConfiguration by lazy {
                     f.set("imageUrl", imgUrlNew)
                     count++
                 }
-                Logd(TAG, "updated imageUrl for $count feeds")
+                Log.d(TAG, "updated imageUrl for $count feeds")
                 val junk1 = "podcini_local:"
                 var feeds1 = newRealm.query("Feed","downloadUrl BEGINSWITH $0", junk1).find().toList()
                 count = 0
@@ -228,7 +228,7 @@ val config: RealmConfiguration by lazy {
                     f.set("isLocal", true)
                     count++
                 }
-                Logd(TAG, "updated downloadUrl for $count feeds")
+                Log.d(TAG, "updated downloadUrl for $count feeds")
             }
         }).build()
 }
