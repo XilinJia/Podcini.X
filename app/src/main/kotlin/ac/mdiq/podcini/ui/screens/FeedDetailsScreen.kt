@@ -481,11 +481,11 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                     expanded = false
                                 })
                                 DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
-                                    runOnIOScope { gearbox.feedUpdater(listOf(feed!!), doItAnyway = true).startRefresh() }
+                                    runOnIOScope { gearbox.feedUpdater(listOf(feed!!), doItAnyway = true).start() }
                                     expanded = false
                                 })
                                 DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
-                                    runOnIOScope { gearbox.feedUpdater(listOf(feed!!), fullUpdate = true, doItAnyway = true, removeUnlisted = true).startRefresh() }
+                                    runOnIOScope { gearbox.feedUpdater(listOf(feed!!), fullUpdate = true, doItAnyway = true, removeUnlisted = true).start() }
                                     expanded = false
                                 })
                                 DropdownMenuItem(text = { Text(stringResource(R.string.remove_feed_label)) }, onClick = {

@@ -47,8 +47,7 @@ class SleepManager {
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     /**
-     * Starts a new sleep timer with the given waiting time. If another sleep timer is already active, it will be
-     * cancelled first.
+     * Starts a new sleep timer with the given waiting time. If another sleep timer is already active, it will be cancelled first.
      * After waitingTime has elapsed, onSleepTimerExpired() will be called.
      * @throws java.lang.IllegalArgumentException if waitingTime <= 0
      */
@@ -77,9 +76,6 @@ class SleepManager {
         }
     }
 
-    /**
-     * Sleeps for a given time and then pauses playback.
-     */
     inner class SleepTimer(private val waitingTime: Long) {
         var timeLeft = waitingTime
         private var hasVibrated = false
@@ -201,13 +197,5 @@ class SleepManager {
 
         val autoEnableTo: Int
             get() = sleepPrefs.AutoEnableTo.takeIf { it != 0 } ?: 6
-
-        fun isInTimeRange(from: Int, to: Int, current: Int): Boolean {
-            return when {
-                from < to -> current in from..<to   // Range covers one day
-                from <= current -> true     // Range covers two days
-                else -> current < to
-            }
-        }
     }
 }

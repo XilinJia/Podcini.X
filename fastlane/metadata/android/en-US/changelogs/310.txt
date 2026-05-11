@@ -1,0 +1,6 @@
+* fixed feed scores being reset
+* fixed sleep timer setting to previous time
+* in Player
+	* added listener for streaming issues
+	* unified DataSourceFactory
+	* shortened read timeout

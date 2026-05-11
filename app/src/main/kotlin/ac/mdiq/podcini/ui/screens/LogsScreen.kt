@@ -413,7 +413,7 @@ fun LogsScreen() {
                                             Loge(TAG, "Could not find feed for feed id: " + status.feedfileId)
                                             return@clickable
                                         }
-                                        runOnIOScope { gearbox.feedUpdater(listOf(feed)).startRefresh() }
+                                        runOnIOScope { gearbox.feedUpdater(listOf(feed)).start() }
                                     }
                                     RequestTye.FEEDMEDIA.ordinal -> {
                                         showAction = false

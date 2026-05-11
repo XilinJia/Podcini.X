@@ -75,27 +75,23 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    suspend fun startRefresh() {
-        Logd(TAG, "startRefresh doItAnyway: $doItAnyway feeds: ${feeds.size}")
-        val ready = prepare()
-        if (!ready) {
-            Loge(TAG, "startRefresh but not ready")
-            return
-        }
+    suspend fun start() {
+        Logd(TAG, "start doItAnyway: $doItAnyway feeds: ${feeds.size}")
+        prepare()
         val allLocalFeeds = run {
             for (f in feeds) {
                 if (!f.isLocal) {
-                    Logd(TAG, "startRefresh feed is not local: ${f.title}")
+                    Logd(TAG, "start feed is not local: ${f.title}")
                     return@run false
                 }
             }
             true
         }
-        Logd(TAG, "startRefresh allLocalFeeds: $allLocalFeeds")
+        Logd(TAG, "start allLocalFeeds: $allLocalFeeds")
         when {
-            allLocalFeeds -> scope.launch { doWork() }
+            allLocalFeeds -> scope.launch { refresh() }
             !networkMonitor.isConnected -> EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.download_error_no_connection)))
-            isFeedRefreshAllowed -> scope.launch { doWork() }
+            isFeedRefreshAllowed -> scope.launch { refresh() }
             else -> {
                 commonConfirm = CommonConfirmAttrib(
                     title = context.getString(R.string.feed_refresh_title),
@@ -103,16 +99,16 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
                     confirmRes = R.string.confirm_mobile_streaming_button_once,
                     cancelRes = R.string.no,
                     neutralRes = R.string.confirm_mobile_streaming_button_always,
-                    onConfirm = { scope.launch { doWork() }  },
+                    onConfirm = { scope.launch { refresh() }  },
                     onNeutral = {
                         mobileAllowFeedRefresh = true
-                        scope.launch { doWork() }
+                        scope.launch { refresh() }
                     })
             }
         }
     }
 
-    suspend fun prepare(): Boolean {
+    suspend fun prepare() {
         withContext(Dispatchers.Main) { feedOperationText = context.getString(R.string.preparing) }
         Logd(TAG, "prepare feeds: ${feeds.size}")
         if (feeds.isEmpty()) {
@@ -138,54 +134,50 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
                 }
             }
         }
-//        withContext(Dispatchers.Main) { feedOperationText = "" }
-        return true
     }
 
-    suspend fun doWork(): Boolean {
-        Logd(TAG, "doWork feedsToUpdate: ${feedsToUpdate.size}")
+    suspend fun refresh() {
+        Logd(TAG, "refresh feedsToUpdate: ${feedsToUpdate.size}")
         withContext(Dispatchers.Main) { feedOperationText = context.getString(R.string.refreshing_label) }
-        if (Build.VERSION.SDK_INT >= 33 && ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
-            Loge(TAG, "doWork: require POST_NOTIFICATIONS permission")
-        else {
-            val titles = feedsToUpdate.map { it.title ?: "No title" }.toMutableList()
-            val feedIdsToRefresh = feedsToUpdate.map { it.id }.toMutableList()
-            var i = 0
-            while (i < feedsToUpdate.size) {
-                notificationManager.notify(R.id.notification_updating_feeds, createNotification(titles))
-                val feed = unmanaged(feedsToUpdate[i++])
-                try {
-                    Logd(TAG, "doWork updating local feed? ${feed.isLocal} ${feed.title}")
-                    when {
-                        feed.isLocal -> updateLocalFeed(feed, null)
-                        else -> refreshFeed(feed)
-                    }
-                } catch (e: Exception) { onFail(feed, "refreshFeeds: update failed ${feed.title} ${e.message}") }
-                titles.removeAt(0)
-                feedIdsToRefresh.removeAt(0)
-                upsertBlk(appAttribs) { it.feedIdsToRefresh = feedIdsToRefresh.toRealmSet() }
-            }
-            // TODO: not sure these need to be here
-            compileLanguages()
-            compileTags()
-
-            notificationManager.cancel(R.id.notification_updating_feeds)
-            withContext(Dispatchers.Main) { feedOperationText = context.getString(R.string.post_refreshing) }
-
-            try {
-                if (feedsToOnlyEnqueue.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyEnqueue)
-                if (feedsToOnlyDownload.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyDownload)
-                AutoEnqueueAlgorithm().run(feedsToUpdate)
-                if (appPrefs.enableAutoDl) AutoDownloadAlgorithm().run(feedsToUpdate)
-            } finally {
-                feedsToUpdate.clear()
-                feedsToOnlyEnqueue.clear()
-                feedsToOnlyDownload.clear()
-                withContext(Dispatchers.Main + NonCancellable) { feedOperationText = "" }
-            }
+        if (Build.VERSION.SDK_INT >= 33 && ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            Loge(TAG, "refresh: require POST_NOTIFICATIONS permission")
+            return
         }
+        val titles = feedsToUpdate.map { it.title ?: "No title" }.toMutableList()
+        val feedIdsToRefresh = feedsToUpdate.map { it.id }.toMutableList()
+        var i = 0
+        while (i < feedsToUpdate.size) {
+            notificationManager.notify(R.id.notification_updating_feeds, createNotification(titles))
+            val feed = unmanaged(feedsToUpdate[i++])
+            try {
+                Logd(TAG, "refresh updating local feed? ${feed.isLocal} ${feed.title}")
+                when {
+                    feed.isLocal -> updateLocalFeed(feed, null)
+                    else -> refreshFeed(feed)
+                }
+            } catch (e: Exception) { onFail(feed, "refresh: update failed ${feed.title} ${e.message}") }
+            titles.removeAt(0)
+            feedIdsToRefresh.removeAt(0)
+            upsertBlk(appAttribs) { it.feedIdsToRefresh = feedIdsToRefresh.toRealmSet() }
+        }
+        // TODO: not sure these need to be here
+        compileLanguages()
+        compileTags()
 
-        return true
+        notificationManager.cancel(R.id.notification_updating_feeds)
+        withContext(Dispatchers.Main) { feedOperationText = context.getString(R.string.post_refreshing) }
+
+        try {
+            if (feedsToOnlyEnqueue.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyEnqueue)
+            if (feedsToOnlyDownload.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyDownload)
+            AutoEnqueueAlgorithm().run(feedsToUpdate)
+            if (appPrefs.enableAutoDl) AutoDownloadAlgorithm().run(feedsToUpdate)
+        } finally {
+            feedsToUpdate.clear()
+            feedsToOnlyEnqueue.clear()
+            feedsToOnlyDownload.clear()
+            withContext(Dispatchers.Main + NonCancellable) { feedOperationText = "" }
+        }
     }
 
     open suspend fun refreshFeed(feed: Feed) {

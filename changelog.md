@@ -1,3 +1,13 @@
+# 11.1.10
+
+* fixed feed scores being reset
+* fixed sleep timer setting to previous time
+* in Player
+	* added listener for streaming issues
+	* unified DataSourceFactory
+	* shortened read timeout
+* some code refactoring
+
 # 11.1.9
 
 * fixed episodes count not persisted when importing local feeds

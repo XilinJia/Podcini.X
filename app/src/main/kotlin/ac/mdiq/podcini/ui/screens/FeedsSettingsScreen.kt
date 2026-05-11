@@ -1176,7 +1176,7 @@ fun FeedsSettingsScreen() {
                                                     it.username = newName
                                                     it.password = newPW
                                                 } } }
-                                                gearbox.feedUpdater(feedsToSet).startRefresh()
+                                                gearbox.feedUpdater(feedsToSet).start()
                                             }
                                             onDismiss()
                                         }
@@ -1212,7 +1212,7 @@ fun FeedsSettingsScreen() {
                                     TextButton(onClick = {
                                         runOnIOScope {
                                             feedToSet = upsert(feedToSet) { it.downloadUrl = url }
-                                            gearbox.feedUpdater(listOf(feedToSet)).startRefresh()
+                                            gearbox.feedUpdater(listOf(feedToSet)).start()
                                         }
                                         onDismiss()
                                     }) { Text("OK") }

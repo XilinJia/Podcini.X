@@ -9,7 +9,6 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.isCurMedia
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.autoEnableFrom
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.autoEnableTo
-import ac.mdiq.podcini.playback.base.SleepManager.Companion.isInTimeRange
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.lastTimerValue
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.service.PlaybackService
@@ -943,6 +942,13 @@ abstract class MediaPlayerBase {
                 // TODO: testing
 //                persistCurrentPosition(true, null, Episode.INVALID_TIME)
                 // set sleep timer if auto-enabled
+                fun isInTimeRange(from: Int, to: Int, current: Int): Boolean {
+                    return when {
+                        from < to -> current in from..<to
+                        from <= current -> true
+                        else -> current < to
+                    }
+                }
                 var autoEnableByTime = true
                 val fromSetting = autoEnableFrom
                 val toSetting = autoEnableTo

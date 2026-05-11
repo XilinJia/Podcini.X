@@ -239,20 +239,15 @@ object FeedUpdateManager {
                     return Result.success()
                 }
                 val updater = gearbox.feedUpdater(feeds, fullUpdate = fullUpdate, doItAnyway = doItAnyway, removeUnlisted = eraseUnlisted)
-                if (!updater.prepare()) {
-                    Loge(TAG, "updater prepare failed")
-                    if (isPeriodic) rescheduleUpdateTaskOnce()
-                    return Result.success()
-                }
+                updater.prepare()
                 if (!networkMonitor.isConnected) {
                     Loge(TAG, "Refresh not performed: network unavailable, will retry")
                     return Result.retry()
                 }
-                if (updater.doWork()) {
-                    Logd(TAG, "end of doWork, isPeriodic: $isPeriodic")
-                    if (isPeriodic) rescheduleUpdateTaskOnce()
-                    return Result.success()
-                } else return Result.success()
+                updater.refresh()
+                Logd(TAG, "end of doWork, isPeriodic: $isPeriodic")
+                if (isPeriodic) rescheduleUpdateTaskOnce()
+                return Result.success()
             } catch (e: Throwable) {
                 Logs(TAG, "Some errors occurred during refresh, will retry: ${e.message}")
                 if (isPeriodic) {

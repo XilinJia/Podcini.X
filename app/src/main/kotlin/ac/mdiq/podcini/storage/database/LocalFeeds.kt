@@ -114,7 +114,7 @@ suspend fun loadLocalFolder(uri: Uri, feedsExist: List<Feed> = listOf()) {
             allVolumes += volumes
             realm.write { for (v in volumes) copyToRealm(v) }
         }
-        if (feeds.isNotEmpty()) gearbox.feedUpdater(feeds, doItAnyway = true).startRefresh()
+        if (feeds.isNotEmpty()) gearbox.feedUpdater(feeds, doItAnyway = true).start()
         Logt(TAG, "loadLocalFolder Imported ${feeds.size} local feeds in ${volumes.size} volumes")
         for (f in allFeeds) Logd(TAG, "loadLocalFolder feed: ${f.id} ${f.title} episodesCount: ${f.episodesCount}")
     } catch (e: Throwable) { Logs(TAG, e, e.localizedMessage?: "No messaage") }
@@ -234,7 +234,7 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
     }
     val uriString = feed.downloadUrl!!
     val documentFolder = uriString.toUF()
-    if (!documentFolder.exists()) throw IOException("Cannot read local directory. Try re-connecting the folder on the podcast info page.")
+    if (!documentFolder.exists()) throw IOException("Cannot read local directory $uriString. \nTry re-connecting the folder on device")
 
     val folderUri = uriString.toSafeUri()
     traverseAll(folderUri)

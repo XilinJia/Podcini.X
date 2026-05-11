@@ -20,6 +20,7 @@ import okhttp3.Interceptor.Chain
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.OkHttpClient.Builder
+import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.Route
@@ -75,7 +76,7 @@ object OKHTTP {
         Logd(TAG, "Creating new instance of HTTP client")
         System.setProperty("http.maxConnections", MAX_CONNECTIONS.toString())
 
-        val builder = Builder()
+        val builder = Builder().retryOnConnectionFailure(true).connectTimeout(15, TimeUnit.SECONDS).readTimeout(5, TimeUnit.SECONDS)
         builder.interceptors().add(BasicAuthorizationInterceptor())
         builder.addNetworkInterceptor(UserAgentInterceptor())
 

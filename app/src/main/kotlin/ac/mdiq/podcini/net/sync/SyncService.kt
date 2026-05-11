@@ -141,7 +141,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
                     feed.episodes.clear()
                     updateFeedFull(feed, removeUnlistedItems = false)
                     val f = feedsMap[feed.id]
-                    if (f != null) gearbox.feedUpdater(listOf(f)).startRefresh()
+                    if (f != null) gearbox.feedUpdater(listOf(f)).start()
                 }
             }
 

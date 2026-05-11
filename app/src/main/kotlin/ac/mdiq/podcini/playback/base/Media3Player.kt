@@ -34,10 +34,11 @@ import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.LogeFor
 import ac.mdiq.podcini.utils.LogsFor
-import ac.mdiq.podcini.utils.LogtFor
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.LogtFor
 import ac.mdiq.podcini.utils.sendLocalBroadcast
 import ac.mdiq.podcini.utils.timeIt
 import android.content.ComponentName
@@ -45,7 +46,6 @@ import android.content.Context
 import android.content.Intent
 import android.media.RingtoneManager
 import android.media.audiofx.LoudnessEnhancer
-import android.os.Build
 import android.service.quicksettings.TileService
 import androidx.core.net.toUri
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -80,7 +80,6 @@ import androidx.media3.common.audio.BaseAudioProcessor
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
@@ -90,9 +89,12 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.SeekParameters
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.LoadEventInfo
+import androidx.media3.exoplayer.source.MediaLoadData
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
@@ -106,6 +108,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.io.IOException
 import kotlinx.serialization.json.Json
 import okio.Path.Companion.toOkioPath
 import okio.buffer
@@ -120,11 +123,11 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     private var mediaItem: MediaItem? = null
 
     private var exoplayerListener: Listener? = null
+    private var analyticsListener: AnalyticsListener? = null
+
     private var exoplayerOffloadListener: ExoPlayer.AudioOffloadListener? = null
     private var bufferingUpdateListener: ((Int) -> Unit)? = null
     private var loudnessEnhancer: LoudnessEnhancer? = null
-
-    private var httpDataSourceFactory:  OkHttpDataSource.Factory? = null
 
     private var trackSelector: DefaultTrackSelector? = null
 
@@ -180,7 +183,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     init {
         this.playerId = playerId
         timeIt("$TAG start of init")
-        if (httpDataSourceFactory == null) runOnIOScope { httpDataSourceFactory = OkHttpDataSource.Factory(getOKHttpClient() as okhttp3.Call.Factory).setUserAgent("Mozilla/5.0") }
+//        if (httpDataSourceFactory == null) runOnIOScope { httpDataSourceFactory = OkHttpDataSource.Factory(getOKHttpClient() as okhttp3.Call.Factory).setUserAgent("Mozilla/5.0") }
         if (exoPlayer == null) {
             exoplayerListener = object: Listener {
                 private var hasStarted = false
@@ -327,6 +330,24 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                 }
                 override fun onSleepingForOffloadChanged(isSleepingForOffload: Boolean) {
                     LogtFor(TAG, curEpisode?.id, "AudioOffloadListener CPU is sleeping for offload: $isSleepingForOffload")
+                }
+            }
+            analyticsListener = object: AnalyticsListener {
+                override fun onBandwidthEstimate(eventTime: AnalyticsListener.EventTime, totalLoadTimeMs: Int, totalBytesLoaded: Long, bitrateEstimate: Long) {
+                    Logt(TAG, "onBandwidthEstimate bitrate=${bitrateEstimate / 1000} kbps " + "bytes=$totalBytesLoaded " + "loadTime=$totalLoadTimeMs")
+                }
+                override fun onPlaybackStateChanged(eventTime: AnalyticsListener.EventTime, state: Int) {
+                    val s = when (state) {
+                        STATE_IDLE -> "IDLE"
+                        STATE_BUFFERING -> "BUFFERING"
+                        STATE_READY -> "READY"
+                        STATE_ENDED -> "ENDED"
+                        else -> "$state"
+                    }
+                    Logd(TAG, "onPlaybackStateChanged $s")
+                }
+                override fun onLoadError(eventTime: AnalyticsListener.EventTime, loadEventInfo: LoadEventInfo, mediaLoadData: MediaLoadData, error: IOException, wasCanceled: Boolean) {
+                    Loge(TAG, "onLoadError load error: ${error.message}")
                 }
             }
             createNativePlayer()
@@ -489,6 +510,10 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             castPlayer?.removeListener(exoplayerListener!!)
             castPlayer?.addListener(exoplayerListener!!)
         }
+        if (analyticsListener != null) {
+            exoPlayer?.removeAnalyticsListener(analyticsListener!!)
+            exoPlayer?.addAnalyticsListener(analyticsListener!!)
+        }
         if (exoplayerOffloadListener != null) {
             exoPlayer?.removeAudioOffloadListener(exoplayerOffloadListener!!)
             exoPlayer?.addAudioOffloadListener(exoplayerOffloadListener!!)
@@ -532,7 +557,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                 prepareDataSource(media, url, user, password)
             }
         } catch (e: Throwable) {
-            LogeFor(TAG, curEpisode?.id, "setDataSource: ${e.message}")
+            LogsFor(TAG, curEpisode?.id, "setDataSource: ${e.message}")
             upsertBlk(media) { it.setPlayState(EpisodeState.ERROR) }
             throw e
         }
@@ -545,8 +570,6 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         Logd(TAG, "setDataSource uri: $uri")
         mediaItem = MediaItem.Builder().setUri(uri).setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(positionWithRewind(media.position, media.lastPlayedTime).toLong()).build()).setCustomCacheKey(media.id.toString()).setMediaMetadata(metadata).build()
         if (!isCasting) {
-            val httpDataSourceFactory = DefaultHttpDataSource.Factory().setAllowCrossProtocolRedirects(true).setConnectTimeoutMs(15_000).setReadTimeoutMs(15_000)
-            //        val dataSourceFactory = CustomDataSourceFactory(context, httpDataSourceFactory)
             val cacheFactory = CacheDataSource.Factory().setCache(getCache()).setUpstreamDataSourceFactory(httpDataSourceFactory).setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
             val segmentFactory = SegmentSavingDataSourceFactory(this, cacheFactory)
             val dataSourceFactory = DefaultDataSource.Factory(context, segmentFactory)
@@ -557,9 +580,6 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
     private fun setSourceCredentials(user: String?, password: String?) {
         if (!user.isNullOrEmpty() && !password.isNullOrEmpty()) {
-            if (httpDataSourceFactory == null)
-                httpDataSourceFactory = OkHttpDataSource.Factory(getOKHttpClient() as okhttp3.Call.Factory).setUserAgent("Mozilla/5.0")
-
             val requestProperties = mutableMapOf<String, String>()
             requestProperties["Authorization"] = encodeCredentials(user, password, "ISO-8859-1")
             httpDataSourceFactory!!.setDefaultRequestProperties(requestProperties)
@@ -1006,9 +1026,10 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
     override fun onDestroy() {
         if (exoplayerListener != null) castPlayer?.removeListener(exoplayerListener!!)
-
-        exoplayerListener = null
+        if (analyticsListener != null) exoPlayer?.removeAnalyticsListener(analyticsListener!!)
         if (exoplayerOffloadListener != null) exoPlayer?.removeAudioOffloadListener(exoplayerOffloadListener!!)
+        analyticsListener = null
+        exoplayerListener = null
         exoplayerOffloadListener = null
         bufferingUpdateListener = null
         loudnessEnhancer = null
@@ -1033,6 +1054,12 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
 //        private var enableFloat = Build.VERSION.SDK_INT >= 29
         private var enableFloat = false     // float is not well handled in Android devices
+
+        var httpDataSourceFactory:  OkHttpDataSource.Factory? = null
+            get() {
+                if (field == null) field = OkHttpDataSource.Factory(getOKHttpClient() as okhttp3.Call.Factory).setUserAgent("Mozilla/5.0")
+                return field
+            }
 
         var simpleCache: SimpleCache? = null
 

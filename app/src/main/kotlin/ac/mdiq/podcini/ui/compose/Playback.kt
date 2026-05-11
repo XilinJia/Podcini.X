@@ -72,7 +72,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -423,10 +422,10 @@ fun PlaybackSpeedFullDialog(playerId: Int, indexDefault: Int, maxSpeed: Float, o
 fun SleepTimerDialog(onDismiss: () -> Unit) {
     val TAG = "SleepTimerDialog"
 
-    val timeLeft by remember { mutableLongStateOf(sleepManager?.timeLeft?:0) }
+    val timeLeft = sleepManager?.timeLeft?:0
     var showTimeDisplay by remember { mutableStateOf(false) }
     var showTimeSetup by remember { mutableStateOf(true) }
-    var timerText by remember { mutableStateOf(durationStringFull(timeLeft.toInt())) }
+    var timerText by remember(timeLeft) { mutableStateOf(durationStringFull(timeLeft.toInt())) }
     val context by rememberUpdatedState(LocalContext.current)
 
     LaunchedEffect(Unit) {
@@ -459,22 +458,16 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
                     }
                     if (!toEnd) TextField(value = etxtTime, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.time_minutes)) }, singleLine = true,
                         onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) etxtTime = it })
-                    Button(modifier = Modifier.fillMaxWidth(), onClick = {
+                    if (theatres[0].mPlayer?.curEpisode != null && PlaybackService.isRunning) Button(modifier = Modifier.fillMaxWidth(), onClick = {
                         if (theatres[0].mPlayer?.curEpisode == null) return@Button
-                        if (!PlaybackService.isRunning) {
-                            Logt(TAG, context.getString(R.string.no_media_playing_label))
-                            return@Button
-                        }
-                        try {
-                            val time = if (!toEnd) etxtTime.toLong() else (max(((theatres[0].mPlayer!!.curEpisode!!.duration) - (theatres[0].mPlayer!!.curEpisode!!.position)), 0) / theatres[0].mPlayer!!.curPBSpeed).toLong().milliseconds.inWholeMinutes // ms to minutes
-                            Logd("SleepTimerDialog", "Sleep timer set: $time")
-                            if (time == 0L) throw NumberFormatException("Timer must not be zero")
+                        val time = if (!toEnd) etxtTime.toLong() else (max(((theatres[0].mPlayer!!.curEpisode!!.duration) - (theatres[0].mPlayer!!.curEpisode!!.position)), 0) / theatres[0].mPlayer!!.curPBSpeed).toLong().milliseconds.inWholeMinutes // ms to minutes
+                        Logd("SleepTimerDialog", "Sleep timer set: $time")
+                        if (time > 0L) {
                             upsertBlk(sleepPrefs) { it.LastValue = time }
-                            sleepManager?.setTimer(lastTimerValue.minutes.inWholeMilliseconds)
+                            sleepManager?.setTimer(time.minutes.inWholeMilliseconds)
                             showTimeSetup = false
                             showTimeDisplay = true
-                            //                        closeKeyboard(content)
-                        } catch (e: NumberFormatException) { Logs(TAG, e, context.getString(R.string.time_dialog_invalid_input)) }
+                        } else Logt(TAG, "Timer must not be zero: " + context.getString(R.string.time_dialog_invalid_input))
                     }) { Text(stringResource(R.string.set_sleeptimer_label)) }
                 }
                 if (showTimeDisplay || timeLeft > 0) {

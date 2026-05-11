@@ -334,13 +334,10 @@ suspend fun sumup(feed_: Feed) {
     Logd(TAG, "sumup feed: ${feed.title} episodes: ${episodes.size}")
     var durTotal = 0L
     val cTime = nowInMillis()
-    val upCount = realm.query(Episode::class).query("feedId == $0 AND (ratingTime > $1 OR playStateSetTime > $1)", feed.id, feed.scoreUpdated).count().find()
-    val skipScore = (cTime - feed.scoreUpdated < DAY_MIL) || (upCount == 0L || (upCount < 4L && cTime - feed.scoreUpdated < FOUR_DAY_MIL))
     var sumR = 0.0
     var scoreCount = 0
     for (e in episodes) {
         durTotal += e.duration
-        if (skipScore) continue
         if (e.playState >= EpisodeState.PROGRESS.code) {
             scoreCount++
             if (e.rating != Rating.UNRATED.code) sumR += e.rating

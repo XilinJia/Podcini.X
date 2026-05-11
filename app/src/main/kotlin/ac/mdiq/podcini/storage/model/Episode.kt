@@ -284,7 +284,7 @@ class Episode : RealmObject {
                 when {
                     imageUrl != null -> imageUrl
                     feed != null -> feed!!.imageUrl
-                    hasEmbeddedPicture == true -> FILENAME_PREFIX_EMBEDDED_COVER + fileUrl
+                    hasEmbeddedPicture == true -> fileUrl
                     else -> null
                 }
             }
@@ -453,7 +453,7 @@ class Episode : RealmObject {
         return clipsDir / "recorded_${id}_$clipname"
     }
 
-    fun isSizeSetUnknown(): Boolean = (CHECKED_ON_SIZE_BUT_UNKNOWN.toLong() == this.size)
+    fun isSizeSetUnknown(): Boolean = (size == CHECKED_ON_SIZE_BUT_UNKNOWN.toLong())
 
     fun getEpisodeTitle(): String = title ?: identifyingValue ?: "No title"
 
@@ -616,7 +616,6 @@ class Episode : RealmObject {
 
         const val INVALID_TIME: Int = -1
 
-        const val FILENAME_PREFIX_EMBEDDED_COVER: String = "metadata-retriever:"
         /**
          * Indicates we've checked on the size of the item via the network
          * and got an invalid response. Using Integer.MIN_VALUE because
