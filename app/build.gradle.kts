@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 310
-        versionName = "11.1.10"
+        versionCode = 311
+        versionName = "11.1.11"
 
         ndkVersion = "29.0.14206865"
 
@@ -187,11 +187,11 @@ dependencies {
     implementation("androidx.navigation3:navigation3-runtime:1.1.1")
     implementation("androidx.navigation3:navigation3-ui:1.1.1")
 
-    implementation("androidx.media3:media3-exoplayer:1.10.0")
-    implementation("androidx.media3:media3-datasource-okhttp:1.10.0")
-    implementation("androidx.media3:media3-ui:1.10.0")
-    implementation("androidx.media3:media3-common:1.10.0")
-    implementation("androidx.media3:media3-session:1.10.0")
+    implementation("androidx.media3:media3-exoplayer:1.10.1")
+    implementation("androidx.media3:media3-datasource-okhttp:1.10.1")
+    implementation("androidx.media3:media3-ui:1.10.1")
+    implementation("androidx.media3:media3-common:1.10.1")
+    implementation("androidx.media3:media3-session:1.10.1")
 
     implementation("com.google.android.material:material:1.13.0")
 

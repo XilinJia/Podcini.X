@@ -2,6 +2,7 @@ package ac.mdiq.podcini.net.feed
 
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.config.ClientConfig
+import ac.mdiq.podcini.config.settings.USER_AGENT
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.PodciniHttpClient.getKtorClient
 import ac.mdiq.podcini.storage.utils.nowInMillis
@@ -104,7 +105,7 @@ class PodcastIndexPodcastSearcher : PodcastSearcher {
         header("X-Auth-Date", apiHeaderTime)
         header("X-Auth-Key", BuildConfig.PODCASTINDEX_API_KEY)
         header("Authorization", hashString)
-        header(HttpHeaders.UserAgent, ClientConfig.USER_AGENT ?: "")
+        header(HttpHeaders.UserAgent, USER_AGENT ?: "")
     }
 
     companion object {

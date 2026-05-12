@@ -15,8 +15,6 @@ import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
-import ac.mdiq.podcini.storage.utils.DAY_MIL
-import ac.mdiq.podcini.storage.utils.FOUR_DAY_MIL
 import ac.mdiq.podcini.storage.utils.nowInMillis
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent

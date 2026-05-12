@@ -127,14 +127,15 @@ open class ID3Reader(private val source: CountingSource) {
     }
 
     protected fun readFrameHeader(): FrameHeader? {
-        val peekBuffer = buffer.peek()
-        if (peekBuffer.request(10)) {    // 4 ID + 4 size + 2 flags
+        while (true) {
+            val peekBuffer = buffer.peek()
+            if (!peekBuffer.request(10)) return null
             val idBytes = peekBuffer.readByteArray(4)
+            if (idBytes.all { it.toInt() == 0 }) return null
             val id = idBytes.decodeToString(Charsets.ISO_8859_1)
             if (!id.matches(Regex("[A-Z0-9]{4}"))) {
-                if (idBytes.all { it.toInt() == 0 }) return null
                 buffer.skip(1)
-                return readFrameHeader()
+                continue
             }
             val rawSize = peekBuffer.readInt()
             val size = when (tagHeader?.version) {
@@ -146,7 +147,6 @@ open class ID3Reader(private val source: CountingSource) {
             buffer.skip(10)
             return FrameHeader(id, size, flags)
         }
-        return null
     }
 
     fun readSubFrameHeader(chapBuffer: Buffer): FrameHeader? {

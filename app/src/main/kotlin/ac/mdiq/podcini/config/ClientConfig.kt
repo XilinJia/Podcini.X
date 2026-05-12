@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
 
 
 object ClientConfig {
-    var USER_AGENT: String? = null
+//    var USER_AGENT: String? = null
 
     private var initialized = false
     var nmJob: Job? = null

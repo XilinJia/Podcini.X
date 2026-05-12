@@ -1,3 +1,9 @@
+# 11.1.11
+
+* Unified user agent setting for http clients
+* fixed possible infinite recursive calls when reading downloaded file header
+* media3 update
+
 # 11.1.10
 
 * fixed feed scores being reset

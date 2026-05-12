@@ -41,13 +41,14 @@ object OKHTTP {
 
     private val okhttpCacheDirectory: File by lazy { File(getAppContext().cacheDir, "okhttp") }
 
-    class UserAgentInterceptor : Interceptor {
-        @Throws(IOException::class)
-        override fun intercept(chain: Chain): Response {
-            TrafficStats.setThreadStatsTag(Thread.currentThread().id.toInt())
-            return chain.proceed(chain.request().newBuilder().header("User-Agent", ClientConfig.USER_AGENT?:"").build())
-        }
-    }
+    // TODO: test
+//    class UserAgentInterceptor : Interceptor {
+//        @Throws(IOException::class)
+//        override fun intercept(chain: Chain): Response {
+//            TrafficStats.setThreadStatsTag(Thread.currentThread().id.toInt())
+//            return chain.proceed(chain.request().newBuilder().header("User-Agent", ClientConfig.USER_AGENT?:"").build())
+//        }
+//    }
 
 //    fun setOKHTTPCacheDirectory(cacheDirectory_: File?) {
 //        okhttpCacheDirectory = cacheDirectory_
@@ -78,7 +79,7 @@ object OKHTTP {
 
         val builder = Builder().retryOnConnectionFailure(true).connectTimeout(15, TimeUnit.SECONDS).readTimeout(5, TimeUnit.SECONDS)
         builder.interceptors().add(BasicAuthorizationInterceptor())
-        builder.addNetworkInterceptor(UserAgentInterceptor())
+//        builder.addNetworkInterceptor(UserAgentInterceptor())
 
         //        builder.networkInterceptors().add(UserAgentInterceptor())
 

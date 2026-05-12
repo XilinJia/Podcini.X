@@ -1,0 +1,3 @@
+* Unified user agent setting for http clients
+* fixed possible infinite recursive calls when reading downloaded file header
+* media3 update

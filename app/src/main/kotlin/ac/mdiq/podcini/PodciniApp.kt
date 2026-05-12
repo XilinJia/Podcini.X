@@ -19,7 +19,7 @@ class PodciniApp : Application() {
         startTiming()
         Log.d("PodciniApp", "PodciniApp onCreate")
 
-        ClientConfig.USER_AGENT = "Podcini/" + BuildConfig.VERSION_NAME
+//        ClientConfig.USER_AGENT = "Podcini/" + BuildConfig.VERSION_NAME
         Thread.setDefaultUncaughtExceptionHandler(CrashReportWriter())
         if (BuildConfig.DEBUG) {
             val builder: StrictMode.VmPolicy.Builder = StrictMode.VmPolicy.Builder().detectAll().penaltyLog().penaltyDropBox()

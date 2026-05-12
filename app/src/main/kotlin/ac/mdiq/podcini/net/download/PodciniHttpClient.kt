@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.net.download
 
 import ac.mdiq.podcini.config.ClientConfig
+import ac.mdiq.podcini.config.settings.USER_AGENT
 import ac.mdiq.podcini.storage.specs.ProxyConfig
 import ac.mdiq.podcini.utils.Logd
 import io.ktor.client.HttpClient
@@ -47,7 +48,7 @@ object PodciniHttpClient {
         Logd(TAG, "Creating new instance of HTTP client")
         return HttpClient(OkHttp) {
             install(DefaultRequest) {
-                header(HttpHeaders.UserAgent, ClientConfig.USER_AGENT)
+                header(HttpHeaders.UserAgent, USER_AGENT)
                 header(HttpHeaders.Accept, "application/json")
                 if (!proxyConfig?.username.isNullOrEmpty() && proxyConfig?.password != null)
                     header(HttpHeaders.Authorization, basic(proxyConfig!!.username!!, proxyConfig!!.password!!))
