@@ -543,7 +543,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                 val currentTag = view.tag as? String
                 if (currentTag != webviewData) {
                     view.tag = webviewData
-                    view.loadDataWithBaseURL("https://127.0.0.1", if (webviewData.isNullOrBlank()) "No notes" else webviewData!!, "text/html", "utf-8", "about:blank")
+                    view.loadDataWithBaseURL("about:blank", if (webviewData.isNullOrBlank()) "No notes" else webviewData!!, "text/html", "utf-8", "about:blank")
                 }
         })
     }
@@ -685,8 +685,7 @@ fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
 
 @Composable
 fun ShelveDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
-//    val synthetics = realm.query(Feed::class).query("id >= 100 && id <= 1000").find()
-    val synthetics = allFeeds.filter { it.id >= 100 && it.id <= 1000 }
+    val synthetics = allFeeds.filter { it.id in 100..1000 }
     CommonPopupCard(onDismissRequest = onDismissRequest) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             var removeChecked by remember { mutableStateOf(false) }
@@ -718,9 +717,7 @@ fun ShelveDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
 fun EraseEpisodesDialog(selected: List<Episode>, feed: Feed?, onDismissRequest: () -> Unit) {
     CommonPopupCard(onDismissRequest = onDismissRequest) {
         val message = stringResource(R.string.erase_episodes_confirmation_msg)
-        
         var textState by remember { mutableStateOf(TextFieldValue("")) }
-
         if (feed == null) Text(stringResource(R.string.not_erase_message), modifier = Modifier.padding(10.dp))
         else Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(message + ": ${selected.size}")

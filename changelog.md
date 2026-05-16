@@ -1,3 +1,11 @@
+# 11.1.12
+
+* use the same user agent with data source factory for media3
+* improved OKHttp interceptor
+* sped up reopen of EpisodeInfo and PlayerDetails
+* tightened a bit WebView security with MIXED_CONTENT_COMPATIBILITY_MODE, thanks to @jim_daf
+* some dependencies update
+
 # 11.1.11
 
 * Unified user agent setting for http clients

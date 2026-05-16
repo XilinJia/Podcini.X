@@ -1,7 +1,6 @@
 package ac.mdiq.podcini.playback.base
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.config.ClientConfig
 import ac.mdiq.podcini.net.download.DownloadRequest
 import ac.mdiq.podcini.net.download.PodciniHttpClient.CONNECTION_TIMEOUT
 import ac.mdiq.podcini.net.download.PodciniHttpClient.READ_TIMEOUT
@@ -11,7 +10,6 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.ProxyConfig
 import ac.mdiq.podcini.utils.Logd
-import android.net.TrafficStats
 import kotlinx.io.IOException
 import okhttp3.Cache
 import okhttp3.Credentials.basic
@@ -20,7 +18,6 @@ import okhttp3.Interceptor.Chain
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.OkHttpClient.Builder
-import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.Route
@@ -40,24 +37,6 @@ object OKHTTP {
     private const val MAX_CONNECTIONS = 8
 
     private val okhttpCacheDirectory: File by lazy { File(getAppContext().cacheDir, "okhttp") }
-
-    // TODO: test
-//    class UserAgentInterceptor : Interceptor {
-//        @Throws(IOException::class)
-//        override fun intercept(chain: Chain): Response {
-//            TrafficStats.setThreadStatsTag(Thread.currentThread().id.toInt())
-//            return chain.proceed(chain.request().newBuilder().header("User-Agent", ClientConfig.USER_AGENT?:"").build())
-//        }
-//    }
-
-//    fun setOKHTTPCacheDirectory(cacheDirectory_: File?) {
-//        okhttpCacheDirectory = cacheDirectory_
-//    }
-
-    //        fun resetMemoryBuffer() {
-    //            val memoryBufferSize = (128 * 1024 / 8) * BufferDurationSeconds
-    //            memoryBuffer = CircularByteBuffer(memoryBufferSize)
-    //        }
 
     private var httpClient: OkHttpClient? = null
     @Synchronized
@@ -79,9 +58,6 @@ object OKHTTP {
 
         val builder = Builder().retryOnConnectionFailure(true).connectTimeout(15, TimeUnit.SECONDS).readTimeout(5, TimeUnit.SECONDS)
         builder.interceptors().add(BasicAuthorizationInterceptor())
-//        builder.addNetworkInterceptor(UserAgentInterceptor())
-
-        //        builder.networkInterceptors().add(UserAgentInterceptor())
 
         // set cookie handler
         val cm = CookieManager()
@@ -122,59 +98,59 @@ object OKHTTP {
     }
 
     class BasicAuthorizationInterceptor : Interceptor {
-        @Throws(IOException::class)
         override fun intercept(chain: Chain): Response {
-            TrafficStats.setThreadStatsTag(Thread.currentThread().id.toInt())
-
-            val request: Request = chain.request()
-            var response: Response = chain.proceed(request)
-
+            val request = chain.request()
+            var response = chain.proceed(request)
             if (response.code != HttpURLConnection.HTTP_UNAUTHORIZED) return response
 
-            val newRequest: Request.Builder = request.newBuilder()
-            if (response.request.url.toString() != request.url.toString()) {
-                // Redirect detected. OkHTTP does not re-add the headers on redirect, so calling the new location directly.
-                newRequest.url(response.request.url)
-
-                val authorizationHeaders = request.headers.values(HEADER_AUTHORIZATION)
-                if (authorizationHeaders.isNotEmpty() && authorizationHeaders[0].isNotEmpty()) {
-                    // Call already had authorization headers. Try again with the same credentials.
-                    newRequest.header(HEADER_AUTHORIZATION, authorizationHeaders[0])
-                    return chain.proceed(newRequest.build())
+            val newRequest = request.newBuilder()
+            if (response.request.url != request.url) {
+                val authorizationHeader = request.header(HEADER_AUTHORIZATION)
+                if (!authorizationHeader.isNullOrEmpty()) {
+                    val redirectUrl = response.request.url
+                    response.close()
+                    return chain.proceed(newRequest.url(redirectUrl).header(HEADER_AUTHORIZATION, authorizationHeader).build())
                 }
             }
 
-            var userInfo = ""
-            if (request.tag() is DownloadRequest) {
-                val downloadRequest = request.tag() as? DownloadRequest
-                if (downloadRequest?.source != null) {
-                    userInfo = getURIFromRequestUrl(downloadRequest.source).userInfo
-                    if (userInfo.isEmpty() && (!downloadRequest.username.isNullOrEmpty() || !downloadRequest.password.isNullOrEmpty()))
-                        userInfo = downloadRequest.username + ":" + downloadRequest.password
-                }
-            } else userInfo = getImageAuthentication(request.url.toString())
-
+            val userInfo = getUserInfo(request)
             if (userInfo.isEmpty()) {
-                Logd(TAG, "no credentials for '" + request.url + "'")
+                Logd(TAG, "No credentials for '${request.url}'")
+                return response
+            }
+            val parts = userInfo.split(':', limit = 2)
+            if (parts.size != 2) {
+                Logd(TAG, "Invalid credentials for '${request.url}'")
                 return response
             }
 
-            if (!userInfo.contains(":")) {
-                Logd(TAG, "Invalid credentials for '" + request.url + "'")
-                return response
-            }
-            val username = userInfo.substringBefore(':')
-            val password = userInfo.substring(userInfo.indexOf(':') + 1)
-
-            Logd(TAG, "Authorization failed, re-trying with ISO-8859-1 encoded credentials")
-            newRequest.header(HEADER_AUTHORIZATION, encodeCredentials(username, password, "ISO-8859-1"))
-            response = chain.proceed(newRequest.build())
-
+            val username = parts[0]
+            val password = parts[1]
+            Logd(TAG, "Retrying auth with ISO-8859-1")
+            response.close()
+            response = retryWithEncoding(chain, newRequest, username, password, "ISO-8859-1")
             if (response.code != HttpURLConnection.HTTP_UNAUTHORIZED) return response
 
-            Logd(TAG, "Authorization failed, re-trying with UTF-8 encoded credentials")
-            newRequest.header(HEADER_AUTHORIZATION, encodeCredentials(username, password, "UTF-8"))
-            return chain.proceed(newRequest.build())
+            Logd(TAG, "Retrying auth with UTF-8")
+            response.close()
+            return retryWithEncoding(chain, newRequest, username, password, "UTF-8")
+        }
+
+        private fun retryWithEncoding(chain: Chain, requestBuilder: Request.Builder, username: String, password: String, charset: String): Response {
+            return chain.proceed(requestBuilder.header(HEADER_AUTHORIZATION, encodeCredentials(username, password, charset)).build())
+        }
+
+        private fun getUserInfo(request: Request): String {
+            val downloadRequest = request.tag(DownloadRequest::class.java)
+            if (downloadRequest != null) {
+                if (downloadRequest.source != null) {
+                    var userInfo = getURIFromRequestUrl(downloadRequest.source).userInfo
+                    if (userInfo.isEmpty() && (!downloadRequest.username.isNullOrEmpty() || !downloadRequest.password.isNullOrEmpty()))
+                        userInfo = "${downloadRequest.username}:${downloadRequest.password}"
+                    return userInfo
+                }
+            }
+            return getImageAuthentication(request.url.toString())
         }
 
         /**

@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.playback.base
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
+import ac.mdiq.podcini.config.settings.USER_AGENT
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.SegmentSavingDataSource
 import ac.mdiq.podcini.playback.SegmentSavingDataSourceFactory
@@ -183,7 +184,6 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     init {
         this.playerId = playerId
         timeIt("$TAG start of init")
-//        if (httpDataSourceFactory == null) runOnIOScope { httpDataSourceFactory = OkHttpDataSource.Factory(getOKHttpClient() as okhttp3.Call.Factory).setUserAgent("Mozilla/5.0") }
         if (exoPlayer == null) {
             exoplayerListener = object: Listener {
                 private var hasStarted = false
@@ -1057,7 +1057,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
         var httpDataSourceFactory:  OkHttpDataSource.Factory? = null
             get() {
-                if (field == null) field = OkHttpDataSource.Factory(getOKHttpClient() as okhttp3.Call.Factory).setUserAgent("Mozilla/5.0")
+                if (field == null) field = OkHttpDataSource.Factory(getOKHttpClient() as okhttp3.Call.Factory).setUserAgent(USER_AGENT)
                 return field
             }
 

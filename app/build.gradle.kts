@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 311
-        versionName = "11.1.11"
+        versionCode = 312
+        versionName = "11.1.12"
 
         ndkVersion = "29.0.14206865"
 
@@ -193,7 +193,7 @@ dependencies {
     implementation("androidx.media3:media3-common:1.10.1")
     implementation("androidx.media3:media3-session:1.10.1")
 
-    implementation("com.google.android.material:material:1.13.0")
+    implementation("com.google.android.material:material:1.14.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect:${project.property("kotlin_version")}")
@@ -208,11 +208,11 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-compose:3.4.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.4.0")
 
-    implementation("io.ktor:ktor-http:3.4.3")
-    implementation("io.ktor:ktor-client-core:3.4.3")
-    implementation("io.ktor:ktor-client-okhttp:3.4.3")
-    implementation("io.ktor:ktor-client-cio:3.4.3")
-    implementation("io.ktor:ktor-utils:3.4.3")
+    implementation("io.ktor:ktor-http:3.5.0")
+    implementation("io.ktor:ktor-client-core:3.5.0")
+    implementation("io.ktor:ktor-client-okhttp:3.5.0")
+    implementation("io.ktor:ktor-client-cio:3.5.0")
+    implementation("io.ktor:ktor-utils:3.5.0")
 
     implementation("com.fleeksoft.ksoup:ksoup:0.2.6")
     implementation("com.fleeksoft.ksoup:ksoup-network:0.2.6")
