@@ -353,6 +353,7 @@
     <string name="date">日付</string>
     <string name="time">時刻</string>
     <string name="count">カウント</string>
+    <string name="track_number">Track number</string>
     <string name="last_comment_date">コメント日</string>
     <string name="last_played_date">プレイ日</string>
     <string name="time_in_queue">キュー内の時間</string>
