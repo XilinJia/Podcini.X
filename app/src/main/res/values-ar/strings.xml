@@ -363,6 +363,7 @@
     <string name="date">التاريخ</string>
     <string name="time">الوقت</string>
     <string name="count">العد</string>
+    <string name="track_number">Track number</string>
     <string name="last_comment_date">تاريخ التعليق</string>
     <string name="last_played_date">تاريخ التشغيل</string>
     <string name="time_in_queue">الوقت في قائمة الانتظار</string>
