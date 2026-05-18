@@ -560,7 +560,7 @@ fun ProgressBar(vm: AVPlayerVM) {
         Spacer(Modifier.weight(1f))
         val info = when {
             theatres[vm.playerId].mPlayer == null -> ""
-            else -> (if (theatres[vm.playerId].mPlayer!!.mimeType.isNullOrBlank()) "" else theatres[vm.playerId].mPlayer!!.mimeType + " ") + theatres[vm.playerId].mPlayer!!.channelCount + ": " + (formatLargeIntegerBrief(theatres[vm.playerId].mPlayer!!.sampleRate) + "Hz") + (if (theatres[vm.playerId].mPlayer!!.bitrate > 0) " ${formatLargeIntegerBrief(theatres[vm.playerId].mPlayer!!.bitrate)}bits" else "")
+            else -> (if (theatres[vm.playerId].mPlayer!!.mimeType.isNullOrBlank()) "" else theatres[vm.playerId].mPlayer!!.mimeType + " ") + theatres[vm.playerId].mPlayer!!.channelCount + ": " + (formatLargeIntegerBrief(theatres[vm.playerId].mPlayer!!.sampleRate) + "Hz") + (if (theatres[vm.playerId].mPlayer!!.bitrate > 0) " ${formatLargeIntegerBrief(theatres[vm.playerId].mPlayer!!.bitrate)}bps" else "")
         }
         Text(info, color = textColor, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.weight(1f))

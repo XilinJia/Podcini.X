@@ -9,7 +9,7 @@
 	* added mime type text
 	* text "Stereo/Mono" is replaced with channel count: 1: Mono, 2: Stereo, 6: 5.1, 8: 7.1
 	* added sample rate in KHz
-	* bitrate is shown only when available
+	* bitrate is shown only when available, "Kbits" changed to "Kbps"
 
 # 11.1.12
 
