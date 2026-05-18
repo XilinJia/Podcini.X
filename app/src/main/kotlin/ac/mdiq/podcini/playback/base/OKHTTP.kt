@@ -10,7 +10,6 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.ProxyConfig
 import ac.mdiq.podcini.utils.Logd
-import kotlinx.io.IOException
 import okhttp3.Cache
 import okhttp3.Credentials.basic
 import okhttp3.Interceptor
@@ -57,6 +56,13 @@ object OKHTTP {
         System.setProperty("http.maxConnections", MAX_CONNECTIONS.toString())
 
         val builder = Builder().retryOnConnectionFailure(true).connectTimeout(15, TimeUnit.SECONDS).readTimeout(5, TimeUnit.SECONDS)
+//        builder.addInterceptor { chain ->
+//                val req = chain.request()
+//                Logd(TAG, "Interceptor REQ ${req.url}")
+//                val res = chain.proceed(req)
+//                Logd(TAG, "Interceptor RES ${res.code} ${res.request.url}")
+//                res
+//            }
         builder.interceptors().add(BasicAuthorizationInterceptor())
 
         // set cookie handler

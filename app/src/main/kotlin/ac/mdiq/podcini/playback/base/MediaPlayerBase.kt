@@ -156,7 +156,9 @@ abstract class MediaPlayerBase {
 
     var skipSilence: Boolean? = null
     var bitrate by mutableIntStateOf(0)
-    var isStereo by mutableStateOf(true)
+    var mimeType by mutableStateOf("")
+    var channelCount by mutableIntStateOf(0)
+    var sampleRate by mutableIntStateOf(0)
 
     var shouldRepeat by mutableStateOf(false)
 
@@ -471,7 +473,6 @@ abstract class MediaPlayerBase {
             Logd(TAG, "prepareMedia Method call was ignored: media file already playing.")
             return
         }
-
         if (curEpisode != null) {
             prevMedia = curEpisode
             if (doPostPlayback) {
@@ -480,7 +481,6 @@ abstract class MediaPlayerBase {
                 // set temporarily to pause in order to update list with current position
 //                if (isPlaying || isPaused)
                 onPlaybackPause(curEpisode, curEpisode?.position ?: -1)
-
                 // stop playback of this episode
 //                if (isPaused || isPlaying || isPrepared) castPlayer?.stop()
                 if (curEpisode?.id != playable.id) onPostPlayback(curEpisode!!, ended = false, skipped = true, true)
@@ -489,7 +489,6 @@ abstract class MediaPlayerBase {
         }
 
         if (isCasting) setCastPlayImmediately()
-
         Logd(TAG, "prepareMedia preparing for playable:${playable.id} ${playable.getEpisodeTitle()}")
         if (playable.playState < EpisodeState.PROGRESS.code) runOnIOScope { upsert(playable) { it.setPlayState(EpisodeState.PROGRESS) } }
         setAsCurEpisode(playable)
@@ -734,7 +733,8 @@ abstract class MediaPlayerBase {
                     prepareMedia(playable = nextMedia, streaming = needStreaming, startWhenPrepared = wasPlayng, prepareImmediately = wasPlayng)
                     if (widgetId.isNotEmpty()) notifyWidget()
                 }
-                if (currentMedia != null) onPostPlayback(currentMedia, hasEnded, wasSkipped, nextMedia != null)
+                // TODO: test
+//                if (currentMedia != null) onPostPlayback(currentMedia, hasEnded, wasSkipped, nextMedia != null)
             }
             isPlaying -> {
                 Logd(TAG, "endPlayback isPlaying")

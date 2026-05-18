@@ -313,7 +313,8 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
     val episodes by vm.episodesFlow.collectAsStateWithLifecycle()
     LaunchedEffect(episodes.size) {
-        Logd(TAG, "snapshotFlow { episodes.size }")
+        Logd(TAG, "LaunchedEffect(episodes.size)")
+//        for (e in episodes) Logd(TAG, "tracknumber: ${e.trackNumber} ")
         vm.listInfoText = buildListInfo(episodes, vm.feedEpisodesSize)
     }
 

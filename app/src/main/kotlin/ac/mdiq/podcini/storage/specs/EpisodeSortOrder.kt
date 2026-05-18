@@ -28,6 +28,9 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
     COMMENT_DATE_ASC(19, R.string.last_comment_date),
     COMMENT_DATE_DESC(20, R.string.last_comment_date),
 
+    TRACK_NUMBER_ASC(21, R.string.track_number, false),
+    TRACK_NUMBER_DESC(22, R.string.track_number, false),
+
     VIEWS_SPEED_ASC(31, R.string.view_speed, true),
     VIEWS_SPEED_DESC(32, R.string.view_speed, true),
 
@@ -113,6 +116,8 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
                     VIEWS_SPEED_DESC -> viewSpeed(f2).compareTo(viewSpeed(f1))
                     COMMENT_DATE_ASC -> commentDate(f1).compareTo(commentDate(f2))
                     COMMENT_DATE_DESC -> commentDate(f2).compareTo(commentDate(f1))
+                    TRACK_NUMBER_ASC -> trackNumber(f1).compareTo(trackNumber(f2))
+                    TRACK_NUMBER_DESC -> trackNumber(f2).compareTo(trackNumber(f1))
                     FEED_TITLE_ASC -> feedTitle(f1).compareTo(feedTitle(f2))
                     FEED_TITLE_DESC -> feedTitle(f2).compareTo(feedTitle(f1))
                     SIZE_ASC -> size(f1).compareTo(size(f2))
@@ -176,6 +181,8 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
         private fun playDate(item: Episode?): Long = item?.lastPlayedTime ?: 0
 
         private fun commentDate(item: Episode?): Long = item?.commentTime ?: 0
+
+        private fun trackNumber(item: Episode?): Int = item?.trackNumber ?: 0
 
         private fun downloadDate(item: Episode?): Long = item?.downloadTime ?: 0
 

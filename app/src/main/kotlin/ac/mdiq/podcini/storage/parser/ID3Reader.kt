@@ -213,7 +213,7 @@ open class ID3Reader(private val source: CountingSource) {
         val encodingByte = payload[0].toInt()
         val contentBytes = payload.copyOfRange(1, payload.size)
 
-        val charset = when (encodingByte.toInt()) {
+        val charset = when (encodingByte) {
             0 -> Charsets.ISO_8859_1
             1 -> Charsets.UTF_16
             2 -> Charsets.UTF_16BE
@@ -328,16 +328,27 @@ open class ID3Reader(private val source: CountingSource) {
 class Id3MetadataReader(source: CountingSource) : ID3Reader(source) {
     var comment: String? = null
         private set
+    var trackNumber: Int? = null
+    var totalTracks: Int? = null
 
     override fun readFrame(frameHeader: FrameHeader) {
-        if (FRAME_ID_COMMENT == frameHeader.id) {
-            val frameStart = position
-            val encoding = buffer.readByte().toInt()
-            skipBytes(3) // Language
-            val shortDescription = readEncodedString(encoding, frameHeader.size - 4)
-            val longDescription = readEncodedString(encoding, (frameHeader.size - (position - frameStart)).toInt())
-            comment = if (shortDescription.length > longDescription.length) shortDescription else longDescription
-        } else super.readFrame(frameHeader)
+        when (frameHeader.id) {
+            FRAME_ID_COMMENT -> {
+                val frameStart = position
+                val encoding = buffer.readByte().toInt()
+                skipBytes(3) // Language
+                val shortDescription = readEncodedString(encoding, frameHeader.size - 4)
+                val longDescription = readEncodedString(encoding, (frameHeader.size - (position - frameStart)).toInt())
+                comment = if (shortDescription.length > longDescription.length) shortDescription else longDescription
+            }
+            "TRCK" -> {
+                val encoding = buffer.readByte().toInt()
+                val rawTrack = readEncodedString(encoding, frameHeader.size - 1).trim()
+                trackNumber = rawTrack.substringBefore('/').toIntOrNull()
+                totalTracks = rawTrack.substringAfter('/', missingDelimiterValue = "").toIntOrNull()
+            }
+            else -> super.readFrame(frameHeader)
+        }
     }
 
     companion object {

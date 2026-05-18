@@ -1,9 +1,22 @@
+# 11.2.0
+
+* fixed bug of possibly calling onPostPlayback twice and on new episode when starting a new 
+* added track number in Episode (used for local feed)
+* added flac comment parser, and improved ogg comment parser
+* added extracting track number (if available) from Mp3, ogg and flac files
+* added sorting episodes by track number
+* in PlayerUI
+	* added mime type text
+	* text "Stereo/Mono" is replaced with channel count: 1: Mono, 2: Stereo, 6: 5.1, 8: 7.1
+	* added sample rate in KHz
+	* bitrate is shown only when available
+
 # 11.1.12
 
 * use the same user agent with data source factory for media3
 * improved OKHttp interceptor
 * sped up reopen of EpisodeInfo and PlayerDetails
-* tightened a bit WebView security with MIXED_CONTENT_COMPATIBILITY_MODE, thanks to @jim_daf
+* tightened a bit WebView security with MIXED_CONTENT_COMPATIBILITY_MODE, thanks to @jim-daf
 * some dependencies update
 
 # 11.1.11

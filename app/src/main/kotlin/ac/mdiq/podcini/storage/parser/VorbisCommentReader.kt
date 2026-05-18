@@ -8,6 +8,8 @@ import okio.buffer
 
 abstract class VorbisCommentReader internal constructor(private val source: CountingSource) {
     val buffered = source.buffer()
+    var trackNumber: Int? = null
+    var totalTracks: Int? = null
 
     @Throws(VorbisCommentReaderException::class)
     fun readSource() {
@@ -26,72 +28,30 @@ abstract class VorbisCommentReader internal constructor(private val source: Coun
         }
         fun readUtf8String(length: Long): String = buffered.readUtf8(length)
 
+        fun isOgg(): Boolean {
+            val signature = buffered.peek().readByteArray(4)
+            return signature.contentEquals(byteArrayOf('O'.code.toByte(), 'g'.code.toByte(), 'g'.code.toByte(), 'S'.code.toByte()))
+        }
+        fun isFlac(): Boolean {
+            val signature = buffered.peek().readByteArray(4)
+            return signature.contentEquals(byteArrayOf('f'.code.toByte(), 'L'.code.toByte(), 'a'.code.toByte(), 'C'.code.toByte()))
+        }
+
         @Throws(VorbisCommentReaderException::class)
         fun readUserComment() {
-            fun readContentVectorKey(vectorLength: Long): String? {
-                val builder = StringBuilder()
-                for (i in 0 until vectorLength) {
-                    val c = (buffered.readByte().toInt() and 0xFF).toChar()
-                    if (c == '=') return builder.toString()
-                    else builder.append(c)
-                }
-                return null // no key found
-            }
             try {
                 val vectorLength = buffered.readIntLe().toLong() and 0xFFFFFFFFL
-                if (vectorLength > 20 * 1024 * 1024) {
-                    val keyPart = readUtf8String(10)
-                    throw VorbisCommentReaderException("User comment unrealistically long. key=$keyPart, length=$vectorLength")
-                }
-                val key = readContentVectorKey(vectorLength)!!.lowercase()
-                val shouldReadValue = handles(key)
-//                Logd(TAG, "key=$key, length=$vectorLength, handles=$shouldReadValue")
-                if (shouldReadValue) onContentVectorValue(key, readUtf8String(vectorLength - key.length - 1))
-                else buffered.skip(vectorLength - key.length - 1)
+                if (vectorLength > 1_000_000) throw VorbisCommentReaderException("Invalid comment length: $vectorLength")
+                val data = ByteArray(vectorLength.toInt())
+                buffered.readFully(data)
+                val text = String(data, Charsets.UTF_8)
+                val idx = text.indexOf('=')
+                if (idx <= 0) return
+                val key = text.substring(0, idx).lowercase()
+                Logd(TAG, "readUserComment key: $key")
+                val value = text.substring(idx + 1)
+                if (handles(key)) onContentVectorValue(key, value)
             } catch (e: Exception) { Logs(TAG, e, "readUserComment failed") }
-        }
-        /**
-         * Looks for an identification header in the first page of the file. If an
-         * identification header is found, it will be skipped completely
-         */
-        fun findIdentificationHeader() {
-            val buffer = ByteArray(FIRST_OPUS_PAGE_LENGTH)
-            buffered.readFully(buffer)
-            val oggIdentificationHeader = byteArrayOf(PACKET_TYPE_IDENTIFICATION.toByte(),
-                'v'.code.toByte(),
-                'o'.code.toByte(),
-                'r'.code.toByte(),
-                'b'.code.toByte(),
-                'i'.code.toByte(),
-                's'.code.toByte())
-            for (i in 6 until buffer.size) {
-                when {
-                    bufferMatches(buffer, oggIdentificationHeader, i) -> {
-                        buffered.skip((FIRST_OGG_PAGE_LENGTH - FIRST_OPUS_PAGE_LENGTH).toLong())
-                        return
-                    }
-                    bufferMatches(buffer, "OpusHead".toByteArray(), i) -> return
-                }
-            }
-            throw Exception("No vorbis identification header found")
-        }
-        fun findCommentHeader() {
-            val buffer = ByteArray(64) // Enough space for some bytes. Used circularly.
-            val oggCommentHeader = byteArrayOf(PACKET_TYPE_COMMENT.toByte(),
-                'v'.code.toByte(),
-                'o'.code.toByte(),
-                'r'.code.toByte(),
-                'b'.code.toByte(),
-                'i'.code.toByte(),
-                's'.code.toByte())
-            for (bytesRead in 0 until SECOND_PAGE_MAX_LENGTH) {
-                buffer[bytesRead % buffer.size] = buffered.readByte()
-                when {
-                    bufferMatches(buffer, oggCommentHeader, bytesRead) -> return
-                    bufferMatches(buffer, "OpusTags".toByteArray(), bytesRead) -> return
-                }
-            }
-            throw Exception("No comment header found")
         }
         @Throws(VorbisCommentReaderException::class)
         fun readCommentHeader(): VorbisCommentHeader {
@@ -102,29 +62,54 @@ abstract class VorbisCommentReader internal constructor(private val source: Coun
                 return VorbisCommentHeader(vendorName, userCommentLength)
             } catch (e: Exception) { throw VorbisCommentReaderException(e) }
         }
-        fun findOggPage() {
-            // find OggS
-            val buffer = ByteArray(4)
-            val oggPageHeader = byteArrayOf('O'.code.toByte(), 'g'.code.toByte(), 'g'.code.toByte(), 'S'.code.toByte())
-            for (bytesRead in 0 until SECOND_PAGE_MAX_LENGTH) {
-                val data = buffered.readByte().toInt()
-                if (data == -1) throw Exception("EOF while trying to find vorbis page")
-                buffer[bytesRead % buffer.size] = data.toByte()
-                if (bufferMatches(buffer, oggPageHeader, bytesRead)) break
+        fun findOggCommentBlock() {
+            val vorbisCommentHeader = byteArrayOf(
+                PACKET_TYPE_COMMENT.toByte(),
+                'v'.code.toByte(),
+                'o'.code.toByte(),
+                'r'.code.toByte(),
+                'b'.code.toByte(),
+                'i'.code.toByte(),
+                's'.code.toByte()
+            )
+            val opusTags = "OpusTags".toByteArray()
+            val window = ByteArray(64)
+            for (i in 0 until MAX_OGG_SCAN_BYTES) {
+                window[i % window.size] = buffered.readByte()
+                when {
+                    bufferMatches(window, vorbisCommentHeader, i) -> return
+                    bufferMatches(window, opusTags, i) -> return
+                }
             }
-            // read segments
-            buffered.skip(22)
-            val numSegments = buffered.readByte()
-            buffered.skip(numSegments.toLong())
+            throw Exception("No Ogg comment block found")
         }
-
+        fun findFlacCommentBlock() {
+            val sig = ByteArray(4)
+            buffered.readFully(sig)
+            if (!sig.contentEquals(byteArrayOf('f'.code.toByte(),'L'.code.toByte(),'a'.code.toByte(),'C'.code.toByte()))) throw IllegalStateException("Not FLAC")
+            var last = false
+            while (!last) {
+                val header = buffered.readByte().toInt() and 0xFF
+                last = (header and 0x80) != 0
+                val type = header and 0x7F
+                val b1 = buffered.readByte().toInt() and 0xFF
+                val b2 = buffered.readByte().toInt() and 0xFF
+                val b3 = buffered.readByte().toInt() and 0xFF
+                val length = (b1 shl 16) or (b2 shl 8) or b3
+                if (type == 4) return
+                buffered.skip(length.toLong())
+            }
+            throw IllegalStateException("No Vorbis comment block found")
+        }
         try {
-            findIdentificationHeader()
-            findOggPage()
-            findCommentHeader()
+            when {
+                isOgg() -> findOggCommentBlock()
+                isFlac() -> findFlacCommentBlock()
+            }
             val commentHeader = readCommentHeader()
-//            Logd(TAG, commentHeader.toString())
-            for (i in 0 until commentHeader.userCommentLength) readUserComment()
+            Logd(TAG, "commentHeader: $commentHeader")
+            val count = commentHeader.userCommentLength.coerceAtMost(1000)
+            repeat(count.toInt()) { readUserComment() }
         } catch (e: Throwable) { Loge(TAG, "Vorbis parser: ${e.message}") }
     }
 
@@ -138,7 +123,7 @@ abstract class VorbisCommentReader internal constructor(private val source: Coun
      * Is called if onContentVectorKey returned true for the key.
      */
     @Throws(VorbisCommentReaderException::class)
-    protected abstract fun onContentVectorValue(key: String?, value: String?)
+    protected abstract fun onContentVectorValue(key: String?, value: String)
 
     internal class VorbisCommentHeader(
         private val vendorString: String,
@@ -151,10 +136,7 @@ abstract class VorbisCommentReader internal constructor(private val source: Coun
 
     companion object {
         private val TAG: String = VorbisCommentReader::class.simpleName ?: "Anonymous"
-        private const val FIRST_OGG_PAGE_LENGTH = 58
-        private const val FIRST_OPUS_PAGE_LENGTH = 47
-        private const val SECOND_PAGE_MAX_LENGTH = 64 * 1024 * 1024
-        private const val PACKET_TYPE_IDENTIFICATION = 1
+        private const val MAX_OGG_SCAN_BYTES = 256 * 1024
         private const val PACKET_TYPE_COMMENT = 3
     }
 }
@@ -164,12 +146,20 @@ class VorbisCommentMetadataReader(source: CountingSource) : VorbisCommentReader(
         private set
 
     public override fun handles(key: String?): Boolean {
-        return KEY_DESCRIPTION == key || KEY_COMMENT == key
+        return when (key) {
+            KEY_DESCRIPTION, KEY_COMMENT -> true
+            "tracknumber", "tracktotal" -> true
+            else -> false
+        }
     }
 
-    public override fun onContentVectorValue(key: String?, value: String?) {
-        if (KEY_DESCRIPTION == key || KEY_COMMENT == key) {
-            if (description == null || (value != null && value.length > description!!.length)) description = value
+    public override fun onContentVectorValue(key: String?, value: String) {
+        Logd("VorbisCommentMetadataReader", "onContentVectorValue key: $key value: $value")
+        when (key) {
+            null -> {}
+            KEY_DESCRIPTION, KEY_COMMENT -> if (description == null || value.length > description!!.length) description = value
+            "tracknumber" -> trackNumber = value.substringBefore('/').toIntOrNull()
+            "tracktotal" -> totalTracks = value.toIntOrNull()
         }
     }
 

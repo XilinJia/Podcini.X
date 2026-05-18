@@ -76,6 +76,8 @@ class Episode : RealmObject {
 
     var pubDate: Long = 0
 
+    var trackNumber: Int = 0
+
     @Ignore
     val feed: Feed?
         get() = if (feedId != null) feedsMap[feedId!!] else null
@@ -524,6 +526,7 @@ class Episode : RealmObject {
 
         if (id != other.id) return false
         if (pubDate != other.pubDate) return false
+        if (trackNumber != other.trackNumber) return false
         if (feedId != other.feedId) return false
         if (playState != other.playState) return false
         if (playStateSetTime != other.playStateSetTime) return false
@@ -569,6 +572,7 @@ class Episode : RealmObject {
     override fun hashCode(): Int {
         var result = id.hashCode()
         result = 31 * result + pubDate.hashCode()
+        result = 31 * result + trackNumber.hashCode()
         result = 31 * result + (feedId?.hashCode() ?: 0)
         result = 31 * result + playState
         result = 31 * result + playStateSetTime.hashCode()

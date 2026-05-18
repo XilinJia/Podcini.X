@@ -282,7 +282,7 @@ class VorbisCommentChapterReader(source: CountingSource) : VorbisCommentReader(s
     }
 
     @Throws(VorbisCommentReaderException::class)
-    public override fun onContentVectorValue(key: String?, value: String?) {
+    public override fun onContentVectorValue(key: String?, value: String) {
 //        Logd(TAG, "Key: $key, value: $value")
         fun getChapterById(id: Long): Chapter? {
             for (c in chapters) if (("" + id) == c.chapterId) return c

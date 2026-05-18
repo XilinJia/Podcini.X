@@ -155,11 +155,13 @@ suspend fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) 
                     MediaFormat.MP3 -> {
                         val reader = Id3MetadataReader(source)
                         reader.readSource()
+                        if (reader.trackNumber != null) item.trackNumber = reader.trackNumber!!
                         item.setDescriptionIfLonger(reader.comment)
                     }
                     MediaFormat.OGG, MediaFormat.FLAC -> {
                         val reader = VorbisCommentMetadataReader(source)
                         reader.readSource()
+                        if (reader.trackNumber != null) item.trackNumber = reader.trackNumber!!
                         item.setDescriptionIfLonger(reader.description)
                     }
                     else -> LogtFor(TAG, item.id, "Unhandled file type: $format ${file.uri}")

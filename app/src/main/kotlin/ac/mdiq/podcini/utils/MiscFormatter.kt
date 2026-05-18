@@ -72,6 +72,15 @@ fun formatLargeInteger(n: Int): String {
     }
 }
 
+fun formatLargeIntegerBrief(n: Int): String {
+    return when {
+        n < 1000 -> n.toString()
+        n < 1_000_000 -> "${n / 1000}K"
+        n < 1_000_000_000 -> "${n / 1_000_000}M"
+        else -> "${n / 1_000_000_000}B"
+    }
+}
+
 fun Double.toTwoDecimalString(): String {
     val rounded = round(this * 100) / 100.0
     val s = rounded.toString()

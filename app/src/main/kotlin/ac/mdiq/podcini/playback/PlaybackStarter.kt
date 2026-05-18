@@ -13,7 +13,6 @@ import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.showStackTrace
 import android.content.Intent
 import androidx.core.content.ContextCompat
 
@@ -46,7 +45,7 @@ class PlaybackStarter(private val media: Episode) {
 
     fun start(playerId: Int = 0, force: Boolean = false) {
         Logd(TAG, "start PlaybackService.isRunning: ${PlaybackService.isRunning}")
-        showStackTrace()
+//        showStackTrace()
         var media_ = media
         var sameMedia = true
         if (theatres[playerId].mPlayer?.curEpisode?.id != media.id || force) {

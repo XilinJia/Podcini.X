@@ -59,6 +59,9 @@ import androidx.media3.common.DeviceInfo
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.MimeTypes.BASE_TYPE_APPLICATION
+import androidx.media3.common.MimeTypes.BASE_TYPE_AUDIO
+import androidx.media3.common.MimeTypes.BASE_TYPE_VIDEO
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
@@ -302,8 +305,15 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                         for (i in 0 until group.length) {
                             if (group.isTrackSelected(i)) {
                                 val format = group.getTrackFormat(i)
-                                val channels = format.channelCount
-                                isStereo = channels != 1
+                                mimeType = when {
+                                    format.sampleMimeType.isNullOrBlank() -> ""
+                                    format.sampleMimeType!!.contains(BASE_TYPE_AUDIO) -> format.sampleMimeType!!.replace("$BASE_TYPE_AUDIO/", "")
+                                    format.sampleMimeType!!.contains(BASE_TYPE_VIDEO) -> format.sampleMimeType!!.replace("$BASE_TYPE_VIDEO/", "")
+                                    format.sampleMimeType!!.contains(BASE_TYPE_APPLICATION) -> format.sampleMimeType!!.replace("$BASE_TYPE_APPLICATION/", "")
+                                    else -> format.sampleMimeType!!
+                                }
+                                channelCount = format.channelCount
+                                sampleRate = format.sampleRate
                                 Logd(TAG, "onTracksChanged $i ${format.averageBitrate} ${format.bitrate}")
                                 if (format.averageBitrate != Format.NO_VALUE) {
                                     bitrate = format.averageBitrate
@@ -347,7 +357,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                     Logd(TAG, "onPlaybackStateChanged $s")
                 }
                 override fun onLoadError(eventTime: AnalyticsListener.EventTime, loadEventInfo: LoadEventInfo, mediaLoadData: MediaLoadData, error: IOException, wasCanceled: Boolean) {
-                    Loge(TAG, "onLoadError load error: ${error.message}")
+                    Loge(TAG, "onLoadError load error: ${error.message} dataType=${mediaLoadData.dataType}")
                 }
             }
             createNativePlayer()
@@ -498,7 +508,6 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             .setSeekForwardIncrementMs(fastForwardSecs * 1000L)
             .build()
         exoPlayer?.setSeekParameters(SeekParameters.DEFAULT)
-
         castPlayer = buildCastPlayer(exoPlayer!!)
 
         exoPlayer?.trackSelectionParameters = exoPlayer!!.trackSelectionParameters.buildUpon()

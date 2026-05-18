@@ -1152,8 +1152,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
 
 @Composable
 fun EpisodeSortDialog(initOrder: EpisodeSortOrder, includeConditionals: List<EpisodeSortOrder> = listOf(), onDismissRequest: () -> Unit, onSelectionChanged: (EpisodeSortOrder?) -> Unit) {
-    val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, f -> index % 2 != 0 && (!f.conditional || f in includeConditionals || f in gearbox.includeExtraSort()) } }
-    
+    val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, order -> index % 2 != 0 && (!order.conditional || order in includeConditionals || order in gearbox.includeExtraSort()) } }
     
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {

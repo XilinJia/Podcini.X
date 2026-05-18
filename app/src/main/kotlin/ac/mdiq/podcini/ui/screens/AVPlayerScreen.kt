@@ -47,9 +47,8 @@ import ac.mdiq.podcini.utils.FlowEvent.BufferUpdateEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
-import ac.mdiq.podcini.utils.LogtFor
 import ac.mdiq.podcini.utils.formatDateTimeFlex
-import ac.mdiq.podcini.utils.formatLargeInteger
+import ac.mdiq.podcini.utils.formatLargeIntegerBrief
 import ac.mdiq.podcini.utils.formatNumberKmp
 import ac.mdiq.podcini.utils.formatWithGrouping
 import ac.mdiq.podcini.utils.openInBrowser
@@ -559,7 +558,11 @@ fun ProgressBar(vm: AVPlayerVM) {
         val pastText = remember(theatres[vm.playerId].mPlayer?.curEpisode?.position) { if (theatres[vm.playerId].mPlayer?.curEpisode == null) "" else durationStringAdapt(theatres[vm.playerId].mPlayer?.curEpisode!!.position) + " *" + durationStringAdapt(theatres[vm.playerId].mPlayer?.curEpisode!!.timeSpent.toInt()) }
         Text(pastText, color = textColor, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.weight(1f))
-        if ((theatres[vm.playerId].mPlayer?.bitrate?:0) > 0) Text((if (theatres[vm.playerId].mPlayer?.isStereo == true) "Stereo" else "Mono") + ": " + formatLargeInteger(theatres[vm.playerId].mPlayer!!.bitrate) + "bits", color = textColor, style = MaterialTheme.typography.bodySmall)
+        val info = when {
+            theatres[vm.playerId].mPlayer == null -> ""
+            else -> (if (theatres[vm.playerId].mPlayer!!.mimeType.isNullOrBlank()) "" else theatres[vm.playerId].mPlayer!!.mimeType + " ") + theatres[vm.playerId].mPlayer!!.channelCount + ": " + (formatLargeIntegerBrief(theatres[vm.playerId].mPlayer!!.sampleRate) + "Hz") + (if (theatres[vm.playerId].mPlayer!!.bitrate > 0) " ${formatLargeIntegerBrief(theatres[vm.playerId].mPlayer!!.bitrate)}bits" else "")
+        }
+        Text(info, color = textColor, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.weight(1f))
         val lengthText = remember(theatres[vm.playerId].mPlayer?.curPBSpeed, theatres[vm.playerId].mPlayer?.curEpisode?.position) {  run {
             if (theatres[vm.playerId].mPlayer?.curEpisode == null) return@run ""

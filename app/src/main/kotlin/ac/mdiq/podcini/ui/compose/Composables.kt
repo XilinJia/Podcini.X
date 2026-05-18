@@ -413,7 +413,6 @@ fun ComfirmDialog(titleRes: Int, message: String, showDialog: MutableState<Boole
 
 @Composable
 fun SearchBarRow(hintTextRes: Int, defaultText: String, modifier: Modifier = Modifier, history: List<String> = listOf(), performSearch: (String) -> Unit) {
-    
     var showHistory by remember { mutableStateOf(false) }
     var queryText by remember { mutableStateOf(defaultText) }
     DropdownMenu(expanded = showHistory, onDismissRequest = { showHistory = false }) {
@@ -476,8 +475,6 @@ fun NumberEditor(initVal: Int, label: String = "seconds", nz: Boolean = true, in
 
 @Composable
 fun SelectLowerAllUpper(selectedList: MutableList<MutableState<Boolean>>, lowerCB: (()->Unit)?, allCB: ()->Unit, upperCB: (()->Unit)?) {
-    
-    
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
     var lowerSelected by remember { mutableStateOf(false) }
     var higherSelected by remember { mutableStateOf(false) }
