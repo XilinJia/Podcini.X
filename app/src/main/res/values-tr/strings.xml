@@ -355,6 +355,7 @@
     <string name="date">Date</string>
     <string name="time">Time</string>
     <string name="count">Count</string>
+    <string name="track_number">Track number</string>
     <string name="last_comment_date">Comment date</string>
     <string name="last_played_date">Played date</string>
     <string name="time_in_queue">Time in queue</string>
