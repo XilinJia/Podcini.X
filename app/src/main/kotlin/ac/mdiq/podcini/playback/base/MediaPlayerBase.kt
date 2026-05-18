@@ -704,7 +704,7 @@ abstract class MediaPlayerBase {
             setAsCurEpisode(null)
             castPlayer?.stop()
             if (isUnknown) setPlayerStatus(PlayerStatus.STOPPED, null)
-            else Logd(TAG, "endPlayback Ignored call to stop: Current player state is: $status")
+//            else Logd(TAG, "endPlayback Ignored call to stop: Current player state is: $status")
         }
         val currentMedia = curEpisode
         when {
@@ -712,8 +712,10 @@ abstract class MediaPlayerBase {
                 // Load next episode if previous episode was in the queue and if there is an episode in the queue left.
                 // Start playback immediately if continuous playback is enabled
                 val nextMedia = getNextInQueue()
-                if (nextMedia == null) stopPlayer()
-                else {
+                if (nextMedia == null) {
+                    if (currentMedia != null) onPostPlayback(currentMedia, hasEnded, wasSkipped, false)
+                    stopPlayer()
+                } else {
                     Logd(TAG, "endPlayback has nextMedia. status: $status ${nextMedia.title}")
                     val wasPlayng = isPlaying
                     if (!isCasting) pause(false)
@@ -733,15 +735,15 @@ abstract class MediaPlayerBase {
                     prepareMedia(playable = nextMedia, streaming = needStreaming, startWhenPrepared = wasPlayng, prepareImmediately = wasPlayng)
                     if (widgetId.isNotEmpty()) notifyWidget()
                 }
-                // TODO: test
-//                if (currentMedia != null) onPostPlayback(currentMedia, hasEnded, wasSkipped, nextMedia != null)
             }
             isPlaying -> {
+                // TODO: likely not reached?
                 Logd(TAG, "endPlayback isPlaying")
                 onPlaybackPause(currentMedia, currentMedia?.position?: 0)
             }
             else -> {
                 Logd(TAG, "endPlayback else")
+                if (currentMedia != null) onPostPlayback(currentMedia, hasEnded, wasSkipped, false)
                 stopPlayer()
             }
         }

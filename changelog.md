@@ -1,6 +1,6 @@
 # 11.2.0
 
-* fixed bug of possibly calling onPostPlayback twice and on new episode when starting a new 
+* fixed bug of possibly calling onPostPlayback twice and on new episode when starting a new episode
 * added track number in Episode (used for local feed)
 * added flac comment parser, and improved ogg comment parser
 * added extracting track number (if available) from Mp3, ogg and flac files
