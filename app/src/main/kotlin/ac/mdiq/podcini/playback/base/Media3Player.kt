@@ -207,6 +207,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                         }
                     }
                 }
+                override fun onEvents(player: Player, events: Player.Events) {}
                 override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
                     Logd(TAG, "exoplayerListener onMediaItemTransition $reason")
 //                    if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) endPlayback(hasEnded = true, wasSkipped = false)
@@ -315,10 +316,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                                 channelCount = format.channelCount
                                 sampleRate = format.sampleRate
                                 Logd(TAG, "onTracksChanged $i ${format.averageBitrate} ${format.bitrate}")
-                                if (format.averageBitrate != Format.NO_VALUE) {
-                                    bitrate = format.averageBitrate
-                                    Logd(TAG, "onTracksChanged Bitrate detected: $bitrate bps")
-                                }
+                                if (format.averageBitrate != Format.NO_VALUE) bitrate = format.averageBitrate
                                 return@forEach
                             }
                         }

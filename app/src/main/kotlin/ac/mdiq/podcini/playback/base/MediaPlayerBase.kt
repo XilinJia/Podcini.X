@@ -218,6 +218,7 @@ abstract class MediaPlayerBase {
         val episode_ = if (episode != null) episodeById(episode.id) else null
         when {
             episode_ != null -> {
+                bitrate = 0
                 curEpisode = episode_
                 playingVideo = (episode_.forceVideo || (episode_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && episode_.getMediaType() == MediaType.VIDEO))
                 skipSilence = null
@@ -851,7 +852,6 @@ abstract class MediaPlayerBase {
                     if (ended || (skipped && smartMarkAsPlayed)) it.position = 0
                     if (ended || skipped || playingNext) it.playbackCompletionTime = nowInMillis()
                 }
-
                 val action = item.feed?.autoDeleteAction
                 val shouldAutoDelete = (action == AutoDeleteAction.ALWAYS || (action == AutoDeleteAction.GLOBAL && item.feed != null && allowForAutoDelete(item.feed!!)))
                 val isItemdeletable = (!appPrefs.favoriteKeepsEpisode || (item.rating < Rating.GOOD.code && item.playState != EpisodeState.AGAIN.code && item.playState != EpisodeState.FOREVER.code))

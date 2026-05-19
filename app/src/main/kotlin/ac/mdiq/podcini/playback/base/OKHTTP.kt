@@ -2,16 +2,20 @@ package ac.mdiq.podcini.playback.base
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.net.download.DownloadRequest
-import ac.mdiq.podcini.net.download.PodciniHttpClient.CONNECTION_TIMEOUT
-import ac.mdiq.podcini.net.download.PodciniHttpClient.READ_TIMEOUT
 import ac.mdiq.podcini.net.download.PodciniHttpClient.proxyConfig
 import ac.mdiq.podcini.net.utils.NetworkUtils.getURIFromRequestUrl
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.ProxyConfig
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import kotlinx.io.IOException
 import okhttp3.Cache
+import okhttp3.Call
+import okhttp3.Connection
+import okhttp3.ConnectionPool
 import okhttp3.Credentials.basic
+import okhttp3.EventListener
 import okhttp3.Interceptor
 import okhttp3.Interceptor.Chain
 import okhttp3.JavaNetCookieJar
@@ -19,7 +23,6 @@ import okhttp3.OkHttpClient
 import okhttp3.OkHttpClient.Builder
 import okhttp3.Request
 import okhttp3.Response
-import okhttp3.Route
 import okio.ByteString
 import java.io.File
 import java.io.UnsupportedEncodingException
@@ -28,12 +31,14 @@ import java.net.CookiePolicy
 import java.net.HttpURLConnection
 import java.net.InetSocketAddress
 import java.net.Proxy
-import java.net.SocketAddress
 import java.util.concurrent.TimeUnit
 
 object OKHTTP {
     private const val TAG = "OKHTTP"
     private const val MAX_CONNECTIONS = 8
+    private const val CONNECTION_TIMEOUT = 15000
+    private const val READ_TIMEOUT = 5000
+    private const val SOCKET_TIMEOUT = 15000
 
     private val okhttpCacheDirectory: File by lazy { File(getAppContext().cacheDir, "okhttp") }
 
@@ -44,50 +49,47 @@ object OKHTTP {
         return httpClient!!
     }
 
-    /**
-     * Creates a new HTTP client.  Most users should just use
-     * getHttpClient() to get the standard Podcini client,
-     * but sometimes it's necessary for others to have their own
-     * copy so that the clients don't share state.
-     * @return http client
-     */
     private fun newBuilder(): Builder {
         Logd(TAG, "Creating new instance of HTTP client")
-        System.setProperty("http.maxConnections", MAX_CONNECTIONS.toString())
-
-        val builder = Builder().retryOnConnectionFailure(true).connectTimeout(15, TimeUnit.SECONDS).readTimeout(5, TimeUnit.SECONDS)
-//        builder.addInterceptor { chain ->
-//                val req = chain.request()
-//                Logd(TAG, "Interceptor REQ ${req.url}")
-//                val res = chain.proceed(req)
-//                Logd(TAG, "Interceptor RES ${res.code} ${res.request.url}")
-//                res
-//            }
-        builder.interceptors().add(BasicAuthorizationInterceptor())
-
-        // set cookie handler
-        val cm = CookieManager()
-        cm.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER)
-        builder.cookieJar(JavaNetCookieJar(cm))
-
-        // set timeouts
+        val cookieManager = CookieManager().apply { setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER) }
+        val builder = Builder()
+        builder.retryOnConnectionFailure(true)
         builder.connectTimeout(CONNECTION_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
         builder.readTimeout(READ_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
-        builder.writeTimeout(READ_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
-        builder.cache(Cache(okhttpCacheDirectory, 20L * 1000000)) // 20MB
+//        builder.callTimeout(60, TimeUnit.SECONDS)
 
-        // configure redirects
+        builder.pingInterval(30, TimeUnit.SECONDS)
+        builder.connectionPool(ConnectionPool(8, 2, TimeUnit.MINUTES))
+        builder.cookieJar(JavaNetCookieJar(cookieManager))
+
+        builder.cache(Cache(okhttpCacheDirectory, 200L * 1024L * 1024L /* 200MB */))
+
         builder.followRedirects(true)
         builder.followSslRedirects(true)
+        builder.interceptors().add(BasicAuthorizationInterceptor())
 
-        if (proxyConfig != null && proxyConfig!!.type != Proxy.Type.DIRECT && !proxyConfig?.host.isNullOrEmpty()) {
-            val port = if (proxyConfig!!.port > 0) proxyConfig!!.port else ProxyConfig.DEFAULT_PORT
-            val address: SocketAddress = InetSocketAddress.createUnresolved(proxyConfig!!.host, port)
-            builder.proxy(Proxy(proxyConfig!!.type, address))
-            if (!proxyConfig!!.username.isNullOrEmpty() && proxyConfig!!.password != null) {
-                builder.proxyAuthenticator { _: Route?, response: Response ->
-                    val credentials = basic(proxyConfig!!.username!!, proxyConfig!!.password!!)
-                    response.request.newBuilder().header("Proxy-Authorization", credentials).build()
+        builder.eventListener(object : EventListener() {
+            override fun connectionAcquired(call: Call, connection: Connection) {
+                Logd(TAG, "acquired: $connection")
+            }
+            override fun connectionReleased(call: Call, connection: Connection) {
+                Logd(TAG, "released: $connection")
+            }
+            override fun callFailed(call: Call, ioe: IOException) {
+                Loge(TAG, "callFailed ${ioe.message}")
+            }
+        })
+
+        proxyConfig?.let { proxy ->
+            if (proxy.type != Proxy.Type.DIRECT && !proxy.host.isNullOrEmpty()) {
+                val port = if (proxy.port > 0) proxy.port else ProxyConfig.DEFAULT_PORT
+                val address = InetSocketAddress.createUnresolved(proxy.host, port)
+                builder.proxy(Proxy(proxy.type, address))
+                if (!proxy.username.isNullOrEmpty() && proxy.password != null) {
+                    builder.proxyAuthenticator { _, response ->
+                        val credentials = basic(proxy.username, proxy.password)
+                        response.request.newBuilder().header("Proxy-Authorization", credentials).build()
+                    }
                 }
             }
         }
@@ -105,6 +107,26 @@ object OKHTTP {
 
     class BasicAuthorizationInterceptor : Interceptor {
         override fun intercept(chain: Chain): Response {
+            fun getImageAuthentication(imageUrl: String): String {
+                Logd(TAG, "getImageAuthentication() called with: imageUrl = [$imageUrl]")
+                val episode = realm.query(Episode::class).query("imageUrl == $0", imageUrl).first().find() ?: return ""
+                val username = episode.feed?.username
+                val password = episode.feed?.password
+                if (username != null && password != null) return "$username:$password"
+                return ""
+            }
+            fun getUserInfo(request: Request): String {
+                val downloadRequest = request.tag(DownloadRequest::class.java)
+                if (downloadRequest != null) {
+                    if (downloadRequest.source != null) {
+                        var userInfo = getURIFromRequestUrl(downloadRequest.source).userInfo
+                        if (userInfo.isEmpty() && (!downloadRequest.username.isNullOrEmpty() || !downloadRequest.password.isNullOrEmpty()))
+                            userInfo = "${downloadRequest.username}:${downloadRequest.password}"
+                        return userInfo
+                    }
+                }
+                return getImageAuthentication(request.url.toString())
+            }
             val request = chain.request()
             var response = chain.proceed(request)
             if (response.code != HttpURLConnection.HTTP_UNAUTHORIZED) return response
@@ -134,43 +156,12 @@ object OKHTTP {
             val password = parts[1]
             Logd(TAG, "Retrying auth with ISO-8859-1")
             response.close()
-            response = retryWithEncoding(chain, newRequest, username, password, "ISO-8859-1")
+            response = chain.proceed(newRequest.header(HEADER_AUTHORIZATION, encodeCredentials(username, password, "ISO-8859-1")).build())
             if (response.code != HttpURLConnection.HTTP_UNAUTHORIZED) return response
 
             Logd(TAG, "Retrying auth with UTF-8")
             response.close()
-            return retryWithEncoding(chain, newRequest, username, password, "UTF-8")
-        }
-
-        private fun retryWithEncoding(chain: Chain, requestBuilder: Request.Builder, username: String, password: String, charset: String): Response {
-            return chain.proceed(requestBuilder.header(HEADER_AUTHORIZATION, encodeCredentials(username, password, charset)).build())
-        }
-
-        private fun getUserInfo(request: Request): String {
-            val downloadRequest = request.tag(DownloadRequest::class.java)
-            if (downloadRequest != null) {
-                if (downloadRequest.source != null) {
-                    var userInfo = getURIFromRequestUrl(downloadRequest.source).userInfo
-                    if (userInfo.isEmpty() && (!downloadRequest.username.isNullOrEmpty() || !downloadRequest.password.isNullOrEmpty()))
-                        userInfo = "${downloadRequest.username}:${downloadRequest.password}"
-                    return userInfo
-                }
-            }
-            return getImageAuthentication(request.url.toString())
-        }
-
-        /**
-         * Returns credentials based on image URL
-         * @param imageUrl The URL of the image
-         * @return Credentials in format "Username:Password", empty String if no authorization given
-         */
-        private fun getImageAuthentication(imageUrl: String): String {
-            Logd(TAG, "getImageAuthentication() called with: imageUrl = [$imageUrl]")
-            val episode = realm.query(Episode::class).query("imageUrl == $0", imageUrl).first().find() ?: return ""
-            val username = episode.feed?.username
-            val password = episode.feed?.password
-            if (username != null && password != null) return "$username:$password"
-            return ""
+            return chain.proceed(newRequest.header(HEADER_AUTHORIZATION, encodeCredentials(username, password, "UTF-8")).build())
         }
 
         companion object {

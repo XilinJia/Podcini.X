@@ -202,14 +202,6 @@ class Episode : RealmObject {
 
     var forceVideo: Boolean = false
 
-    // TODO: needed in cast player
-    @Ignore
-    var effectUrl = ""
-
-    // TODO: needed in cast player
-    @Ignore
-    var effectMimeType = ""
-
     var repeatTime: Long = 0L
 
     var repeatInterval: Long = 0L
@@ -565,7 +557,6 @@ class Episode : RealmObject {
         if (fileUrl != other.fileUrl) return false
         if (mimeType != other.mimeType) return false
         if (origFeedTitle != other.origFeedTitle) return false
-        if (effectMimeType != other.effectMimeType) return false
         return true
     }
 
@@ -611,7 +602,6 @@ class Episode : RealmObject {
         result = 31 * result + (fileUrl?.hashCode() ?: 0)
         result = 31 * result + (mimeType?.hashCode() ?: 0)
         result = 31 * result + (origFeedTitle?.hashCode() ?: 0)
-        result = 31 * result + effectMimeType.hashCode()
         return result
     }
 

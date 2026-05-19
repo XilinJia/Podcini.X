@@ -558,9 +558,17 @@ fun ProgressBar(vm: AVPlayerVM) {
         val pastText = remember(theatres[vm.playerId].mPlayer?.curEpisode?.position) { if (theatres[vm.playerId].mPlayer?.curEpisode == null) "" else durationStringAdapt(theatres[vm.playerId].mPlayer?.curEpisode!!.position) + " *" + durationStringAdapt(theatres[vm.playerId].mPlayer?.curEpisode!!.timeSpent.toInt()) }
         Text(pastText, color = textColor, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.weight(1f))
-        val info = when {
-            theatres[vm.playerId].mPlayer == null -> ""
-            else -> (if (theatres[vm.playerId].mPlayer!!.mimeType.isNullOrBlank()) "" else theatres[vm.playerId].mPlayer!!.mimeType + " ") + theatres[vm.playerId].mPlayer!!.channelCount + ": " + (formatLargeIntegerBrief(theatres[vm.playerId].mPlayer!!.sampleRate) + "Hz") + (if (theatres[vm.playerId].mPlayer!!.bitrate > 0) " ${formatLargeIntegerBrief(theatres[vm.playerId].mPlayer!!.bitrate)}bps" else "")
+        val player = theatres[vm.playerId].mPlayer
+        val info = remember(player?.mimeType, player?.channelCount, player?.sampleRate, player?.bitrate) {
+            when {
+                player == null -> ""
+                else -> {
+                    val mime = if (player.mimeType.isBlank()) "" else player.mimeType + " "
+                    val sample = formatLargeIntegerBrief(player.sampleRate) + "Hz"
+                    val bitrate = if (player.bitrate > 0) " ${formatLargeIntegerBrief(player.bitrate)}bps" else ""
+                    mime + player.channelCount + ": " + sample + bitrate
+                }
+            }
         }
         Text(info, color = textColor, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.weight(1f))

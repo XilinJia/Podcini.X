@@ -1,3 +1,8 @@
+# 11.2.1
+
+* ensure to set bitrate to 0 on new episode
+* further enhanced http clients settings
+
 # 11.2.0
 
 * fixed bug of possibly calling onPostPlayback twice and on new episode when starting a new episode
