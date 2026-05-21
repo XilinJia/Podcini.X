@@ -166,7 +166,6 @@ fun PrefPortalScreen() {
 
     @Composable
     fun IconTitleSummaryScreenRow(vecRes: Int, titleRes: Int, summaryRes: Int, screen: PFNavKey) {
-        
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {
             Icon(imageVector = ImageVector.vectorResource(vecRes), contentDescription = "", tint = textColor, modifier = Modifier.size(40.dp).padding(end = 15.dp))
             Column(modifier = Modifier.weight(1f).clickable { pfBackStack.add(screen) }) {
@@ -177,7 +176,6 @@ fun PrefPortalScreen() {
     }
     @Composable
     fun IconTitleActionRow(vecRes: Int, titleRes: Int, callback: ()-> Unit) {
-        
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {
             Icon(imageVector = ImageVector.vectorResource(vecRes), contentDescription = "", tint = textColor, modifier = Modifier.size(40.dp).padding(end = 15.dp))
             Column(modifier = Modifier.weight(1f).clickable { callback() }) {
@@ -187,6 +185,10 @@ fun PrefPortalScreen() {
     }
     
     Column(modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {
+            Icon(imageVector = Icons.Filled.Info, contentDescription = "", tint = Color.Red, modifier = Modifier.size(40.dp).padding(end = 15.dp))
+            Text("This is likely the final release of Podcini.X. Upcoming app will be extensible in handling other sources. It will be likely rebranded as Podcini.A. Stay tuned.", color = textColor)
+        }
         val copyrightNoticeText by remember { mutableStateOf(getCopyrightNoticeText()) }
         if (copyrightNoticeText.isNotBlank()) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {

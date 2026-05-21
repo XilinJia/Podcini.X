@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 314
-        versionName = "11.2.1"
+        versionCode = 315
+        versionName = "11.2.2"
 
         ndkVersion = "29.0.14206865"
 
@@ -164,7 +164,7 @@ androidComponents {
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2026.05.00"))
+    implementation(platform("androidx.compose:compose-bom:2026.05.01"))
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.ui:ui")
@@ -184,8 +184,8 @@ dependencies {
 
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-navigation3:2.10.0")
-    implementation("androidx.navigation3:navigation3-runtime:1.1.1")
-    implementation("androidx.navigation3:navigation3-ui:1.1.1")
+    implementation("androidx.navigation3:navigation3-runtime:1.1.2")
+    implementation("androidx.navigation3:navigation3-ui:1.1.2")
 
     implementation("androidx.media3:media3-exoplayer:1.10.1")
     implementation("androidx.media3:media3-datasource-okhttp:1.10.1")
@@ -227,8 +227,8 @@ dependencies {
 
     implementation("net.dankito.readability4j:readability4j:1.0.8")
 
-    debugImplementation("androidx.compose.ui:ui-tooling:1.11.1")
-    debugImplementation("androidx.compose.ui:ui-tooling-preview:1.11.1")
+    debugImplementation("androidx.compose.ui:ui-tooling:1.11.2")
+    debugImplementation("androidx.compose.ui:ui-tooling-preview:1.11.2")
 
     "freeImplementation"("org.conscrypt:conscrypt-android:2.5.3")
 

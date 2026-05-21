@@ -1,3 +1,7 @@
+# 11.2.2
+
+* Season finale.
+
 # 11.2.1
 
 * ensure to set bitrate to 0 on new episode
