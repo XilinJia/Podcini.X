@@ -42,6 +42,7 @@ import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.formatShortFileSize
 import ac.mdiq.podcini.utils.openInBrowser
 import android.speech.tts.TextToSpeech
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -490,6 +491,11 @@ fun EpisodeWebView(episode: Episode) {
                             settings.domStorageEnabled = true
                             settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
                             webViewClient = object : WebViewClient() {
+                                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                                    val url = request?.url?.toString() ?: return false
+                                    openInBrowser(url)
+                                    return true
+                                }
                                 override fun onPageFinished(view: WebView?, url: String?) {
                                     val isEmpty = view?.title.isNullOrEmpty() && view?.contentDescription.isNullOrEmpty()
                                     if (isEmpty) Logd(TAG, "content is empty")
