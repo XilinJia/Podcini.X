@@ -1,6 +1,12 @@
+# 11.2.2.1
+
+* Hand off show-notes WebView link taps to the system browser, thanks to @jim-daf
+
 # 11.2.2
 
 * Season finale.
+* Upcoming app will be extensible in handling other sources, and will be re-branded. Stay tuned.
+
 
 # 11.2.1
 

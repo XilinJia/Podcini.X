@@ -1,0 +1,1 @@
+* Hand off show-notes WebView link taps to the system browser, thanks to @jim-daf
