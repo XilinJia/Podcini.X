@@ -233,22 +233,34 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                         PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
                         PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
                         PlaybackException.ERROR_CODE_TIMEOUT -> {
-                            val lastPosition = castPlayer?.currentPosition ?: 0L
                             LogtFor(TAG, curEpisode?.id, "player error: ${error.localizedMessage}, retrying...")
+                            //                            val lastPosition = castPlayer?.currentPosition ?: 0L
                             castPlayer?.prepare()
-//                            castPlayer?.seekTo(lastPosition)
+                            //                            castPlayer?.seekTo(lastPosition)
                             castPlayer?.play()
                         }
                         PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW -> {
                             castPlayer?.prepare()
                             castPlayer?.play()
                         }
+                        PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
+                        PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED -> {
+                            handleTerminalError("Device media decoder failed. Try restarting the app.")
+                        }
+                        PlaybackException.ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED,
+                        PlaybackException.ERROR_CODE_DRM_PROVISIONING_FAILED -> {
+                            handleTerminalError("This content is protected and cannot be played.")
+                        }
+                        PlaybackException.ERROR_CODE_DECODING_FAILED,
+                        PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED -> {
+                            handleTerminalError("This device cannot play this file format.")
+                        }
                         else -> {
                             // Terminal errors (404, Media Unsupported)
-                            LogeFor(TAG, curEpisode?.id, "Permanent error: ${error.localizedMessage}")
                             val cause = error.cause
+                            LogeFor(TAG, curEpisode?.id, "Player error: ${error.localizedMessage} ${error.errorCode} ${cause?.message}")
                             when {
-                                error.cause is AudioSink.InitializationException -> {
+                                cause is AudioSink.InitializationException -> {
                                     if (enableFloat) {
                                         Logt(TAG, "system can not handle float sampling, recreating players with float off")
                                         enableFloat = false
@@ -259,10 +271,6 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                                 error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND || (cause is HttpDataSource.InvalidResponseCodeException && cause.responseCode == 404) -> {
                                     handleTerminalError("Episode not found on server (404).")
                                 }
-                                // CASE: Media Unsupported (Codecs/Containers)
-                                error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED || error.errorCode == PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED -> {
-                                    handleTerminalError("This device cannot play this file format.")
-                                }
                                 // CASE: 403 Forbidden (Auth issues)
                                 cause is HttpDataSource.InvalidResponseCodeException && cause.responseCode == 403 -> {
                                     handleTerminalError("Access denied (403). Check your subscription.")
@@ -270,16 +278,16 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                             }
                         }
                     }
-//                    if (wasDownloadBlocked(error)) {
-//                        Logpe(TAG, "audioErrorListener: ${getAppContext().getString(R.string.download_error_blocked)}")
-//                        setPlayerStatus(PlayerStatus.ERROR, curEpisode)
-//                    } else {
-//                        var cause = error.cause
-//                        if (cause is HttpDataSourceException && cause.cause != null) cause = cause.cause
-//                        if (cause != null && "Source error" == cause.message) cause = cause.cause
-//                        Logpe(TAG, "audioErrorListener: ${if (cause != null) cause.message else error.message}")
-//                        setPlayerStatus(PlayerStatus.ERROR, curEpisode)
-//                    }
+                    //                    if (wasDownloadBlocked(error)) {
+                    //                        Logpe(TAG, "audioErrorListener: ${getAppContext().getString(R.string.download_error_blocked)}")
+                    //                        setPlayerStatus(PlayerStatus.ERROR, curEpisode)
+                    //                    } else {
+                    //                        var cause = error.cause
+                    //                        if (cause is HttpDataSourceException && cause.cause != null) cause = cause.cause
+                    //                        if (cause != null && "Source error" == cause.message) cause = cause.cause
+                    //                        Logpe(TAG, "audioErrorListener: ${if (cause != null) cause.message else error.message}")
+                    //                        setPlayerStatus(PlayerStatus.ERROR, curEpisode)
+                    //                    }
                 }
                 override fun onPositionDiscontinuity(oldPosition: PositionInfo, newPosition: PositionInfo, reason: @DiscontinuityReason Int) {
 //                    Logt(TAG, "onPositionDiscontinuity ${oldPosition.positionMs} ${newPosition.positionMs} $reason")

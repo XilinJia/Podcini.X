@@ -55,14 +55,15 @@ object OKHTTP {
         val builder = Builder()
         builder.retryOnConnectionFailure(true)
         builder.connectTimeout(CONNECTION_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
-        builder.readTimeout(READ_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
+//        builder.readTimeout(READ_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
+        builder.readTimeout(15, TimeUnit.SECONDS)
 //        builder.callTimeout(60, TimeUnit.SECONDS)
-
-        builder.pingInterval(30, TimeUnit.SECONDS)
-        builder.connectionPool(ConnectionPool(8, 2, TimeUnit.MINUTES))
+//        builder.pingInterval(30, TimeUnit.SECONDS)
+        builder.connectionPool(ConnectionPool(5, 2, TimeUnit.MINUTES))
         builder.cookieJar(JavaNetCookieJar(cookieManager))
 
-        builder.cache(Cache(okhttpCacheDirectory, 200L * 1024L * 1024L /* 200MB */))
+//        builder.cache(Cache(okhttpCacheDirectory, 200L * 1024L * 1024L /* 200MB */))
+        builder.cache(null)
 
         builder.followRedirects(true)
         builder.followSslRedirects(true)

@@ -1,3 +1,8 @@
+# 11.2.2.2
+
+* increased OKHttp read timeout, avoided periodically pinging the server, and disabled OKHttp cache, for streaming stability
+* fixed import/export crashes when system doesn't support picking directory tree
+
 # 11.2.2.1
 
 * Hand off show-notes WebView link taps to the system browser, thanks to @jim-daf

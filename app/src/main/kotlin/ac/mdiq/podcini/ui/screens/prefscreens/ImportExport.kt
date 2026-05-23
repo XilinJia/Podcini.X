@@ -182,22 +182,22 @@ fun ImportExportScreen() {
     }
 
     val chooseOpmlExportPathLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
-        if (result.resultCode != RESULT_OK || result.data == null) return@rememberLauncherForActivityResult
+        if (result.resultCode != RESULT_OK || result.data?.data == null) return@rememberLauncherForActivityResult
         val uri = result.data!!.data!!
         exportWithWriter(OpmlWriter(), uri, ExportTypes.OPML)
     }
     val chooseHtmlExportPathLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
-        if (result.resultCode != RESULT_OK || result.data == null) return@rememberLauncherForActivityResult
+        if (result.resultCode != RESULT_OK || result.data?.data == null) return@rememberLauncherForActivityResult
         val uri = result.data!!.data!!
         exportWithWriter(HtmlWriter(), uri, ExportTypes.HTML)
     }
     val chooseFavoritesExportPathLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
-        if (result.resultCode != RESULT_OK || result.data == null) return@rememberLauncherForActivityResult
+        if (result.resultCode != RESULT_OK || result.data?.data == null) return@rememberLauncherForActivityResult
         val uri = result.data!!.data!!
         exportWithWriter(FavoritesWriter(), uri, ExportTypes.FAVORITES)
     }
     val chooseProgressExportPathLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
-        if (result.resultCode != RESULT_OK || result.data == null) return@rememberLauncherForActivityResult
+        if (result.resultCode != RESULT_OK || result.data?.data == null) return@rememberLauncherForActivityResult
         val uri = result.data!!.data!!
         exportWithWriter(EpisodesProgressWriter(), uri, ExportTypes.PROGRESS)
     }
@@ -266,7 +266,11 @@ fun ImportExportScreen() {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val uri = tempRoottree!!
+                    val uri = tempRoottree
+                    if (uri == null) {
+                        Loge(TAG, "Import uri is null")
+                        return@TextButton
+                    }
                     showProgress = true
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
@@ -315,7 +319,11 @@ fun ImportExportScreen() {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val uri = tempRoottree!!
+                    val uri = tempRoottree
+                    if (uri == null) {
+                        Loge(TAG, "Export uri is null")
+                        return@TextButton
+                    }
                     showProgress = true
                     CoroutineScope(Dispatchers.IO).launch {
                         val chosenDir = uri.toUF()
