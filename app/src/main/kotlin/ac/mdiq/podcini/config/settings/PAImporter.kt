@@ -12,6 +12,7 @@ import ac.mdiq.podcini.storage.utils.UnifiedFile
 import ac.mdiq.podcini.storage.utils.div
 import ac.mdiq.podcini.storage.utils.fs
 import ac.mdiq.podcini.storage.utils.internalDir
+import ac.mdiq.podcini.storage.utils.parent
 import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.utils.Logd
 import android.database.sqlite.SQLiteDatabase
@@ -108,7 +109,7 @@ suspend fun importPA(uri: Uri, importDb: Boolean, importDirectory: Boolean, onDi
 //                Logd(TAG, "episode title: ${episode.title}")
                 episodes.add(episode)
             }
-//            feed.episodes = episodes.toRealmList()
+            feed.episodes = episodes
         }
     }
 
@@ -206,7 +207,7 @@ suspend fun importPA(uri: Uri, importDb: Boolean, importDirectory: Boolean, onDi
                         }
                     }
                 }
-                Logd(TAG, "feed title: ${feed.title}")
+                Logd(TAG, "buildFeeds feed title: ${feed.title}")
                 feed.tags = pIdTagMap[feed.id.toInt()]?.toRealmSet() ?: realmSetOf()
                 buildEpisodes(db, feed)
 
@@ -214,7 +215,6 @@ suspend fun importPA(uri: Uri, importDb: Boolean, importDirectory: Boolean, onDi
                 for (item in feed.episodes) {
                     item.id = 0L
                     item.feedId = null
-//                    item.feed = feed
                 }
                 updateFeedFull(feed, removeUnlistedItems = false, overwriteStates = true)
             }
@@ -318,7 +318,7 @@ suspend fun importPA(uri: Uri, importDb: Boolean, importDirectory: Boolean, onDi
                         "topic_url" -> PAFeed.topicUrl = cursor.getStringOrNull(i)
                     }
                 }
-                Logd(TAG, "feed title: ${PAFeed.name}")
+                Logd(TAG, "buildDirectory feed title: ${PAFeed.name}")
                 buildRelations(db, PAFeed)
                 upsertBlk(PAFeed) {}
             }
@@ -338,23 +338,33 @@ suspend fun importPA(uri: Uri, importDb: Boolean, importDirectory: Boolean, onDi
     var unzipDir: UnifiedFile? = null
 
     suspend fun unzipArchive(): UnifiedFile? {
-        val zipFileName = "tempArchive.zip"
-        val zipFile = internalDir / zipFileName
+        val zipFile = internalDir / "tempArchive.zip"
         val sourcePath = uri.toUF()
-        sourcePath.source().use { bufferedSource -> zipFile.sink().buffer().use { sink -> sink.writeAll(bufferedSource) } }
+        sourcePath.source().buffer().use { source ->
+            zipFile.sink().buffer().use { sink ->
+                sink.writeAll(source)
+                sink.flush()
+            }
+        }
 
         unzipDir = internalDir / "UnzippedFiles"
         if (unzipDir!!.exists()) deleteDirectory(unzipDir!!)
         unzipDir = internalDir.createDirectory("UnzippedFiles")
 
         val unzipPath = unzipDir!!
+        Logd(TAG, "unzipArchive zipFile: ${zipFile.absPath}")
+
         fs.openZip(zipFile.absPath.OKPath()).use { zipFs ->
             zipFs.listRecursively(".".OKPath()).forEach { entry ->
-                var outPath = unzipPath / entry.toString()
-                if (zipFs.metadata(entry).isDirectory) outPath = unzipPath.createDirectory(entry.toString())
+                val relativePathString = entry.toString().removePrefix("/")
+                val outPath = unzipPath / relativePathString
+                val metadata = zipFs.metadata(entry)
+                if (metadata.isDirectory) fs.createDirectories(outPath.absPath.OKPath())
                 else {
-//                    outPath.parent()?.createDirectories()
-                    zipFs.source(entry).buffer().use { source -> outPath.sink().buffer().use { sink -> source.readAll(sink) } }
+                    outPath.parent()?.let { fs.createDirectories(it.absPath.OKPath()) }
+                    zipFs.source(entry).buffer().use { source ->
+                        fs.sink(outPath.absPath.OKPath()).buffer().use { sink -> sink.writeAll(source) }
+                    }
                 }
             }
         }

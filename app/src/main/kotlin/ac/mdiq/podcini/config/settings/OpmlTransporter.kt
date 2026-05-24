@@ -21,11 +21,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.format
-import kotlinx.datetime.format.char
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.format.DateTimeComponents
+import kotlinx.datetime.format.format
+import kotlinx.datetime.offsetIn
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import nl.adaptivity.xmlutil.XmlDeclMode
@@ -34,7 +33,6 @@ import nl.adaptivity.xmlutil.serialization.XmlElement
 import nl.adaptivity.xmlutil.serialization.XmlSerialName
 import okio.buffer
 import kotlin.time.Clock
-
 
 class OpmlTransporter {
 
@@ -66,29 +64,32 @@ class OpmlTransporter {
     @Serializable
     @XmlSerialName("opml", "", "")
     data class Opml(
-        @XmlElement(false) val version: String,
-        val head: Head,
-        val body: Body
+        val head: Head? = null,
+        val body: Body? = null,
+        val version: String? = null
     )
-
     @Serializable
     data class Head(
         val title: String,
         @XmlSerialName("dateCreated", "", "")
-        val dateCreated: String
+        val dateCreated: String,
+        @XmlSerialName("dateModified", "", "")
+        val dateModified: String
     )
 
     @Serializable
+    @XmlSerialName("body", "", "")
     data class Body(
         @XmlElement(true)
-        val outlines: List<Outline>
+        @XmlSerialName("outline", "", "")
+        val outlines: List<Outline> = emptyList()
     )
 
     @Serializable
     @XmlSerialName("outline", "", "")
     data class Outline(
-        @XmlElement(false) val text: String,
-        @XmlElement(false) val title: String,
+        @XmlElement(false) val text: String? = null,
+        @XmlElement(false) val title: String? = null,
         @XmlElement(false) val type: String? = null,
         @XmlSerialName("xmlUrl", "", "")
         @XmlElement(false) val xmlUrl: String? = null,
@@ -97,19 +98,27 @@ class OpmlTransporter {
     )
 
     class OpmlWriter : ExportWriter {
-        /**
-         * Takes a list of feeds and a writer and writes those into an OPML document.
-         */
         override suspend fun writeDocument(feeds: List<Feed>, unifiedFile: UnifiedFile) {
-            val outlines = feeds.asSequence().filterNot { it.isSynthetic() }
-                .map { feed -> Outline(text = feed.title?:"", title = feed.title?:"", type = feed.type, xmlUrl = feed.downloadUrl, htmlUrl = feed.link) }.toList()
-            val formatter = LocalDateTime.Format {
-                day(); char(' '); monthNumber(); char(' '); yearTwoDigits(1970)
-                char(' '); hour(); char(':'); minute(); char(':'); second()
-            }
-            val dateCreated = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).format(formatter)
-            val opml = Opml(version = OPML_VERSION, head = Head(title = OPML_TITLE, dateCreated = dateCreated), body = Body(outlines = outlines))
-
+            val outlines = feeds.asSequence()
+                .filterNot { it.isSynthetic() }
+                .map { feed ->
+                    Outline(
+                        text = feed.title ?: "",
+                        title = null,
+                        type = feed.type,
+                        xmlUrl = feed.downloadUrl,
+                        htmlUrl = feed.link
+                    )
+                }
+                .toList()
+            val now = Clock.System.now()
+            val offset = now.offsetIn(TimeZone.currentSystemDefault())
+            val timestamp = DateTimeComponents.Formats.RFC_1123.format { setDateTimeOffset(now, offset) }
+            val opml = Opml(
+                version = OPML_VERSION,
+                head = Head(title = OPML_TITLE, dateCreated = timestamp, dateModified = timestamp),
+                body = Body(outlines = outlines)
+            )
             val xml = XML {
                 indentString = "  "
                 xmlDeclMode = XmlDeclMode.Charset
@@ -138,24 +147,27 @@ class OpmlTransporter {
         /**
          * Reads an Opml document and returns a list of all OPML elements it can find
          */
-        suspend fun readDocument(reader: UnifiedFile): MutableList<OpmlElement> {
-            val xmlString = reader.source().buffer().use { it.readString(Charsets.UTF_8) }
-            val xml = XML { defaultPolicy { ignoreUnknownChildren() } }
-
-            try {
-                val opmlData: Opml = xml.decodeFromString(Opml.serializer(), xmlString)
-                val elements = opmlData.body.outlines.map { outline ->
+        suspend fun readDocument(reader: UnifiedFile): List<OpmlElement> {
+            return try {
+                val xml = XML { defaultPolicy { ignoreUnknownChildren() } }
+                val xmlString = reader.source().buffer().use { it.readString(Charsets.UTF_8) }
+                Logd(TAG, "readDocument xmlString: $xmlString")
+                val opmlData = xml.decodeFromString(Opml.serializer(), xmlString)
+                val elements = opmlData.body?.outlines.orEmpty().map { outline ->
                     OpmlElement().apply {
-                        text = outline.title
+                        text = outline.title ?: outline.text
                         xmlUrl = outline.xmlUrl
                         htmlUrl = outline.htmlUrl
                         type = outline.type
                     }
                 }
+
                 Logd(TAG, "readDocument elements: ${elements.size}")
-                elementList.addAll(elements)
-            } catch (e: Exception) { Logs(TAG, e, "Failed to parse OPML") }
-            return elementList
+                elements
+            } catch (e: Exception) {
+                Logs(TAG, e, "Failed to parse OPML")
+                emptyList()
+            }
         }
 
         companion object {

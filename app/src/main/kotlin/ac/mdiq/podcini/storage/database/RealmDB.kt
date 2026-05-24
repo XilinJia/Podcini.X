@@ -42,6 +42,7 @@ import io.github.xilinjia.krdb.notifications.UpdatedObject
 import io.github.xilinjia.krdb.types.EmbeddedRealmObject
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.TypedRealmObject
+import kotlinx.atomicfu.updateAndGet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -334,7 +335,7 @@ fun runOnIOScope(block: suspend () -> Unit) : Job {
 }
 
 @OptIn(ExperimentalAtomicApi::class)
-private val lastId = AtomicLong(0)
+private val lastId = AtomicLong(nowInMillis())
 @OptIn(ExperimentalAtomicApi::class)
 fun getId(now: Long = nowInMillis()): Long {
     while (true) {

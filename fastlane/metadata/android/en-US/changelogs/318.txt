@@ -1,0 +1,5 @@
+* fixed failure of importing Podcast Addict backup
+* fixed not getting the episodes and refreshing feeds when importing AntennaPod and Podcast Addict
+* fixed OPML import/export
+* added progress text in Import/Export screen
+* adjusted OKHttp's callFailed logging

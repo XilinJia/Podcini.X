@@ -1,3 +1,11 @@
+# 11.2.2.3
+
+* fixed failure of importing Podcast Addict backup
+* fixed not getting the episodes and refreshing feeds when importing AntennaPod and Podcast Addict
+* fixed OPML import/export
+* added progress text in Import/Export screen
+* adjusted OKHttp's callFailed logging
+
 # 11.2.2.2
 
 * increased OKHttp read timeout, avoided periodically pinging the server, and disabled OKHttp cache, for streaming stability

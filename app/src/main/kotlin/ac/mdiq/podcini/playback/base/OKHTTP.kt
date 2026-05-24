@@ -10,7 +10,6 @@ import ac.mdiq.podcini.storage.specs.ProxyConfig
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import kotlinx.io.IOException
-import okhttp3.Cache
 import okhttp3.Call
 import okhttp3.Connection
 import okhttp3.ConnectionPool
@@ -77,7 +76,8 @@ object OKHTTP {
                 Logd(TAG, "released: $connection")
             }
             override fun callFailed(call: Call, ioe: IOException) {
-                Loge(TAG, "callFailed ${ioe.message}")
+                if (call.isCanceled()) Logd(TAG, "Stream intentionally canceled by player.")
+                else Loge(TAG, "Streaming network failure: ${ioe.message}")
             }
         })
 

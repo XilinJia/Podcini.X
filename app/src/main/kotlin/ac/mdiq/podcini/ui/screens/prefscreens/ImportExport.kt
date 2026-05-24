@@ -59,7 +59,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -123,7 +122,7 @@ fun ImportExportScreen() {
 
     BackHandler(enabled = true) { pfBackStack.removeLastOrNull() }
 
-    var showProgress by remember { mutableStateOf(false) }
+    var processingText by remember { mutableStateOf("") }
     fun isJsonFile(uri: Uri): Boolean {
         val fileName = uri.lastPathSegment ?: return false
         return fileName.endsWith(".json", ignoreCase = true)
@@ -152,18 +151,18 @@ fun ImportExportScreen() {
     ComfirmDialog(titleRes = R.string.import_export_error_label, message = importErrorMessage, showDialog = showImporErrortDialog) {}
 
     fun exportWithWriter(exportWriter: ExportWriter, uri: Uri?, exportType: ExportTypes) {
-        showProgress = true
+        processingText = "Exporting ..."
         if (uri == null) {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val output = ExportWorker(exportWriter).exportFile()
                     withContext(Dispatchers.Main) { showExportSuccess(output.toAndroidUri(), exportType.contentType) }
                 } catch (e: Exception) {
-                    showProgress = false
+                    processingText = ""
                     Logs(TAG, e, "export error: ${e.message}")
                     importErrorMessage = e.message?:"Reason unknown"
                     showImporErrortDialog.value = true
-                } finally { showProgress = false }
+                } finally { processingText = "" }
             }
         } else {
             CoroutineScope(Dispatchers.IO).launch {
@@ -172,11 +171,11 @@ fun ImportExportScreen() {
                     val output = worker.exportFile()
                     withContext(Dispatchers.Main) { showExportSuccess(output.toAndroidUri(), exportType.contentType) }
                 } catch (e: Exception) {
-                    showProgress = false
+                    processingText = ""
                     Logs(TAG, e, "export error: ${e.message}")
                     importErrorMessage = e.message?:"Reason unknown"
                     showImporErrortDialog.value = true
-                } finally { showProgress = false }
+                } finally { processingText = "" }
             }
         }
     }
@@ -206,16 +205,16 @@ fun ImportExportScreen() {
         val uri = result.data!!.data
         uri?.let {
             if (isJsonFile(uri)) {
-                showProgress = true
+                processingText = "Restoring..."
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         EpisodeProgressReader().readDocument(uri.toUF().source().buffer())
                         withContext(Dispatchers.Main) {
                             showImporSuccessDialog.value = true
-                            showProgress = false
+                            processingText = ""
                         }
                     } catch (e: Throwable) {
-                        showProgress = false
+                        processingText = ""
                         Logs(TAG, e, "export error: ${e.message}")
                         importErrorMessage = e.message?:"Reason unknown"
                         showImporErrortDialog.value = true
@@ -223,7 +222,7 @@ fun ImportExportScreen() {
                 }
             } else {
                 val message = context.getString(R.string.import_file_type_toast) + ".json"
-                showProgress = false
+                processingText = ""
                 Loge(TAG, "export error: $message")
                 importErrorMessage = message
                 showImporErrortDialog.value = true
@@ -238,8 +237,8 @@ fun ImportExportScreen() {
         OpmlTransporter.startImport(uri) {
             readElements = it
             Logd(TAG, "readElements: ${readElements.size}")
+            showOpmlImportSelectionDialog = true
         }
-        showOpmlImportSelectionDialog = true
     }
 
     val comboDic = remember { mutableStateMapOf<String, Boolean>() }
@@ -271,7 +270,7 @@ fun ImportExportScreen() {
                         Loge(TAG, "Import uri is null")
                         return@TextButton
                     }
-                    showProgress = true
+                    processingText = "Importing..."
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
                             withContext(Dispatchers.IO) {
@@ -288,10 +287,10 @@ fun ImportExportScreen() {
                             }
                             withContext(Dispatchers.Main) {
                                 showImporSuccessDialog.value = true
-                                showProgress = false
+                                processingText = ""
                             }
                         } catch (e: Throwable) {
-                            showProgress = false
+                            processingText = ""
                             Logs(TAG, e, "export error: ${e.message}")
                             importErrorMessage = e.message?:"Reason unknown"
                             showImporErrortDialog.value = true
@@ -324,7 +323,7 @@ fun ImportExportScreen() {
                         Loge(TAG, "Export uri is null")
                         return@TextButton
                     }
-                    showProgress = true
+                    processingText = "Exporting..."
                     CoroutineScope(Dispatchers.IO).launch {
                         val chosenDir = uri.toUF()
                         val exportSubDir = chosenDir.createDirectory(dateStampFilename("$backupDirName-%s"))
@@ -334,7 +333,7 @@ fun ImportExportScreen() {
                             val realmFile = exportSubDir.createFile("application/octet-stream", "backup.realm")
                             DatabaseTransporter().exportToUri(realmFile)
                         }
-                        withContext(Dispatchers.Main) { showProgress = false }
+                        withContext(Dispatchers.Main) { processingText = "" }
                     }
                     showComboExportDialog = false
                 }) { Text(text = "OK") }
@@ -373,7 +372,7 @@ fun ImportExportScreen() {
             showComboImportDialog = true
         } else {
             val message = context.getString(R.string.import_directory_toast) + backupDirName + " or " + autoBackupDirName
-            showProgress = false
+            processingText = ""
             Loge(TAG, "export error: $message")
             importErrorMessage = message
             showImporErrortDialog.value = true
@@ -395,10 +394,10 @@ fun ImportExportScreen() {
 
     val chooseAPImportPathLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
-            showProgress = true
+            processingText = "Importing AP..."
             importAP(uri) {
                 showImporSuccessDialog.value = true
-                showProgress = false
+                processingText = ""
             }
         } }
 
@@ -406,11 +405,11 @@ fun ImportExportScreen() {
     var importPADirectory by remember { mutableStateOf(false) }
     val choosePAImportPathLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
-            showProgress = true
+            processingText = "Importing PA..."
             CoroutineScope(Dispatchers.IO).launch {
                 if (importPADB) importPA(uri, true, importPADirectory) {}
                 showImporSuccessDialog.value = true
-                showProgress = false
+                processingText = ""
             }
         } }
     fun openExportPathPicker(exportType: ExportTypes, result: ActivityResultLauncher<Intent>, writer: ExportWriter) {
@@ -428,11 +427,11 @@ fun ImportExportScreen() {
     }
 
     
-    if (showProgress) {
-        CommonPopupCard(onDismissRequest = { showProgress = false }) {
-            Box(contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(progress = {0.6f}, strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp).align(Alignment.TopCenter))
-                Text("Loading...", color = textColor, modifier = Modifier.align(Alignment.BottomCenter))
+    if (processingText.isNotBlank()) {
+        CommonPopupCard(onDismissRequest = { processingText = "" }) {
+            Column {
+                CircularProgressIndicator(progress = {0.6f}, strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp))
+                Text(processingText, color = textColor, modifier = Modifier)
             }
         }
     }

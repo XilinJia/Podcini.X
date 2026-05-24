@@ -79,7 +79,7 @@ fun importAP(uri: Uri, onDismiss: ()->Unit) {
 //                Logd(TAG, "episode title: ${episode.title}")
                 episodes.add(episode)
             }
-//            feed.episodes = episodes.toRealmList()
+            feed.episodes = episodes
         }
     }
 
@@ -118,14 +118,13 @@ fun importAP(uri: Uri, onDismiss: ()->Unit) {
                         "tags" -> feed.tags = cursor.getStringOrNull(i)?.split(TAG_SEPARATOR)?.toRealmSet() ?: realmSetOf()
                     }
                 }
-                Logd(TAG, "feed title: ${feed.title}")
+                Logd(TAG, "buildFeeds feed title: ${feed.title}")
                 buildEpisodes(db, feed)
 
                 feed.id = 0L
                 for (item in feed.episodes) {
                     item.id = 0L
                     item.feedId = null
-//                    item.feed = feed
                 }
                 updateFeedFull(feed, removeUnlistedItems = false, overwriteStates = true)
             }

@@ -16,6 +16,7 @@ import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.nowInMillis
+import ac.mdiq.podcini.ui.compose.EpisodeScreen
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -147,8 +148,7 @@ fun addNewFeed(feed: Feed) {
     feed.lastUpdateTime = nowInMillis()
     feed.lastFullUpdateTime = nowInMillis()
     realm.writeBlocking {
-        val idLong = getId()
-        feed.id = idLong
+        feed.id = getId()
         feed.totleDuration = 0
         Logd(TAG, "feed.episodes count: ${feed.episodes.size}")
         for (episode in feed.episodes) {
@@ -365,7 +365,7 @@ suspend fun sumup(feed_: Feed) {
  * @return The updated Feed from the database if it already existed, or the new Feed from the parameters otherwise.
  */
 suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwriteStates: Boolean = false, downloadStatus: DownloadResult? = null) {
-    Logd(TAG, "updateFeedFull called")
+    Logd(TAG, "updateFeedFull feed: ${newFeed.title}")
     //        showStackTrace()
 
     Logd(TAG, "updateFeedFull newFeed id: ${newFeed.id} episodes: ${newFeed.episodes.size}")
