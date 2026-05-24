@@ -3,6 +3,7 @@ package ac.mdiq.podcini.net.download
 import ac.mdiq.podcini.config.settings.USER_AGENT
 import ac.mdiq.podcini.storage.specs.ProxyConfig
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.DefaultRequest
@@ -25,9 +26,6 @@ import java.net.Proxy
 import java.util.concurrent.TimeUnit
 import kotlin.io.encoding.Base64
 
-/**
- * Provides access to a HttpClient singleton.
- */
 object PodciniHttpClient {
     private val TAG: String = PodciniHttpClient::class.simpleName ?: "Anonymous"
 
@@ -70,7 +68,7 @@ object PodciniHttpClient {
                 config {
                     followRedirects(true)
                     retryOnConnectionFailure(true)
-                    pingInterval(30, TimeUnit.SECONDS)
+//                    pingInterval(30, TimeUnit.SECONDS)
                     connectionPool(ConnectionPool(5, 2, TimeUnit.MINUTES))
 
                     // Optional:
@@ -85,7 +83,7 @@ object PodciniHttpClient {
                             Logd(TAG, "connectionReleased: $connection")
                         }
                         override fun callFailed(call: Call, ioe: IOException) {
-                            Logd(TAG, "callFailed ${ioe.message}")
+                            Loge(TAG, "callFailed ${ioe.message}")
                         }
                     })
 

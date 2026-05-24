@@ -9,6 +9,8 @@ const val developerEmail = "xilin.vw@gmail.com"
 
 val USER_AGENT: String by lazy { "Mozilla/5.0 (compatible; Podcini/${BuildConfig.VERSION_NAME}; Android)" }
 
+//val USER_AGENT: String by lazy { "Podcini/" + BuildConfig.VERSION_NAME }
+
 fun getCopyrightNoticeText(): String {
     val packageHash = getAppContext().packageName.hashCode()
     val copyrightNoticeText = when {

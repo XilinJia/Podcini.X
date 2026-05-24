@@ -1,3 +1,11 @@
+# 11.2.2.4
+
+* simplified OKHttp client settings, set protocol to http1.1 for better compatibility
+* reduced load control parameters
+* set player setWakeMode for local file or streaming
+* avoided periodically pinging the server on ktor client
+* likely fixed streaming interruptions
+
 # 11.2.2.3
 
 * fixed failure of importing Podcast Addict backup

@@ -353,6 +353,14 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                     Logt(TAG, "onBandwidthEstimate bitrate=${bitrateEstimate / 1000} kbps " + "bytes=$totalBytesLoaded " + "loadTime=$totalLoadTimeMs")
                 }
                 override fun onPlaybackStateChanged(eventTime: AnalyticsListener.EventTime, state: Int) {
+                    if (state == STATE_BUFFERING || state == STATE_READY) {
+                        val currentMediaItem = exoPlayer?.currentMediaItem
+                        currentMediaItem?.localConfiguration?.uri?.let { uri ->
+                            Logt(TAG, "setting proper wake mode for ${uri.scheme}")
+                            if (uri.scheme == "file" || uri.scheme == "content") exoPlayer?.setWakeMode(C.WAKE_MODE_LOCAL)
+                            else exoPlayer?.setWakeMode(C.WAKE_MODE_NETWORK)
+                        }
+                    }
                     val s = when (state) {
                         STATE_IDLE -> "IDLE"
                         STATE_BUFFERING -> "BUFFERING"
@@ -477,7 +485,8 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         timeIt("$TAG createNativePlayer")
 
         val loadControl = DefaultLoadControl.Builder()
-        loadControl.setBufferDurationsMs(90_000, 300_000, 2_000, 10_000)
+//        loadControl.setBufferDurationsMs(90_000, 300_000, 2_000, 10_000)
+        loadControl.setBufferDurationsMs(30_000, 60_000, 3_500, 5_000).setPrioritizeTimeOverSizeThresholds(true)
 
         val audioOffloadPreferences = AudioOffloadPreferences.Builder()
             .setAudioOffloadMode(if (offloadEnabled) AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED else AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED)
@@ -1073,6 +1082,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         var httpDataSourceFactory:  OkHttpDataSource.Factory? = null
             get() {
                 if (field == null) field = OkHttpDataSource.Factory(getOKHttpClient() as okhttp3.Call.Factory).setUserAgent(USER_AGENT)
+//                if (field == null) field = OkHttpDataSource.Factory(getOKHttpClient() as okhttp3.Call.Factory).setUserAgent("Podcini/${BuildConfig.VERSION_NAME}")
                 return field
             }
 

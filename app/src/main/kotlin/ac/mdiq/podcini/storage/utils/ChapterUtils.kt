@@ -210,7 +210,6 @@ class ChapterReader(input: CountingSource) : ID3Reader(input) {
             Logd(TAG, "readFrame Chapter done: $chapter")
             chapters.add(chapter)
         }
-//        else super.readFrame(frameHeader)
     }
 
     companion object {

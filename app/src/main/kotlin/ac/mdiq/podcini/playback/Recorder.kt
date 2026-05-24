@@ -73,7 +73,7 @@ class SegmentSavingDataSource(private val mPlayer: MediaPlayerBase, private val 
     override fun getUri(): Uri? = cacheDataSource.uri
 
     override fun close() {
-        Logd(TAG, "closing")
+//        Logd(TAG, "closing")
         if (isRecording) stopRecording(mPlayer, 0) // Fallback if not explicitly stopped
         clipTempFos?.close()
         clipTempFos = null

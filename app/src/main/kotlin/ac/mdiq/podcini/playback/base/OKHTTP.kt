@@ -1,6 +1,5 @@
 package ac.mdiq.podcini.playback.base
 
-import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.net.download.DownloadRequest
 import ac.mdiq.podcini.net.download.PodciniHttpClient.proxyConfig
 import ac.mdiq.podcini.net.utils.NetworkUtils.getURIFromRequestUrl
@@ -12,21 +11,17 @@ import ac.mdiq.podcini.utils.Loge
 import kotlinx.io.IOException
 import okhttp3.Call
 import okhttp3.Connection
-import okhttp3.ConnectionPool
 import okhttp3.Credentials.basic
 import okhttp3.EventListener
 import okhttp3.Interceptor
 import okhttp3.Interceptor.Chain
-import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.OkHttpClient.Builder
+import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
 import okio.ByteString
-import java.io.File
 import java.io.UnsupportedEncodingException
-import java.net.CookieManager
-import java.net.CookiePolicy
 import java.net.HttpURLConnection
 import java.net.InetSocketAddress
 import java.net.Proxy
@@ -34,12 +29,7 @@ import java.util.concurrent.TimeUnit
 
 object OKHTTP {
     private const val TAG = "OKHTTP"
-    private const val MAX_CONNECTIONS = 8
     private const val CONNECTION_TIMEOUT = 15000
-    private const val READ_TIMEOUT = 5000
-    private const val SOCKET_TIMEOUT = 15000
-
-    private val okhttpCacheDirectory: File by lazy { File(getAppContext().cacheDir, "okhttp") }
 
     private var httpClient: OkHttpClient? = null
     @Synchronized
@@ -49,24 +39,15 @@ object OKHTTP {
     }
 
     private fun newBuilder(): Builder {
-        Logd(TAG, "Creating new instance of HTTP client")
-        val cookieManager = CookieManager().apply { setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER) }
+        Logd(TAG, "Creating optimized HTTP client for Media3 Streaming")
         val builder = Builder()
-        builder.retryOnConnectionFailure(true)
+//        builder.retryOnConnectionFailure(true)
         builder.connectTimeout(CONNECTION_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
-//        builder.readTimeout(READ_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
-        builder.readTimeout(15, TimeUnit.SECONDS)
-//        builder.callTimeout(60, TimeUnit.SECONDS)
-//        builder.pingInterval(30, TimeUnit.SECONDS)
-        builder.connectionPool(ConnectionPool(5, 2, TimeUnit.MINUTES))
-        builder.cookieJar(JavaNetCookieJar(cookieManager))
-
-//        builder.cache(Cache(okhttpCacheDirectory, 200L * 1024L * 1024L /* 200MB */))
-        builder.cache(null)
-
+        builder.readTimeout(0, TimeUnit.SECONDS)
+        builder.writeTimeout(30, TimeUnit.SECONDS)
         builder.followRedirects(true)
         builder.followSslRedirects(true)
-        builder.interceptors().add(BasicAuthorizationInterceptor())
+        builder.protocols(listOf(Protocol.HTTP_1_1))
 
         builder.eventListener(object : EventListener() {
             override fun connectionAcquired(call: Call, connection: Connection) {
@@ -76,22 +57,21 @@ object OKHTTP {
                 Logd(TAG, "released: $connection")
             }
             override fun callFailed(call: Call, ioe: IOException) {
-                if (call.isCanceled()) Logd(TAG, "Stream intentionally canceled by player.")
-                else Loge(TAG, "Streaming network failure: ${ioe.message}")
+                Loge(TAG, "callFailed error ${ioe::class.java.name}: ${ioe.message}")
+                var cause = ioe.cause
+                while (cause != null) {
+                    Loge(TAG, "callFailed Cause: ${cause::class.java.name}: ${cause.message}")
+                    cause = cause.cause
+                }
             }
         })
-
         proxyConfig?.let { proxy ->
             if (proxy.type != Proxy.Type.DIRECT && !proxy.host.isNullOrEmpty()) {
                 val port = if (proxy.port > 0) proxy.port else ProxyConfig.DEFAULT_PORT
                 val address = InetSocketAddress.createUnresolved(proxy.host, port)
                 builder.proxy(Proxy(proxy.type, address))
-                if (!proxy.username.isNullOrEmpty() && proxy.password != null) {
-                    builder.proxyAuthenticator { _, response ->
-                        val credentials = basic(proxy.username, proxy.password)
-                        response.request.newBuilder().header("Proxy-Authorization", credentials).build()
-                    }
-                }
+                if (!proxy.username.isNullOrEmpty() && proxy.password != null)
+                    builder.proxyAuthenticator { _, response -> response.request.newBuilder().header("Proxy-Authorization", basic(proxy.username, proxy.password)).build() }
             }
         }
         return builder
