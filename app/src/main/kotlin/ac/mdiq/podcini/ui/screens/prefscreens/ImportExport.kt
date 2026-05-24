@@ -504,18 +504,22 @@ fun ImportExportScreen() {
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
         TitleSummaryActionColumn(R.string.combo_export_label, R.string.combo_export_summary) {
             val uri = "content://com.android.externalstorage.documents/tree/primary:".toUri()
-            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
-                putExtra("android.provider.extra.INITIAL_URI", uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-            }
-            backupComboLauncher.launch(intent)
+            try {
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                    putExtra("android.provider.extra.INITIAL_URI", uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+                }
+                backupComboLauncher.launch(intent)
+            } catch (e: Exception) { Loge(TAG, "Export failed: ${e.message}")}
         }
         val showComboImportDialog = remember { mutableStateOf(false) }
         ComfirmDialog(titleRes = R.string.combo_import_label, message = stringResource(R.string.combo_import_warning), showDialog = showComboImportDialog) {
-            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            intent.addCategory(Intent.CATEGORY_DEFAULT)
-            restoreComboLauncher.launch(intent)
+            try {
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                intent.addCategory(Intent.CATEGORY_DEFAULT)
+                restoreComboLauncher.launch(intent)
+            } catch (e: Exception) { Loge(TAG, "Import failed: ${e.message}")}
         }
         TitleSummaryActionColumn(R.string.combo_import_label, R.string.combo_import_summary) { showComboImportDialog.value = true }
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))

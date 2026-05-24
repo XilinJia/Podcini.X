@@ -425,11 +425,13 @@ fun NetworkStorageScreen() {
                 text = { Text(stringResource(sumTextRes), color = textColor, style = MaterialTheme.typography.bodySmall) },
                 confirmButton = {
                     TextButton(onClick = {
-                        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
-                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                        intent.addCategory(Intent.CATEGORY_DEFAULT)
-                        selectCustomMediaDirLauncher.launch(intent)
-                        showSetCustomFolderDialog = false
+                        try {
+                            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+                            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                            intent.addCategory(Intent.CATEGORY_DEFAULT)
+                            selectCustomMediaDirLauncher.launch(intent)
+                            showSetCustomFolderDialog = false
+                        } catch (e: Exception) { Loge(TAG, "Can't select custom dir: ${e.message}")}
                     }) { Text(stringResource(R.string.confirm_label)) }
                 },
                 dismissButton = { TextButton(onClick = { showSetCustomFolderDialog = false }) { Text(stringResource(R.string.cancel_label)) } }

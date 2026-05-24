@@ -4,6 +4,7 @@
 * fixed not getting the episodes and refreshing feeds when importing AntennaPod and Podcast Addict
 * fixed OPML import/export
 * added progress text in Import/Export screen
+* further ensures for ACTION_OPEN_DOCUMENT_TREE operation
 * adjusted OKHttp's callFailed logging
 
 # 11.2.2.2
