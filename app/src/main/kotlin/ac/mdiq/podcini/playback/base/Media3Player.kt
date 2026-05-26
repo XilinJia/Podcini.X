@@ -1,10 +1,8 @@
 package ac.mdiq.podcini.playback.base
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.config.settings.USER_AGENT
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.SegmentSavingDataSource
-import ac.mdiq.podcini.playback.SegmentSavingDataSourceFactory
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.activeTheatres
 import ac.mdiq.podcini.playback.base.OKHTTP.encodeCredentials
@@ -82,8 +80,8 @@ import androidx.media3.common.Tracks
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.BaseAudioProcessor
 import androidx.media3.database.StandaloneDatabaseProvider
-import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
@@ -100,7 +98,6 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.LoadEventInfo
 import androidx.media3.exoplayer.source.MediaLoadData
 import androidx.media3.exoplayer.source.MediaSource
-import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.mp3.Mp3Extractor
@@ -109,6 +106,7 @@ import androidx.media3.ui.TrackNameProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -167,20 +165,20 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             return -1
         }
 
-//    override val videoWidth: Int
-//        get() = exoPlayer?.videoFormat?.width ?: 0
-//
-//    override val videoHeight: Int
-//        get() = exoPlayer?.videoFormat?.height ?: 0
-
     private val cacheMutex = Mutex()
     private suspend fun initCache() = withContext(Dispatchers.IO) {
         cacheMutex.withLock {
             simpleCache?.let { return@withLock }
-            val context = getAppContext()
-            val cacheDir = File(context.filesDir, "media_cache")
+            val appContext = getAppContext()
+            val cacheDir = File(appContext.cacheDir, "media_cache")
             if (!cacheDir.exists()) cacheDir.mkdirs()
-            simpleCache = SimpleCache(cacheDir, LeastRecentlyUsedCacheEvictor(streamingCacheSizeMB * 1024L * 1024), StandaloneDatabaseProvider(context)).also { simpleCache = it }
+            val databaseProvider = StandaloneDatabaseProvider(appContext)
+            val evictor = LeastRecentlyUsedCacheEvictor(streamingCacheSizeMB * 1024L * 1024L)
+            simpleCache = SimpleCache(cacheDir, evictor, databaseProvider)
+//            val cacheDir = File(appContext.cacheDir, "media_cache")
+//            if (!cacheDir.exists()) cacheDir.mkdirs()
+//            val databaseProvider = StandaloneDatabaseProvider(appContext)
+//            simpleCache = SimpleCache(cacheDir, NoOpCacheEvictor(), databaseProvider)
         }
     }
 
@@ -191,23 +189,70 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             exoplayerListener = object: Listener {
                 private var hasStarted = false
                 override fun onPlaybackStateChanged(playbackState: @State Int) {
-                    Logd(TAG, "exoplayerListener onPlaybackStateChanged $playbackState")
+                    Logt(TAG, "exoplayerListener onPlaybackStateChanged $playbackState")
+//                    when (playbackState) {
+//                        STATE_READY -> {}
+//                        STATE_ENDED -> {
+//                            castPlayer?.seekTo(C.TIME_UNSET)
+//                            endPlayback(hasEnded = true, wasSkipped = false)
+//                        }
+//                        STATE_BUFFERING -> bufferingUpdateListener?.invoke(BUFFERING_STARTED)
+//                        else -> {
+//                            bufferingUpdateListener?.invoke(BUFFERING_ENDED)
+//                            if (isCasting && hasStarted && !isSkipping) endPlayback(hasEnded = true, wasSkipped = false)
+//                            hasStarted = false
+//                            isSkipping = false
+//                        }
+//                    }
                     when (playbackState) {
-                        STATE_READY -> {}
-                        STATE_ENDED -> {
-                            castPlayer?.seekTo(C.TIME_UNSET)
-                            endPlayback(hasEnded = true, wasSkipped = false)
-                        }
                         STATE_BUFFERING -> bufferingUpdateListener?.invoke(BUFFERING_STARTED)
-                        else -> {
-                            bufferingUpdateListener?.invoke(BUFFERING_ENDED)
+                        STATE_READY -> bufferingUpdateListener?.invoke(BUFFERING_ENDED)
+                        STATE_ENDED -> {
+                            val currentPos = exoPlayer?.currentPosition ?: 0L
+                            val totalDuration = exoPlayer?.duration ?: 0L
+                            if (totalDuration > 0 && (totalDuration - currentPos) > 5000) {
+                                Logt(TAG, "Stream ended prematurely at $currentPos ms. Resuming...")
+                                val currentMediaItem = exoPlayer?.currentMediaItem
+                                currentMediaItem?.let { item ->
+                                    exoPlayer?.setMediaItem(item, currentPos)
+                                    exoPlayer?.prepare()
+                                    exoPlayer?.play()
+                                }
+                            } else {
+                                exoPlayer?.seekTo(C.TIME_UNSET)
+                                endPlayback(hasEnded = true, wasSkipped = false)
+                            }
+                        }
+                        STATE_IDLE -> {
+                            Logd(TAG, "exoplayerListener onPlaybackStateChanged STATE_IDLE ")
                             if (isCasting && hasStarted && !isSkipping) endPlayback(hasEnded = true, wasSkipped = false)
                             hasStarted = false
                             isSkipping = false
                         }
                     }
                 }
-                override fun onEvents(player: Player, events: Player.Events) {}
+                override fun onEvents(player: Player, events: Player.Events) {
+                    for (i in 0 until events.size()) {
+                        val eventCode = events.get(i)
+                        Logd(TAG, "exoplayerListener onEvents $i $eventCode")
+                    }
+                    if (isCasting) {
+                        if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) ||
+                            events.contains(Player.EVENT_IS_PLAYING_CHANGED)) {
+                            val currentPos = player.currentPosition
+                            val totalDuration = player.duration
+                            if (player.playbackState == STATE_ENDED && totalDuration > 0 && (totalDuration - currentPos) > 10000) {
+                                Logt(TAG, "Cast device disconnected stream early at $currentPos ms. Remotely resuming...")
+                                val currentItem = player.currentMediaItem
+                                currentItem?.let { item ->
+                                    player.setMediaItem(item, currentPos)
+                                    player.prepare()
+                                    player.play()
+                                }
+                            }
+                        }
+                    }
+                }
                 override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
                     Logd(TAG, "exoplayerListener onMediaItemTransition $reason")
 //                    if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) endPlayback(hasEnded = true, wasSkipped = false)
@@ -228,32 +273,20 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                         castPlayer?.clearMediaItems()
                         setPlayerStatus(PlayerStatus.STOPPED, curEpisode)
                     }
-                    Logd(TAG, "exoplayerListener onPlayerError ${error.message}")
+                    Loge(TAG, "exoplayerListener onPlayerError ${error.message}")
                     when (error.errorCode) {
                         PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
                         PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
                         PlaybackException.ERROR_CODE_TIMEOUT -> {
                             LogtFor(TAG, curEpisode?.id, "player error: ${error.localizedMessage}, retrying...")
-                            //                            val lastPosition = castPlayer?.currentPosition ?: 0L
-                            castPlayer?.prepare()
-                            //                            castPlayer?.seekTo(lastPosition)
-                            castPlayer?.play()
+                            val lastPosition = exoPlayer?.currentPosition ?: 0L
+                            exoPlayer?.prepare()
+                            if (lastPosition > 0) exoPlayer?.seekTo(lastPosition)
+                            exoPlayer?.play()
                         }
                         PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW -> {
                             castPlayer?.prepare()
                             castPlayer?.play()
-                        }
-                        PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
-                        PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED -> {
-                            handleTerminalError("Device media decoder failed. Try restarting the app.")
-                        }
-                        PlaybackException.ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED,
-                        PlaybackException.ERROR_CODE_DRM_PROVISIONING_FAILED -> {
-                            handleTerminalError("This content is protected and cannot be played.")
-                        }
-                        PlaybackException.ERROR_CODE_DECODING_FAILED,
-                        PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED -> {
-                            handleTerminalError("This device cannot play this file format.")
                         }
                         else -> {
                             // Terminal errors (404, Media Unsupported)
@@ -323,7 +356,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                                 }
                                 channelCount = format.channelCount
                                 sampleRate = format.sampleRate
-                                Logd(TAG, "onTracksChanged $i ${format.averageBitrate} ${format.bitrate}")
+                                Logd(TAG, "exoplayerListener onTracksChanged $i ${format.averageBitrate} ${format.bitrate}")
                                 if (format.averageBitrate != Format.NO_VALUE) bitrate = format.averageBitrate
                                 return@forEach
                             }
@@ -350,17 +383,17 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             }
             analyticsListener = object: AnalyticsListener {
                 override fun onBandwidthEstimate(eventTime: AnalyticsListener.EventTime, totalLoadTimeMs: Int, totalBytesLoaded: Long, bitrateEstimate: Long) {
-                    Logt(TAG, "onBandwidthEstimate bitrate=${bitrateEstimate / 1000} kbps " + "bytes=$totalBytesLoaded " + "loadTime=$totalLoadTimeMs")
+                    Logt(TAG, "analyticsListener onBandwidthEstimate bitrate=${bitrateEstimate / 1000} kbps " + "bytes=$totalBytesLoaded " + "loadTime=$totalLoadTimeMs")
                 }
                 override fun onPlaybackStateChanged(eventTime: AnalyticsListener.EventTime, state: Int) {
-                    if (state == STATE_BUFFERING || state == STATE_READY) {
-                        val currentMediaItem = exoPlayer?.currentMediaItem
-                        currentMediaItem?.localConfiguration?.uri?.let { uri ->
-                            Logt(TAG, "setting proper wake mode for ${uri.scheme}")
-                            if (uri.scheme == "file" || uri.scheme == "content") exoPlayer?.setWakeMode(C.WAKE_MODE_LOCAL)
-                            else exoPlayer?.setWakeMode(C.WAKE_MODE_NETWORK)
-                        }
-                    }
+//                    if (state == STATE_BUFFERING || state == STATE_READY) {
+//                        val currentMediaItem = exoPlayer?.currentMediaItem
+//                        currentMediaItem?.localConfiguration?.uri?.let { uri ->
+//                            Logt(TAG, "setting proper wake mode for ${uri.scheme}")
+//                            if (uri.scheme == "file" || uri.scheme == "content") exoPlayer?.setWakeMode(C.WAKE_MODE_LOCAL)
+//                            else exoPlayer?.setWakeMode(C.WAKE_MODE_NETWORK)
+//                        }
+//                    }
                     val s = when (state) {
                         STATE_IDLE -> "IDLE"
                         STATE_BUFFERING -> "BUFFERING"
@@ -368,10 +401,10 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                         STATE_ENDED -> "ENDED"
                         else -> "$state"
                     }
-                    Logd(TAG, "onPlaybackStateChanged $s")
+                    Logd(TAG, "analyticsListener onPlaybackStateChanged $s")
                 }
                 override fun onLoadError(eventTime: AnalyticsListener.EventTime, loadEventInfo: LoadEventInfo, mediaLoadData: MediaLoadData, error: IOException, wasCanceled: Boolean) {
-                    Loge(TAG, "onLoadError load error: ${error.message} dataType=${mediaLoadData.dataType}")
+                    Loge(TAG, "analyticsListener onLoadError load error: ${error.message} dataType=${mediaLoadData.dataType}")
                 }
             }
             createNativePlayer()
@@ -383,7 +416,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     override suspend fun invokeBufferListener() {
         if (exoPlayer != null && isPlaying) {
             withContext(Dispatchers.Main) {
-                val pct = castPlayer!!.bufferedPercentage
+                val pct = exoPlayer!!.bufferedPercentage
                 if (bufferedPercentagePrev != pct) {
                     bufferingUpdateListener?.invoke(pct)
                     bufferedPercentagePrev = pct
@@ -495,7 +528,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             .build()
         Logd(TAG, "createNativePlayer creating exoPlayer lr: $lr")
 
-        runOnIOScope { initCache() }
+        runBlocking { initCache() }
 
         // Initialize ExoPlayer
         trackSelector = DefaultTrackSelector(context)
@@ -514,7 +547,30 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         }
 
         val extractorsFactory = DefaultExtractorsFactory().setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING)
-        val mediaSourceFactory = DefaultMediaSourceFactory(context, extractorsFactory)
+
+//        val httpFactory = DefaultHttpDataSource.Factory().setAllowCrossProtocolRedirects(true)
+//        val cacheFactory = CacheDataSource.Factory()
+//            .setCache(getCache())
+//            .setUpstreamDataSourceFactory(httpFactory)
+//            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+//        val dataSourceFactory = DefaultDataSource.Factory(context, cacheFactory)
+//        val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory)
+
+        val httpFactory = DefaultHttpDataSource.Factory().setAllowCrossProtocolRedirects(true)
+        val defaultDataSourceFactory = DefaultDataSource.Factory(context, httpFactory)
+        val cacheFactory = CacheDataSource.Factory()
+            .setCache(getCache())
+            .setUpstreamDataSourceFactory(defaultDataSourceFactory)
+            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        val mediaSourceFactory = DefaultMediaSourceFactory(context, extractorsFactory).setDataSourceFactory(cacheFactory)
+
+//        val recordingFactory = DataSource.Factory {
+//            val upstream = OkHttpDataSource.Factory(getOKHttpClient()).createDataSource()
+//            val cacheDataSource = CacheDataSource.Factory().setCache(getCache()).setUpstreamDataSourceFactory { upstream }.setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR).createDataSource()
+//            SegmentSavingDataSource(this, cacheDataSource)
+//        }
+//        val mediaSourceFactory = DefaultMediaSourceFactory(context).setDataSourceFactory(recordingFactory)
+
         exoPlayer = ExoPlayer.Builder(context, renderersFactory)
             .setMediaSourceFactory(mediaSourceFactory)
             .setLoadControl(loadControl.build())
@@ -523,7 +579,6 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             .setSeekForwardIncrementMs(fastForwardSecs * 1000L)
             .build()
         exoPlayer?.setSeekParameters(SeekParameters.DEFAULT)
-        castPlayer = buildCastPlayer(exoPlayer!!)
 
         exoPlayer?.trackSelectionParameters = exoPlayer!!.trackSelectionParameters.buildUpon()
             .setAudioOffloadPreferences(audioOffloadPreferences)
@@ -531,17 +586,19 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
         Logd(TAG, "createNativePlayer exoplayerListener == null: ${exoplayerListener == null}")
         if (exoplayerListener != null) {
-            castPlayer?.removeListener(exoplayerListener!!)
-            castPlayer?.addListener(exoplayerListener!!)
+            exoPlayer?.removeListener(exoplayerListener!!)
+            exoPlayer?.addListener(exoplayerListener!!)
         }
-        if (analyticsListener != null) {
-            exoPlayer?.removeAnalyticsListener(analyticsListener!!)
-            exoPlayer?.addAnalyticsListener(analyticsListener!!)
-        }
+//        if (analyticsListener != null) {
+//            exoPlayer?.removeAnalyticsListener(analyticsListener!!)
+//            exoPlayer?.addAnalyticsListener(analyticsListener!!)
+//        }
         if (exoplayerOffloadListener != null) {
             exoPlayer?.removeAudioOffloadListener(exoplayerOffloadListener!!)
             exoPlayer?.addAudioOffloadListener(exoplayerOffloadListener!!)
         }
+        castPlayer = buildCastPlayer(exoPlayer!!)
+
         timeIt("$TAG createNativePlayer end")
     }
 
@@ -594,27 +651,47 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         Logd(TAG, "setDataSource uri: $uri")
         mediaItem = MediaItem.Builder().setUri(uri).setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(positionWithRewind(media.position, media.lastPlayedTime).toLong()).build()).setCustomCacheKey(media.id.toString()).setMediaMetadata(metadata).build()
         if (!isCasting) {
-            val cacheFactory = CacheDataSource.Factory().setCache(getCache()).setUpstreamDataSourceFactory(httpDataSourceFactory).setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-            val segmentFactory = SegmentSavingDataSourceFactory(this, cacheFactory)
-            val dataSourceFactory = DefaultDataSource.Factory(context, segmentFactory)
-            mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem!!)
+//            val resilientLoadErrorPolicy = object : DefaultLoadErrorHandlingPolicy() {
+//                override fun getMinimumLoadableRetryCount(dataType: Int): Int = 3
+//                override fun getRetryDelayMsFor(loadErrorInfo: LoadErrorHandlingPolicy.LoadErrorInfo): Long {
+//                    val exception = loadErrorInfo.exception
+//                    val isProtocolError = exception is java.net.ProtocolException || exception.cause is java.net.ProtocolException
+//                    val isUnexpectedEnd = exception.message?.contains("unexpected end of stream", ignoreCase = true) == true
+//                    return if (isProtocolError || isUnexpectedEnd) {
+//                        Logd(TAG, "LoadErrorHandlingPolicy: Targeted server drop detected. Retrying in 1000ms...")
+//                        1000
+//                    } else { super.getRetryDelayMsFor(loadErrorInfo) }
+//                }
+//            }
+            // TODO: test
+//            val cacheFactory = CacheDataSource.Factory().setCache(getCache()).setUpstreamDataSourceFactory(httpDataSourceFactory).setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+//            val segmentFactory = SegmentSavingDataSourceFactory(this, cacheFactory)
+//            val dataSourceFactory = DefaultDataSource.Factory(context, segmentFactory)
+//            mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory).setLoadErrorHandlingPolicy(resilientLoadErrorPolicy).createMediaSource(mediaItem!!)
+//            val cacheFactory = CacheDataSource.Factory().setCache(null).setUpstreamDataSourceFactory(httpDataSourceFactory).setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+//            val segmentFactory = SegmentSavingDataSourceFactory(this, cacheFactory)
+//            val dataSourceFactory = DefaultDataSource.Factory(context, segmentFactory)
+//            mediaSource = ProgressiveMediaSource.Factory(cacheFactory).setLoadErrorHandlingPolicy(resilientLoadErrorPolicy).createMediaSource(mediaItem!!)
         }
         setSourceCredentials(user, password)
     }
 
     private fun setSourceCredentials(user: String?, password: String?) {
         if (!user.isNullOrEmpty() && !password.isNullOrEmpty()) {
-            val requestProperties = mutableMapOf<String, String>()
-            requestProperties["Authorization"] = encodeCredentials(user, password, "ISO-8859-1")
-            httpDataSourceFactory!!.setDefaultRequestProperties(requestProperties)
-
-            val dataSourceFactory: DataSource.Factory = DefaultDataSource.Factory(context, httpDataSourceFactory!!)
-            val extractorsFactory = DefaultExtractorsFactory()
-            extractorsFactory.setConstantBitrateSeekingEnabled(true)
-            extractorsFactory.setMp3ExtractorFlags(Mp3Extractor.FLAG_DISABLE_ID3_METADATA)
-            val f = ProgressiveMediaSource.Factory(dataSourceFactory, extractorsFactory)
-
-            mediaSource = f.createMediaSource(mediaItem!!)
+//            val requestProperties = mutableMapOf<String, String>()
+//            requestProperties["Authorization"] = encodeCredentials(user, password, "ISO-8859-1")
+//            httpDataSourceFactory!!.setDefaultRequestProperties(requestProperties)
+//
+//            val dataSourceFactory: DataSource.Factory = DefaultDataSource.Factory(context, httpDataSourceFactory!!)
+//            val extractorsFactory = DefaultExtractorsFactory()
+//            extractorsFactory.setConstantBitrateSeekingEnabled(true)
+//            extractorsFactory.setMp3ExtractorFlags(Mp3Extractor.FLAG_DISABLE_ID3_METADATA)
+//            val f = ProgressiveMediaSource.Factory(dataSourceFactory, extractorsFactory)
+//
+//            mediaSource = f.createMediaSource(mediaItem!!)
+//
+            // TODO: need to check
+            mediaItem = mediaItem!!.buildUpon().setTag(encodeCredentials(user, password, "ISO-8859-1")).build()
         }
     }
 
@@ -683,7 +760,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
     override fun setDuration() {
         Logd(TAG, "prepare Setting duration of media")
-        val dur = if (castPlayer?.duration == C.TIME_UNSET) Episode.INVALID_TIME else castPlayer!!.duration.toInt()
+        val dur = if (exoPlayer?.duration == C.TIME_UNSET) Episode.INVALID_TIME else exoPlayer!!.duration.toInt()
         if (dur > 0) upsertBlk(curEpisode!!) { it.duration = dur }
     }
 
@@ -742,7 +819,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         try {
             bufferingUpdateListener = { }
 //            TODO: should use: exoPlayer!!.playWhenReady ?
-            if (castPlayer?.isPlaying == true) castPlayer?.stop()
+            if (exoPlayer?.isPlaying == true) exoPlayer?.stop()
         } catch (e: Exception) { LogsFor(TAG, curEpisode?.id, e) }
         release()
         status = PlayerStatus.STOPPED
@@ -783,12 +860,12 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             return
         }
         val i = curEpisode?.feed?.audioType?: C.AUDIO_CONTENT_TYPE_SPEECH
-        val a = castPlayer!!.audioAttributes
+        val a = exoPlayer!!.audioAttributes
         val b = AudioAttributes.Builder()
         b.setContentType(i)
         b.setFlags(a.flags)
         b.setUsage(a.usage)
-        castPlayer?.setAudioAttributes(b.build(), activeTheatres <= 1)
+        exoPlayer?.setAudioAttributes(b.build(), activeTheatres <= 1)
 
         bufferingUpdateListener = { percent: Int ->
             Logd(TAG, "bufferingUpdateListener $percent")
@@ -833,7 +910,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
      * endPositionMs: Long? = null,   // Null for start
      */
     override suspend fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long?) {
-        val mediaItem = castPlayer!!.currentMediaItem ?: run {
+        val mediaItem = exoPlayer!!.currentMediaItem ?: run {
             LogeFor(TAG, curEpisode?.id, "No current media item.")
             return
         }
@@ -849,7 +926,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             curDataSource?.startRecording(startPositionMs, bitrate, cacheDir)
             return
         }
-        val tracks = castPlayer!!.currentTracks
+        val tracks = exoPlayer!!.currentTracks
         val audioFormat = tracks.groups.asSequence()
             .flatMap { group -> (0 until group.length).map { group.getTrackFormat(it) } }
             .firstOrNull { it.sampleMimeType?.startsWith("audio/") == true }
@@ -865,8 +942,8 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             return
         }
 
-        val startBytePlayer = castPlayer?.contentPositionToByte(startPositionMs)
-        val endBytePlayer = castPlayer?.contentPositionToByte(endPositionMs)
+        val startBytePlayer = exoPlayer?.contentPositionToByte(startPositionMs)
+        val endBytePlayer = exoPlayer?.contentPositionToByte(endPositionMs)
 
         val clipname = "${durationStringShort(startPositionMs, false, "m")}-${durationStringShort(endPositionMs, false, "m")}.$ext"
         val outputFile = curEpisode!!.getClipFile(clipname)
@@ -906,6 +983,11 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                 val endByte = endBytePlayer ?: (endPositionMs * bytesPerSecond / 1000).toLong()
                 val bytesToRead = endByte - startByte
                 val key = curEpisode!!.id.toString()
+                val spans = cache.getCachedSpans(key)
+                Logd(TAG, "spans found: ${spans.size}")
+                for (sp in spans) Logd(TAG, "span: ${sp.position} ${sp.length}")
+                val cacheSpans = cache.getCachedSpans(key).filter { span -> span.position <= startByte && (span.position + span.length) >= endByte }
+                Logd(TAG, "cacheSpans found: ${cacheSpans.size}")
                 val cacheSpan = cache.getCachedSpans(key).firstOrNull { span -> span.position <= startByte && (span.position + span.length) >= endByte }
                 Logd(TAG, "cacheSpan found: ${cacheSpan != null}")
                 if (cacheSpan?.file?.exists() == true) {
@@ -1049,7 +1131,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     }
 
     override fun onDestroy() {
-        if (exoplayerListener != null) castPlayer?.removeListener(exoplayerListener!!)
+        if (exoplayerListener != null) exoPlayer?.removeListener(exoplayerListener!!)
         if (analyticsListener != null) exoPlayer?.removeAnalyticsListener(analyticsListener!!)
         if (exoplayerOffloadListener != null) exoPlayer?.removeAudioOffloadListener(exoplayerOffloadListener!!)
         analyticsListener = null
@@ -1081,7 +1163,9 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
         var httpDataSourceFactory:  OkHttpDataSource.Factory? = null
             get() {
-                if (field == null) field = OkHttpDataSource.Factory(getOKHttpClient() as okhttp3.Call.Factory).setUserAgent(USER_AGENT)
+                if (field == null) field = OkHttpDataSource.Factory(getOKHttpClient() as okhttp3.Call.Factory).setDefaultRequestProperties(mapOf("Accept-Ranges" to "bytes"))
+                // TODO: test
+//                if (field == null) field = OkHttpDataSource.Factory(getOKHttpClient() as okhttp3.Call.Factory).setUserAgent(USER_AGENT).setDefaultRequestProperties(mapOf("Connection" to "close"))
 //                if (field == null) field = OkHttpDataSource.Factory(getOKHttpClient() as okhttp3.Call.Factory).setUserAgent("Podcini/${BuildConfig.VERSION_NAME}")
                 return field
             }
@@ -1090,6 +1174,19 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
         fun getCache(): SimpleCache {
             return simpleCache ?: throw IllegalStateException("Cache not initialized yet!")
+        }
+
+        fun trimCacheIfNeeded(cacheDir: File, maxMb: Long) {
+            val files = cacheDir.listFiles() ?: return
+            val totalSize = files.sumOf { it.length() }
+
+            if (totalSize > maxMb * 1024 * 1024) {
+                files.sortedBy { it.lastModified() }
+                    .forEach {
+                        if (totalSize <= maxMb * 1024 * 1024) return
+                        it.delete()
+                    }
+            }
         }
 
         fun releaseCache() {

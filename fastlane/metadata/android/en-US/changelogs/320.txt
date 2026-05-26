@@ -1,0 +1,6 @@
+* avoid setWakeMode, overkill and waste of energy
+* further adjusted OKHttp client settings for streaming stability
+* adjusted exoplayer creation and setting media items
+* simplified player cache
+* recording feature is temporarily disabled
+* avoided streaming interruptions after about 10 minutes

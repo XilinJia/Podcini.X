@@ -463,17 +463,18 @@ fun ControlUI(vm: AVPlayerVM) {
                         Logt(TAG, "position $pos marked for ${theatres[vm.playerId].mPlayer?.curEpisode?.title}")
                     } else Loge(TAG, "Marking position only works during playback.") },
                 onLongClick = {
-                    if (theatres[vm.playerId].mPlayer?.curEpisode != null && theatres[vm.playerId].mPlayer != null && theatres[vm.playerId].mPlayer!!.isPlaying) {
-                        scope.launch {
-                            if (recordingStartTime == null) {
-                                recordingStartTime = theatres[vm.playerId].mPlayer!!.getPosition().toLong()
-                                theatres[vm.playerId].mPlayer?.saveClipInOriginalFormat(recordingStartTime!!)
-                            } else {
-                                theatres[vm.playerId].mPlayer?.saveClipInOriginalFormat(recordingStartTime!!, theatres[vm.playerId].mPlayer!!.getPosition().toLong())
-                                recordingStartTime = null
-                            }
-                        }
-                    } else Loge(TAG, "Recording only works during playback.")
+                    Logt(TAG, "Recording feature is temporarily disabled.")
+//                    if (theatres[vm.playerId].mPlayer?.curEpisode != null && theatres[vm.playerId].mPlayer != null && theatres[vm.playerId].mPlayer!!.isPlaying) {
+//                        scope.launch {
+//                            if (recordingStartTime == null) {
+//                                recordingStartTime = theatres[vm.playerId].mPlayer!!.getPosition().toLong()
+//                                theatres[vm.playerId].mPlayer?.saveClipInOriginalFormat(recordingStartTime!!)
+//                            } else {
+//                                theatres[vm.playerId].mPlayer?.saveClipInOriginalFormat(recordingStartTime!!, theatres[vm.playerId].mPlayer!!.getPosition().toLong())
+//                                recordingStartTime = null
+//                            }
+//                        }
+//                    } else Loge(TAG, "Recording only works during playback.")
                 }))
         Spacer(Modifier.weight(0.1f))
         Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(

@@ -1,3 +1,12 @@
+# 11.2.2.5
+
+* avoid setWakeMode, overkill and waste of energy
+* further adjusted OKHttp client settings for streaming stability
+* adjusted exoplayer creation and setting media items
+* simplified player cache
+* recording feature is temporarily disabled
+* avoided streaming interruptions after about 10 minutes
+
 # 11.2.2.4
 
 * simplified OKHttp client settings, set protocol to http1.1 for better compatibility

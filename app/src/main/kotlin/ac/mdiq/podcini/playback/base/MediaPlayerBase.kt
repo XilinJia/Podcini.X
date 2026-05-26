@@ -495,7 +495,7 @@ abstract class MediaPlayerBase {
         setAsCurEpisode(playable)
 
         this.isStreaming = streaming
-        mediaType = curEpisode!!.getMediaType()
+        if (curEpisode != null) mediaType = curEpisode!!.getMediaType()
 //        videoSize = null
         resetMediaPlayer()
 

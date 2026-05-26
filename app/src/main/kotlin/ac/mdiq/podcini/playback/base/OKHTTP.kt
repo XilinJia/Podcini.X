@@ -8,9 +8,11 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.ProxyConfig
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logt
 import kotlinx.io.IOException
 import okhttp3.Call
 import okhttp3.Connection
+import okhttp3.ConnectionPool
 import okhttp3.Credentials.basic
 import okhttp3.EventListener
 import okhttp3.Interceptor
@@ -41,13 +43,39 @@ object OKHTTP {
     private fun newBuilder(): Builder {
         Logd(TAG, "Creating optimized HTTP client for Media3 Streaming")
         val builder = Builder()
-//        builder.retryOnConnectionFailure(true)
+        builder.retryOnConnectionFailure(true)
         builder.connectTimeout(CONNECTION_TIMEOUT.toLong(), TimeUnit.MILLISECONDS)
-        builder.readTimeout(0, TimeUnit.SECONDS)
+        builder.readTimeout(15, TimeUnit.SECONDS)
         builder.writeTimeout(30, TimeUnit.SECONDS)
+        builder.callTimeout(0, TimeUnit.SECONDS)
         builder.followRedirects(true)
         builder.followSslRedirects(true)
-        builder.protocols(listOf(Protocol.HTTP_1_1))
+//        builder.protocols(listOf(Protocol.HTTP_1_1))
+        builder.protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
+        builder.connectionPool(ConnectionPool(5, 5, TimeUnit.MINUTES))
+        builder.addInterceptor { chain ->
+            val request = chain.request().newBuilder()
+                .header("Accept-Encoding", "identity")
+                .build()
+            chain.proceed(request)
+        }
+        builder.addInterceptor { chain ->
+            val response = chain.proceed(chain.request())
+            Logd(TAG,
+                """
+                host=${chain.request().url.host}
+                protocol=${response.protocol}
+                code=${response.code}
+                contentLength=${response.body.contentLength()}
+                transferEncoding=${response.header("Transfer-Encoding")}
+                acceptRanges=${response.header("Accept-Ranges")}
+                contentEncoding=${response.header("Content-Encoding")}
+                connection=${response.header("Connection")}
+                """.trimIndent()
+            )
+            response
+        }
+        builder.interceptors().add(BasicAuthorizationInterceptor())
 
         builder.eventListener(object : EventListener() {
             override fun connectionAcquired(call: Call, connection: Connection) {
