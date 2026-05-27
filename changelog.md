@@ -1,3 +1,14 @@
+# 11.2.2.6
+
+* restored the recording feature partially, seems not working in some cases
+* fixed streaming interruptions after about 10 minutes
+* ensure to handle server ending episode prematurely when streaming
+* fixed episode not playing on FindFeed screen
+* amended horizontal swipe in PlayerDetails screen
+	* Left to associated queue of the feed of curEpisode, else toast message
+	* right to FeedDetails screen of curEpisode, else toast message
+* ensure PlayerUI not flicker when curEpisode is from unsubscribed feed
+
 # 11.2.2.5
 
 * avoid setWakeMode, overkill and waste of energy
@@ -6,6 +17,7 @@
 * simplified player cache
 * recording feature is temporarily disabled
 * avoided streaming interruptions after about 10 minutes
+* fixed a possible crashes on somehow a null curEpisode
 
 # 11.2.2.4
 

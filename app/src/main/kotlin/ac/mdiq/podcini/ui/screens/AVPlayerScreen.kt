@@ -9,6 +9,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.activeTheatres
 import ac.mdiq.podcini.playback.base.InTheatre.ensureAController
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.base.Media3Player.Companion.getCache
+import ac.mdiq.podcini.playback.base.Media3Player.Companion.nuclearCacheWipe
 import ac.mdiq.podcini.playback.base.Media3Player.Companion.simpleCache
 import ac.mdiq.podcini.playback.base.PlayerStatusSimple
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.isSleepTimerActive
@@ -463,18 +464,18 @@ fun ControlUI(vm: AVPlayerVM) {
                         Logt(TAG, "position $pos marked for ${theatres[vm.playerId].mPlayer?.curEpisode?.title}")
                     } else Loge(TAG, "Marking position only works during playback.") },
                 onLongClick = {
-                    Logt(TAG, "Recording feature is temporarily disabled.")
-//                    if (theatres[vm.playerId].mPlayer?.curEpisode != null && theatres[vm.playerId].mPlayer != null && theatres[vm.playerId].mPlayer!!.isPlaying) {
-//                        scope.launch {
-//                            if (recordingStartTime == null) {
-//                                recordingStartTime = theatres[vm.playerId].mPlayer!!.getPosition().toLong()
-//                                theatres[vm.playerId].mPlayer?.saveClipInOriginalFormat(recordingStartTime!!)
-//                            } else {
-//                                theatres[vm.playerId].mPlayer?.saveClipInOriginalFormat(recordingStartTime!!, theatres[vm.playerId].mPlayer!!.getPosition().toLong())
-//                                recordingStartTime = null
-//                            }
-//                        }
-//                    } else Loge(TAG, "Recording only works during playback.")
+//                    Logt(TAG, "Recording feature is temporarily disabled.")
+                    if (theatres[vm.playerId].mPlayer?.curEpisode != null && theatres[vm.playerId].mPlayer != null && theatres[vm.playerId].mPlayer!!.isPlaying) {
+                        scope.launch {
+                            if (recordingStartTime == null) {
+                                recordingStartTime = theatres[vm.playerId].mPlayer!!.getPosition().toLong()
+                                theatres[vm.playerId].mPlayer?.saveClipInOriginalFormat(recordingStartTime!!)
+                            } else {
+                                theatres[vm.playerId].mPlayer?.saveClipInOriginalFormat(recordingStartTime!!, theatres[vm.playerId].mPlayer!!.getPosition().toLong())
+                                recordingStartTime = null
+                            }
+                        }
+                    } else Loge(TAG, "Recording only works during playback.")
                 }))
         Spacer(Modifier.weight(0.1f))
         Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
@@ -648,7 +649,7 @@ fun AVPlayerScreen() {
         showHomeText = false
         displayedChapterIndex = -1
         vms[0].episodeFeed = theatres[vms[0].playerId].mPlayer?.curEpisode?.feed
-        if (psState == PSState.Hidden) psState = PSState.PartiallyExpanded
+        if (psState == PSState.Hidden && vms[0].episodeFeed != null) psState = PSState.PartiallyExpanded
     }
 
     LaunchedEffect(key1 = theatres[vms[1].playerId].mPlayer?.curEpisode?.id) {
@@ -656,7 +657,7 @@ fun AVPlayerScreen() {
         showHomeText = false
         displayedChapterIndex = -1
         vms[1].episodeFeed = theatres[vms[1].playerId].mPlayer?.curEpisode?.feed
-        if (psState == PSState.Hidden) psState = PSState.PartiallyExpanded
+        if (psState == PSState.Hidden && vms[1].episodeFeed != null) psState = PSState.PartiallyExpanded
     }
 
     LaunchedEffect(psState, activePlayer, theatres[vms[activePlayer].playerId].mPlayer?.curEpisode?.id) {
@@ -678,7 +679,7 @@ fun AVPlayerScreen() {
         val observer = LifecycleEventObserver { _, event ->
             Logd(TAG, "DisposableEffect Lifecycle.Event: $event")
             when (event) {
-                Lifecycle.Event.ON_CREATE -> psState = PSState.PartiallyExpanded
+                Lifecycle.Event.ON_CREATE -> {}
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {}
@@ -844,11 +845,12 @@ fun AVPlayerScreen() {
                     })
                     DropdownMenuItem(text = { Text(stringResource(R.string.clear_all_cache)) }, onClick = {
                         runOnIOScope {
-                            val keys = simpleCache?.keys ?: return@runOnIOScope
-                            keys.forEach {
-                                Logd(TAG, "removing cache resource on key: $it")
-                                simpleCache!!.removeResource(it)
-                            }
+                            nuclearCacheWipe()
+//                            val keys = simpleCache?.keys?.toSet() ?: return@runOnIOScope
+//                            keys.forEach {
+//                                Logd(TAG, "removing cache resource on key: $it")
+//                                simpleCache!!.removeResource(it)
+//                            }
                         }
                         expanded = false
                     })
@@ -887,8 +889,16 @@ fun AVPlayerScreen() {
                         val distance = offsetX.value
                         val shouldSwipe = abs(distance) > swipeDistanceThreshold && abs(velocity) > swipeVelocityThreshold
                         if (shouldSwipe) {
-                            if (distance > 0) navTo(Queues(id=actQueue.id))
-                            else navTo(FeedDetails(feedId=vm.episodeFeed!!.id))
+                            when {
+                                distance > 0 -> {
+                                    if (vm.episodeFeed?.queue != null) navTo(Queues(id = vm.episodeFeed?.queue!!.id))
+                                    else Logt(TAG, "No associated queue to go to")
+                                }
+                                else -> {
+                                    if (vm.episodeFeed != null) navTo(FeedDetails(feedId = vm.episodeFeed!!.id))
+                                    else Logt(TAG, "curEpisode is not set, no navigation options")
+                                }
+                            }
                             psState = PSState.PartiallyExpanded
                         }
                         offsetX.animateTo(targetValue = 0f, animationSpec = tween(300))

@@ -107,7 +107,7 @@ fun MainActivityUI() {
 
     var firstRun by remember { mutableStateOf(true) }
     LaunchedEffect(key1 = psState, key2 = theatres[0].mPlayer?.curEpisode?.id, firstRun) {
-        Logd(TAG, "LaunchedEffect(key1 = bsState, key2 = curEpisode?.id, firstRun)")
+        Logd(TAG, "LaunchedEffect(key1 = bsState, key2 = curEpisode?.id, firstRun) ${psState.name}")
         if (firstRun) {
             firstRun = false
             return@LaunchedEffect

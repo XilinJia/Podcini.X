@@ -245,7 +245,7 @@ abstract class MediaPlayerBase {
                 }
             }
             else -> {
-                curEpisode = null
+                curEpisode = episode    // TODO: test
                 savePlayerStatus(null, null)
             }
         }
@@ -509,7 +509,7 @@ abstract class MediaPlayerBase {
                     streaming -> {
                         Logd(TAG, "prepareMedia streamurl: ${curEpisode?.downloadUrl}")
                         if (!curEpisode?.downloadUrl.isNullOrBlank()) prepareDataSource(curEpisode!!)
-                        else throw IOException("episode downloadUrl is empty ${curEpisode?.title}")
+                        else throw IOException("episode downloadUrl is null or empty ${curEpisode?.title}")
                     }
                     else -> {   // TODO: playing video often gets here??
                         Logd(TAG, "prepareMedia localMediaurl: ${curEpisode?.fileUrl}")
@@ -888,7 +888,7 @@ abstract class MediaPlayerBase {
         if (it.startTime > 0) {
             var delta = (nowInMillis() - it.startTime)
             if (delta > 3 * max(it.playedDuration, 60000)) {
-                LogtFor(TAG, curEpisode?.id, "upsertDB likely invalid delta: $delta ${it.title}")
+//                LogtFor(TAG, curEpisode?.id, "upsertDB likely invalid delta: $delta ${it.title}")
                 it.startTime = nowInMillis()
                 delta = 0L
             } else it.timeSpent = it.timeSpentOnStart + delta

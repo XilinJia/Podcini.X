@@ -8,7 +8,6 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.ProxyConfig
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
-import ac.mdiq.podcini.utils.Logt
 import kotlinx.io.IOException
 import okhttp3.Call
 import okhttp3.Connection
@@ -23,6 +22,7 @@ import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
 import okio.ByteString
+import java.io.InterruptedIOException
 import java.io.UnsupportedEncodingException
 import java.net.HttpURLConnection
 import java.net.InetSocketAddress
@@ -85,6 +85,10 @@ object OKHTTP {
                 Logd(TAG, "released: $connection")
             }
             override fun callFailed(call: Call, ioe: IOException) {
+                if (call.isCanceled() || ioe is InterruptedIOException && ioe.message?.contains("canceled", ignoreCase = true) == true || ioe.message?.contains("canceled", ignoreCase = true) == true) {
+                    Logd(TAG, "Network call was intentionally canceled. Ignoring error logs.")
+                    return
+                }
                 Loge(TAG, "callFailed error ${ioe::class.java.name}: ${ioe.message}")
                 var cause = ioe.cause
                 while (cause != null) {
