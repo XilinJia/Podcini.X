@@ -18,6 +18,8 @@ An open source podcast instrument, attuned to Puccini ![Puccini](./images/Puccin
 
 ### A fork of [Podcini.R](<https://github.com/XilinJia/Podcini>) as of Jan 13 2025, this project inherits all functionalities of Podcini.R only with the capability of accessing to Youtube stripped off.
 
+### This project is concluded. The succeeding project is the extensible [Podcini.A](<https://github.com/XilinJia/Podcini.A>).
+
 ## Notable features
 
 1. Is fully based on Jetpack Compose, using `media3` with `AudioOffloadMode` enabled (nicer to device battery).
