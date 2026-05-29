@@ -1,3 +1,9 @@
+# 11.2.2.7
+
+* corrected giving direct data source at native player creation
+* disabled likely unnecessary uploading duration data when playing an episode
+* fixed position not set properly when playing an episode midway
+
 # 11.2.2.6
 
 * restored the recording feature partially, seems not working in some cases

@@ -99,3 +99,9 @@ class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : Da
         return cacheDataSource.responseHeaders
     }
 }
+
+class SegmentSavingDataSourceFactory(private val upstreamFactory: CacheDataSource.Factory) : DataSource.Factory {
+    override fun createDataSource(): DataSource {
+        return SegmentSavingDataSource(upstreamFactory.createDataSource())
+    }
+}

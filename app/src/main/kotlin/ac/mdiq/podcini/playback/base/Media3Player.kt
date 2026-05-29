@@ -3,6 +3,7 @@ package ac.mdiq.podcini.playback.base
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.SegmentSavingDataSource
+import ac.mdiq.podcini.playback.SegmentSavingDataSourceFactory
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.activeTheatres
 import ac.mdiq.podcini.playback.base.OKHTTP.encodeCredentials
@@ -45,7 +46,6 @@ import android.content.Context
 import android.content.Intent
 import android.media.RingtoneManager
 import android.media.audiofx.LoudnessEnhancer
-import android.os.Bundle
 import android.service.quicksettings.TileService
 import androidx.core.net.toUri
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -81,7 +81,6 @@ import androidx.media3.common.Tracks
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.BaseAudioProcessor
 import androidx.media3.database.StandaloneDatabaseProvider
-import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
@@ -94,9 +93,7 @@ import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
-import androidx.media3.exoplayer.source.ForwardingTimeline
 import androidx.media3.exoplayer.source.MediaSource
-import androidx.media3.exoplayer.source.WrappingMediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.DefaultTrackNameProvider
 import androidx.media3.ui.TrackNameProvider
@@ -210,10 +207,6 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                     }
                 }
                 override fun onEvents(player: Player, events: Player.Events) {
-//                    for (i in 0 until events.size()) {
-//                        val eventCode = events.get(i)
-////                        Logd(TAG, "exoplayerListener onEvents $i $eventCode")
-//                    }
                     if (isCasting) {
                         if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) ||
                             events.contains(Player.EVENT_IS_PLAYING_CHANGED)) {
@@ -499,41 +492,17 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                 return builder.build()
             }
         }
-        val upstream = OkHttpDataSource.Factory(getOKHttpClient()).createDataSource()
-//        val cacheDataSource = CacheDataSource.Factory().setCache(getCache()).setUpstreamDataSourceFactory { upstream }.setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR).createDataSource()
-        val cacheDataSource = CacheDataSource.Factory().setCache(getCache()).setUpstreamDataSourceFactory { upstream }.createDataSource()
-        curDataSource = SegmentSavingDataSource(cacheDataSource)
-        val recordingFactory = DataSource.Factory { curDataSource!! }
-//        val recordingFactory = DataSource.Factory { cacheDataSource }
+
+        val upstreamFactory = OkHttpDataSource.Factory(getOKHttpClient())
+        val cacheDataSourceFactory = CacheDataSource.Factory()
+            .setCache(getCache())
+            .setUpstreamDataSourceFactory(upstreamFactory) // Pass the factory directly!
+            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        val recordingFactory = SegmentSavingDataSourceFactory(cacheDataSourceFactory)
         val mediaSourceFactory = DefaultMediaSourceFactory(context).setDataSourceFactory(recordingFactory)
-
-        class CustomDurationTimeline(oldTimeline: Timeline, private val correctDurationUs: Long) : ForwardingTimeline(oldTimeline) {
-            override fun getWindow(windowIndex: Int, window: Window, defaultPositionProjectionUs: Long): Window {
-                val originalWindow = super.getWindow(windowIndex, window, defaultPositionProjectionUs)
-                originalWindow.durationUs = correctDurationUs
-                return originalWindow
-            }
-        }
-
-        val customMediaSourceFactory = object : MediaSource.Factory by mediaSourceFactory {
-            override fun createMediaSource(mediaItem: MediaItem): MediaSource {
-                val baseSource = mediaSourceFactory.createMediaSource(mediaItem)
-                val trueDurationMs = mediaItem.requestMetadata.extras?.getLong("KEY_TRUE_DURATION_MS", -1L) ?: -1L
-                if (trueDurationMs > 0) {
-                    Logd(TAG, "createMediaSource trueDurationMs: $trueDurationMs")
-                    val trueDurationUs = trueDurationMs * 1000
-                    return object : WrappingMediaSource(baseSource) {
-                        override fun onChildSourceInfoRefreshed(newTimeline: Timeline) {
-                            super.onChildSourceInfoRefreshed(CustomDurationTimeline(newTimeline, trueDurationUs))
-                        }
-                    }
-                }
-                return baseSource
-            }
-        }
-
+        
         exoPlayer = ExoPlayer.Builder(context, renderersFactory)
-            .setMediaSourceFactory(customMediaSourceFactory)
+            .setMediaSourceFactory(mediaSourceFactory)
             .setLoadControl(loadControl.build())
             .setTrackSelector(trackSelector!!)
             .setSeekBackIncrementMs(rewindSecs * 1000L)
@@ -606,10 +575,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         Logd(TAG, "prepareDataSource: $mediaUrl")
         val uri = mediaUrl.toSafeUri()
         Logd(TAG, "prepareDataSource position: ${media.position} uri: $uri")
-        mediaItem = MediaItem.Builder().setUri(uri)
-            .setRequestMetadata(MediaItem.RequestMetadata.Builder().setExtras(Bundle().apply { putLong("KEY_TRUE_DURATION_MS", media.duration.toLong()) }).build())
-            .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(positionWithRewind(media.position, media.lastPlayedTime).toLong()).build())
-            .setCustomCacheKey(media.id.toString()).setMediaMetadata(metadata).build()
+        mediaItem = MediaItem.Builder().setUri(uri).setCustomCacheKey(media.id.toString()).setMediaMetadata(metadata).build()
         setSourceCredentials(user, password)
     }
 
