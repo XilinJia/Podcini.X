@@ -1,3 +1,0 @@
-* fixed wrong encoding of url when opening OnlineFeed screen
-* fixed screen mode not correctly updating in FeedDetails screen
-* ensure again archived feeds are excluded from auto-download/enqueue

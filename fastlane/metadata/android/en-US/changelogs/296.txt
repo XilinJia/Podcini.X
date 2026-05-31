@@ -1,4 +1,0 @@
-* revert media source processing to IO dispatcher
-* pause current playing immediately when skipping
-* fixed issue with skipping when casting (Play app)
-* minor code cleanup

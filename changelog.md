@@ -1,3 +1,7 @@
+# 11.2.2.8
+
+* fixed local media not playing
+
 # 11.2.2.7
 
 * corrected giving direct data source at native player creation

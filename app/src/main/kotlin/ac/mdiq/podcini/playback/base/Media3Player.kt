@@ -81,6 +81,7 @@ import androidx.media3.common.Tracks
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.BaseAudioProcessor
 import androidx.media3.database.StandaloneDatabaseProvider
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
@@ -493,7 +494,9 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             }
         }
 
-        val upstreamFactory = OkHttpDataSource.Factory(getOKHttpClient())
+//        val upstreamFactory = OkHttpDataSource.Factory(getOKHttpClient())
+        val baseHttpDataSourceFactory = OkHttpDataSource.Factory(getOKHttpClient())
+        val upstreamFactory = DefaultDataSource.Factory(context, baseHttpDataSourceFactory)
         val cacheDataSourceFactory = CacheDataSource.Factory()
             .setCache(getCache())
             .setUpstreamDataSourceFactory(upstreamFactory) // Pass the factory directly!
