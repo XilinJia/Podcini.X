@@ -1,3 +1,7 @@
+# 11.2.2.8-1
+
+* skip appPrefs migration when the DB has not such schema, work around updating from 10.9.3 in f-droid
+
 # 11.2.2.8
 
 * fixed local media not playing
