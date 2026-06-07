@@ -42,7 +42,6 @@ import io.github.xilinjia.krdb.notifications.UpdatedObject
 import io.github.xilinjia.krdb.types.EmbeddedRealmObject
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.TypedRealmObject
-import kotlinx.atomicfu.updateAndGet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -185,22 +184,24 @@ val config: RealmConfiguration by lazy {
             }
             if (oldRealm.schemaVersion() < 127) {
                 Log.d(TAG, "migrating DB from below 127")
-                val prefsOld = oldRealm.query("AppPrefs").first().find()
-                val prefsNew = newRealm.query("AppPrefs").first().find()
-                if (prefsOld != null && prefsNew != null) {
-                    val speedStr = try { prefsOld.getValue<String>("playbackSpeed") } catch (e: Exception) { "1.0" }
-                    val speed = try { speedStr.toFloat() } catch (e: NumberFormatException) { 1.0 }
-                    prefsNew.set("playbackSpeed", speed)
-                    val speedFBStr = try { prefsOld.getValue<String>("fallbackSpeed") } catch (e: Exception) { "0.0" }
-                    val speedFB = try { speedFBStr.toFloat() } catch (e: NumberFormatException) { 0.0 }
-                    prefsNew.set("fallbackSpeed", speedFB)
-                    val speedFWStr = try { prefsOld.getValue<String>("speedforwardSpeed") } catch (e: Exception) { "0.0" }
-                    val speedFW = try { speedFWStr.toFloat() } catch (e: NumberFormatException) { 0.0 }
-                    prefsNew.set("speedforwardSpeed", speedFW)
-                    val speedSFStr = try { prefsOld.getValue<String>("skipforwardSpeed") } catch (e: Exception) { "0.0" }
-                    val speedSF = try { speedSFStr.toFloat() } catch (e: NumberFormatException) { 0.0 }
-                    prefsNew.set("skipforwardSpeed", speedSF)
-                }
+                try {
+                    val prefsOld = oldRealm.query("AppPrefs").first().find()
+                    val prefsNew = newRealm.query("AppPrefs").first().find()
+                    if (prefsOld != null && prefsNew != null) {
+                        val speedStr = try { prefsOld.getValue<String>("playbackSpeed") } catch (e: Exception) { "1.0" }
+                        val speed = try { speedStr.toFloat() } catch (e: NumberFormatException) { 1.0 }
+                        prefsNew.set("playbackSpeed", speed)
+                        val speedFBStr = try { prefsOld.getValue<String>("fallbackSpeed") } catch (e: Exception) { "0.0" }
+                        val speedFB = try { speedFBStr.toFloat() } catch (e: NumberFormatException) { 0.0 }
+                        prefsNew.set("fallbackSpeed", speedFB)
+                        val speedFWStr = try { prefsOld.getValue<String>("speedforwardSpeed") } catch (e: Exception) { "0.0" }
+                        val speedFW = try { speedFWStr.toFloat() } catch (e: NumberFormatException) { 0.0 }
+                        prefsNew.set("speedforwardSpeed", speedFW)
+                        val speedSFStr = try { prefsOld.getValue<String>("skipforwardSpeed") } catch (e: Exception) { "0.0" }
+                        val speedSF = try { speedSFStr.toFloat() } catch (e: NumberFormatException) { 0.0 }
+                        prefsNew.set("skipforwardSpeed", speedSF)
+                    }
+                } catch (e: Exception) { Log.d(TAG, "migrating DB from below 127 not performed")}
             }
             if (oldRealm.schemaVersion() < 129) {
                 Log.d(TAG, "migrating DB from below 129")
